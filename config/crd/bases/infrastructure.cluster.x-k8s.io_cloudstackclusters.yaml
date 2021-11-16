@@ -1,0 +1,111 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: cloudstackclusters.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    kind: CloudStackCluster
+    listKind: CloudStackClusterList
+    plural: cloudstackclusters
+    singular: cloudstackcluster
+  scope: Namespaced
+  versions:
+  - name: v1alpha4
+    schema:
+      openAPIV3Schema:
+        description: CloudStackCluster is the Schema for the cloudstackclusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CloudStackClusterSpec defines the desired state of CloudStackCluster.
+            properties:
+              controlPlaneEndpoint:
+                description: The kubernetes control plane endpoint.
+                properties:
+                  host:
+                    description: The hostname on which the API server is serving.
+                    type: string
+                  port:
+                    description: The port on which the API server is serving.
+                    format: int32
+                    type: integer
+                required:
+                - host
+                - port
+                type: object
+              identityRef:
+                description: CloudStackIdentityReference is a reference to an infrastructure
+                  provider identity to be used to provision cluster resources.
+                properties:
+                  kind:
+                    description: Kind of the identity. Must be supported by the infrastructure
+                      provider and may be either cluster or namespace-scoped.
+                    minLength: 1
+                    type: string
+                  name:
+                    description: Name of the infrastructure identity to be used.
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              network:
+                description: CloudStack guest network name.
+                type: string
+              zone:
+                description: CloudStack Zone name.
+                type: string
+            required:
+            - controlPlaneEndpoint
+            - zone
+            type: object
+          status:
+            description: The actual cluster state reported by CloudStack.
+            properties:
+              loadBalancerRuleID:
+                description: The ID of the lb rule used to assign VMs to the lb.
+                type: string
+              networkID:
+                description: Cloudstack Network ID the cluster is built in.
+                type: string
+              publicIPID:
+                description: The CS public IP ID to use for the k8s endpoint.
+                type: string
+              ready:
+                description: Reflects the readiness of the CS cluster.
+                type: boolean
+              zoneID:
+                description: The CS zone ID the cluster is built in.
+                type: string
+            required:
+            - ready
+            - zoneID
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

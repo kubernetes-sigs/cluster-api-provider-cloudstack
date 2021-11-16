@@ -1,0 +1,33 @@
+domain: cluster.x-k8s.io
+layout:
+- go.kubebuilder.io/v3
+projectName: cluster-api-provider-capc
+repo: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: CloudStackCluster
+  path: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4
+  version: v1alpha4
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: CloudStackMachine
+  path: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4
+  version: v1alpha4
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: CloudStackMachineTemplate
+  path: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4
+  version: v1alpha4
+version: "3"
