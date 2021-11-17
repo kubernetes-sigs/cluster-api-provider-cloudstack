@@ -69,6 +69,20 @@ docker-build: test ## Build docker image with the manager.
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
+##@ Linting
+
+GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint
+golangci-lint: ## Download golangci-lint locally
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell pwd)/bin v1.43.0
+	$(GOLANGCI_LINT) --version
+
+lint: golangci-lint
+	$(GOLANGCI_LINT) run
+
+##@ Target
+
+target: lint test build
+
 ##@ Deployment
 
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
@@ -83,7 +97,6 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
-
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
