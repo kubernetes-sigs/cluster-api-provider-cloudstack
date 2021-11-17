@@ -78,10 +78,6 @@ golangci-lint:
 lint: golangci-lint
 	$(GOLANGCI_LINT) --enable gosec run ./...
 
-##@ Target
-
-target: lint build
-
 ##@ Deployment
 
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
