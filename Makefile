@@ -71,17 +71,16 @@ docker-push: ## Push docker image with the manager.
 
 ##@ Linting
 
-GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint
-golangci-lint: ## Download golangci-lint locally
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell pwd)/bin v1.43.0
-	$(GOLANGCI_LINT) --version
+GOLANGCI_LINT = $(HOME)/go/bin/golangci-lint
+golangci-lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
 
 lint: golangci-lint
-	$(GOLANGCI_LINT) run
+	$(GOLANGCI_LINT) --enable gosec run ./...
 
 ##@ Target
 
-target: lint test build
+target: lint build
 
 ##@ Deployment
 
