@@ -21,12 +21,6 @@ func readAPIConfig() (string, string, string) {
 	return g.Key("api-url").Value(), g.Key("api-key").Value(), g.Key("secret-key").Value()
 }
 
-func check(err error) {
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 type set func(string)
 
 func setIfNotEmpty(str string, setFn set) {

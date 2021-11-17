@@ -28,7 +28,7 @@ func FetchVMInstance(cs *cloudstack.CloudStackClient, csMachine *infrav1.CloudSt
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			return err
 		} else if count > 1 {
-			return errors.New(fmt.Sprintf("Found more than one VM Instance with ID %s.", *csMachine.Spec.InstanceID))
+			return fmt.Errorf("Found more than one VM Instance with ID %s.", *csMachine.Spec.InstanceID)
 		} else if err == nil {
 			setMachineDataFromVMMetrics(vmResp, csMachine)
 			return nil
@@ -41,7 +41,7 @@ func FetchVMInstance(cs *cloudstack.CloudStackClient, csMachine *infrav1.CloudSt
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			return err
 		} else if count > 1 {
-			return errors.New(fmt.Sprintf("Found more than one VM Instance with name %s.", csMachine.Name))
+			return fmt.Errorf("Found more than one VM Instance with name %s.", csMachine.Name)
 		} else if err == nil {
 			setMachineDataFromVMMetrics(vmResp, csMachine)
 			return nil
@@ -67,8 +67,8 @@ func CreateVMInstance(
 	if err != nil {
 		return err
 	} else if count != 1 {
-		return errors.New(fmt.Sprintf(
-			"Did not find exactly one machine offering with the name %s", csMachine.Spec.Offering))
+		return fmt.Errorf(
+			"Did not find exactly one machine offering with the name %s", csMachine.Spec.Offering)
 	}
 
 	// Get template ID from name.
@@ -76,8 +76,8 @@ func CreateVMInstance(
 	if err != nil {
 		return err
 	} else if count != 1 {
-		return errors.New(fmt.Sprintf(
-			"Did not find exactly one template with the name %s", csMachine.Spec.Template))
+		return fmt.Errorf(
+			"Did not find exactly one template with the name %s", csMachine.Spec.Template)
 	}
 
 	// Create VM instance.
