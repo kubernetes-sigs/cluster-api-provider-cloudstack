@@ -21,8 +21,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
-const defaultIdentityRefKind = "Secret"
-
 const (
 	// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
 	ClusterFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
