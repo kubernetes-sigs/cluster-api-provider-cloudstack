@@ -119,7 +119,7 @@ func (r *CloudStackClusterReconciler) reconcile(
 	controllerutil.AddFinalizer(csCluster, infrav1.ClusterFinalizer)
 
 	// Fetch cluster info -- sets cluster to ready if no errors in fetch.
-	err := cloud.FetchClusterInfo(r.CS, csCluster)
+	err := cloud.CreateCluster(r.CS, csCluster)
 	if err == nil {
 		log.Info("Fetched cluster info successfully.", "clusterSpec", csCluster.Spec, "clusterStatus", csCluster.Status)
 	}
