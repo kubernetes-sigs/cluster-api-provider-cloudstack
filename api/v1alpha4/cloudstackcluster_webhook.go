@@ -43,7 +43,7 @@ var _ webhook.Defaulter = &CloudStackCluster{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CloudStackCluster) Default() {
 	cloudstackclusterlog.Info("default", "name", r.Name)
-	// No mutations defined yet.
+	// No defaulted values supported yet.
 }
 
 //+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1alpha4-cloudstackcluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1alpha4,name=vcloudstackcluster.kb.io,admissionReviewVersions=v1
@@ -82,7 +82,7 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 
 	oldCluster, ok := old.(*CloudStackCluster)
 	if !ok {
-		return errors.NewBadRequest(fmt.Sprintf("expected an CloudStackCluster but got a %T", old))
+		return errors.NewBadRequest(fmt.Sprintf("expected a CloudStackCluster but got a %T", old))
 	}
 	oldSpec := oldCluster.Spec
 

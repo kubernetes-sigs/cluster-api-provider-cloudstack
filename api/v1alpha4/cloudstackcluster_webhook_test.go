@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("CloudStackCluster controller", func() {
+var _ = Describe("CloudStackCluster webhooks", func() {
 	Context("When creating a CloudStackCluster with all validated attributes", func() {
 		It("Should succeed", func() {
 			ctx := context.Background()
