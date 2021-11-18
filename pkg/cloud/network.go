@@ -16,147 +16,139 @@ limitations under the License.
 
 package cloud
 
-// type Network struct {
-// 	Cluster          *infrav1.CloudStackCluster
-// 	CAPINetwork      *infrav1.CloudStackNetwork
-// 	PublicIP         *cloudstack.PublicIpAddress
-// 	LoadBalancerRule *cloudstack.LoadBalancerRule
-// }
+import (
+	"errors"
+	"strconv"
+	"strings"
 
-// func (N *Network) LBRuleFromLBRuleResponse(lbR *cloudstack.CreateLoadBalancerRuleResponse) {
-// 	*N.LoadBalancerRule = cloudstack.LoadBalancerRule{
-// 		Account:     lbR.Account,
-// 		Algorithm:   lbR.Algorithm,
-// 		Cidrlist:    lbR.Cidrlist,
-// 		Description: lbR.Description,
-// 		Domain:      lbR.Domain,
-// 		Domainid:    lbR.Domainid,
-// 		Fordisplay:  lbR.Fordisplay,
-// 		Id:          lbR.Id,
-// 		JobID:       lbR.JobID,
-// 		Jobstatus:   lbR.Jobstatus,
-// 		Name:        lbR.Name,
-// 		Networkid:   lbR.Networkid,
-// 		Privateport: lbR.Privateport,
-// 		Project:     lbR.Project,
-// 		Projectid:   lbR.Projectid,
-// 		Protocol:    lbR.Protocol,
-// 		Publicip:    lbR.Publicip,
-// 		Publicipid:  lbR.Publicipid,
-// 		Publicport:  lbR.Publicport,
-// 		State:       lbR.State,
-// 		Tags:        lbR.Tags,
-// 		Zoneid:      lbR.Zoneid,
-// 		Zonename:    lbR.Zonename,
-// 	}
-// }
+	"github.com/apache/cloudstack-go/v2/cloudstack"
+	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
+)
 
-// func (N *Network) Fetch(cs *cloudstack.CloudStackClient) error {
-// 	network, count, err := cs.Network.GetNetworkByName(N.CAPINetwork.Spec.Name)
-// 	if err != nil {
-// 		return err
-// 	} else if count != 1 {
-// 		return errors.New("did not find network")
-// 	}
+const NETOFFERING = "DefaultIsolatedNetworkOfferingWithSourceNatService"
 
-// 	N.CAPINetwork.Status.FromCSNetwork(network)
-// 	return nil
-// }
+func FetchNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	// Get NetworkID.
+	csCluster.Status.NetworkID, _, retErr = cs.Network.GetNetworkID(csCluster.Spec.Network)
+	if retErr != nil {
+		return retErr
+	}
+	return
+}
 
-// func (N *Network) Create(cs *cloudstack.CloudStackClient) error {
-// 	if err := N.Fetch(cs); err != nil {
-// 		return err
-// 	}
+func CreateNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	if retErr = FetchNetwork(cs, csCluster); retErr == nil { // Found network.
+		return nil
+	} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
+		return retErr
+	} // Network not found. Create it.
 
-// 	offeringId, count, err := cs.NetworkOffering.GetNetworkOfferingID("DefaultIsolatedNetworkOfferringWithSourceNatService")
-// 	if err != nil {
-// 		return err
-// 	} else if count != 1 {
-// 		return errors.New("found more than one network offering.")
-// 	}
-// 	p := cs.Network.NewCreateNetworkParams(N.CAPINetwork.Spec.Name, N.CAPINetwork.Spec.Name, offeringId, N.Cluster.Status.Zoneid)
-// 	network, err := cs.Network.CreateNetwork(p)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	N.CAPINetwork.Status.FromCSCreateNetworkRespone(network)
+	// Create network since it wasn't found.
+	offeringId, count, retErr := cs.NetworkOffering.GetNetworkOfferingID(NETOFFERING)
+	if retErr != nil {
+		return retErr
+	} else if count != 1 {
+		return errors.New("found more than one network offering.")
+	}
+	p := cs.Network.NewCreateNetworkParams(
+		csCluster.Spec.Network,
+		csCluster.Spec.Network,
+		offeringId,
+		csCluster.Status.ZoneID)
+	resp, err := cs.Network.CreateNetwork(p)
+	if err != nil {
+		return err
+	}
+	csCluster.Status.NetworkID = resp.Id
 
-// 	return nil
-// }
+	return nil
+}
 
-// func (N *Network) FetchPublicIP(cs *cloudstack.CloudStackClient) error {
-// 	p := cs.Address.NewListPublicIpAddressesParams()
-// 	// setIfNotEmpty(ipAddr, p.SetIpaddress)
-// 	publicAddresses, err := cs.Address.ListPublicIpAddresses(p)
-// 	if err != nil {
-// 		return err
-// 	} else if publicAddresses.Count > 0 {
-// 		N.PublicIP = publicAddresses.PublicIpAddresses[0]
-// 	} else {
-// 		return errors.New("no public addresses found")
-// 	}
-// 	return nil
-// }
+func FetchPublicIP(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	p := cs.Address.NewListPublicIpAddressesParams()
+	setIfNotEmpty(csCluster.Spec.ControlPlaneEndpoint.Host, p.SetIpaddress)
+	publicAddresses, err := cs.Address.ListPublicIpAddresses(p)
+	if err != nil {
+		return err
+	} else if publicAddresses.Count > 0 {
+		csCluster.Spec.ControlPlaneEndpoint.Host = publicAddresses.PublicIpAddresses[0].Ipaddress
+		csCluster.Status.PublicIPID = publicAddresses.PublicIpAddresses[0].Id
+	} else {
+		return errors.New("no public addresses found")
+	}
+	return nil
+}
 
-// // Gets a PublicIP and associates it.
-// func (N *Network) AssociatePublicIpAddress(cs *cloudstack.CloudStackClient) error {
-// 	if err := N.FetchPublicIP(cs); err != nil {
-// 		return err
-// 	}
-// 	p := cs.Address.NewAssociateIpAddressParams()
-// 	p.SetIpaddress(N.PublicIP.Ipaddress)
-// 	p.SetNetworkid(N.PublicIP.Networkid)
-// 	if _, err := cs.Address.AssociateIpAddress(p); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+// Gets a PublicIP and associates it.
+func AssociatePublicIpAddress(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	if err := FetchPublicIP(cs, csCluster); err != nil {
+		return err
+	}
+	p := cs.Address.NewAssociateIpAddressParams()
+	p.SetNetworkid(csCluster.Status.NetworkID)
+	if _, err := cs.Address.AssociateIpAddress(p); err != nil {
+		return err
+	}
+	return nil
+}
 
-// func (N *Network) OpenFirewallRules(cs *cloudstack.CloudStackClient) error {
-// 	params := cs.Firewall.NewCreateEgressFirewallRuleParams(N.CAPINetwork.Status.Id, "tcp")
-// 	_, err := cs.Firewall.CreateEgressFirewallRule(params)
-// 	return err
-// }
+func OpenFirewallRules(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	p := cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, "tcp")
+	_, retErr = cs.Firewall.CreateEgressFirewallRule(p)
+	if strings.Contains(retErr.Error(), "There is already") {
+		retErr = nil
+	}
+	return retErr
+}
 
-// func (N *Network) FetchLoadBalancerRule(cs *cloudstack.CloudStackClient) error {
-// 	port := 6443
-// 	p := cs.LoadBalancer.NewListLoadBalancerRulesParams()
-// 	p.SetPublicipid(N.CAPINetwork.Status.Id)
-// 	loadBalancerRules, err := cs.LoadBalancer.ListLoadBalancerRules(p)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	for _, rule := range loadBalancerRules.LoadBalancerRules {
-// 		if rule.Publicport == strconv.Itoa(port) {
-// 			N.LoadBalancerRule = rule
-// 			return nil
-// 		}
-// 	}
-// 	return errors.New("no load balancer rule found")
-// }
+func FetchLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	// TODO make port configurable.
+	port := 6443
+	p := cs.LoadBalancer.NewListLoadBalancerRulesParams()
+	p.SetPublicipid(csCluster.Status.PublicIPID)
+	loadBalancerRules, err := cs.LoadBalancer.ListLoadBalancerRules(p)
+	if err != nil {
+		return err
+	}
+	for _, rule := range loadBalancerRules.LoadBalancerRules {
+		if rule.Publicport == strconv.Itoa(port) {
+			csCluster.Status.LBRuleID = rule.Id
+			return nil
+		}
+	}
+	return errors.New("no load balancer rule found")
+}
 
-// // Create a load balancer rule that can be assigned to instances.
-// func (N *Network) CreateLoadBalancerRule(cs *cloudstack.CloudStackClient) error {
-// 	port := 6443
-// 	// Check if rule exists.
-// 	if err := N.FetchLoadBalancerRule(cs); err == nil || !strings.Contains(err.Error(), "no load balancer rule found") {
-// 		return err
-// 	}
+// Create a load balancer rule that can be assigned to instances.
+func CreateLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	port := 6443
+	// Check if rule exists.
+	if err := FetchLoadBalancerRule(cs, csCluster); err == nil || !strings.Contains(err.Error(), "no load balancer rule found") {
+		return err
+	}
 
-// 	p := cs.LoadBalancer.NewCreateLoadBalancerRuleParams("roundrobin", "Kubernetes_API_Server", port, port)
-// 	p.SetPublicipid(N.PublicIP.Id)
-// 	p.SetProtocol("tcp")
-// 	creationResp, err := cs.LoadBalancer.CreateLoadBalancerRule(p)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	N.LBRuleFromLBRuleResponse(creationResp)
-// 	return nil
-// }
+	p := cs.LoadBalancer.NewCreateLoadBalancerRuleParams("roundrobin", "Kubernetes_API_Server", port, port)
+	p.SetPublicipid(csCluster.Status.PublicIPID)
+	p.SetProtocol("tcp")
+	resp, err := cs.LoadBalancer.CreateLoadBalancerRule(p)
+	if err != nil {
+		return err
+	}
+	csCluster.Status.LBRuleID = resp.Id
+	return nil
+}
 
-// func (N *Network) AssignVMToLoadBalancerRule(cs *cloudstack.CloudStackClient, instanceId string) error {
-// 	p := cs.LoadBalancer.NewAssignToLoadBalancerRuleParams(N.LoadBalancerRule.Id)
-// 	p.SetVirtualmachineids([]string{instanceId})
-// 	_, err := cs.LoadBalancer.AssignToLoadBalancerRule(p)
-// 	return err
-// }
+func DestroyNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	cs.Network.DeleteNetwork(cs.Network.NewDeleteNetworkParams(csCluster.Status.NetworkID))
+	return retErr
+}
+
+func AssignVMToLoadBalancerRule(
+	cs *cloudstack.CloudStackClient,
+	csCluster *infrav1.CloudStackCluster,
+	instanceId string) (retErr error) {
+	p := cs.LoadBalancer.NewAssignToLoadBalancerRuleParams(csCluster.Status.LBRuleID)
+	p.SetVirtualmachineids([]string{instanceId})
+	_, retErr = cs.LoadBalancer.AssignToLoadBalancerRule(p)
+	return retErr
+}

@@ -21,12 +21,15 @@ import (
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 )
 
-func FetchClusterInfo(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	csCluster.Status.ZoneID, _, retErr = cs.Zone.GetZoneID(csCluster.Spec.Zone)
-	if retErr != nil {
+func CreateCluster(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	if retErr = FetchClusterInfo(cs, csCluster); retErr != nil {
 		return retErr
 	}
-	csCluster.Status.NetworkID, _, retErr = cs.Network.GetNetworkID(csCluster.Spec.Network)
+	return CreateNetwork(cs, csCluster)
+}
+
+func FetchClusterInfo(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	csCluster.Status.ZoneID, _, retErr = cs.Zone.GetZoneID(csCluster.Spec.Zone)
 	if retErr != nil {
 		return retErr
 	}
