@@ -17,7 +17,11 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"fmt"
+	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/webhook_utilities"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -32,8 +36,6 @@ func (r *CloudStackCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
 //+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha4-cloudstackcluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1alpha4,name=mcloudstackcluster.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &CloudStackCluster{}
@@ -41,11 +43,9 @@ var _ webhook.Defaulter = &CloudStackCluster{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CloudStackCluster) Default() {
 	cloudstackclusterlog.Info("default", "name", r.Name)
-
-	// TODO(user): fill in your defaulting logic.
+	// No mutations defined yet.
 }
 
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1alpha4-cloudstackcluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1alpha4,name=vcloudstackcluster.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &CloudStackCluster{}
@@ -54,22 +54,55 @@ var _ webhook.Validator = &CloudStackCluster{}
 func (r *CloudStackCluster) ValidateCreate() error {
 	cloudstackclusterlog.Info("validate create", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object creation.
-	return nil
+	var (
+		errorList field.ErrorList
+		spec      = r.Spec
+	)
+
+	// IdentityRefs must be Secrets.
+	if spec.IdentityRef != nil && spec.IdentityRef.Kind != defaultIdentityRefKind {
+		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
+	}
+
+	// Zone and Network are required fields
+	errorList = webhook_utilities.EnsureFieldExists(spec.Zone, "Zone", errorList)
+	errorList = webhook_utilities.EnsureFieldExists(spec.Network, "Network", errorList)
+
+	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	cloudstackclusterlog.Info("validate update", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
-	return nil
+	var (
+		errorList field.ErrorList
+		spec      = r.Spec
+	)
+
+	oldCluster, ok := old.(*CloudStackCluster)
+	if !ok {
+		return errors.NewBadRequest(fmt.Sprintf("expected an CloudStackCluster but got a %T", old))
+	}
+	oldSpec := oldCluster.Spec
+
+	// IdentityRefs must be Secrets.
+	if spec.IdentityRef != nil && spec.IdentityRef.Kind != defaultIdentityRefKind {
+		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
+	}
+
+	// No spec fields may be changed
+	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.Zone, oldSpec.Zone, "zone", errorList)
+	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.Network, oldSpec.Network, "network", errorList)
+	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
+	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
+
+	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackCluster) ValidateDelete() error {
 	cloudstackclusterlog.Info("validate delete", "name", r.Name)
-
-	// TODO(user): fill in your validation logic upon object deletion.
+	// No deletion validations.  Deletion webhook not enabled.
 	return nil
 }
