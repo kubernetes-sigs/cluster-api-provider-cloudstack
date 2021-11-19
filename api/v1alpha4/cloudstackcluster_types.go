@@ -23,7 +23,8 @@ import (
 
 const (
 	// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
-	ClusterFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
+	ClusterFinalizer       = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
+	defaultIdentityRefKind = "Secret"
 )
 
 // CloudStackIdentityReference is a reference to an infrastructure
