@@ -127,6 +127,18 @@ func main() {
 	}
 
 	// Start the controller manager.
+	if err = (&infrastructurev1alpha4.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackCluster")
+		os.Exit(1)
+	}
+	if err = (&infrastructurev1alpha4.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachine")
+		os.Exit(1)
+	}
+	if err = (&infrastructurev1alpha4.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachineTemplate")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 	setupLog.Info("starting controller manager")
 	if err := mgr.Start(ctx); err != nil {

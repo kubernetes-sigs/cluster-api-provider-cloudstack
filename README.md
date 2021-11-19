@@ -14,6 +14,9 @@ This project is licensed under the Apache-2.0 License.
 
 To run a particular test. In this case TestCreateInstance2.
 
+Integration tests use Controller Runtime EnvTest.  Your testing environment must be pre-configured with several EnvTest 
+git dependencies.  See https://book.kubebuilder.io/reference/envtest.html?highlight=etcd#configuring-envtest-for-integration-tests
+
 - export PROJECT_DIR=`pwd`
 
 - copy cloud-config to project dir.
