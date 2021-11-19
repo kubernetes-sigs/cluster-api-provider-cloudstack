@@ -19,9 +19,9 @@ package main
 import (
 	"flag"
 	"os"
+	"path"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	"gopkg.in/ini.v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,6 +36,7 @@ import (
 	infrastructurev1alpha4 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/controllers"
+	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -50,17 +51,6 @@ func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(infrastructurev1alpha4.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
-}
-
-// Simple CloudStack API config reader. Works for now.
-func readAPIConfig() (string, string, string) {
-	cfg, err := ini.Load("/config/cloud-config")
-	if err != nil {
-		setupLog.Error(err, "could not read cloud-config")
-		os.Exit(1)
-	}
-	g := cfg.Section("Global")
-	return g.Key("api-url").Value(), g.Key("api-key").Value(), g.Key("secret-key").Value()
 }
 
 func main() {
@@ -80,7 +70,14 @@ func main() {
 
 	// Setup CloudStack api client.
 	// TODO: turn on ssl verification in production.
-	apiUrl, apiKey, secretKey := readAPIConfig()
+	dir := os.Getenv("PROJECT_DIR")
+	filepath := path.Join(dir, "cloud-config")
+	apiUrl, apiKey, secretKey, err := cloud.ReadAPIConfig(filepath)
+	if err != nil {
+		setupLog.Error(err, "Unable to get cloud provider configuration at "+filepath)
+		os.Exit(1)
+	}
+
 	cs := cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
 
 	// Create the controller manager.

@@ -17,15 +17,9 @@ limitations under the License.
 package cloud
 
 import (
-	"github.com/apache/cloudstack-go/v2/cloudstack"
 	_ "github.com/golang/mock/gomock"
 	_ "github.com/onsi/gomega"
 )
-
-func newCSClient() *cloudstack.CloudStackClient {
-	apiUrl, apiKey, secretKey := readAPIConfig()
-	return cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
-}
 
 // // From start to finish this test takes a while as it actually instantiates and destroys a VM instance.
 // func TestCreateInstance(t *testing.T) {
