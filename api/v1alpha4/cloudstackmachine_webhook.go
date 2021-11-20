@@ -88,8 +88,10 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.Offering, oldSpec.Offering, "offering", errorList)
 	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
 	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.Template, oldSpec.Template, "template", errorList)
-	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
-	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
+	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
+		errorList = webhook_utilities.EnsureFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
+		errorList = webhook_utilities.EnsureFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
+	}
 
 	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
