@@ -8,17 +8,17 @@ commonLabels:
 resources:
 - bases/infrastructure.cluster.x-k8s.io_cloudstackclusters.yaml
 - bases/infrastructure.cluster.x-k8s.io_cloudstackmachines.yaml
-- bases/infrastructure.cluster.x-k8s.io_cloudstackclustertemplates.yaml
+#- bases/infrastructure.cluster.x-k8s.io_cloudstackclustertemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_cloudstackmachinetemplates.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
-- patches/webhook_in_cloudstackclusters.yaml
-- patches/webhook_in_cloudstackmachines.yaml
+#- patches/webhook_in_cloudstackclusters.yaml
+#- patches/webhook_in_cloudstackmachines.yaml
 #- patches/webhook_in_cloudstackclustertemplates.yaml
-- patches/webhook_in_cloudstackmachinetemplates.yaml
+#- patches/webhook_in_cloudstackmachinetemplates.yaml
 #+kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
