@@ -63,7 +63,7 @@ type CloudStackMachineStatus struct {
 
 	// InstanceState is the state of the CloudStack instance for this machine.
 	// +optional
-	InstanceState *InstanceState `json:"instanceState,omitempty"`
+	InstanceState InstanceState `json:"instanceState,omitempty"`
 
 	// Ready indicates the readiness of the provider resource.
 	Ready bool `json:"ready"`
