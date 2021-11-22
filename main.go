@@ -76,7 +76,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// TODO: attempt a less clunky client liveliness check (not just listing zones).
 	cs := cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
+	_, err = cs.Zone.ListZones(cs.Zone.NewListZonesParams())
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+	setupLog.Info("CloudStack client initialized.")
 
 	// Create the controller manager.
 	mgr, err := ctrl.NewManager(config.GetConfigOrDie(), ctrl.Options{
