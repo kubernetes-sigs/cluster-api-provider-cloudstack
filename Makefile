@@ -70,7 +70,6 @@ docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
 ##@ Linting
-
 GOLANGCI_LINT = $(HOME)/go/bin/golangci-lint
 golangci-lint:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
