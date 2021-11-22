@@ -83,13 +83,6 @@ func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return reconcile.Result{}, nil
 	}
 
-	// List VMs.
-	vmInstances, retErr := r.clusterVMInstances(ctx, cluster, csCluster)
-	if retErr != nil {
-		return ctrl.Result{}, retErr
-	}
-	log.Info("Cluster instances", "instances", vmInstances)
-
 	// Setup patcher. This ensures modifications to the csCluster copy fetched above are patched into the origin.
 	if patchHelper, retErr := patch.NewHelper(csCluster, r.Client); retErr != nil {
 		return ctrl.Result{}, retErr
@@ -133,15 +126,10 @@ func (r *CloudStackClusterReconciler) reconcileDelete(
 
 	log.Info("Deleting cluster...")
 
-	defer func() { // Don't remove finalizer if Cluster destroy returned an error.
-		if retErr == nil {
-			controllerutil.RemoveFinalizer(csCluster, infrav1.ClusterFinalizer)
-		}
-	}()
-
 	// TODO Decide what resources to remove w/Cluster if any.
 	// cloud.DestroyCluster(r.CS, csStackCluster)
 
+	controllerutil.RemoveFinalizer(csCluster, infrav1.ClusterFinalizer)
 	return ctrl.Result{}, nil
 }
 
