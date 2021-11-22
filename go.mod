@@ -3,7 +3,7 @@ module gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc
 go 1.17
 
 require (
-	github.com/apache/cloudstack-go/v2 v2.10.1-0.20211001100122-6ea480bcb875
+	github.com/apache/cloudstack-go/v2 v2.11.1-0.20211020121644-369057554f66
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo v1.16.4
