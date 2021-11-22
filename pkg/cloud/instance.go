@@ -33,6 +33,7 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 	csMachine.Spec.ProviderID = pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
 	csMachine.Spec.InstanceID = pointer.StringPtr(vmResponse.Id)
 	csMachine.Status.Addresses = []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vmResponse.Ipaddress}}
+	csMachine.Status.InstanceState = infrav1.InstanceState(vmResponse.State)
 }
 
 // Fetch retrieves a VM instance by csMachine.Spec.InstanceID or csMachine.Name, and
