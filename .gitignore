@@ -10,8 +10,8 @@ testbin/*
 .tiltbuild
 *log
 
-# Keep the output directory. Will use for template filling.
-!out/.gitkeep
+out
+.build
 
 # Test binary, build with `go test -c`
 *.test

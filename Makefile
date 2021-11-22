@@ -16,7 +16,7 @@ endif
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
-
+VERSION ?= $(shell cat clusterctl-settings.json | jq .config.nextVersion -r)
 
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= ./config
@@ -70,8 +70,6 @@ dev-manifests:
 manifests: kustomize $(MANIFEST_DIR) $(BUILD_DIR) $(KUSTOMIZE)
 	rm -rf $(BUILD_DIR)/config
 	cp -R config $(BUILD_DIR)
-#	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' $(BUILD_DIR)/config/manager/manager_pull_policy.yaml
-#	sed -i'' -e 's@image: .*@image: '"$(IMAGE)"'@' $(BUILD_DIR)/config/manager/manager_image_patch.yaml
 	"$(KUSTOMIZE)" build $(BUILD_DIR)/config/default > $(MANIFEST_DIR)/infrastructure-components.yaml
 
 
