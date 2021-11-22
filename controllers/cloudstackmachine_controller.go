@@ -153,7 +153,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 		log.Info("Machine instance is Running...")
 		csMachine.Status.Ready = true
 	} else {
-		log.Info(fmt.Sprintf("Instance not ready, is %s", csMachine.Status.InstanceState))
+		log.Info(fmt.Sprintf("Instance not ready, is %s.", csMachine.Status.InstanceState))
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 

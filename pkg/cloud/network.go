@@ -166,9 +166,23 @@ func DestroyNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudSta
 func AssignVMToLoadBalancerRule(
 	cs *cloudstack.CloudStackClient,
 	csCluster *infrav1.CloudStackCluster,
-	instanceId string) (retErr error) {
+	instanceID string) (retErr error) {
+
+	// Check that the instance isn't already in LB rotation.
+	lbRuleInstances, retErr := cs.LoadBalancer.ListLoadBalancerRuleInstances(
+		cs.LoadBalancer.NewListLoadBalancerRuleInstancesParams(csCluster.Status.LBRuleID))
+	if retErr != nil {
+		return retErr
+	}
+	for _, instance := range lbRuleInstances.LoadBalancerRuleInstances {
+		if instance.Id == instanceID { // Already assigned to load balancer..
+			return nil
+		}
+	}
+
+	// Assign to Load Balancer.
 	p := cs.LoadBalancer.NewAssignToLoadBalancerRuleParams(csCluster.Status.LBRuleID)
-	p.SetVirtualmachineids([]string{instanceId})
+	p.SetVirtualmachineids([]string{instanceID})
 	_, retErr = cs.LoadBalancer.AssignToLoadBalancerRule(p)
 	return retErr
 }
