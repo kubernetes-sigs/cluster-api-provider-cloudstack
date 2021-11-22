@@ -13,6 +13,10 @@ resources:
   kind: CloudStackCluster
   path: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4
   version: v1alpha4
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
@@ -22,6 +26,10 @@ resources:
   kind: CloudStackMachine
   path: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4
   version: v1alpha4
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
@@ -30,4 +38,8 @@ resources:
   kind: CloudStackMachineTemplate
   path: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4
   version: v1alpha4
+  webhooks:
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 version: "3"
