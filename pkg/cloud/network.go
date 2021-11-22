@@ -18,6 +18,7 @@ package cloud
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -66,7 +67,10 @@ func CreateNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStac
 
 func FetchPublicIP(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
 	p := cs.Address.NewListPublicIpAddressesParams()
-	setIfNotEmpty(csCluster.Spec.ControlPlaneEndpoint.Host, p.SetIpaddress)
+	p.SetAllocatedonly(false)
+	if ip := csCluster.Spec.ControlPlaneEndpoint.Host; ip != "" {
+		p.SetIpaddress(ip)
+	}
 	publicAddresses, err := cs.Address.ListPublicIpAddresses(p)
 	if err != nil {
 		return err
@@ -84,8 +88,20 @@ func AssociatePublicIpAddress(cs *cloudstack.CloudStackClient, csCluster *infrav
 	if err := FetchPublicIP(cs, csCluster); err != nil {
 		return err
 	}
+
+	if publicAddress, cnt, retErr := cs.Address.GetPublicIpAddressByID(csCluster.Status.PublicIPID); retErr != nil {
+		return retErr
+	} else if cnt != 1 { // Should probably never happen... Probably.
+		return errors.New(fmt.Sprintf("Expected exactly one Public IP for ID %s", csCluster.Status.PublicIPID))
+	} else if publicAddress.Allocated != "" && publicAddress.Associatednetworkid == csCluster.Status.NetworkID {
+		// Address already allocated to network. Allocated is a timestamp -- not a boolean.
+		return nil
+	} // Address not yet allocated. Allocate now.
+
+	// Public IP found, but not yet allocated to network.
 	p := cs.Address.NewAssociateIpAddressParams()
 	p.SetNetworkid(csCluster.Status.NetworkID)
+	p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)
 	if _, err := cs.Address.AssociateIpAddress(p); err != nil {
 		return err
 	}
@@ -123,11 +139,15 @@ func FetchLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.C
 func CreateLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
 	port := 6443
 	// Check if rule exists.
-	if err := FetchLoadBalancerRule(cs, csCluster); err == nil || !strings.Contains(err.Error(), "no load balancer rule found") {
+	if err := FetchLoadBalancerRule(cs, csCluster); err == nil ||
+		!strings.Contains(err.Error(), "no load balancer rule found") {
 		return err
 	}
 
 	p := cs.LoadBalancer.NewCreateLoadBalancerRuleParams("roundrobin", "Kubernetes_API_Server", port, port)
+	fmt.Println(csCluster.Status)
+	fmt.Println(csCluster.Status.PublicIPID)
+	p.SetPublicipid(csCluster.Status.PublicIPID)
 	p.SetPublicipid(csCluster.Status.PublicIPID)
 	p.SetProtocol("tcp")
 	resp, err := cs.LoadBalancer.CreateLoadBalancerRule(p)

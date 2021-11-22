@@ -37,13 +37,10 @@ func CreateCluster(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStac
 	if retErr = CreateNetwork(cs, csCluster); retErr != nil {
 		return retErr
 	}
-	if retErr = CreateLoadBalancerRule(cs, csCluster); retErr != nil {
-		return retErr
-	}
 	if retErr = OpenFirewallRules(cs, csCluster); retErr != nil {
 		return retErr
 	}
-	if retErr = FetchPublicIP(cs, csCluster); retErr != nil {
+	if retErr = AssociatePublicIpAddress(cs, csCluster); retErr != nil {
 		return retErr
 	}
 	if retErr = CreateLoadBalancerRule(cs, csCluster); retErr != nil {
