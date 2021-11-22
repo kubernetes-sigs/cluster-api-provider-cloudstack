@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"os"
-	"path"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -70,8 +69,7 @@ func main() {
 
 	// Setup CloudStack api client.
 	// TODO: turn on ssl verification in production.
-	dir := os.Getenv("PROJECT_DIR")
-	filepath := path.Join(dir, "cloud-config")
+	filepath := "/config/cloud-config"
 	apiUrl, apiKey, secretKey, err := cloud.ReadAPIConfig(filepath)
 	if err != nil {
 		setupLog.Error(err, "Unable to get cloud provider configuration at "+filepath)
