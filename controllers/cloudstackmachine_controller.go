@@ -163,16 +163,14 @@ func (r *CloudStackMachineReconciler) reconcile(
 // Reconcile/Destroy a deleted VM instance.
 func (r *CloudStackMachineReconciler) reconcileDelete(
 	log logr.Logger,
-	csMachine *infrav1.CloudStackMachine) (retRes ctrl.Result, retErr error) {
-
-	defer func() { // Don't remove finalizer if VM destroy returned an error.
-		if retErr == nil {
-			controllerutil.RemoveFinalizer(csMachine, infrav1.MachineFinalizer)
-		}
-	}()
+	csMachine *infrav1.CloudStackMachine) (ctrl.Result, error) {
 
 	log.Info("Deleting instance", "instance-id", *csMachine.Spec.InstanceID)
-	return ctrl.Result{}, cloud.DestroyVMInstance(r.CS, csMachine)
+	if err := cloud.DestroyVMInstance(r.CS, csMachine); err == nil {
+		return ctrl.Result{}, err
+	}
+	controllerutil.RemoveFinalizer(csMachine, infrav1.MachineFinalizer)
+	return ctrl.Result{}, nil
 }
 
 // Called in main, this registers the machine reconciler to the CAPI controller manager.
