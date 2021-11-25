@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/go-logr/logr"
@@ -25,8 +26,11 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -148,5 +152,40 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 
 // Called in main, this registers the machine reconciler to the CAPI controller manager.
 func (r *CloudStackMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).For(&infrav1.CloudStackMachine{}).Complete(r)
+	return ctrl.NewControllerManagedBy(mgr).
+		For(
+			&infrav1.CloudStackMachine{},
+			builder.WithPredicates(
+				predicate.Funcs{
+					UpdateFunc: func(e event.UpdateEvent) bool {
+						oldMachine := e.ObjectOld.(*infrav1.CloudStackMachine).DeepCopy()
+						newMachine := e.ObjectNew.(*infrav1.CloudStackMachine).DeepCopy()
+						// Ignore resource version because they are unique
+						oldMachine.ObjectMeta.ResourceVersion = ""
+						newMachine.ObjectMeta.ResourceVersion = ""
+						// Ignore generation because it's not used in reconcile
+						oldMachine.ObjectMeta.Generation = 0
+						newMachine.ObjectMeta.Generation = 0
+						// Ignore finalizers updates
+						oldMachine.ObjectMeta.Finalizers = nil
+						newMachine.ObjectMeta.Finalizers = nil
+						// Ignore ManagedFields because they are mirror of ObjectMeta
+						oldMachine.ManagedFields = nil
+						newMachine.ManagedFields = nil
+						// Ignore incremental status updates
+						oldMachine.Status = infrav1.CloudStackMachineStatus{}
+						newMachine.Status = infrav1.CloudStackMachineStatus{}
+						// Ignore provide ID
+						oldMachine.Spec.ProviderID = nil
+						newMachine.Spec.ProviderID = nil
+						// Ignore instance ID
+						oldMachine.Spec.InstanceID = nil
+						newMachine.Spec.InstanceID = nil
+
+						return !reflect.DeepEqual(oldMachine, newMachine)
+					},
+				},
+			),
+		).
+		Complete(r)
 }
