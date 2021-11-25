@@ -6,7 +6,7 @@ require (
 	github.com/apache/cloudstack-go/v2 v2.11.1-0.20211020121644-369057554f66
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.6.0
-	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.15.0
 	gopkg.in/ini.v1 v1.62.0
 	k8s.io/api v0.21.4
@@ -33,6 +33,7 @@ require (
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-logr/zapr v0.4.0 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gobuffalo/flect v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -64,6 +65,7 @@ require (
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
 	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
+	golang.org/x/tools v0.1.2 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect

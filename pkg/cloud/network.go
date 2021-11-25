@@ -111,15 +111,13 @@ func AssociatePublicIpAddress(cs *cloudstack.CloudStackClient, csCluster *infrav
 func OpenFirewallRules(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
 	p := cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, "tcp")
 	_, retErr = cs.Firewall.CreateEgressFirewallRule(p)
-	if strings.Contains(retErr.Error(), "There is already") {
+	if retErr != nil && strings.Contains(retErr.Error(), "There is already") { // Already a firewall rule here.
 		retErr = nil
 	}
 	return retErr
 }
 
 func FetchLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	// TODO make port configurable.
-	port := 6443
 	p := cs.LoadBalancer.NewListLoadBalancerRulesParams()
 	p.SetPublicipid(csCluster.Status.PublicIPID)
 	loadBalancerRules, err := cs.LoadBalancer.ListLoadBalancerRules(p)
@@ -127,7 +125,7 @@ func FetchLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.C
 		return err
 	}
 	for _, rule := range loadBalancerRules.LoadBalancerRules {
-		if rule.Publicport == strconv.Itoa(port) {
+		if rule.Publicport == strconv.Itoa(int(csCluster.Spec.ControlPlaneEndpoint.Port)) {
 			csCluster.Status.LBRuleID = rule.Id
 			return nil
 		}
@@ -137,17 +135,16 @@ func FetchLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.C
 
 // Create a load balancer rule that can be assigned to instances.
 func CreateLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	port := 6443
 	// Check if rule exists.
 	if err := FetchLoadBalancerRule(cs, csCluster); err == nil ||
 		!strings.Contains(err.Error(), "no load balancer rule found") {
 		return err
 	}
 
-	p := cs.LoadBalancer.NewCreateLoadBalancerRuleParams("roundrobin", "Kubernetes_API_Server", port, port)
-	fmt.Println(csCluster.Status)
-	fmt.Println(csCluster.Status.PublicIPID)
-	p.SetPublicipid(csCluster.Status.PublicIPID)
+	p := cs.LoadBalancer.NewCreateLoadBalancerRuleParams("roundrobin", "Kubernetes_API_Server", 6443, 6443)
+	if csCluster.Spec.ControlPlaneEndpoint.Port != 0 { // Override default port if endpoint port specified.
+		p.SetPrivateport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
+	}
 	p.SetPublicipid(csCluster.Status.PublicIPID)
 	p.SetProtocol("tcp")
 	resp, err := cs.LoadBalancer.CreateLoadBalancerRule(p)
