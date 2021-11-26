@@ -55,7 +55,7 @@ func FetchVMInstance(cs *cloudstack.CloudStackClient, csMachine *infrav1.CloudSt
 	// Attempt fetch by name.
 	if csMachine.Name != "" {
 		vmResp, count, err := cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name) // add opts usage
-		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
+		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match") {
 			return err
 		} else if count > 1 {
 			return fmt.Errorf("Found more than one VM Instance with name %s.", csMachine.Name)
@@ -64,7 +64,7 @@ func FetchVMInstance(cs *cloudstack.CloudStackClient, csMachine *infrav1.CloudSt
 			return nil
 		}
 	}
-	return errors.New("machine not found")
+	return errors.New("no match found")
 }
 
 // CreateVMInstance will fetch or create a VM instance, and
@@ -75,10 +75,9 @@ func CreateVMInstance(
 	csCluster *infrav1.CloudStackCluster) error {
 
 	// Check if VM instance already exists.
-	if err := FetchVMInstance(cs, csMachine); err == nil || !strings.Contains(err.Error(), "machine not found") {
+	if err := FetchVMInstance(cs, csMachine); err == nil || !strings.Contains(strings.ToLower(err.Error()), "no match") {
 		return err
 	}
-
 	// Get machine offering ID from name.
 	offeringID, count, err := cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering)
 	if err != nil {
