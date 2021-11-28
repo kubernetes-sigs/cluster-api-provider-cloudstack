@@ -134,7 +134,7 @@ func (r *CloudStackClusterReconciler) reconcileDelete(
 }
 
 // Called in main, this registers the cluster reconciler to the CAPI controller manager.
-func (r *CloudStackClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackCluster{},
 			builder.WithPredicates(
