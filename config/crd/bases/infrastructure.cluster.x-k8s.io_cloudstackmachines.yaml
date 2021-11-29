@@ -16,7 +16,7 @@ spec:
     listKind: CloudStackMachineList
     plural: cloudstackmachines
     shortNames:
-    - osm
+    - csm
     singular: cloudstackmachine
   scope: Namespaced
   versions:
