@@ -58,12 +58,12 @@ $(OVERRIDES_DIR):
 
 .PHONY: release-manifests
 release-manifests:
-	$(MAKE) manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR) PULL_POLICY=IfNotPresent IMAGE=$(RELEASE_CONTROLLER_IMG):$(VERSION)
+	$(MAKE) manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR)
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 
 .PHONY: dev-manifests
 dev-manifests:
-	$(MAKE) manifests STAGE=dev MANIFEST_DIR=$(OVERRIDES_DIR) PULL_POLICY=Always IMAGE=$(DEV_CONTROLLER_IMG):$(DEV_TAG)
+	$(MAKE) manifests STAGE=dev MANIFEST_DIR=$(OVERRIDES_DIR)
 	cp metadata.yaml $(OVERRIDES_DIR)/metadata.yaml
 
 .PHONY: manifests
