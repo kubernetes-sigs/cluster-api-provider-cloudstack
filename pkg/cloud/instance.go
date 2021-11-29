@@ -101,6 +101,9 @@ func CreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
+	if csMachine.Spec.Details != nil {
+		p.SetDetails(csMachine.Spec.Details)
+	}
 
 	deployVMResp, err := cs.VirtualMachine.DeployVirtualMachine(p)
 	if err != nil {
