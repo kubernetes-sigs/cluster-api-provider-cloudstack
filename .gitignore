@@ -11,7 +11,6 @@ testbin/*
 *log
 
 # Keep the output directory. Will use for template filling.
-out/*
 !out/.gitkeep
 
 # Test binary, build with `go test -c`
