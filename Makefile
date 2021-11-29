@@ -25,7 +25,7 @@ WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 RELEASE_DIR := out
 BUILD_DIR := .build
-OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-cloudstack/v0.0
+OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-cloudstack/v0.1.0
 
 all: build
 
@@ -67,11 +67,18 @@ dev-manifests:
 	cp metadata.yaml $(OVERRIDES_DIR)/metadata.yaml
 
 .PHONY: manifests
-manifests: kustomize $(MANIFEST_DIR) $(BUILD_DIR) $(KUSTOMIZE)
+manifests: kustomize $(MANIFEST_DIR) $(BUILD_DIR) $(KUSTOMIZE) $(STAGE)-cluster-templates
 	rm -rf $(BUILD_DIR)/config
 	cp -R config $(BUILD_DIR)
 	"$(KUSTOMIZE)" build $(BUILD_DIR)/config/default > $(MANIFEST_DIR)/infrastructure-components.yaml
 
+.PHONY: dev-cluster-templates
+dev-cluster-templates:
+	cp templates/cluster-template.yaml $(OVERRIDES_DIR)/cluster-template.yaml
+
+.PHONY: release-cluster-templates
+release-cluster-templates:
+	cp templates/cluster-template.yaml $(RELEASE_DIR)/cluster-template.yaml
 
 .PHONY: generate
 generate: ## Generate code
