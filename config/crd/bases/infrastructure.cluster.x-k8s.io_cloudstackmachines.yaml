@@ -61,6 +61,11 @@ spec:
           spec:
             description: CloudStackMachineSpec defines the desired state of CloudStackMachine
             properties:
+              details:
+                additionalProperties:
+                  type: string
+                description: Optional details map for deployVirtualMachine
+                type: object
               identityRef:
                 description: IdentityRef is a reference to a identity to be used when
                   reconciling this cluster

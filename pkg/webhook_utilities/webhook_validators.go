@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"reflect"
 )
 
 func EnsureFieldExists(value string, name string, allErrs field.ErrorList) field.ErrorList {
@@ -29,8 +30,21 @@ func EnsureFieldExists(value string, name string, allErrs field.ErrorList) field
 	return allErrs
 }
 
-func EnsureFieldsAreEqual(new string, old string, name string, allErrs field.ErrorList) field.ErrorList {
+func EnsureStringFieldsAreEqual(new string, old string, name string, allErrs field.ErrorList) field.ErrorList {
 	if new != old {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))
+	}
+	return allErrs
+}
+
+func EnsureStringStringMapFieldsAreEqual(new *map[string]string, old *map[string]string, name string, allErrs field.ErrorList) field.ErrorList {
+	if old == nil && new == nil {
+		return allErrs
+	}
+	if new == nil || old == nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))
+	}
+	if !reflect.DeepEqual(old, new) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))
 	}
 	return allErrs

@@ -49,6 +49,34 @@ var _ = Describe("CloudStackMachine webhook", func() {
 		})
 	})
 
+	Context("When creating a CloudStackMachine with all attributes", func() {
+		It("Should succeed", func() {
+			ctx := context.Background()
+			cloudStackMachine := &CloudStackMachine{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					Kind:       "CloudStackMachine",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machine-2",
+					Namespace: "default",
+				},
+				Spec: CloudStackMachineSpec{
+					IdentityRef: &CloudStackIdentityReference{
+						Kind: defaultIdentityRefKind,
+						Name: "IdentitySecret",
+					},
+					Template: "Template",
+					Offering: "Offering",
+					Details: map[string]string{
+						"memoryOvercommitRatio": "1.2",
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cloudStackMachine)).Should(Succeed())
+		})
+	})
+
 	Context("When creating a CloudStackMachine with missing Offering attribute", func() {
 		It("Should be rejected by the validating webhooks", func() {
 			ctx := context.Background()
@@ -131,7 +159,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine2",
+					Name:      "test-machine-3",
 					Namespace: "default",
 				},
 				Spec: CloudStackMachineSpec{
@@ -141,6 +169,9 @@ var _ = Describe("CloudStackMachine webhook", func() {
 					},
 					Template: "Template",
 					Offering: "Offering",
+					Details: map[string]string{
+						"memoryOvercommitRatio": "1.2",
+					},
 				},
 			}
 			Expect(k8sClient.Create(ctx, cloudStackMachine)).Should(Succeed())
@@ -155,6 +186,12 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
 			cloudStackMachineUpdate.Spec.Offering = "Offering2"
 			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "offering"))
+
+			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
+			cloudStackMachineUpdate.Spec.Details = map[string]string{
+				"memoryOvercommitRatio": "1.5",
+			}
+			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "details"))
 
 			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
 			cloudStackMachineUpdate.Spec.IdentityRef.Kind = "ConfigMap"
