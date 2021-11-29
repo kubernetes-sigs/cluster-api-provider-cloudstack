@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrastructurev1alpha4 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/controllers"
 	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
@@ -48,7 +47,6 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
-	utilruntime.Must(infrastructurev1alpha4.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -76,7 +74,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// TODO: attempt a less clunky client liveliness check (not just listing zones).
 	cs := cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
+	_, err = cs.Zone.ListZones(cs.Zone.NewListZonesParams())
+	if err != nil {
+		setupLog.Error(err, "unable to start manager -- cannot connect to CloudStack via client")
+		os.Exit(1)
+	}
+	setupLog.Info("CloudStack client initialized.")
 
 	// Create the controller manager.
 	mgr, err := ctrl.NewManager(config.GetConfigOrDie(), ctrl.Options{
@@ -98,7 +103,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		CS:     cs,
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create CloudStack cluster controller")
 		os.Exit(1)
 	}
@@ -106,7 +111,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		CS:     cs,
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create CloudStack machine controller")
 		os.Exit(1)
 	}
@@ -122,15 +127,15 @@ func main() {
 	}
 
 	// Start the controller manager.
-	if err = (&infrastructurev1alpha4.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err = (&infrastructurev1alpha4.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachine")
 		os.Exit(1)
 	}
-	if err = (&infrastructurev1alpha4.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachineTemplate")
 		os.Exit(1)
 	}

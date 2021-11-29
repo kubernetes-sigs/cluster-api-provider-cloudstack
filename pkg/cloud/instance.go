@@ -33,11 +33,12 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 	csMachine.Spec.ProviderID = pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
 	csMachine.Spec.InstanceID = pointer.StringPtr(vmResponse.Id)
 	csMachine.Status.Addresses = []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vmResponse.Ipaddress}}
+	csMachine.Status.InstanceState = infrav1.InstanceState(vmResponse.State)
 }
 
-// Fetch retrieves a VM instance by csMachine.Spec.InstanceID or csMachine.Name, and
+// Retch retrieves VM instance details by csMachine.Spec.InstanceID or csMachine.Name, and
 // sets infrastructure machine spec and status if VM instance is found.
-func FetchVMInstance(cs *cloudstack.CloudStackClient, csMachine *infrav1.CloudStackMachine) error {
+func ResolveVMInstanceDetails(cs *cloudstack.CloudStackClient, csMachine *infrav1.CloudStackMachine) error {
 	// Attempt to fetch by ID.
 	if csMachine.Spec.InstanceID != nil {
 		vmResp, count, err := cs.VirtualMachine.GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID)
@@ -54,7 +55,7 @@ func FetchVMInstance(cs *cloudstack.CloudStackClient, csMachine *infrav1.CloudSt
 	// Attempt fetch by name.
 	if csMachine.Name != "" {
 		vmResp, count, err := cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name) // add opts usage
-		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
+		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match") {
 			return err
 		} else if count > 1 {
 			return fmt.Errorf("Found more than one VM Instance with name %s.", csMachine.Name)
@@ -63,21 +64,20 @@ func FetchVMInstance(cs *cloudstack.CloudStackClient, csMachine *infrav1.CloudSt
 			return nil
 		}
 	}
-	return errors.New("machine not found")
+	return errors.New("no match found")
 }
 
 // CreateVMInstance will fetch or create a VM instance, and
 // sets the infrastructure machine spec and status accordingly.
-func CreateVMInstance(
+func GetOrCreateVMInstance(
 	cs *cloudstack.CloudStackClient,
 	csMachine *infrav1.CloudStackMachine,
 	csCluster *infrav1.CloudStackCluster) error {
 
 	// Check if VM instance already exists.
-	if err := FetchVMInstance(cs, csMachine); err == nil || !strings.Contains(err.Error(), "machine not found") {
+	if err := ResolveVMInstanceDetails(cs, csMachine); err == nil || !strings.Contains(strings.ToLower(err.Error()), "no match") {
 		return err
 	}
-
 	// Get machine offering ID from name.
 	offeringID, count, err := cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering)
 	if err != nil {
@@ -111,10 +111,9 @@ func CreateVMInstance(
 	}
 	csMachine.Spec.InstanceID = pointer.StringPtr(deployVMResp.Id)
 
-	// Fetch will now find the VM and fill csMachine.
-	// Fetch uses a VM metrics request response to fill cloudstack machine status.
+	// Resolve uses a VM metrics request response to fill cloudstack machine status.
 	// The deployment response is insufficient.
-	if err = FetchVMInstance(cs, csMachine); err == nil {
+	if err = ResolveVMInstanceDetails(cs, csMachine); err == nil {
 		csMachine.Status.Ready = true
 	}
 	return err

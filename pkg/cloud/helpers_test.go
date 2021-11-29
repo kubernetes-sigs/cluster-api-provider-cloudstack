@@ -14,52 +14,44 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud
+package cloud_test
 
 import (
 	"fmt"
 	"os"
 	"path"
-	"testing"
 
-	_ "github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
+	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
 )
 
 const (
 	FixturePath = "test/fixtures/cloud-config-files"
 )
 
-func TestHelpers(t *testing.T) {
+var _ = Describe("Helpers", func() {
 
-	t.Run("Getting API configuration", func(t *testing.T) {
-		t.Run("Section Global not found", func(t *testing.T) {
-			g := NewWithT(t)
+	It("Gets API configuration", func() {
+		Context("For a configuration with the 'Global' section missing", func() {
 			filepath := getConfigPath("cloud-config-no-global")
 			expectedErr := fmt.Errorf("section Global not found")
 
-			if _, _, _, err := ReadAPIConfig(filepath); err != nil {
-				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
-			} else {
-				t.Error()
-			}
+			_, _, _, err := cloud.ReadAPIConfig(filepath)
+			Ω(err).Should(Equal(expectedErr))
 		})
 
-		t.Run("Good configuration", func(t *testing.T) {
-			g := NewWithT(t)
+		Context("For a good configuration", func() {
 			filepath := getConfigPath("cloud-config-good")
 
-			if apiURL, apiKey, secretKey, err := ReadAPIConfig(filepath); err != nil {
-				t.Error()
-			} else {
-				g.Expect(apiURL).To(Equal("api-url1"))
-				g.Expect(apiKey).To(Equal("api-key1"))
-				g.Expect(secretKey).To(Equal("secret-key1"))
-			}
+			apiURL, apiKey, secretKey, err := cloud.ReadAPIConfig(filepath)
+			Ω(err).Should(BeNil())
+			Ω(apiURL).Should(Equal("api-url1"))
+			Ω(apiKey).Should(Equal("api-key1"))
+			Ω(secretKey).Should(Equal("secret-key1"))
 		})
 	})
-}
+})
 
 func getConfigPath(filename string) string {
 	dir, _ := os.Getwd()
