@@ -17,24 +17,19 @@ limitations under the License.
 package cloud
 
 import (
-	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/pkg/errors"
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 )
 
 const NETOFFERING = "DefaultIsolatedNetworkOfferingWithSourceNatService"
 
 func FetchNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	// Get NetworkID.
 	csCluster.Status.NetworkID, _, retErr = cs.Network.GetNetworkID(csCluster.Spec.Network)
-	if retErr != nil {
-		return retErr
-	}
-	return
+	return retErr
 }
 
 func CreateNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
@@ -42,7 +37,7 @@ func CreateNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStac
 		return nil
 	} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
 		return retErr
-	} // Network not found. Create it.
+	} // Network not found.
 
 	// Create network since it wasn't found.
 	offeringId, count, retErr := cs.NetworkOffering.GetNetworkOfferingID(NETOFFERING)
@@ -92,7 +87,7 @@ func AssociatePublicIpAddress(cs *cloudstack.CloudStackClient, csCluster *infrav
 	if publicAddress, cnt, retErr := cs.Address.GetPublicIpAddressByID(csCluster.Status.PublicIPID); retErr != nil {
 		return retErr
 	} else if cnt != 1 { // Should probably never happen... Probably.
-		return errors.New(fmt.Sprintf("Expected exactly one Public IP for ID %s", csCluster.Status.PublicIPID))
+		return errors.Errorf("Expected exactly one Public IP for ID %s", csCluster.Status.PublicIPID)
 	} else if publicAddress.Allocated != "" && publicAddress.Associatednetworkid == csCluster.Status.NetworkID {
 		// Address already allocated to network. Allocated is a timestamp -- not a boolean.
 		return nil
@@ -156,7 +151,7 @@ func CreateLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.
 }
 
 func DestroyNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	cs.Network.DeleteNetwork(cs.Network.NewDeleteNetworkParams(csCluster.Status.NetworkID))
+	_, retErr = cs.Network.DeleteNetwork(cs.Network.NewDeleteNetworkParams(csCluster.Status.NetworkID))
 	return retErr
 }
 

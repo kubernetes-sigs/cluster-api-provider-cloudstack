@@ -72,7 +72,7 @@ var _ = Describe("Network", func() {
 
 		It("does not call to create a new network via CreateNetwork", func() {
 			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
-			cloud.CreateNetwork(mockClient, csCluster)
+			Ω(cloud.CreateNetwork(mockClient, csCluster)).Should(Succeed())
 		})
 	})
 

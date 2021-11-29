@@ -32,9 +32,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -59,6 +57,7 @@ func envOr(envKey, defaultValue string) string {
 	return defaultValue
 }
 
+// Have to get the path to the installed CAPI to inject CAPI CRDs.
 func getFilePathToCAPICRDs(root string) string {
 	modBits, err := os.ReadFile(filepath.Join(root, "go.mod"))
 	if err != nil {
@@ -81,11 +80,7 @@ func getFilePathToCAPICRDs(root string) string {
 	return filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "config", "crd", "bases")
 }
 
-// These tests use Ginkgo (BDD-style Go testing framework). Refer to
-// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
-
 var ( // TestEnv vars...
-	cfg       *rest.Config
 	testEnv   *envtest.Environment
 	k8sClient client.Client
 	ctx       context.Context
@@ -110,7 +105,7 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.TODO())
 
 	// Setup mock CloudStack client.
-	// TODO: Consider mocking cloud package instead of the CS API client.
+	// TODO: Mock cloud package instead of the CS API client.
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockClient = cloudstack.NewMockClient(mockCtrl)
 
@@ -124,7 +119,7 @@ var _ = BeforeSuite(func() {
 		filepath.Join(root, "config", "crd", "bases"),
 	}
 
-	// append CAPI CRDs path
+	// Append CAPI CRDs path
 	if capiPath := getFilePathToCAPICRDs(root); capiPath != "" {
 		crdPaths = append(crdPaths, capiPath)
 	}
@@ -135,10 +130,8 @@ var _ = BeforeSuite(func() {
 		CRDDirectoryPaths:     crdPaths,
 	}
 
-	// Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
-	// Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
-	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
+	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
+	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
 
 	cfg, err := testEnv.Start()
 	Ω(err).ShouldNot(HaveOccurred())
