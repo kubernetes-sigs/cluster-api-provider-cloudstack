@@ -14,49 +14,147 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud
+package cloud_test
 
 import (
-	_ "github.com/golang/mock/gomock"
-	_ "github.com/onsi/gomega"
+	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
+	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
+	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
-// From start to finish this test takes a while as it actually instantiates and destroys a VM instance.
-// func TestCreateInstance2(t *testing.T) {
-// 	t.Run("Create Instance", func(t *testing.T) {
-// 		cs := newCSClient()
+var _ = Describe("Network", func() {
+	var ( // Declare shared vars.
+		mockCtrl   *gomock.Controller
+		mockClient *cloudstack.CloudStackClient
+		ns         *cloudstack.MockNetworkServiceIface
+		nos        *cloudstack.MockNetworkOfferingServiceIface
+		fs         *cloudstack.MockFirewallServiceIface
+		as         *cloudstack.MockAddressServiceIface
+		lbs        *cloudstack.MockLoadBalancerServiceIface
+		csCluster  *infrav1.CloudStackCluster
+	)
 
-// 		// This cluster should exist.
-// 		// None of the tests should ever delete this cluster.
-// 		c := Cluster{
-// 			CSCluster: &infrav1.CloudStackCluster{
-// 				Spec: infrav1.CloudStackClusterSpec{
-// 					Zone:    "zone1",
-// 					Network: "guestNet1",
-// 				},
-// 			},
-// 		}
-// 		err := c.Fetch(cs)
-// 		if err != nil {
-// 			t.Error(err)
-// 		}
+	BeforeEach(func() {
+		// Setup new mock services.
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockClient = cloudstack.NewMockClient(mockCtrl)
+		ns = mockClient.Network.(*cloudstack.MockNetworkServiceIface)
+		nos = mockClient.NetworkOffering.(*cloudstack.MockNetworkOfferingServiceIface)
+		fs = mockClient.Firewall.(*cloudstack.MockFirewallServiceIface)
+		as = mockClient.Address.(*cloudstack.MockAddressServiceIface)
+		lbs = mockClient.LoadBalancer.(*cloudstack.MockLoadBalancerServiceIface)
 
-// 		// Create instance using cluster fetched above.
-// 		I := Instance{
-// 			Cluster: &infrav1.CloudStackCluster{Status: c.CSCluster.Status},
-// 			Machine: &clusterv1.Machine{},
-// 			CSMachine: &infrav1.CloudStackMachine{
-// 				Spec: infrav1.CloudStackMachineSpec{
-// 					Name:     "Control-Plane-Node",
-// 					Offering: "KubeServiceOffering",
-// 					Template: "ubuntu20",
-// 					SSHKey:   "CAPCKeyPair6",
-// 				},
-// 				Status: infrav1.CloudStackMachineStatus{}},
-// 		}
-// 		err = I.Create(cs)
-// 		if err != nil {
-// 			t.Error(err)
-// 		}
-// 	})
-// }
+		// Reset csCluster.
+		csCluster = &infrav1.CloudStackCluster{
+			Spec: infrav1.CloudStackClusterSpec{
+				Zone:                 "zone1",
+				Network:              "fakeNetName",
+				ControlPlaneEndpoint: clusterv1.APIEndpoint{Port: int32(6443)},
+			},
+		}
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	Context("for an existing network", func() {
+		It("resolves network details in cluster status", func() {
+			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
+			Ω(cloud.ResolveNetworkID(mockClient, csCluster)).Should(Succeed())
+			Ω(csCluster.Status.NetworkID).Should(Equal("fakeNetID"))
+		})
+
+		It("does not call to create a new network via GetOrCreateNetwork", func() {
+			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
+			Ω(cloud.GetOrCreateNetwork(mockClient, csCluster)).Should(Succeed())
+		})
+	})
+
+	Context("for a non-existent network", func() {
+		It("when GetOrCreateNetwork is called it calls CloudStack to create a network", func() {
+			ns.EXPECT().GetNetworkID("fakeNetName").Return("", -1, errors.New("No match found for blah."))
+			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
+			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&cloudstack.CreateNetworkParams{})
+			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: "someNetID"}, nil)
+			Ω(cloud.GetOrCreateNetwork(mockClient, csCluster)).Should(Succeed())
+		})
+	})
+
+	Context("for a closed firewall", func() {
+		It("OpenFirewallRule asks CloudStack to open the firewall", func() {
+			netID := "someNetID"
+			csCluster.Status.NetworkID = netID
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(netID, "tcp").
+				Return(&cloudstack.CreateEgressFirewallRuleParams{})
+			fs.EXPECT().CreateEgressFirewallRule(&cloudstack.CreateEgressFirewallRuleParams{}).
+				Return(&cloudstack.CreateEgressFirewallRuleResponse{}, nil)
+
+			Ω(cloud.OpenFirewallRules(mockClient, csCluster)).Should(Succeed())
+		})
+	})
+
+	Context("for an open firewall", func() {
+		It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
+			netID := "someNetID"
+			csCluster.Status.NetworkID = netID
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(netID, "tcp").
+				Return(&cloudstack.CreateEgressFirewallRuleParams{})
+			fs.EXPECT().CreateEgressFirewallRule(&cloudstack.CreateEgressFirewallRuleParams{}).
+				Return(&cloudstack.CreateEgressFirewallRuleResponse{}, errors.New("There is already a rule like this."))
+			Ω(cloud.OpenFirewallRules(mockClient, csCluster)).Should(Succeed())
+		})
+	})
+
+	Context("in an isolated network with public IPs available", func() {
+		It("will resolve public IP details given an endpoint spec", func() {
+			as.EXPECT().NewListPublicIpAddressesParams().Return(&cloudstack.ListPublicIpAddressesParams{})
+			as.EXPECT().ListPublicIpAddresses(gomock.Any()).
+				Return(&cloudstack.ListPublicIpAddressesResponse{
+					Count:             1,
+					PublicIpAddresses: []*cloudstack.PublicIpAddress{{Id: "PublicIPID", Ipaddress: "192.168.1.14"}},
+				}, nil)
+			Ω(cloud.ResolvePublicIPDetails(mockClient, csCluster)).Should(Succeed())
+		})
+	})
+
+	Context("The specific load balancer rule does exist", func() {
+		It("resolves the rule's ID", func() {
+			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
+			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).Return(
+				&cloudstack.ListLoadBalancerRulesResponse{
+					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: "6443", Id: "lbRuleID"}}}, nil)
+			Ω(cloud.ResolveLoadBalancerRuleDetails(mockClient, csCluster)).Should(Succeed())
+			Ω(csCluster.Status.LBRuleID).Should(Equal("lbRuleID"))
+		})
+
+		It("doesn't create a new load blancer rule on create", func() {
+			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
+			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).
+				Return(&cloudstack.ListLoadBalancerRulesResponse{
+					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: "6443", Id: "lbRuleID"}}}, nil)
+			Ω(cloud.GetOrCreateLoadBalancerRule(mockClient, csCluster)).Should(Succeed())
+			Ω(csCluster.Status.LBRuleID).Should(Equal("lbRuleID"))
+		})
+	})
+
+	Context("load balancer rule does not exist", func() {
+		It("calls cloudstack to create a new load balancer rule.", func() {
+			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
+			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).Return(&cloudstack.ListLoadBalancerRulesResponse{
+				LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: "7443", Id: "lbRuleID"}}}, nil)
+			lbs.EXPECT().NewCreateLoadBalancerRuleParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&cloudstack.CreateLoadBalancerRuleParams{})
+			lbs.EXPECT().CreateLoadBalancerRule(gomock.Any()).
+				Return(&cloudstack.CreateLoadBalancerRuleResponse{Id: "randomID"}, nil)
+			Ω(cloud.GetOrCreateLoadBalancerRule(mockClient, csCluster)).Should(Succeed())
+			Ω(csCluster.Status.LBRuleID).Should(Equal("randomID"))
+		})
+	})
+})

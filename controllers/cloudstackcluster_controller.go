@@ -26,7 +26,6 @@ import (
 
 	"sigs.k8s.io/cluster-api/util"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -83,13 +82,6 @@ func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return reconcile.Result{}, nil
 	}
 
-	// List VMs.
-	vmInstances, retErr := r.clusterVMInstances(ctx, cluster, csCluster)
-	if retErr != nil {
-		return ctrl.Result{}, retErr
-	}
-	log.Info("Cluster instances", "instances", vmInstances)
-
 	// Setup patcher. This ensures modifications to the csCluster copy fetched above are patched into the origin.
 	if patchHelper, retErr := patch.NewHelper(csCluster, r.Client); retErr != nil {
 		return ctrl.Result{}, retErr
@@ -118,8 +110,8 @@ func (r *CloudStackClusterReconciler) reconcile(
 	// Prevent premature deletion of the csCluster construct from CAPI.
 	controllerutil.AddFinalizer(csCluster, infrav1.ClusterFinalizer)
 
-	// Fetch cluster info -- sets cluster to ready if no errors in fetch.
-	err := cloud.FetchClusterInfo(r.CS, csCluster)
+	// Create and or fetch cluster components -- sets cluster to ready if no errors.
+	err := cloud.GetOrCreateCluster(r.CS, csCluster)
 	if err == nil {
 		log.Info("Fetched cluster info successfully.", "clusterSpec", csCluster.Spec, "clusterStatus", csCluster.Status)
 	}
@@ -133,20 +125,15 @@ func (r *CloudStackClusterReconciler) reconcileDelete(
 
 	log.Info("Deleting cluster...")
 
-	defer func() { // Don't remove finalizer if Cluster destroy returned an error.
-		if retErr == nil {
-			controllerutil.RemoveFinalizer(csCluster, infrav1.ClusterFinalizer)
-		}
-	}()
-
 	// TODO Decide what resources to remove w/Cluster if any.
 	// cloud.DestroyCluster(r.CS, csStackCluster)
 
+	controllerutil.RemoveFinalizer(csCluster, infrav1.ClusterFinalizer)
 	return ctrl.Result{}, nil
 }
 
 // Called in main, this registers the cluster reconciler to the CAPI controller manager.
-func (r *CloudStackClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackCluster{},
 			builder.WithPredicates(
@@ -175,22 +162,24 @@ func (r *CloudStackClusterReconciler) SetupWithManager(ctx context.Context, mgr 
 		Complete(r)
 }
 
-func (r *CloudStackClusterReconciler) clusterVMInstances(
-	ctx context.Context,
-	cluster *clusterv1.Cluster,
-	csCluster *infrav1.CloudStackCluster) ([]*infrav1.CloudStackMachine, error) {
-	labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
-	vmInstances := &infrav1.CloudStackMachineList{}
-	if err := r.Client.List(
-		ctx, vmInstances,
-		client.InNamespace(cluster.Namespace),
-		client.MatchingLabels(labels)); err != nil {
-		return nil, err
-	}
-	machines := make([]*infrav1.CloudStackMachine, len(vmInstances.Items))
-	for i := range vmInstances.Items {
-		machines[i] = &vmInstances.Items[i]
-	}
+// Unused for now, but will be needed for delete.
+// Left for later use, but commmented for linter.
+// func (r *CloudStackClusterReconciler) clusterVMInstances(
+// 	ctx context.Context,
+// 	cluster *clusterv1.Cluster,
+// 	csCluster *infrav1.CloudStackCluster) ([]*infrav1.CloudStackMachine, error) {
+// 	labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
+// 	vmInstances := &infrav1.CloudStackMachineList{}
+// 	if err := r.Client.List(
+// 		ctx, vmInstances,
+// 		client.InNamespace(cluster.Namespace),
+// 		client.MatchingLabels(labels)); err != nil {
+// 		return nil, err
+// 	}
+// 	machines := make([]*infrav1.CloudStackMachine, len(vmInstances.Items))
+// 	for i := range vmInstances.Items {
+// 		machines[i] = &vmInstances.Items[i]
+// 	}
 
-	return machines, nil
-}
+// 	return machines, nil
+// }

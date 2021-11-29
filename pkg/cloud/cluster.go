@@ -18,18 +18,36 @@ package cloud
 
 import (
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/pkg/errors"
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 )
 
-func FetchClusterInfo(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	csCluster.Status.ZoneID, _, retErr = cs.Zone.GetZoneID(csCluster.Spec.Zone)
+func GetOrCreateCluster(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	var count int
+
+	// Translate zone name to  zone ID.
+	csCluster.Status.ZoneID, count, retErr = cs.Zone.GetZoneID(csCluster.Spec.Zone)
 	if retErr != nil {
 		return retErr
+	} else if count != 1 {
+		return errors.Errorf("Expected 1 zone with name %s, but got %d.", csCluster.Spec.Zone, count)
 	}
-	csCluster.Status.NetworkID, _, retErr = cs.Network.GetNetworkID(csCluster.Spec.Network)
-	if retErr != nil {
+
+	// Get or create network and needed network constructs.
+	if retErr = GetOrCreateNetwork(cs, csCluster); retErr != nil {
 		return retErr
 	}
+	if retErr = OpenFirewallRules(cs, csCluster); retErr != nil {
+		return retErr
+	}
+	if retErr = AssociatePublicIpAddress(cs, csCluster); retErr != nil {
+		return retErr
+	}
+	if retErr = GetOrCreateLoadBalancerRule(cs, csCluster); retErr != nil {
+		return retErr
+	}
+
+	// Set cluster to ready to indicate readiness to CAPI.
 	csCluster.Status.Ready = true
-	return retErr
+	return nil
 }

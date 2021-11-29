@@ -15,7 +15,8 @@ This project is licensed under the Apache-2.0 License.
 To run a particular test. In this case TestCreateInstance2.
 
 Integration tests use Controller Runtime EnvTest.  Your testing environment must be pre-configured with several EnvTest 
-git dependencies.  See https://book.kubebuilder.io/reference/envtest.html?highlight=etcd#configuring-envtest-for-integration-tests
+git dependencies.
+See [configuring envtest for integration tests](https://book.kubebuilder.io/reference/envtest.html?highlight=etcd#configuring-envtest-for-integration-tests)
 
 - export PROJECT_DIR=`pwd`
 
@@ -25,7 +26,7 @@ git dependencies.  See https://book.kubebuilder.io/reference/envtest.html?highli
 
 ## Dev w/Tilt
 
-Install the prerequisites listed here: https://cluster-api.sigs.k8s.io/developer/tilt.html
+Install [tilt prerequisites](https://cluster-api.sigs.k8s.io/developer/tilt.html).
 
 Clone the capi repository at v1.0.0.
 

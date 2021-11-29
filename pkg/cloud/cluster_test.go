@@ -13,87 +13,69 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-/*
-	These tests assume a running CloudStack instance and associated cloud-config file.
-
-	They are not proper, but they're enough for now.
-
-	TODO Use mocks and testing frameworks.
-*/
-package cloud
+package cloud_test
 
 import (
 	"fmt"
-	"testing"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
-	_ "github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	_ "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
+	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
 )
 
-func TestClusterInfo(t *testing.T) {
-	zoneName := "zone"
-	zoneID := "zone-id"
-	networkName := "network"
-	networkID := "network-id"
+var _ = Describe("Cluster", func() {
+	var (
+		mockCtrl   *gomock.Controller
+		mockClient *cloudstack.CloudStackClient
+	)
 
-	mockCtrl := gomock.NewController(t)
-	mockClient := cloudstack.NewMockClient(mockCtrl)
-	cluster := &infrav1.CloudStackCluster{
-		Spec: infrav1.CloudStackClusterSpec{
-			Zone:    zoneName,
-			Network: networkName}}
-
-	t.Run("Fetching Cluster Information", func(t *testing.T) {
-		t.Run("Zone not found", func(t *testing.T) {
-			g := NewWithT(t)
-			zoneName := "zone"
-			expectedErr := fmt.Errorf("Not found")
-			zs := mockClient.Zone.(*cloudstack.MockZoneServiceIface)
-			zs.EXPECT().GetZoneID(zoneName).Return("", -1, expectedErr)
-
-			if err := FetchClusterInfo(mockClient, cluster); err != nil {
-				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
-			} else {
-				t.Error()
-			}
-		})
-
-		t.Run("Network not found", func(t *testing.T) {
-			g := NewWithT(t)
-			zs := mockClient.Zone.(*cloudstack.MockZoneServiceIface)
-			zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 1, nil)
-
-			expectedErr := fmt.Errorf("Not found")
-			ns := mockClient.Network.(*cloudstack.MockNetworkServiceIface)
-			ns.EXPECT().GetNetworkID(networkName).Return("", -1, expectedErr)
-
-			if err := FetchClusterInfo(mockClient, cluster); err != nil {
-				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
-			} else {
-				t.Error()
-			}
-		})
-
-		t.Run("Zone and network IDs are fetched", func(t *testing.T) {
-			g := NewWithT(t)
-			zs := mockClient.Zone.(*cloudstack.MockZoneServiceIface)
-			zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 1, nil)
-
-			ns := mockClient.Network.(*cloudstack.MockNetworkServiceIface)
-			ns.EXPECT().GetNetworkID(networkName).Return(networkID, 1, nil)
-
-			if err := FetchClusterInfo(mockClient, cluster); err != nil {
-				t.Error()
-			} else {
-				g.Expect(cluster.Status.ZoneID).To(Equal(zoneID))
-				g.Expect(cluster.Status.NetworkID).To(Equal(networkID))
-			}
-		})
+	BeforeEach(func() {
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockClient = cloudstack.NewMockClient(mockCtrl)
 	})
-}
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	Context("an existing abstract cluster", func() {
+		zoneName := "zoneName"
+		zoneID := "zoneID"
+		netName := "netName"
+
+		cluster := &infrav1.CloudStackCluster{
+			Spec: infrav1.CloudStackClusterSpec{
+				Zone:    zoneName,
+				Network: netName}}
+
+		// This will take more extensive mocking to completely test now that is does so much more.
+		// It("should fetch cluster information.", func() {
+		// 	zs := mockClient.Zone.(*cloudstack.MockZoneServiceIface)
+		// 	zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 1, nil)
+
+		// 	ns := mockClient.Network.(*cloudstack.MockNetworkServiceIface)
+		// 	ns.EXPECT().GetNetworkID(netName).Return(netID, 1, nil)
+
+		// 	Ω(cloud.CreateCluster(mockClient, cluster)).Should(Succeed())
+		// 	Ω(cluster.Status.ZoneID).Should(Equal(zoneID))
+		// 	Ω(cluster.Status.NetworkID).Should(Equal(netID))
+		// })
+
+		It("handles zone not found.", func() {
+			zs := mockClient.Zone.(*cloudstack.MockZoneServiceIface)
+			zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 1, nil)
+
+			expectedErr := fmt.Errorf("Not found")
+			ns := mockClient.Network.(*cloudstack.MockNetworkServiceIface)
+			ns.EXPECT().GetNetworkID(netName).Return("", -1, expectedErr)
+
+			err := cloud.GetOrCreateCluster(mockClient, cluster)
+			Expect(errors.Cause(err)).To(MatchError(expectedErr))
+		})
+
+	})
+})
