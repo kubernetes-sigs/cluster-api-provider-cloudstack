@@ -22,7 +22,7 @@ import (
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 )
 
-func CreateCluster(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+func GetOrCreateCluster(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
 	var count int
 
 	// Translate zone name to  zone ID.
@@ -34,7 +34,7 @@ func CreateCluster(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStac
 	}
 
 	// Get or create network and needed network constructs.
-	if retErr = CreateNetwork(cs, csCluster); retErr != nil {
+	if retErr = GetOrCreateNetwork(cs, csCluster); retErr != nil {
 		return retErr
 	}
 	if retErr = OpenFirewallRules(cs, csCluster); retErr != nil {
@@ -43,7 +43,7 @@ func CreateCluster(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStac
 	if retErr = AssociatePublicIpAddress(cs, csCluster); retErr != nil {
 		return retErr
 	}
-	if retErr = CreateLoadBalancerRule(cs, csCluster); retErr != nil {
+	if retErr = GetOrCreateLoadBalancerRule(cs, csCluster); retErr != nil {
 		return retErr
 	}
 
