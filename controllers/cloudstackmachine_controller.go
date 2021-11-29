@@ -137,21 +137,21 @@ func (r *CloudStackMachineReconciler) reconcile(
 	machine *capiv1.Machine) (ctrl.Result, error) {
 
 	// Make sure bootstrap data is available in CAPI machine.
-	userData := ""
-	if machine.Spec.Bootstrap.DataSecretName != nil {
-
-		secret := &corev1.Secret{}
-		key := types.NamespacedName{Namespace: machine.Namespace, Name: *machine.Spec.Bootstrap.DataSecretName}
-		if err := r.Client.Get(context.TODO(), key, secret); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		value, ok := secret.Data["value"]
-		if !ok {
-			return ctrl.Result{}, errors.New("Secret data not ok.")
-		}
-		userData = base64.StdEncoding.EncodeToString(value)
+	if machine.Spec.Bootstrap.DataSecretName == nil {
+		return ctrl.Result{}, errors.New("Bootstrap secret data name not yet available.")
 	}
+
+	secret := &corev1.Secret{}
+	key := types.NamespacedName{Namespace: machine.Namespace, Name: *machine.Spec.Bootstrap.DataSecretName}
+	if err := r.Client.Get(context.TODO(), key, secret); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	value, ok := secret.Data["value"]
+	if !ok {
+		return ctrl.Result{}, errors.New("Bootstrap secret data not ok.")
+	}
+	userData := base64.StdEncoding.EncodeToString(value)
 
 	// Create machine (or Fetch if present). Will set ready to true.
 	if err := cloud.GetOrCreateVMInstance(r.CS, csMachine, csCluster, userData); err == nil {
