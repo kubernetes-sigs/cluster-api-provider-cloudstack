@@ -64,26 +64,26 @@ var _ = Describe("Network", func() {
 	})
 
 	Context("for an existing network", func() {
-		It("fetches and sets network details in cluster status via FetchNetwork", func() {
+		It("resolves network details in cluster status", func() {
 			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
-			Ω(cloud.FetchNetwork(mockClient, csCluster)).Should(Succeed())
+			Ω(cloud.ResolveNetworkID(mockClient, csCluster)).Should(Succeed())
 			Ω(csCluster.Status.NetworkID).Should(Equal("fakeNetID"))
 		})
 
-		It("does not call to create a new network via CreateNetwork", func() {
+		It("does not call to create a new network via GetOrCreateNetwork", func() {
 			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
-			Ω(cloud.CreateNetwork(mockClient, csCluster)).Should(Succeed())
+			Ω(cloud.GetOrCreateNetwork(mockClient, csCluster)).Should(Succeed())
 		})
 	})
 
 	Context("for a non-existent network", func() {
-		It("when CreateNetwork is called it calls CloudStack to create a network", func() {
+		It("when GetOrCreateNetwork is called it calls CloudStack to create a network", func() {
 			ns.EXPECT().GetNetworkID("fakeNetName").Return("", -1, errors.New("No match found for blah."))
 			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&cloudstack.CreateNetworkParams{})
 			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: "someNetID"}, nil)
-			Ω(cloud.CreateNetwork(mockClient, csCluster)).Should(Succeed())
+			Ω(cloud.GetOrCreateNetwork(mockClient, csCluster)).Should(Succeed())
 		})
 	})
 
@@ -113,24 +113,24 @@ var _ = Describe("Network", func() {
 	})
 
 	Context("in an isolated network with public IPs available", func() {
-		It("will fetch a public IP given an endpoint spec", func() {
+		It("will resolve public IP details given an endpoint spec", func() {
 			as.EXPECT().NewListPublicIpAddressesParams().Return(&cloudstack.ListPublicIpAddressesParams{})
 			as.EXPECT().ListPublicIpAddresses(gomock.Any()).
 				Return(&cloudstack.ListPublicIpAddressesResponse{
 					Count:             1,
 					PublicIpAddresses: []*cloudstack.PublicIpAddress{{Id: "PublicIPID", Ipaddress: "192.168.1.14"}},
 				}, nil)
-			Ω(cloud.FetchPublicIP(mockClient, csCluster)).Should(Succeed())
+			Ω(cloud.ResolvePublicIPDetails(mockClient, csCluster)).Should(Succeed())
 		})
 	})
 
 	Context("The specific load balancer rule does exist", func() {
-		It("fetches the rule's ID", func() {
+		It("resolves the rule's ID", func() {
 			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).Return(
 				&cloudstack.ListLoadBalancerRulesResponse{
 					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: "6443", Id: "lbRuleID"}}}, nil)
-			Ω(cloud.FetchLoadBalancerRule(mockClient, csCluster)).Should(Succeed())
+			Ω(cloud.ResolveLoadBalancerRuleDetails(mockClient, csCluster)).Should(Succeed())
 			Ω(csCluster.Status.LBRuleID).Should(Equal("lbRuleID"))
 		})
 
@@ -139,7 +139,7 @@ var _ = Describe("Network", func() {
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).
 				Return(&cloudstack.ListLoadBalancerRulesResponse{
 					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: "6443", Id: "lbRuleID"}}}, nil)
-			Ω(cloud.CreateLoadBalancerRule(mockClient, csCluster)).Should(Succeed())
+			Ω(cloud.GetOrCreateLoadBalancerRule(mockClient, csCluster)).Should(Succeed())
 			Ω(csCluster.Status.LBRuleID).Should(Equal("lbRuleID"))
 		})
 	})
@@ -153,7 +153,7 @@ var _ = Describe("Network", func() {
 				Return(&cloudstack.CreateLoadBalancerRuleParams{})
 			lbs.EXPECT().CreateLoadBalancerRule(gomock.Any()).
 				Return(&cloudstack.CreateLoadBalancerRuleResponse{Id: "randomID"}, nil)
-			Ω(cloud.CreateLoadBalancerRule(mockClient, csCluster)).Should(Succeed())
+			Ω(cloud.GetOrCreateLoadBalancerRule(mockClient, csCluster)).Should(Succeed())
 			Ω(csCluster.Status.LBRuleID).Should(Equal("randomID"))
 		})
 	})

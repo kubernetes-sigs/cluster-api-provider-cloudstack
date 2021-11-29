@@ -25,22 +25,25 @@ import (
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 )
 
-const NETOFFERING = "DefaultIsolatedNetworkOfferingWithSourceNatService"
+const (
+	NetOffering       = "DefaultIsolatedNetworkOfferingWithSourceNatService"
+	K8sDefaultAPIPort = 6443
+)
 
-func FetchNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+func ResolveNetworkID(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
 	csCluster.Status.NetworkID, _, retErr = cs.Network.GetNetworkID(csCluster.Spec.Network)
 	return retErr
 }
 
-func CreateNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	if retErr = FetchNetwork(cs, csCluster); retErr == nil { // Found network.
+func GetOrCreateNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	if retErr = ResolveNetworkID(cs, csCluster); retErr == nil { // Found network.
 		return nil
 	} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
 		return retErr
 	} // Network not found.
 
 	// Create network since it wasn't found.
-	offeringId, count, retErr := cs.NetworkOffering.GetNetworkOfferingID(NETOFFERING)
+	offeringId, count, retErr := cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
 	if retErr != nil {
 		return retErr
 	} else if count != 1 {
@@ -60,7 +63,7 @@ func CreateNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStac
 	return nil
 }
 
-func FetchPublicIP(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+func ResolvePublicIPDetails(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
 	p := cs.Address.NewListPublicIpAddressesParams()
 	p.SetAllocatedonly(false)
 	if ip := csCluster.Spec.ControlPlaneEndpoint.Host; ip != "" {
@@ -80,7 +83,7 @@ func FetchPublicIP(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStac
 
 // Gets a PublicIP and associates it.
 func AssociatePublicIpAddress(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	if err := FetchPublicIP(cs, csCluster); err != nil {
+	if err := ResolvePublicIPDetails(cs, csCluster); err != nil {
 		return err
 	}
 
@@ -112,7 +115,7 @@ func OpenFirewallRules(cs *cloudstack.CloudStackClient, csCluster *infrav1.Cloud
 	return retErr
 }
 
-func FetchLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+func ResolveLoadBalancerRuleDetails(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
 	p := cs.LoadBalancer.NewListLoadBalancerRulesParams()
 	p.SetPublicipid(csCluster.Status.PublicIPID)
 	loadBalancerRules, err := cs.LoadBalancer.ListLoadBalancerRules(p)
@@ -129,16 +132,17 @@ func FetchLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.C
 }
 
 // Create a load balancer rule that can be assigned to instances.
-func CreateLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+func GetOrCreateLoadBalancerRule(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
 	// Check if rule exists.
-	if err := FetchLoadBalancerRule(cs, csCluster); err == nil ||
+	if err := ResolveLoadBalancerRuleDetails(cs, csCluster); err == nil ||
 		!strings.Contains(err.Error(), "no load balancer rule found") {
 		return err
 	}
 
-	p := cs.LoadBalancer.NewCreateLoadBalancerRuleParams("roundrobin", "Kubernetes_API_Server", 6443, 6443)
-	if csCluster.Spec.ControlPlaneEndpoint.Port != 0 { // Override default port if endpoint port specified.
-		p.SetPrivateport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
+	p := cs.LoadBalancer.NewCreateLoadBalancerRuleParams(
+		"roundrobin", "Kubernetes_API_Server", K8sDefaultAPIPort, K8sDefaultAPIPort)
+	if csCluster.Spec.ControlPlaneEndpoint.Port != 0 { // Override default public port if endpoint port specified.
+		p.SetPublicport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
 	}
 	p.SetPublicipid(csCluster.Status.PublicIPID)
 	p.SetProtocol("tcp")
