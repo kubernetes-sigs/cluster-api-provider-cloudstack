@@ -26,7 +26,6 @@ import (
 
 	"sigs.k8s.io/cluster-api/util"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -163,22 +162,24 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *CloudStackClusterReconciler) clusterVMInstances(
-	ctx context.Context,
-	cluster *clusterv1.Cluster,
-	csCluster *infrav1.CloudStackCluster) ([]*infrav1.CloudStackMachine, error) {
-	labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
-	vmInstances := &infrav1.CloudStackMachineList{}
-	if err := r.Client.List(
-		ctx, vmInstances,
-		client.InNamespace(cluster.Namespace),
-		client.MatchingLabels(labels)); err != nil {
-		return nil, err
-	}
-	machines := make([]*infrav1.CloudStackMachine, len(vmInstances.Items))
-	for i := range vmInstances.Items {
-		machines[i] = &vmInstances.Items[i]
-	}
+// Unused for now, but will be needed for delete.
+// Left for later use, but commmented for linter.
+// func (r *CloudStackClusterReconciler) clusterVMInstances(
+// 	ctx context.Context,
+// 	cluster *clusterv1.Cluster,
+// 	csCluster *infrav1.CloudStackCluster) ([]*infrav1.CloudStackMachine, error) {
+// 	labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
+// 	vmInstances := &infrav1.CloudStackMachineList{}
+// 	if err := r.Client.List(
+// 		ctx, vmInstances,
+// 		client.InNamespace(cluster.Namespace),
+// 		client.MatchingLabels(labels)); err != nil {
+// 		return nil, err
+// 	}
+// 	machines := make([]*infrav1.CloudStackMachine, len(vmInstances.Items))
+// 	for i := range vmInstances.Items {
+// 		machines[i] = &vmInstances.Items[i]
+// 	}
 
-	return machines, nil
-}
+// 	return machines, nil
+// }

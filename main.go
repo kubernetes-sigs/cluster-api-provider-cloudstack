@@ -78,7 +78,7 @@ func main() {
 	cs := cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
 	_, err = cs.Zone.ListZones(cs.Zone.NewListZonesParams())
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "unable to start manager -- cannot connect to CloudStack via client")
 		os.Exit(1)
 	}
 	setupLog.Info("CloudStack client initialized.")
@@ -103,7 +103,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		CS:     cs,
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create CloudStack cluster controller")
 		os.Exit(1)
 	}
@@ -111,7 +111,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 		CS:     cs,
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create CloudStack machine controller")
 		os.Exit(1)
 	}
