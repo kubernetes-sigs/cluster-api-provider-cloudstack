@@ -57,6 +57,42 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 		})
 	})
 
+	Context("When creating a CloudStackMachineTemplate with all attributes", func() {
+		It("Should succeed", func() {
+			ctx := context.Background()
+			cloudStackMachineTemplate := &CloudStackMachineTemplate{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					Kind:       "CloudStackMachineTemplate",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machinetemplate-2",
+					Namespace: "default",
+				},
+				Spec: CloudStackMachineTemplateSpec{
+					Spec: CloudStackMachineTemplateResource{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-machinetemplateresource",
+							Namespace: "default",
+						},
+						Spec: CloudStackMachineSpec{
+							IdentityRef: &CloudStackIdentityReference{
+								Kind: defaultIdentityRefKind,
+								Name: "IdentitySecret",
+							},
+							Template: "Template",
+							Offering: "Offering",
+							Details: map[string]string{
+								"memoryOvercommitRatio": "1.2",
+							},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cloudStackMachineTemplate)).Should(Succeed())
+		})
+	})
+
 	Context("When creating a CloudStackMachineTemplate with missing Offering attribute", func() {
 		It("Should be rejected by the validating webhooks", func() {
 			ctx := context.Background()
@@ -163,7 +199,7 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 					Kind:       "CloudStackMachineTemplate",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machinetemplate2",
+					Name:      "test-machinetemplate-3",
 					Namespace: "default",
 				},
 				Spec: CloudStackMachineTemplateSpec{
@@ -179,6 +215,9 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 							},
 							Template: "Template",
 							Offering: "Offering",
+							Details: map[string]string{
+								"memoryOvercommitRatio": "1.2",
+							},
 						},
 					},
 				},
@@ -195,6 +234,12 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
 			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.Offering = "Offering2"
 			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "offering"))
+
+			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
+			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.Details = map[string]string{
+				"memoryOvercommitRatio": "1.5",
+			}
+			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "details"))
 
 			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
 			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.IdentityRef.Kind = "ConfigMap"

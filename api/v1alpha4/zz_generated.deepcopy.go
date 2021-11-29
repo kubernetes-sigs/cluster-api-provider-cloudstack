@@ -203,6 +203,13 @@ func (in *CloudStackMachineSpec) DeepCopyInto(out *CloudStackMachineSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.Details != nil {
+		in, out := &in.Details, &out.Details
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.ProviderID != nil {
 		in, out := &in.ProviderID, &out.ProviderID
 		*out = new(string)

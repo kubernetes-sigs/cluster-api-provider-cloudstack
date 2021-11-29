@@ -40,6 +40,9 @@ type CloudStackMachineSpec struct {
 	// CloudStack ssh key to use.
 	SSHKey string `json:"sshKey"`
 
+	// Optional details map for deployVirtualMachine
+	Details map[string]string `json:"details,omitempty"`
+
 	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine Id)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`

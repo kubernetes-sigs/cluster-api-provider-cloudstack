@@ -92,11 +92,11 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// No spec fields may be changed
-	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.Zone, oldSpec.Zone, "zone", errorList)
-	errorList = webhook_utilities.EnsureFieldsAreEqual(spec.Network, oldSpec.Network, "network", errorList)
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Zone, oldSpec.Zone, "zone", errorList)
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Network, oldSpec.Network, "network", errorList)
 	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
-		errorList = webhook_utilities.EnsureFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
-		errorList = webhook_utilities.EnsureFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
+		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
+		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
 	}
 
 	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
