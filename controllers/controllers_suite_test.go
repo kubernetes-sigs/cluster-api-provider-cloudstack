@@ -18,13 +18,21 @@ package controllers_test
 
 import (
 	"context"
+	"fmt"
+	"go/build"
+	"os"
+	"path"
 	"path/filepath"
+	"regexp"
+	goruntime "runtime"
+	"strings"
 	"testing"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,8 +44,42 @@ import (
 
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 	csReconcilers "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/controllers"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	//+kubebuilder:scaffold:imports
 )
+
+var (
+	clusterAPIVersionRegex = regexp.MustCompile(`^(\W)sigs.k8s.io/cluster-api v(.+)`)
+)
+
+func envOr(envKey, defaultValue string) string {
+	if value, ok := os.LookupEnv(envKey); ok {
+		return value
+	}
+	return defaultValue
+}
+
+func getFilePathToCAPICRDs(root string) string {
+	modBits, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	if err != nil {
+		return ""
+	}
+
+	var clusterAPIVersion string
+	for _, line := range strings.Split(string(modBits), "\n") {
+		matches := clusterAPIVersionRegex.FindStringSubmatch(line)
+		if len(matches) == 3 {
+			clusterAPIVersion = matches[2]
+		}
+	}
+
+	if clusterAPIVersion == "" {
+		return ""
+	}
+
+	gopath := envOr("GOPATH", build.Default.GOPATH)
+	return filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "config", "crd", "bases")
+}
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
@@ -73,16 +115,34 @@ var _ = BeforeSuite(func() {
 	mockClient = cloudstack.NewMockClient(mockCtrl)
 
 	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: true,
+	// Get the root of the current file to use in CRD paths.
+	_, filename, _, _ := goruntime.Caller(0) //nolint
+	root := path.Join(path.Dir(filename), "..")
+	fmt.Println(root)
+
+	crdPaths := []string{
+		filepath.Join(root, "config", "crd", "bases"),
 	}
+
+	// append CAPI CRDs path
+	if capiPath := getFilePathToCAPICRDs(root); capiPath != "" {
+		crdPaths = append(crdPaths, capiPath)
+	}
+
+	// Create the test environment.
+	testEnv = &envtest.Environment{
+		ErrorIfCRDPathMissing: true,
+		CRDDirectoryPaths:     crdPaths,
+	}
+
+	// Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
+	// Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
+	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 
 	cfg, err := testEnv.Start()
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(cfg).ShouldNot(BeNil())
-
-	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
 
 	//+kubebuilder:scaffold:scheme
 
