@@ -25,7 +25,7 @@ WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 RELEASE_DIR := out
 BUILD_DIR := .build
-OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-cloudstack/v0.1.0
+OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-cloudstack/$(VERSION)
 
 all: build
 
