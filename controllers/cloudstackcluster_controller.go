@@ -110,8 +110,8 @@ func (r *CloudStackClusterReconciler) reconcile(
 	// Prevent premature deletion of the csCluster construct from CAPI.
 	controllerutil.AddFinalizer(csCluster, infrav1.ClusterFinalizer)
 
-	// Fetch cluster info -- sets cluster to ready if no errors in fetch.
-	err := cloud.CreateCluster(r.CS, csCluster)
+	// Create and or fetch cluster components -- sets cluster to ready if no errors.
+	err := cloud.GetOrCreateCluster(r.CS, csCluster)
 	if err == nil {
 		log.Info("Fetched cluster info successfully.", "clusterSpec", csCluster.Spec, "clusterStatus", csCluster.Status)
 	}

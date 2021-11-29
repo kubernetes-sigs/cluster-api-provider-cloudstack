@@ -68,19 +68,19 @@ var _ = Describe("Instance", func() {
 	Context("when fetching a VM instance", func() {
 		It("Handles an unknown error when fetching by ID", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, unknownError)
-			Ω(cloud.FetchVMInstance(mockClient, csMachine)).To(MatchError("unknown err"))
+			Ω(cloud.ResolveVMInstanceDetails(mockClient, csMachine)).To(MatchError("unknown err"))
 		})
 
 		It("Handles finding more than one VM instance by ID", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, 2, nil)
-			Ω(cloud.FetchVMInstance(mockClient, csMachine)).
+			Ω(cloud.ResolveVMInstanceDetails(mockClient, csMachine)).
 				Should(MatchError("Found more than one VM Instance with ID instance-id."))
 		})
 
 		It("sets csMachine spec and status values when VM instance found by ID", func() {
 			vmsResp := &cloudstack.VirtualMachinesMetric{Id: *csMachine.Spec.InstanceID}
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(vmsResp, 1, nil)
-			Ω(cloud.FetchVMInstance(mockClient, csMachine)).Should(Succeed())
+			Ω(cloud.ResolveVMInstanceDetails(mockClient, csMachine)).Should(Succeed())
 			Ω(csMachine.Spec.ProviderID).Should(Equal(pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", vmsResp.Id))))
 			Ω(csMachine.Spec.InstanceID).Should(Equal(pointer.StringPtr(vmsResp.Id)))
 		})
@@ -89,14 +89,14 @@ var _ = Describe("Instance", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, unknownError)
 
-			Ω(cloud.FetchVMInstance(mockClient, csMachine)).Should(MatchError("unknown err"))
+			Ω(cloud.ResolveVMInstanceDetails(mockClient, csMachine)).Should(MatchError("unknown err"))
 		})
 
 		It("handles finding more than one VM instance by Name", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, 2, nil)
 
-			Ω(cloud.FetchVMInstance(mockClient, csMachine)).Should(
+			Ω(cloud.ResolveVMInstanceDetails(mockClient, csMachine)).Should(
 				MatchError("Found more than one VM Instance with name instance-name."))
 		})
 
@@ -105,7 +105,7 @@ var _ = Describe("Instance", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).
 				Return(&cloudstack.VirtualMachinesMetric{Id: *csMachine.Spec.InstanceID}, -1, nil)
 
-			Ω(cloud.FetchVMInstance(mockClient, csMachine)).Should(Succeed())
+			Ω(cloud.ResolveVMInstanceDetails(mockClient, csMachine)).Should(Succeed())
 			Ω(csMachine.Spec.ProviderID).Should(Equal(
 				pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", *csMachine.Spec.InstanceID))))
 			Ω(csMachine.Spec.InstanceID).Should(Equal(pointer.StringPtr(*csMachine.Spec.InstanceID)))
@@ -120,26 +120,26 @@ var _ = Describe("Instance", func() {
 
 		It("doesn't re-create if one already exists.", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(vmMetricResp, -1, nil)
-			Ω(cloud.CreateVMInstance(mockClient, csMachine, csCluster)).Should(Succeed())
+			Ω(cloud.GetOrCreateVMInstance(mockClient, csMachine, csCluster)).Should(Succeed())
 		})
 
 		It("returns unknown errors encountered while fetching VM instance", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, unknownError)
-			Ω(cloud.CreateVMInstance(mockClient, csMachine, csCluster)).Should(MatchError("unknown err"))
+			Ω(cloud.GetOrCreateVMInstance(mockClient, csMachine, csCluster)).Should(MatchError("unknown err"))
 		})
 
 		It("handles errors occuring while fetching sevice offering information", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, notFoundError)
 			sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return("", -1, unknownError)
-			Ω(cloud.CreateVMInstance(mockClient, csMachine, csCluster)).Should(MatchError("unknown err"))
+			Ω(cloud.GetOrCreateVMInstance(mockClient, csMachine, csCluster)).Should(MatchError("unknown err"))
 		})
 
 		It("returns an appropriate error if more than one sevice offering found", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, notFoundError)
 			sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return("", 2, nil)
-			Ω(cloud.CreateVMInstance(mockClient, csMachine, csCluster)).Should(
+			Ω(cloud.GetOrCreateVMInstance(mockClient, csMachine, csCluster)).Should(
 				MatchError("Did not find exactly one machine offering with the name service-offering-name"))
 		})
 
@@ -150,7 +150,7 @@ var _ = Describe("Instance", func() {
 			ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).
 				Return("", -1, unknownError)
 
-			Ω(cloud.CreateVMInstance(mockClient, csMachine, csCluster)).Should(MatchError("unknown err"))
+			Ω(cloud.GetOrCreateVMInstance(mockClient, csMachine, csCluster)).Should(MatchError("unknown err"))
 		})
 
 		It("returns an appropriate error when more than one template found", func() {
@@ -159,7 +159,7 @@ var _ = Describe("Instance", func() {
 			sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return(serviceOfferingID, 1, nil)
 			ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).Return("", 2, nil)
 
-			Ω(cloud.CreateVMInstance(mockClient, csMachine, csCluster)).
+			Ω(cloud.GetOrCreateVMInstance(mockClient, csMachine, csCluster)).
 				Should(MatchError("Did not find exactly one template with the name template-name"))
 		})
 
@@ -173,7 +173,7 @@ var _ = Describe("Instance", func() {
 				Return(&cloudstack.DeployVirtualMachineParams{})
 			vms.EXPECT().DeployVirtualMachine(gomock.Any()).Return(nil, unknownError)
 
-			Ω(cloud.CreateVMInstance(mockClient, csMachine, csCluster)).Should(MatchError("unknown err"))
+			Ω(cloud.GetOrCreateVMInstance(mockClient, csMachine, csCluster)).Should(MatchError("unknown err"))
 		})
 
 		It("calls CloudStack to deploy a VM Instance and succeeds", func() {
@@ -195,7 +195,7 @@ var _ = Describe("Instance", func() {
 			deploymentResp := &cloudstack.DeployVirtualMachineResponse{Id: *csMachine.Spec.InstanceID}
 			vms.EXPECT().DeployVirtualMachine(gomock.Any()).Return(deploymentResp, nil)
 
-			Ω(cloud.CreateVMInstance(mockClient, csMachine, csCluster)).Should(Succeed())
+			Ω(cloud.GetOrCreateVMInstance(mockClient, csMachine, csCluster)).Should(Succeed())
 			Ω(csMachine.Status.Ready).Should(BeTrue())
 		})
 	})

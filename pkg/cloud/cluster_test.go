@@ -73,7 +73,7 @@ var _ = Describe("Cluster", func() {
 			ns := mockClient.Network.(*cloudstack.MockNetworkServiceIface)
 			ns.EXPECT().GetNetworkID(netName).Return("", -1, expectedErr)
 
-			err := cloud.CreateCluster(mockClient, cluster)
+			err := cloud.GetOrCreateCluster(mockClient, cluster)
 			Expect(errors.Cause(err)).To(MatchError(expectedErr))
 		})
 

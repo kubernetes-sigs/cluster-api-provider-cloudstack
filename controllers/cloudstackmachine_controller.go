@@ -133,7 +133,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 	machine *capiv1.Machine) (ctrl.Result, error) {
 
 	// Create machine (or Fetch if present). Will set ready to true.
-	if err := cloud.CreateVMInstance(r.CS, csMachine, csCluster); err == nil {
+	if err := cloud.GetOrCreateVMInstance(r.CS, csMachine, csCluster); err == nil {
 		if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
 			log.Info("Machine Created", "instanceStatus", csMachine.Status, "instanceSpec", csMachine.Spec)
 			controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
