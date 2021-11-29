@@ -18,6 +18,8 @@ package controllers
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -25,6 +27,7 @@ import (
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,6 +39,7 @@ import (
 
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
+	corev1 "k8s.io/api/core/v1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -132,8 +136,25 @@ func (r *CloudStackMachineReconciler) reconcile(
 	csMachine *infrav1.CloudStackMachine,
 	machine *capiv1.Machine) (ctrl.Result, error) {
 
+	// Make sure bootstrap data is available in CAPI machine.
+	if machine.Spec.Bootstrap.DataSecretName == nil {
+		return ctrl.Result{}, errors.New("Bootstrap secret data name not yet available.")
+	}
+
+	secret := &corev1.Secret{}
+	key := types.NamespacedName{Namespace: machine.Namespace, Name: *machine.Spec.Bootstrap.DataSecretName}
+	if err := r.Client.Get(context.TODO(), key, secret); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	value, ok := secret.Data["value"]
+	if !ok {
+		return ctrl.Result{}, errors.New("Bootstrap secret data not ok.")
+	}
+	userData := base64.StdEncoding.EncodeToString(value)
+
 	// Create machine (or Fetch if present). Will set ready to true.
-	if err := cloud.GetOrCreateVMInstance(r.CS, csMachine, csCluster); err == nil {
+	if err := cloud.GetOrCreateVMInstance(r.CS, csMachine, csCluster, userData); err == nil {
 		if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
 			log.Info("Machine Created", "instanceStatus", csMachine.Status, "instanceSpec", csMachine.Spec)
 			controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
