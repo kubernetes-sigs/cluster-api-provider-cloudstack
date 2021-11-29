@@ -72,7 +72,8 @@ func ResolveVMInstanceDetails(cs *cloudstack.CloudStackClient, csMachine *infrav
 func GetOrCreateVMInstance(
 	cs *cloudstack.CloudStackClient,
 	csMachine *infrav1.CloudStackMachine,
-	csCluster *infrav1.CloudStackCluster) error {
+	csCluster *infrav1.CloudStackCluster,
+	userData string) error {
 
 	// Check if VM instance already exists.
 	if err := ResolveVMInstanceDetails(cs, csMachine); err == nil || !strings.Contains(strings.ToLower(err.Error()), "no match") {
@@ -101,6 +102,7 @@ func GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
+	setIfNotEmpty(userData, p.SetUserdata)
 	if csMachine.Spec.Details != nil {
 		p.SetDetails(csMachine.Spec.Details)
 	}
