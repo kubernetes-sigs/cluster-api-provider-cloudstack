@@ -16,6 +16,16 @@ endif
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
+VERSION ?= v0.1.0
+
+# Allow overriding manifest generation destination directory
+MANIFEST_ROOT ?= ./config
+CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
+WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
+RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
+RELEASE_DIR := out
+BUILD_DIR := .build
+OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-cloudstack/$(VERSION)
 
 all: build
 
@@ -36,11 +46,60 @@ help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Development
+$(RELEASE_DIR):
+	@mkdir -p $(RELEASE_DIR)
 
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
+
+$(OVERRIDES_DIR):
+	@mkdir -p $(OVERRIDES_DIR)
+
+.PHONY: release-manifests
+release-manifests:
+	$(MAKE) manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR)
+	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
+
+.PHONY: dev-manifests
+dev-manifests:
+	$(MAKE) manifests STAGE=dev MANIFEST_DIR=$(OVERRIDES_DIR)
+	cp metadata.yaml $(OVERRIDES_DIR)/metadata.yaml
+
+.PHONY: manifests
+manifests: kustomize $(MANIFEST_DIR) $(BUILD_DIR) $(KUSTOMIZE) $(STAGE)-cluster-templates
+	rm -rf $(BUILD_DIR)/config
+	cp -R config $(BUILD_DIR)
+	"$(KUSTOMIZE)" build $(BUILD_DIR)/config/default > $(MANIFEST_DIR)/infrastructure-components.yaml
+
+.PHONY: dev-cluster-templates
+dev-cluster-templates:
+	cp templates/cluster-template.yaml $(OVERRIDES_DIR)/cluster-template.yaml
+
+.PHONY: release-cluster-templates
+release-cluster-templates:
+	cp templates/cluster-template.yaml $(RELEASE_DIR)/cluster-template.yaml
+
+.PHONY: generate
+generate: ## Generate code
+	$(MAKE) generate-go
+	$(MAKE) generate-manifests
+
+.PHONY: generate-manifests
+generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
+	$(CONTROLLER_GEN) \
+		paths=./api/... \
+		crd:crdVersions=v1 \
+		output:crd:dir=$(CRD_ROOT) \
+		output:webhook:dir=$(WEBHOOK_ROOT) \
+		webhook
+	$(CONTROLLER_GEN) \
+		paths=./controllers/... \
+		output:rbac:dir=$(RBAC_ROOT) \
+		rbac:roleName=manager-role
+
+.PHONY: generate-go
+generate-go: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 fmt: ## Run go fmt against code.
@@ -99,6 +158,32 @@ controller-gen: ## Download controller-gen locally if necessary.
 KUSTOMIZE = $(shell pwd)/bin/kustomize
 kustomize: ## Download kustomize locally if necessary.
 	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+
+##@ Cleanup
+.PHONY: clean
+clean: ## Run all the clean targets
+	$(MAKE) clean-temporary
+	$(MAKE) clean-release
+	$(MAKE) clean-examples
+	$(MAKE) clean-build
+
+.PHONY: clean-build
+clean-build:
+	rm -rf $(BUILD_DIR)
+
+.PHONY: clean-temporary
+clean-temporary: ## Remove all temporary files and folders
+	rm -f minikube.kubeconfig
+	rm -f kubeconfig
+
+.PHONY: clean-release
+clean-release: ## Remove the release folder
+	rm -rf $(RELEASE_DIR)
+
+.PHONY: clean-examples
+clean-examples: ## Remove all the temporary files generated in the examples folder
+	rm -rf examples/_out/
+	rm -f examples/provider-components/provider-components-*.yaml
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
