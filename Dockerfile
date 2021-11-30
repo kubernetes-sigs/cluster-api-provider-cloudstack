@@ -20,7 +20,7 @@ COPY cloud-config /config/cloud-config
 
 # Build
 ARG ldflags
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -a -ldflags "${ldflags} -extldflags '-static'" \
     -o manager main.go
 
