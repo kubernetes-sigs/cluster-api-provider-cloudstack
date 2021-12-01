@@ -114,13 +114,17 @@ var _ = Describe("Network", func() {
 
 	Context("in an isolated network with public IPs available", func() {
 		It("will resolve public IP details given an endpoint spec", func() {
+			ipAddress := "192.168.1.14"
 			as.EXPECT().NewListPublicIpAddressesParams().Return(&cloudstack.ListPublicIpAddressesParams{})
 			as.EXPECT().ListPublicIpAddresses(gomock.Any()).
 				Return(&cloudstack.ListPublicIpAddressesResponse{
 					Count:             1,
-					PublicIpAddresses: []*cloudstack.PublicIpAddress{{Id: "PublicIPID", Ipaddress: "192.168.1.14"}},
+					PublicIpAddresses: []*cloudstack.PublicIpAddress{{Id: "PublicIPID", Ipaddress: ipAddress}},
 				}, nil)
-			Ω(cloud.ResolvePublicIPDetails(mockClient, csCluster)).Should(Succeed())
+			publicIpAddress, err := cloud.ResolvePublicIPDetails(mockClient, csCluster)
+			Ω(err).Should(Succeed())
+			Ω(publicIpAddress).ShouldNot(BeNil())
+			Ω(publicIpAddress.Ipaddress).Should(Equal(ipAddress))
 		})
 	})
 

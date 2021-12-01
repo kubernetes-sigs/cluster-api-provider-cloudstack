@@ -63,7 +63,7 @@ func GetOrCreateNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.Clou
 	return nil
 }
 
-func ResolvePublicIPDetails(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+func ResolvePublicIPDetails(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error) {
 	p := cs.Address.NewListPublicIpAddressesParams()
 	p.SetAllocatedonly(false)
 	if ip := csCluster.Spec.ControlPlaneEndpoint.Host; ip != "" {
@@ -71,27 +71,25 @@ func ResolvePublicIPDetails(cs *cloudstack.CloudStackClient, csCluster *infrav1.
 	}
 	publicAddresses, err := cs.Address.ListPublicIpAddresses(p)
 	if err != nil {
-		return err
+		return nil, err
 	} else if publicAddresses.Count > 0 {
-		csCluster.Spec.ControlPlaneEndpoint.Host = publicAddresses.PublicIpAddresses[0].Ipaddress
-		csCluster.Status.PublicIPID = publicAddresses.PublicIpAddresses[0].Id
+		return publicAddresses.PublicIpAddresses[0], nil
 	} else {
-		return errors.New("no public addresses found")
+		return nil, errors.New("no public addresses found")
 	}
-	return nil
 }
 
 // Gets a PublicIP and associates it.
 func AssociatePublicIpAddress(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	if err := ResolvePublicIPDetails(cs, csCluster); err != nil {
+	publicAddress, err := ResolvePublicIPDetails(cs, csCluster)
+	if err != nil {
 		return err
 	}
 
-	if publicAddress, cnt, retErr := cs.Address.GetPublicIpAddressByID(csCluster.Status.PublicIPID); retErr != nil {
-		return retErr
-	} else if cnt != 1 { // Should probably never happen... Probably.
-		return errors.Errorf("Expected exactly one Public IP for ID %s", csCluster.Status.PublicIPID)
-	} else if publicAddress.Allocated != "" && publicAddress.Associatednetworkid == csCluster.Status.NetworkID {
+	csCluster.Spec.ControlPlaneEndpoint.Host = publicAddress.Ipaddress
+	csCluster.Status.PublicIPID = publicAddress.Id
+
+	if publicAddress.Allocated != "" && publicAddress.Associatednetworkid == csCluster.Status.NetworkID {
 		// Address already allocated to network. Allocated is a timestamp -- not a boolean.
 		return nil
 	} // Address not yet allocated. Allocate now.
