@@ -66,12 +66,15 @@ var _ = Describe("Network", func() {
 	Context("for an existing network", func() {
 		It("resolves network details in cluster status", func() {
 			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
-			Ω(cloud.ResolveNetworkID(mockClient, csCluster)).Should(Succeed())
+			ns.EXPECT().GetNetworkByID("fakeNetID").Return(&cloudstack.Network{Type: "Isolated"}, 0, nil)
+			Ω(cloud.ResolveNetwork(mockClient, csCluster)).Should(Succeed())
 			Ω(csCluster.Status.NetworkID).Should(Equal("fakeNetID"))
+			Ω(csCluster.Status.NetworkType).Should(Equal("Isolated"))
 		})
 
 		It("does not call to create a new network via GetOrCreateNetwork", func() {
 			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
+			ns.EXPECT().GetNetworkByID("fakeNetID").Return(&cloudstack.Network{Type: "Isolated"}, 0, nil)
 			Ω(cloud.GetOrCreateNetwork(mockClient, csCluster)).Should(Succeed())
 		})
 	})

@@ -66,6 +66,9 @@ type CloudStackClusterStatus struct {
 	// Cloudstack Network ID the cluster is built in.
 	NetworkID string `json:"networkID,omitempty"`
 
+	// Cloudstack Network Type the cluster is built in.
+	NetworkType string `json:"networkType,omitempty"`
+
 	// The CS public IP ID to use for the k8s endpoint.
 	PublicIPID string `json:"publicIPID,omitempty"`
 
