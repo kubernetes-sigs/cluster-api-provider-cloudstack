@@ -26,17 +26,28 @@ import (
 )
 
 const (
-	NetOffering       = "DefaultIsolatedNetworkOfferingWithSourceNatService"
-	K8sDefaultAPIPort = 6443
+	NetOffering         = "DefaultIsolatedNetworkOfferingWithSourceNatService"
+	K8sDefaultAPIPort   = 6443
+	NetworkTypeIsolated = "Isolated"
+	NetworkTypeShared   = "Shared"
 )
 
-func ResolveNetworkID(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	csCluster.Status.NetworkID, _, retErr = cs.Network.GetNetworkID(csCluster.Spec.Network)
-	return retErr
+func ResolveNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+	if csCluster.Status.NetworkID, _, retErr = cs.Network.GetNetworkID(csCluster.Spec.Network); retErr != nil {
+		return retErr
+	}
+
+	var networkDetails *cloudstack.Network
+	if networkDetails, _, retErr = cs.Network.GetNetworkByID(csCluster.Status.NetworkID); retErr != nil {
+		return retErr
+	}
+
+	csCluster.Status.NetworkType = networkDetails.Type
+	return nil
 }
 
 func GetOrCreateNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
-	if retErr = ResolveNetworkID(cs, csCluster); retErr == nil { // Found network.
+	if retErr = ResolveNetwork(cs, csCluster); retErr == nil { // Found network.
 		return nil
 	} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
 		return retErr
@@ -59,6 +70,7 @@ func GetOrCreateNetwork(cs *cloudstack.CloudStackClient, csCluster *infrav1.Clou
 		return err
 	}
 	csCluster.Status.NetworkID = resp.Id
+	csCluster.Status.NetworkType = resp.Type
 
 	return nil
 }

@@ -19,9 +19,11 @@ package cloud
 import (
 	"errors"
 	"fmt"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/cluster-api/util"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
@@ -72,6 +74,7 @@ func ResolveVMInstanceDetails(cs *cloudstack.CloudStackClient, csMachine *infrav
 func GetOrCreateVMInstance(
 	cs *cloudstack.CloudStackClient,
 	csMachine *infrav1.CloudStackMachine,
+	machine *capiv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
 	userData string) error {
 
@@ -99,10 +102,14 @@ func GetOrCreateVMInstance(
 
 	// Create VM instance.
 	p := cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csCluster.Status.ZoneID)
+	p.SetNetworkids([]string{csCluster.Status.NetworkID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 	setIfNotEmpty(userData, p.SetUserdata)
+	if util.IsControlPlaneMachine(machine) && csCluster.Status.NetworkType == NetworkTypeShared {
+		setIfNotEmpty(csCluster.Spec.ControlPlaneEndpoint.Host, p.SetIpaddress)
+	}
 	if csMachine.Spec.Details != nil {
 		p.SetDetails(csMachine.Spec.Details)
 	}

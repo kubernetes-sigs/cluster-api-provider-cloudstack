@@ -37,14 +37,17 @@ func GetOrCreateCluster(cs *cloudstack.CloudStackClient, csCluster *infrav1.Clou
 	if retErr = GetOrCreateNetwork(cs, csCluster); retErr != nil {
 		return retErr
 	}
-	if retErr = OpenFirewallRules(cs, csCluster); retErr != nil {
-		return retErr
-	}
-	if retErr = AssociatePublicIpAddress(cs, csCluster); retErr != nil {
-		return retErr
-	}
-	if retErr = GetOrCreateLoadBalancerRule(cs, csCluster); retErr != nil {
-		return retErr
+
+	if csCluster.Status.NetworkType == NetworkTypeIsolated {
+		if retErr = OpenFirewallRules(cs, csCluster); retErr != nil {
+			return retErr
+		}
+		if retErr = AssociatePublicIpAddress(cs, csCluster); retErr != nil {
+			return retErr
+		}
+		if retErr = GetOrCreateLoadBalancerRule(cs, csCluster); retErr != nil {
+			return retErr
+		}
 	}
 
 	// Set cluster to ready to indicate readiness to CAPI.

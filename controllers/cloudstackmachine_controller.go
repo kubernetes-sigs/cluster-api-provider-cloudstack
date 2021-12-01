@@ -138,8 +138,10 @@ func (r *CloudStackMachineReconciler) reconcile(
 
 	// Make sure bootstrap data is available in CAPI machine.
 	if machine.Spec.Bootstrap.DataSecretName == nil {
-		return ctrl.Result{}, errors.New("Bootstrap secret data name not yet available.")
+		log.Info("Bootstrap DataSecretName not yet available.")
+		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
+	log.Info("Got Bootstrap DataSecretName: " + *machine.Spec.Bootstrap.DataSecretName)
 
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: machine.Namespace, Name: *machine.Spec.Bootstrap.DataSecretName}
@@ -154,7 +156,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 	userData := base64.StdEncoding.EncodeToString(value)
 
 	// Create machine (or Fetch if present). Will set ready to true.
-	if err := cloud.GetOrCreateVMInstance(r.CS, csMachine, csCluster, userData); err == nil {
+	if err := cloud.GetOrCreateVMInstance(r.CS, csMachine, machine, csCluster, userData); err == nil {
 		if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
 			log.Info("Machine Created", "instanceStatus", csMachine.Status, "instanceSpec", csMachine.Spec)
 			controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
@@ -163,8 +165,8 @@ func (r *CloudStackMachineReconciler) reconcile(
 		return ctrl.Result{}, err
 	}
 
-	if util.IsControlPlaneMachine(machine) {
-		log.Info("Assinging VM to load balancer rule.")
+	if util.IsControlPlaneMachine(machine) && csCluster.Status.NetworkType != cloud.NetworkTypeShared {
+		log.Info("Assigning VM to load balancer rule.")
 		err := cloud.AssignVMToLoadBalancerRule(r.CS, csCluster, *csMachine.Spec.InstanceID)
 		if err != nil {
 			return ctrl.Result{}, err
