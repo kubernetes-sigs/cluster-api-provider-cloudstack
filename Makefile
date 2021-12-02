@@ -81,7 +81,7 @@ release-cluster-templates:
 	cp templates/cluster-template.yaml $(RELEASE_DIR)/cluster-template.yaml
 
 .PHONY: generate
-generate: ## Generate code
+generate: ## Generate code and manifests
 	$(MAKE) generate-go
 	$(MAKE) generate-manifests
 
@@ -109,23 +109,27 @@ vet: ## Run go vet against code.
 	go vet ./...
 
 ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-test: ## Run tests.
-	$(MAKE) generate fmt vet
+
+.PHONY: test
+test: generate fmt vet ## Run tests.
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
 ##@ Build
-
+.PHONY: build
 build: generate fmt vet ## Build manager binary.
 	go build -o bin/manager main.go
 
-run: manifests generate fmt vet ## Run a controller from your host.
+.PHONY: run
+run: generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
+.PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
+.PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
 
@@ -134,18 +138,22 @@ GOLANGCI_LINT = $(HOME)/go/bin/golangci-lint
 golangci-lint:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
 
+.PHONY: lint
 lint: golangci-lint
 	$(GOLANGCI_LINT) run ./...
 
 ##@ Deployment
 
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+.PHONY: install
+install: generate-manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
+.PHONY: uninstall
+uninstall: generate-manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+.PHONY: deploy
+deploy: generate-manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
