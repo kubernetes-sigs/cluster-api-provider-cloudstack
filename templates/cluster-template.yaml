@@ -97,7 +97,7 @@ metadata:
 spec:
   template:
     spec:
-      offering: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
+      offering: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
       sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
       template: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
