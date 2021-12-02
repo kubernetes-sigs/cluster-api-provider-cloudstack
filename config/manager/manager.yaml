@@ -15,11 +15,6 @@ spec:
       labels:
         control-plane: capc-controller-manager
     spec:
-      # This was missing in the POC, but I'm guessing will be needed in the future
-      # securityContext:
-      #   runAsNonRoot: true
-      securityContext:
-        runAsNonRoot: false
       containers:
       - command:
         - /manager
