@@ -190,7 +190,7 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 	csMachine *infrav1.CloudStackMachine) (ctrl.Result, error) {
 
 	log.Info("Deleting instance", "instance-id", *csMachine.Spec.InstanceID)
-	if err := cloud.DestroyVMInstance(r.CS, csMachine); err == nil {
+	if err := cloud.DestroyVMInstance(r.CS, csMachine); err != nil {
 		return ctrl.Result{}, err
 	}
 	controllerutil.RemoveFinalizer(csMachine, infrav1.MachineFinalizer)
