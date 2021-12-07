@@ -38,6 +38,7 @@ type CloudStackMachineSpec struct {
 	Template string `json:"template"`
 
 	// CloudStack ssh key to use.
+	// +optional
 	SSHKey string `json:"sshKey"`
 
 	// Optional details map for deployVirtualMachine

@@ -101,7 +101,6 @@ spec:
                 type: string
             required:
             - offering
-            - sshKey
             - template
             type: object
           status:
