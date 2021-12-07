@@ -10,6 +10,8 @@ defines a manual deployment process suitable for evaluating this CAPC interim re
 
 This should be an easily disposable/re-creatable cluster, such as a locally-running kind (Kuberetes in Docker) cluster.
 
+Your KUBECONFIG file's *current-context* must be set to the cluster you want to use.
+
 ### - CAPI clusterctl v0.4.4 (https://github.com/kubernetes-sigs/cluster-api/releases/tag/v0.4.4)
 
 The currently released CAPI clusterctl 1.x is not compatible with this pre-release.
@@ -56,17 +58,13 @@ docker registry integrated into a kind cluster for lightweight development and t
 docker load --input cluster-api-provider-capc.tar.gz
 ```
 
-This will create image public.ecr.aws/a4z9h2b1/cluster-api-provider-capc:v0.1.0 in your local docker.
+This will create image *localhost:5000/cluster-api-provider-cloudstack:v0.1.0* in your local docker.  This is suitable
+for pushing to a local registry.
 
-- Tag this image for your registry
+- (Optional) Tag this image for your registry and push it if you're not using a local registry.
 ```
-docker tag public.ecr.aws/a4z9h2b1/cluster-api-provider-capc:latest <yourRepoFqdn>/cluster-api-provider-capc:v0.1.0
-```
-*For local registry \<yourRegistryFqdn\> would be* localhost:5000.
-
-- Push it to your registry
-```
-docker push <yourRepoFqdn>/cluster-api-provider-capc:v0.1.0
+docker tag localhost:5000/cluster-api-provider-cloudstack:v0.1.0 <yourRepoFqdn>/cluster-api-provider-cloudstack:v0.1.0
+docker push <yourRepoFqdn>/cluster-api-provider-cloudstack:v0.1.0
 ```
 
 ### Create clusterctl configuration files
@@ -97,7 +95,7 @@ unzip cluster-api.zip
 ### Edit the clusterctl configuration files
 - **clusterctl.yaml:** in the *url* attribute replace \<USERID\> with your OS user id to form a valid absolute path to infrastructure-components.yaml.
 
-- **dev-repository/infrastructure-cloudstack/v0.1.0/infrastructure-components.yaml:** for the capc-controller-manager deployment, change the spec.template.spec.containers[0].image (line 617) to correctly reflect your container registry. 
+- **dev-repository/infrastructure-cloudstack/v0.1.0/infrastructure-components.yaml:** if you're not using a local registry modify the capc-controller-manager deployment, changing the spec.template.spec.containers[0].image (line 617) to correctly reflect your container registry. 
 
 ### Deploy CAPI and CAPC to your bootstrap Kubernetes cluster
 ```
