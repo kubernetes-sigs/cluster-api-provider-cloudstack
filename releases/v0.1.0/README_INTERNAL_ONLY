@@ -1,0 +1,12 @@
+This release was manually prepared, and has a few relevant differences from that built from
+main with Makefile targets.
+
+1) An image archive named localhost:5000/cluster-api-provider-cloudstack:v0.1.0 was prepared.
+     This is a re-tag of the public.ecr.aws/a4z9h2b1/cluster-api-provider-capc:latest, as
+     built by make docker-image.
+
+2) A set of cluster-api config files were placed in cluster-api.zip for easy deployment.
+   - The image reference in infrastructure-components.yaml was adjusted to match the above.
+   - A new cluster-config-ssh.yaml was created, identical to the current cluster-config.yaml
+   - cluster-config.yaml was modified to remove any sshKey attributes.
+
