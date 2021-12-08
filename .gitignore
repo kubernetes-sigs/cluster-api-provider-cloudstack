@@ -29,3 +29,6 @@ cloud-config
 *.swp
 *.swo
 *~
+
+# generated from e2e testing
+_artifacts
