@@ -5,7 +5,7 @@
 # - control-plane kubeadm
 # - cloudstack
 
-managementClusterName: capc-e2e
+managementClusterName: capi-test
 
 images:
   # Use local dev images built source tree;
@@ -32,7 +32,7 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.4.3 
+      - name: v0.4.3
         contract: v1alpha4
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.3/core-components.yaml"
         type: "url"
@@ -89,7 +89,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1alpha4/cluster-template.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1alpha4/cluster-template-kcp-remediation.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1alpha4/cluster-template-md-remediation.yaml"
-      - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+      - sourcePath: "../../../metadata.yaml"
       replacements:
       - old: --metrics-bind-addr=localhost:8080
         new: --metrics-bind-addr=:8080
