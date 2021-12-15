@@ -18,7 +18,7 @@ package controllers
 
 import (
 	"context"
-	//	"reflect"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,8 +29,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	//	"sigs.k8s.io/controller-runtime/pkg/event"
-	//	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
@@ -135,27 +135,27 @@ func (r *CloudStackClusterReconciler) reconcileDelete(
 func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackCluster{}).
-		//WithEventFilter(
-		//	predicate.Funcs{
-		//		UpdateFunc: func(e event.UpdateEvent) bool {
-		//			oldCluster := e.ObjectOld.(*infrav1.CloudStackCluster).DeepCopy()
-		//			newCluster := e.ObjectNew.(*infrav1.CloudStackCluster).DeepCopy()
-		//			// Ignore resource version because they are unique
-		//			oldCluster.ObjectMeta.ResourceVersion = ""
-		//			newCluster.ObjectMeta.ResourceVersion = ""
-		//			// Ignore finalizers updates
-		//			oldCluster.ObjectMeta.Finalizers = nil
-		//			newCluster.ObjectMeta.Finalizers = nil
-		//			// Ignore ManagedFields because they are mirror of ObjectMeta
-		//			oldCluster.ManagedFields = nil
-		//			newCluster.ManagedFields = nil
-		//			// Ignore incremental status updates
-		//			oldCluster.Status = infrav1.CloudStackClusterStatus{}
-		//			newCluster.Status = infrav1.CloudStackClusterStatus{}
-		//
-		//			return !reflect.DeepEqual(oldCluster, newCluster)
-		//		},
-		//	},
-		//).
+		WithEventFilter(
+			predicate.Funcs{
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					oldCluster := e.ObjectOld.(*infrav1.CloudStackCluster).DeepCopy()
+					newCluster := e.ObjectNew.(*infrav1.CloudStackCluster).DeepCopy()
+					// Ignore resource version because they are unique
+					oldCluster.ObjectMeta.ResourceVersion = ""
+					newCluster.ObjectMeta.ResourceVersion = ""
+					// Ignore finalizers updates
+					oldCluster.ObjectMeta.Finalizers = nil
+					newCluster.ObjectMeta.Finalizers = nil
+					// Ignore ManagedFields because they are mirror of ObjectMeta
+					oldCluster.ManagedFields = nil
+					newCluster.ManagedFields = nil
+					// Ignore incremental status updates
+					oldCluster.Status = infrav1.CloudStackClusterStatus{}
+					newCluster.Status = infrav1.CloudStackClusterStatus{}
+
+					return !reflect.DeepEqual(oldCluster, newCluster)
+				},
+			},
+		).
 		Complete(r)
 }
