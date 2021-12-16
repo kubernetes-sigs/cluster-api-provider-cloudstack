@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
@@ -72,7 +73,6 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 	ctx := context.Background()
 
 	BeforeEach(func() {
-
 	})
 
 	It("Should create a cluster", func() {
@@ -107,13 +107,13 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 			return ph.Patch(ctx, csCluster, patch.WithStatusObservedGeneration{})
 		}, timeout).Should(Succeed())
 
-		// TODO: This test would be good, but need to do some mocking first.
-		// Eventually(func() bool {
-		// 	if err := k8sClient.Get(ctx, key, csCluster); err != nil {
-		// 		return false
-		// 	}
-		// 	return len(csCluster.Finalizers) > 0
-		// }, timeout).Should(BeTrue())
+		CS.EXPECT().GetOrCreateCluster(gomock.Any())
+		Eventually(func() bool {
+			if err := k8sClient.Get(ctx, key, csCluster); err != nil {
+				return false
+			}
+			return len(csCluster.Finalizers) > 0
+		}, timeout).Should(BeTrue())
 
 	})
 })

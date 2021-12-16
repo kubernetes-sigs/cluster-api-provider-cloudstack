@@ -17,16 +17,15 @@ limitations under the License.
 package cloud
 
 import (
-	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 )
 
-func GetOrCreateCluster(cs *cloudstack.CloudStackClient, csCluster *infrav1.CloudStackCluster) (retErr error) {
+func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	var count int
 
 	// Translate zone name to  zone ID.
-	csCluster.Status.ZoneID, count, retErr = cs.Zone.GetZoneID(csCluster.Spec.Zone)
+	csCluster.Status.ZoneID, count, retErr = c.cs.Zone.GetZoneID(csCluster.Spec.Zone)
 	if retErr != nil {
 		return retErr
 	} else if count != 1 {
@@ -34,18 +33,18 @@ func GetOrCreateCluster(cs *cloudstack.CloudStackClient, csCluster *infrav1.Clou
 	}
 
 	// Get or create network and needed network constructs.
-	if retErr = GetOrCreateNetwork(cs, csCluster); retErr != nil {
+	if retErr = c.GetOrCreateNetwork(csCluster); retErr != nil {
 		return retErr
 	}
 
 	if csCluster.Status.NetworkType == NetworkTypeIsolated {
-		if retErr = OpenFirewallRules(cs, csCluster); retErr != nil {
+		if retErr = c.OpenFirewallRules(csCluster); retErr != nil {
 			return retErr
 		}
-		if retErr = AssociatePublicIpAddress(cs, csCluster); retErr != nil {
+		if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
 			return retErr
 		}
-		if retErr = GetOrCreateLoadBalancerRule(cs, csCluster); retErr != nil {
+		if retErr = c.GetOrCreateLoadBalancerRule(csCluster); retErr != nil {
 			return retErr
 		}
 	}

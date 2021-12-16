@@ -37,6 +37,7 @@ var _ = Describe("Network", func() {
 		as         *cloudstack.MockAddressServiceIface
 		lbs        *cloudstack.MockLoadBalancerServiceIface
 		csCluster  *infrav1.CloudStackCluster
+		client     cloud.Client
 	)
 
 	BeforeEach(func() {
@@ -48,6 +49,7 @@ var _ = Describe("Network", func() {
 		fs = mockClient.Firewall.(*cloudstack.MockFirewallServiceIface)
 		as = mockClient.Address.(*cloudstack.MockAddressServiceIface)
 		lbs = mockClient.LoadBalancer.(*cloudstack.MockLoadBalancerServiceIface)
+		client = cloud.NewClientFromCSAPIClient(mockClient)
 
 		// Reset csCluster.
 		csCluster = &infrav1.CloudStackCluster{
@@ -67,7 +69,7 @@ var _ = Describe("Network", func() {
 		It("resolves network details in cluster status", func() {
 			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
 			ns.EXPECT().GetNetworkByID("fakeNetID").Return(&cloudstack.Network{Type: "Isolated"}, 0, nil)
-			Ω(cloud.ResolveNetwork(mockClient, csCluster)).Should(Succeed())
+			Ω(client.ResolveNetwork(csCluster)).Should(Succeed())
 			Ω(csCluster.Status.NetworkID).Should(Equal("fakeNetID"))
 			Ω(csCluster.Status.NetworkType).Should(Equal("Isolated"))
 		})
@@ -75,7 +77,8 @@ var _ = Describe("Network", func() {
 		It("does not call to create a new network via GetOrCreateNetwork", func() {
 			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
 			ns.EXPECT().GetNetworkByID("fakeNetID").Return(&cloudstack.Network{Type: "Isolated"}, 0, nil)
-			Ω(cloud.GetOrCreateNetwork(mockClient, csCluster)).Should(Succeed())
+
+			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
 	})
 
@@ -86,7 +89,7 @@ var _ = Describe("Network", func() {
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&cloudstack.CreateNetworkParams{})
 			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: "someNetID"}, nil)
-			Ω(cloud.GetOrCreateNetwork(mockClient, csCluster)).Should(Succeed())
+			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
 	})
 
@@ -99,7 +102,7 @@ var _ = Describe("Network", func() {
 			fs.EXPECT().CreateEgressFirewallRule(&cloudstack.CreateEgressFirewallRuleParams{}).
 				Return(&cloudstack.CreateEgressFirewallRuleResponse{}, nil)
 
-			Ω(cloud.OpenFirewallRules(mockClient, csCluster)).Should(Succeed())
+			Ω(client.OpenFirewallRules(csCluster)).Should(Succeed())
 		})
 	})
 
@@ -111,7 +114,7 @@ var _ = Describe("Network", func() {
 				Return(&cloudstack.CreateEgressFirewallRuleParams{})
 			fs.EXPECT().CreateEgressFirewallRule(&cloudstack.CreateEgressFirewallRuleParams{}).
 				Return(&cloudstack.CreateEgressFirewallRuleResponse{}, errors.New("There is already a rule like this."))
-			Ω(cloud.OpenFirewallRules(mockClient, csCluster)).Should(Succeed())
+			Ω(client.OpenFirewallRules(csCluster)).Should(Succeed())
 		})
 	})
 
@@ -124,7 +127,7 @@ var _ = Describe("Network", func() {
 					Count:             1,
 					PublicIpAddresses: []*cloudstack.PublicIpAddress{{Id: "PublicIPID", Ipaddress: ipAddress}},
 				}, nil)
-			publicIpAddress, err := cloud.ResolvePublicIPDetails(mockClient, csCluster)
+			publicIpAddress, err := client.ResolvePublicIPDetails(csCluster)
 			Ω(err).Should(Succeed())
 			Ω(publicIpAddress).ShouldNot(BeNil())
 			Ω(publicIpAddress.Ipaddress).Should(Equal(ipAddress))
@@ -137,7 +140,7 @@ var _ = Describe("Network", func() {
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).Return(
 				&cloudstack.ListLoadBalancerRulesResponse{
 					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: "6443", Id: "lbRuleID"}}}, nil)
-			Ω(cloud.ResolveLoadBalancerRuleDetails(mockClient, csCluster)).Should(Succeed())
+			Ω(client.ResolveLoadBalancerRuleDetails(csCluster)).Should(Succeed())
 			Ω(csCluster.Status.LBRuleID).Should(Equal("lbRuleID"))
 		})
 
@@ -146,7 +149,7 @@ var _ = Describe("Network", func() {
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).
 				Return(&cloudstack.ListLoadBalancerRulesResponse{
 					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: "6443", Id: "lbRuleID"}}}, nil)
-			Ω(cloud.GetOrCreateLoadBalancerRule(mockClient, csCluster)).Should(Succeed())
+			Ω(client.GetOrCreateLoadBalancerRule(csCluster)).Should(Succeed())
 			Ω(csCluster.Status.LBRuleID).Should(Equal("lbRuleID"))
 		})
 	})
@@ -160,7 +163,7 @@ var _ = Describe("Network", func() {
 				Return(&cloudstack.CreateLoadBalancerRuleParams{})
 			lbs.EXPECT().CreateLoadBalancerRule(gomock.Any()).
 				Return(&cloudstack.CreateLoadBalancerRuleResponse{Id: "randomID"}, nil)
-			Ω(cloud.GetOrCreateLoadBalancerRule(mockClient, csCluster)).Should(Succeed())
+			Ω(client.GetOrCreateLoadBalancerRule(csCluster)).Should(Succeed())
 			Ω(csCluster.Status.LBRuleID).Should(Equal("randomID"))
 		})
 	})

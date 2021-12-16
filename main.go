@@ -20,7 +20,6 @@ import (
 	"flag"
 	"os"
 
-	"github.com/apache/cloudstack-go/v2/cloudstack"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -68,17 +67,8 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Setup CloudStack api client.
-	// TODO: turn on ssl verification in production.
 	filepath := "/config/cloud-config"
-	apiUrl, apiKey, secretKey, err := cloud.ReadAPIConfig(filepath)
-	if err != nil {
-		setupLog.Error(err, "Unable to get cloud provider configuration at "+filepath)
-		os.Exit(1)
-	}
-
-	// TODO: attempt a less clunky client liveliness check (not just listing zones).
-	cs := cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
-	_, err = cs.Zone.ListZones(cs.Zone.NewListZonesParams())
+	client, err := cloud.NewClient(filepath)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager -- cannot connect to CloudStack via client")
 		os.Exit(1)
@@ -105,7 +95,7 @@ func main() {
 	if err = (&controllers.CloudStackClusterReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		CS:     cs,
+		CS:     client,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create CloudStack cluster controller")
 		os.Exit(1)
@@ -113,7 +103,7 @@ func main() {
 	if err = (&controllers.CloudStackMachineReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
-		CS:     cs,
+		CS:     client,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create CloudStack machine controller")
 		os.Exit(1)

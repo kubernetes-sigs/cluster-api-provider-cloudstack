@@ -20,7 +20,6 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -44,7 +43,7 @@ import (
 type CloudStackClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	CS     *cloudstack.CloudStackClient
+	CS     cloud.Client
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=get;list;watch;create;update;patch;delete
@@ -111,7 +110,7 @@ func (r *CloudStackClusterReconciler) reconcile(
 	controllerutil.AddFinalizer(csCluster, infrav1.ClusterFinalizer)
 
 	// Create and or fetch cluster components -- sets cluster to ready if no errors.
-	err := cloud.GetOrCreateCluster(r.CS, csCluster)
+	err := r.CS.GetOrCreateCluster(csCluster)
 	if err == nil {
 		log.Info("Fetched cluster info successfully.", "clusterSpec", csCluster.Spec, "clusterStatus", csCluster.Status)
 	}

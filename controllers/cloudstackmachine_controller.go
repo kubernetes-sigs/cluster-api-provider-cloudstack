@@ -24,8 +24,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/util"
@@ -39,7 +39,6 @@ import (
 
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
-	corev1 "k8s.io/api/core/v1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -48,7 +47,7 @@ import (
 type CloudStackMachineReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	CS     *cloudstack.CloudStackClient
+	CS     cloud.Client
 }
 
 const RequeueTimeout = 5 * time.Second
@@ -156,7 +155,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 	userData := base64.StdEncoding.EncodeToString(value)
 
 	// Create machine (or Fetch if present). Will set ready to true.
-	if err := cloud.GetOrCreateVMInstance(r.CS, csMachine, machine, csCluster, userData); err == nil {
+	if err := r.CS.GetOrCreateVMInstance(csMachine, machine, csCluster, userData); err == nil {
 		if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
 			log.Info("Machine Created", "instanceStatus", csMachine.Status, "instanceSpec", csMachine.Spec)
 			controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
@@ -167,7 +166,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 
 	if util.IsControlPlaneMachine(machine) && csCluster.Status.NetworkType != cloud.NetworkTypeShared {
 		log.Info("Assigning VM to load balancer rule.")
-		err := cloud.AssignVMToLoadBalancerRule(r.CS, csCluster, *csMachine.Spec.InstanceID)
+		err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -190,7 +189,7 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 	csMachine *infrav1.CloudStackMachine) (ctrl.Result, error) {
 
 	log.Info("Deleting instance", "instance-id", *csMachine.Spec.InstanceID)
-	if err := cloud.DestroyVMInstance(r.CS, csMachine); err != nil {
+	if err := r.CS.DestroyVMInstance(csMachine); err != nil {
 		return ctrl.Result{}, err
 	}
 	controllerutil.RemoveFinalizer(csMachine, infrav1.MachineFinalizer)

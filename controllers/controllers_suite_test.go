@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"go/build"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -42,6 +43,7 @@ import (
 
 	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 	csReconcilers "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/controllers"
+	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	//+kubebuilder:scaffold:imports
 )
@@ -77,7 +79,8 @@ func getFilePathToCAPICRDs(root string) string {
 	}
 
 	gopath := envOr("GOPATH", build.Default.GOPATH)
-	return filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io", fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "config", "crd", "bases")
+	return filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io",
+		fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "config", "crd", "bases")
 }
 
 var ( // TestEnv vars...
@@ -87,8 +90,10 @@ var ( // TestEnv vars...
 	cancel    context.CancelFunc
 )
 var ( // Mock var.
-	mockCtrl   *gomock.Controller
-	mockClient *cloudstack.CloudStackClient
+	mockCtrl          *gomock.Controller
+	mockClient        *cloudstack.CloudStackClient
+	ClusterReconciler *csReconcilers.CloudStackClusterReconciler
+	CS                *mocks.MockClient
 )
 
 func TestAPIs(t *testing.T) {
@@ -102,12 +107,20 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
+	// Check for ginkgo recover statements.
+	cmd := exec.Command("../hack/testing_ginkgo_recover_statements.sh", "--contains")
+	cmd.Stdout = os.Stdout
+	if err := cmd.Run(); err != nil {
+		fmt.Println("Refusing to run tests without ginkgo recover set.")
+		os.Exit(1)
+	}
+
 	ctx, cancel = context.WithCancel(context.TODO())
 
 	// Setup mock CloudStack client.
-	// TODO: Mock cloud package instead of the CS API client.
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockClient = cloudstack.NewMockClient(mockCtrl)
+	CS = mocks.NewMockClient(mockCtrl)
 
 	By("bootstrapping test environment")
 	// Get the root of the current file to use in CRD paths.
@@ -148,11 +161,12 @@ var _ = BeforeSuite(func() {
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	Ω((&csReconcilers.CloudStackClusterReconciler{
+	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
-		CS:     mockClient,
-	}).SetupWithManager(k8sManager)).Should(Succeed())
+		CS:     CS,
+	}
+	Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())
 
 	go func() {
 		defer GinkgoRecover()

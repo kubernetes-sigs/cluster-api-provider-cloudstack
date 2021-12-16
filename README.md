@@ -41,6 +41,12 @@ There is a tiltfile in the hack directory. Edit the relative repository to match
 
 Copy the tiltfile into the capi repo.
 
+Note: Until a more automated tilt setup is built out, tilt will need the secret manually injected into 
+`config/default/credentials.yaml`. Use `base64 -i cloud-config | tr -d '\n'` to fill in 
+the `CLOUDSTACK_B64ENCODED_SECRET` that clusterctl would normally fill.
+
+  cloud-config: ${CLOUDSTACK_B64ENCODED_SECRET}
+
 Run `tilt up` from the capi repository.
 
 ## Tutorial w/o Tilt - with detailed instructions

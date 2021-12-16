@@ -17,7 +17,6 @@ limitations under the License.
 package cloud_test
 
 import (
-	"fmt"
 	"os"
 	"path"
 
@@ -35,20 +34,10 @@ var _ = Describe("Helpers", func() {
 	It("Gets API configuration", func() {
 		Context("For a configuration with the 'Global' section missing", func() {
 			filepath := getConfigPath("cloud-config-no-global")
-			expectedErr := fmt.Errorf("section Global not found")
 
-			_, _, _, err := cloud.ReadAPIConfig(filepath)
-			Ω(err).Should(Equal(expectedErr))
-		})
-
-		Context("For a good configuration", func() {
-			filepath := getConfigPath("cloud-config-good")
-
-			apiURL, apiKey, secretKey, err := cloud.ReadAPIConfig(filepath)
-			Ω(err).Should(BeNil())
-			Ω(apiURL).Should(Equal("api-url1"))
-			Ω(apiKey).Should(Equal("api-key1"))
-			Ω(secretKey).Should(Equal("secret-key1"))
+			client, err := cloud.NewClient(filepath)
+			Ω(client).Should(BeNil())
+			Ω(err.Error()).Should(ContainSubstring("section Global not found"))
 		})
 	})
 })
