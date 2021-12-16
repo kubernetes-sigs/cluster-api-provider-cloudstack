@@ -21,6 +21,7 @@ RELEASE_DIR ?= out
 # Quiet Ginkgo for now.
 # The warnings are in regards to a future release.
 export ACK_GINKGO_DEPRECATIONS := 1.16.5
+export ACK_GINKGO_RC=true
 
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 export PATH := $(PROJECT_DIR)/bin:$(PATH)
