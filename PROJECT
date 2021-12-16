@@ -2,7 +2,7 @@ domain: cluster.x-k8s.io
 layout:
 - go.kubebuilder.io/v3
 projectName: cluster-api-provider-capc
-repo: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc
+repo: cluster.x-k8s.io/cluster-api-provider-capc
 resources:
 - api:
     crdVersion: v1
@@ -11,8 +11,8 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackCluster
-  path: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4
-  version: v1alpha4
+  path: cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3
+  version: v1alpha3
   webhooks:
     defaulting: true
     validation: true
@@ -24,8 +24,8 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachine
-  path: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4
-  version: v1alpha4
+  path: cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3
+  version: v1alpha3
   webhooks:
     defaulting: true
     validation: true
@@ -33,11 +33,12 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
+  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineTemplate
-  path: gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4
-  version: v1alpha4
+  path: cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3
+  version: v1alpha3
   webhooks:
     defaulting: true
     validation: true

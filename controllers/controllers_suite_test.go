@@ -41,10 +41,10 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
-	csReconcilers "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/controllers"
-	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
+	csReconcilers "cluster.x-k8s.io/cluster-api-provider-capc/controllers"
+	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/mocks"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -170,7 +170,7 @@ var _ = BeforeSuite(func() {
 
 	go func() {
 		defer GinkgoRecover()
-		Ω(k8sManager.Start(ctx)).Should(Succeed(), "failed to run manager")
+		Ω(k8sManager.Start(ctrl.SetupSignalHandler())).Should(Succeed(), "failed to run manager")
 	}()
 
 }, 60)

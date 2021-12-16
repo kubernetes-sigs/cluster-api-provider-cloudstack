@@ -20,9 +20,9 @@ import (
 	"strconv"
 	"strings"
 
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 )
 
 const (

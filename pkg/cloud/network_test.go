@@ -17,14 +17,14 @@ limitations under the License.
 package cloud_test
 
 import (
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
+	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
-	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 var _ = Describe("Network", func() {
