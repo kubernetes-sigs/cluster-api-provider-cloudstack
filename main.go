@@ -19,8 +19,12 @@ package main
 import (
 	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
 	"flag"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"os"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// to ensure that exec-entrypoint and run can make use of them.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -41,20 +45,24 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
 	utilruntime.Must(infrastructurev1alpha3.AddToScheme(scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
 func main() {
+
+	// Parse args and setup logger.
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	var watchingNamespace string
+	flag.StringVar(&metricsAddr, "metrics-bind-address", "localhost:8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&watchingNamespace, "namespace", "", "Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -79,13 +87,15 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "d0f00250.cluster.x-k8s.io",
+		LeaderElectionID:       "capc-leader-election-controller",
+		Namespace:              watchingNamespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
+	// Register machine and cluster reconcilers with the controller manager.
 	if err = (&controllers.CloudStackClusterReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
@@ -106,12 +116,27 @@ func main() {
 	}
 	//+kubebuilder:scaffold:builder
 
-	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+	// Add health and ready checks.
+	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
 	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
+
+	// Start the controller manager.
+	if err = (&infrastructurev1alpha3.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackCluster")
+		os.Exit(1)
+	}
+	if err = (&infrastructurev1alpha3.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachine")
+		os.Exit(1)
+	}
+	if err = (&infrastructurev1alpha3.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachineTemplate")
 		os.Exit(1)
 	}
 

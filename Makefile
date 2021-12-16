@@ -85,6 +85,10 @@ docker-build: .dockerflag.mk ## Build docker image containing the controller man
 	docker build -t ${IMG} .
 	@touch .dockerflag.mk
 
+.PHONY: docker-build-notest
+docker-build-notest: generate fmt vet
+	docker build -t ${IMG} .
+
 .PHONY: docker-push
 docker-push: .dockerflag.mk ## Push docker image with the manager.
 	docker push ${IMG}
