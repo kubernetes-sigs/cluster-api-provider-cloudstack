@@ -3,7 +3,6 @@ apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}
-  namespace: default
 spec:
   clusterNetwork:
     pods:
@@ -23,7 +22,6 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
-  namespace: default
 spec:
   controlPlaneEndpoint:
     host: ${CLUSTER_ENDPOINT_IP}
@@ -35,7 +33,6 @@ apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 kind: KubeadmControlPlane
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
-  namespace: default
 spec:
   kubeadmConfigSpec:
     clusterConfiguration:
@@ -72,7 +69,6 @@ apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   name: "${CLUSTER_NAME}-md-0"
-  namespace: default
 spec:
   clusterName: "${CLUSTER_NAME}"
   replicas: ${WORKER_MACHINE_COUNT}
@@ -96,7 +92,6 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
-  namespace: default
 spec:
   template:
     spec:
