@@ -107,7 +107,7 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 			return ph.Patch(ctx, csCluster, patch.WithStatusObservedGeneration{})
 		}, timeout).Should(Succeed())
 
-		CS.EXPECT().GetOrCreateCluster(gomock.Any())
+		CS.EXPECT().GetOrCreateCluster(gomock.Any()).AnyTimes()
 		Eventually(func() bool {
 			if err := k8sClient.Get(ctx, key, csCluster); err != nil {
 				return false
