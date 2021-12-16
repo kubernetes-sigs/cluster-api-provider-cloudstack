@@ -59,7 +59,6 @@ type CloudStackClusterReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-//func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
 func (r *CloudStackClusterReconciler) Reconcile(req ctrl.Request) (retRes ctrl.Result, retErr error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("cluster", req.Name, "namespace", req.Namespace)
