@@ -31,21 +31,20 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
-	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
+	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 // CloudStackMachineReconciler reconciles a CloudStackMachine object
 type CloudStackMachineReconciler struct {
 	client.Client
+	Log    logr.Logger
 	Scheme *runtime.Scheme
 	CS     cloud.Client
 }
@@ -62,8 +61,9 @@ const RequeueTimeout = 5 * time.Second
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	log := log.FromContext(ctx)
+func (r *CloudStackMachineReconciler) Reconcile(req ctrl.Request) (retRes ctrl.Result, retErr error) {
+	ctx := context.Background()
+	log := r.Log.WithValues("machine", req.Name, "namespace", req.Namespace)
 
 	// Fetch the CloudStackMachine.
 	csMachine := &infrav1.CloudStackMachine{}
@@ -199,39 +199,37 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 // Called in main, this registers the machine reconciler to the CAPI controller manager.
 func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(
-			&infrav1.CloudStackMachine{},
-			builder.WithPredicates(
-				predicate.Funcs{
-					UpdateFunc: func(e event.UpdateEvent) bool {
-						oldMachine := e.ObjectOld.(*infrav1.CloudStackMachine).DeepCopy()
-						newMachine := e.ObjectNew.(*infrav1.CloudStackMachine).DeepCopy()
-						// Ignore resource version because they are unique
-						oldMachine.ObjectMeta.ResourceVersion = ""
-						newMachine.ObjectMeta.ResourceVersion = ""
-						// Ignore generation because it's not used in reconcile
-						oldMachine.ObjectMeta.Generation = 0
-						newMachine.ObjectMeta.Generation = 0
-						// Ignore finalizers updates
-						oldMachine.ObjectMeta.Finalizers = nil
-						newMachine.ObjectMeta.Finalizers = nil
-						// Ignore ManagedFields because they are mirror of ObjectMeta
-						oldMachine.ManagedFields = nil
-						newMachine.ManagedFields = nil
-						// Ignore incremental status updates
-						oldMachine.Status = infrav1.CloudStackMachineStatus{}
-						newMachine.Status = infrav1.CloudStackMachineStatus{}
-						// Ignore provide ID
-						oldMachine.Spec.ProviderID = nil
-						newMachine.Spec.ProviderID = nil
-						// Ignore instance ID
-						oldMachine.Spec.InstanceID = nil
-						newMachine.Spec.InstanceID = nil
+		For(&infrav1.CloudStackMachine{}).
+		WithEventFilter(
+			predicate.Funcs{
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					oldMachine := e.ObjectOld.(*infrav1.CloudStackMachine).DeepCopy()
+					newMachine := e.ObjectNew.(*infrav1.CloudStackMachine).DeepCopy()
+					// Ignore resource version because they are unique
+					oldMachine.ObjectMeta.ResourceVersion = ""
+					newMachine.ObjectMeta.ResourceVersion = ""
+					// Ignore generation because it's not used in reconcile
+					oldMachine.ObjectMeta.Generation = 0
+					newMachine.ObjectMeta.Generation = 0
+					// Ignore finalizers updates
+					oldMachine.ObjectMeta.Finalizers = nil
+					newMachine.ObjectMeta.Finalizers = nil
+					// Ignore ManagedFields because they are mirror of ObjectMeta
+					oldMachine.ManagedFields = nil
+					newMachine.ManagedFields = nil
+					// Ignore incremental status updates
+					oldMachine.Status = infrav1.CloudStackMachineStatus{}
+					newMachine.Status = infrav1.CloudStackMachineStatus{}
+					// Ignore provide ID
+					oldMachine.Spec.ProviderID = nil
+					newMachine.Spec.ProviderID = nil
+					// Ignore instance ID
+					oldMachine.Spec.InstanceID = nil
+					newMachine.Spec.InstanceID = nil
 
-						return !reflect.DeepEqual(oldMachine, newMachine)
-					},
+					return !reflect.DeepEqual(oldMachine, newMachine)
 				},
-			),
+			},
 		).
 		Complete(r)
 }

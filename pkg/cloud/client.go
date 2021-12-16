@@ -17,14 +17,14 @@ limitations under the License.
 package cloud
 
 import (
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 	"gopkg.in/ini.v1"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
-//go:generate mockgen -destination=../mocks/mock_client.go -package=mocks gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud Client
+//go:generate mockgen -destination=../mocks/mock_client.go -package=mocks cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud Client
 
 type Client interface {
 	GetOrCreateCluster(*infrav1.CloudStackCluster) error

@@ -18,13 +18,13 @@ package cloud_test
 import (
 	"fmt"
 
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
+	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
-	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
 )
 
 var _ = Describe("Cluster", func() {

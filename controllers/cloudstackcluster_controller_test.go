@@ -20,13 +20,13 @@ import (
 	"context"
 	"time"
 
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -34,7 +34,7 @@ import (
 func getCloudStackCluster() *infrav1.CloudStackCluster {
 	return &infrav1.CloudStackCluster{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 			Kind:       "CloudStackCluster",
 		},
 		ObjectMeta: metav1.ObjectMeta{
