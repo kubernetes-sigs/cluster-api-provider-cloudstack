@@ -97,6 +97,7 @@ var ( // Mock var.
 )
 
 func TestAPIs(t *testing.T) {
+
 	RegisterFailHandler(Fail)
 
 	RunSpecsWithDefaultAndCustomReporters(t,
@@ -116,7 +117,6 @@ var _ = BeforeSuite(func() {
 	}
 
 	ctx, cancel = context.WithCancel(context.TODO())
-
 	// Setup mock CloudStack client.
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockClient = cloudstack.NewMockClient(mockCtrl)
