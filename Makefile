@@ -1,8 +1,5 @@
-
 # Image URL to use all building/pushing image targets
 IMG ?= public.ecr.aws/a4z9h2b1/cluster-api-provider-capc:latest
-# Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:crdVersions=v1,preserveUnknownFields=false"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -18,14 +15,15 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 VERSION ?= v0.1.0
 
-# Allow overriding manifest generation destination directory
-MANIFEST_ROOT ?= ./config
-CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
-WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
-RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
-RELEASE_DIR := out
-BUILD_DIR := .build
-OVERRIDES_DIR := $(HOME)/.cluster-api/overrides/infrastructure-cloudstack/$(VERSION)
+# Allow overriding release-manifest generation destination directory
+RELEASE_DIR ?= out
+
+# Quiet Ginkgo for now.
+# The warnings are in regards to a future release.
+export ACK_GINKGO_DEPRECATIONS := 1.16.5
+
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+export PATH := $(PROJECT_DIR)/bin:$(PATH)
 
 all: build
 
@@ -45,175 +43,120 @@ all: build
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-##@ Development
-$(RELEASE_DIR):
-	@mkdir -p $(RELEASE_DIR)
-
-
-$(BUILD_DIR):
-	@mkdir -p $(BUILD_DIR)
-
-$(OVERRIDES_DIR):
-	@mkdir -p $(OVERRIDES_DIR)
+.PHONY: manifests
+# Using a flag file here as config output is too complicated to be a target.
+manifests: config/.flag.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
+config/.flag.mk: bin/controller-gen $(shell find ./controllers ./api -type f -name "*test*" -prune -o -print) # This flags that we've recently generated the configuration manifests directory.
+	controller-gen crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	@touch config/.flag.mk
 
 .PHONY: release-manifests
-release-manifests:
-	$(MAKE) manifests STAGE=release MANIFEST_DIR=$(RELEASE_DIR)
+release-manifests: $(RELEASE_DIR)/* manifests ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
+$(RELEASE_DIR)/%: $(shell find config)
+	@mkdir -p $(RELEASE_DIR)
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
+	kustomize build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
 
-.PHONY: dev-manifests
-dev-manifests:
-	$(MAKE) manifests STAGE=dev MANIFEST_DIR=$(OVERRIDES_DIR)
-	cp metadata.yaml $(OVERRIDES_DIR)/metadata.yaml
-
-.PHONY: manifests
-manifests: kustomize $(MANIFEST_DIR) $(BUILD_DIR) $(KUSTOMIZE) $(STAGE)-cluster-templates
-	rm -rf $(BUILD_DIR)/config
-	cp -R config $(BUILD_DIR)
-	"$(KUSTOMIZE)" build $(BUILD_DIR)/config/default > $(MANIFEST_DIR)/infrastructure-components.yaml
-
-.PHONY: dev-cluster-templates
-dev-cluster-templates:
-	cp templates/cluster-template.yaml $(OVERRIDES_DIR)/cluster-template.yaml
-
-.PHONY: release-cluster-templates
-release-cluster-templates:
-	cp templates/cluster-template.yaml $(RELEASE_DIR)/cluster-template.yaml
-
-.PHONY: generate
-generate: ## Generate code and manifests
-	$(MAKE) generate-go
-	$(MAKE) generate-manifests
-
-.PHONY: generate-manifests
-generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) \
-		paths=./api/... \
-		crd:crdVersions=v1 \
-		output:crd:dir=$(CRD_ROOT) \
-		output:webhook:dir=$(WEBHOOK_ROOT) \
-		webhook
-	$(CONTROLLER_GEN) \
-		paths=./controllers/... \
-		output:rbac:dir=$(RBAC_ROOT) \
-		rbac:roleName=manager-role
-
-.PHONY: generate-go
-generate-go: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
-
-fmt: ## Run go fmt against code.
-	go fmt ./...
-
-vet: ## Run go vet against code.
-	go vet ./...
-
-ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
-
-.PHONY: test
-test: generate fmt vet ## Run tests.
-	mkdir -p ${ENVTEST_ASSETS_DIR}
-	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
+.PHONY: generate-deepcopy
+generate-deepcopy: bin/controller-gen $(shell find api -type f -name zz_generated.deepcopy.go) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+api/%/zz_generated.deepcopy.go: $(shell find ./api -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
+	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 ##@ Build
+
 .PHONY: build
-build: generate fmt vet ## Build manager binary.
+build: binaries generate-deepcopy manifests release-manifests bin/manager bin/mockgen ## Build manager binary.
+bin/manager: $(shell find ./controllers ./api -type f -name "*test*" -prune -o -print)
+	go fmt ./...
+	go vet ./...
 	go build -o bin/manager main.go
 
 .PHONY: run
-run: generate fmt vet ## Run a controller from your host.
+run: generate-deepcopy fmt vet ## Run a controller from your host.
+	go fmt ./...
+	go vet ./...
 	go run ./main.go
 
+# Using a flag file here as docker build doesn't produce a target file.
 .PHONY: docker-build
-docker-build: test ## Build docker image with the manager.
+docker-build: .dockerflag.mk ## Build docker image containing the controller manager.
+.dockerflag.mk: Dockerfile $(shell find ./controllers ./api -type f -name "*test*" -prune -o -print)
 	docker build -t ${IMG} .
+	@touch .dockerflag.mk
 
 .PHONY: docker-push
-docker-push: ## Push docker image with the manager.
+docker-push: .dockerflag.mk ## Push docker image with the manager.
 	docker push ${IMG}
 
 ##@ Linting
-GOLANGCI_LINT = $(HOME)/go/bin/golangci-lint
-golangci-lint:
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
+
+.PHONY: fmt
+fmt: ## Run go fmt on the whole project.
+	go fmt ./...
+
+.PHONY: vet
+vet: ## Run go vet on the whole project.
+	go vet ./...
 
 .PHONY: lint
-lint: golangci-lint
-	$(GOLANGCI_LINT) run ./...
+lint: bin/golangci-lint ## Run linting for the project.
+	go fmt ./...
+	go vet ./...
+	golangci-lint run ./...
+	@ # The below string of commands checks that ginkgo isn't present in the controllers.
+	@(grep ginkgo ${PROJECT_DIR}/controllers/cloudstack*_controller.go && \
+		echo "Remove ginkgo from controllers. This is probably an artifact of testing." \
+		 	 "See the hack/testing_ginkgo_recover_statements.sh file") && exit 1 || \
+		echo "Gingko statements not found in controllers... (passed)"
 
 ##@ Deployment
 
-.PHONY: install
-install: generate-manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
-
-.PHONY: uninstall
-uninstall: generate-manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl delete -f -
-
 .PHONY: deploy
-deploy: generate-manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
+deploy: generate-deepcopy manifests bin/kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	cd config/manager && kustomize edit set image controller=${IMG}
+	kustomize build config/default | kubectl apply -f -
 
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/default | kubectl delete -f -
+undeploy: bin/kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
+	kustomize build config/default | kubectl delete -f -
 
-CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
-controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
+##@ Binaries
 
-KUSTOMIZE = $(shell pwd)/bin/kustomize
-kustomize: ## Download kustomize locally if necessary.
-	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+.PHONY: binaries
+binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/mockgen ## Locally install all needed bins.
+bin/controller-gen: ## Install controller-gen to bin.
+	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
+bin/golangci-lint: ## Install golangci-lint to bin.
+	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
+bin/ginkgo: ## Install ginkgo to bin.
+	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/ginkgo@v1.16.5
+bin/mockgen:
+	GOBIN=$(PROJECT_DIR)/bin go install github.com/golang/mock/mockgen@v1.6.0
+bin/kustomize: ## Install kustomize to bin.
+	@mkdir -p bin
+	cd bin && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
 
 ##@ Cleanup
+
 .PHONY: clean
-clean: ## Run all the clean targets
-	$(MAKE) clean-temporary
-	$(MAKE) clean-release
-	$(MAKE) clean-examples
-	$(MAKE) clean-build
-
-.PHONY: clean-build
-clean-build:
-	rm -rf $(BUILD_DIR)
-
-.PHONY: clean-temporary
-clean-temporary: ## Remove all temporary files and folders
-	rm -f minikube.kubeconfig
-	rm -f kubeconfig
-
-.PHONY: clean-release
-clean-release: ## Remove the release folder
+clean: ## Clean.
 	rm -rf $(RELEASE_DIR)
+	rm -rf bin
 
-.PHONY: clean-examples
-clean-examples: ## Remove all the temporary files generated in the examples folder
-	rm -rf examples/_out/
-	rm -f examples/provider-components/provider-components-*.yaml
+##@ Testing
 
-# go-get-tool will 'go get' any package $2 and install it to $1.
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo "Downloading $(2)" ;\
-GOBIN=$(PROJECT_DIR)/bin go get $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
-
-## --------------------------------------
-## Testing
-## --------------------------------------
+.PHONY: test
+test: lint generate-deepcopy generate-mocks bin/ginkgo ## Run tests. At the moment this is only unit tests.
+	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
+	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
+	@ginkgo -v ./api/... ./controllers/... ./pkg/... -coverprofile cover.out; EXIT_STATUS=$$?;\
+		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
+	
+.PHONY: generate-mocks
+generate-mocks: $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
+pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
+	go generate ./...
 
 CLOUDSTACK_TEMPLATES := $(PROJECT_DIR)/test/e2e/data/infrastructure-cloudstack
-GINKGO_FOCUS  ?=
 GINKGO_FOCUS_CONFORMANCE ?= "\\[Conformance\\]"
 GINKGO_SKIP ?= "\\[Conformance\\]"
 GINKGO_NODES  ?= 1
@@ -223,34 +166,36 @@ SKIP_RESOURCE_CLEANUP ?= false
 USE_EXISTING_CLUSTER ?= false
 GINKGO_NOCOLOR ?= false
 
-GINKGO = $(shell pwd)/bin/ginkgo
-ginkgo: ## Download ginkgo locally if necessary.
-	$(call go-get-tool,$(GINKGO),github.com/onsi/ginkgo/ginkgo)
 
-# to set multiple ginkgo skip flags, if any
+testbin/setup-envtest.sh: 
+	@mkdir -p ./testbin
+	curl -sSLo ./testbin/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
+	cd testbin && source setup-envtest.sh && fetch_envtest_tools; 
+
+# Set ginkgo skip flags, if any.
 ifneq ($(strip $(GINKGO_SKIP)),)
 _SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-skip="$(arg)")
 endif
 
 .PHONY: cluster-templates
-cluster-templates: kustomize cluster-templates-v1alpha4 ## Generate cluster templates for all versions
+cluster-templates: cluster-templates-v1alpha4 ## Generate cluster test templates for all versions.
 
 .PHONY: cluster-templates-v1alpha4
-cluster-templates-v1alpha4: kustomize ## Generate cluster templates for v1alpha4
-	$(KUSTOMIZE) build $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template --load_restrictor none > $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template.yaml
-	$(KUSTOMIZE) build $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template-kcp-remediation --load_restrictor none > $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template-kcp-remediation.yaml
-	$(KUSTOMIZE) build $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template-md-remediation --load_restrictor none > $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template-md-remediation.yaml
+cluster-templates-v1alpha4: bin/kustomize ## Generate cluster test templates for v1alpha4.
+	kustomize build $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template --load_restrictor none > $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template.yaml
+	kustomize build $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template-kcp-remediation --load_restrictor none > $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template-kcp-remediation.yaml
+	kustomize build $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template-md-remediation --load_restrictor none > $(CLOUDSTACK_TEMPLATES)/v1alpha4/cluster-template-md-remediation.yaml
 
 .PHONY: run-e2e
-run-e2e: ginkgo cluster-templates test-e2e-image-prerequisites ## Run the end-to-end tests
-	time $(GINKGO) -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) ./test/e2e/... -- \
+run-e2e: bin/ginkgo cluster-templates test-e2e-image-prerequisites ## Run the end-to-end tests
+	time ginkgo -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) ./test/e2e/... -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS)" \
 	    -e2e.config="$(E2E_CONF_FILE)" \
 	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)
 
 .PHONY: run-conformance
-run-conformance: ginkgo cluster-templates test-e2e-image-prerequisites ## Run the k8s conformance tests
-	time $(GINKGO) -v -trace -tags=e2e -focus="$(GINKGO_FOCUS_CONFORMANCE)" -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) ./test/e2e/... -- \
+run-conformance: bin/ginkgo cluster-templates test-e2e-image-prerequisites ## Run the k8s conformance tests
+	time ginkgo -v -trace -tags=e2e -focus="$(GINKGO_FOCUS_CONFORMANCE)" -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) ./test/e2e/... -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS)" \
 	    -e2e.config="$(E2E_CONF_FILE)" \
 	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)

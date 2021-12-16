@@ -1,0 +1,76 @@
+/*
+Copyright 2021.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package cloud
+
+import (
+	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/pkg/errors"
+	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
+	"gopkg.in/ini.v1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+)
+
+//go:generate mockgen -destination=../mocks/mock_client.go -package=mocks gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud Client
+
+type Client interface {
+	GetOrCreateCluster(*infrav1.CloudStackCluster) error
+	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
+	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
+	DestroyVMInstance(*infrav1.CloudStackMachine) error
+	AssignVMToLoadBalancerRule(*infrav1.CloudStackCluster, string) error
+	ResolveNetwork(*infrav1.CloudStackCluster) error
+	GetOrCreateNetwork(*infrav1.CloudStackCluster) error
+	OpenFirewallRules(*infrav1.CloudStackCluster) error
+	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
+	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
+	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
+}
+
+type client struct {
+	cs *cloudstack.CloudStackClient
+}
+
+func NewClient(cc_path string) (Client, error) {
+	c := &client{}
+	apiUrl, apiKey, secretKey, err := readAPIConfig(cc_path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Error encountered while reading config at path: %s", cc_path)
+	}
+
+	// TODO: attempt a less clunky client liveliness check (not just listing zones).
+	c.cs = cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
+	_, err = c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
+	return c, errors.Wrap(err, "Error encountered while checking CloudStack API Client connectivity.")
+}
+
+// CloudStack API config reader.
+func readAPIConfig(cc_path string) (string, string, string, error) {
+	cfg, err := ini.Load(cc_path)
+	if err != nil {
+		return "", "", "", err
+	}
+	g := cfg.Section("Global")
+	if len(g.Keys()) == 0 {
+		return "", "", "", errors.New("section Global not found")
+	}
+	return g.Key("api-url").Value(), g.Key("api-key").Value(), g.Key("secret-key").Value(), err
+}
+
+func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
+	c := &client{cs: cs}
+	return c
+}

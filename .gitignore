@@ -9,6 +9,7 @@ bin
 testbin/*
 .tiltbuild
 *log
+*flag.mk
 
 out
 .build

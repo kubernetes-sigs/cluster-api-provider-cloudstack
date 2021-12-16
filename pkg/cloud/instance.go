@@ -19,8 +19,9 @@ package cloud
 import (
 	"errors"
 	"fmt"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"strings"
+
+	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/cluster-api/util"
@@ -40,10 +41,10 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 
 // Retch retrieves VM instance details by csMachine.Spec.InstanceID or csMachine.Name, and
 // sets infrastructure machine spec and status if VM instance is found.
-func ResolveVMInstanceDetails(cs *cloudstack.CloudStackClient, csMachine *infrav1.CloudStackMachine) error {
+func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) error {
 	// Attempt to fetch by ID.
 	if csMachine.Spec.InstanceID != nil {
-		vmResp, count, err := cs.VirtualMachine.GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID)
+		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID)
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			return err
 		} else if count > 1 {
@@ -56,7 +57,7 @@ func ResolveVMInstanceDetails(cs *cloudstack.CloudStackClient, csMachine *infrav
 
 	// Attempt fetch by name.
 	if csMachine.Name != "" {
-		vmResp, count, err := cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name) // add opts usage
+		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name) // add opts usage
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match") {
 			return err
 		} else if count > 1 {
@@ -71,19 +72,19 @@ func ResolveVMInstanceDetails(cs *cloudstack.CloudStackClient, csMachine *infrav
 
 // CreateVMInstance will fetch or create a VM instance, and
 // sets the infrastructure machine spec and status accordingly.
-func GetOrCreateVMInstance(
-	cs *cloudstack.CloudStackClient,
+func (c *client) GetOrCreateVMInstance(
 	csMachine *infrav1.CloudStackMachine,
 	machine *capiv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
 	userData string) error {
 
 	// Check if VM instance already exists.
-	if err := ResolveVMInstanceDetails(cs, csMachine); err == nil || !strings.Contains(strings.ToLower(err.Error()), "no match") {
+	if err := c.ResolveVMInstanceDetails(csMachine); err == nil ||
+		!strings.Contains(strings.ToLower(err.Error()), "no match") {
 		return err
 	}
 	// Get machine offering ID from name.
-	offeringID, count, err := cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering)
+	offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering)
 	if err != nil {
 		return err
 	} else if count != 1 {
@@ -92,7 +93,7 @@ func GetOrCreateVMInstance(
 	}
 
 	// Get template ID from name.
-	templateID, count, err := cs.Template.GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID)
+	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID)
 	if err != nil {
 		return err
 	} else if count != 1 {
@@ -101,7 +102,7 @@ func GetOrCreateVMInstance(
 	}
 
 	// Create VM instance.
-	p := cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csCluster.Status.ZoneID)
+	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csCluster.Status.ZoneID)
 	p.SetNetworkids([]string{csCluster.Status.NetworkID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
@@ -114,7 +115,7 @@ func GetOrCreateVMInstance(
 		p.SetDetails(csMachine.Spec.Details)
 	}
 
-	deployVMResp, err := cs.VirtualMachine.DeployVirtualMachine(p)
+	deployVMResp, err := c.cs.VirtualMachine.DeployVirtualMachine(p)
 	if err != nil {
 		return err
 	}
@@ -122,18 +123,18 @@ func GetOrCreateVMInstance(
 
 	// Resolve uses a VM metrics request response to fill cloudstack machine status.
 	// The deployment response is insufficient.
-	if err = ResolveVMInstanceDetails(cs, csMachine); err == nil {
+	if err = c.ResolveVMInstanceDetails(csMachine); err == nil {
 		csMachine.Status.Ready = true
 	}
 	return err
 }
 
 // Destroy a VM instane. Assumes machine has been fetched prior and has an instance ID.
-func DestroyVMInstance(cs *cloudstack.CloudStackClient, csMachine *infrav1.CloudStackMachine) error {
+func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 
-	p := cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
+	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
 	p.SetExpunge(true)
-	_, err := cs.VirtualMachine.DestroyVirtualMachine(p)
+	_, err := c.cs.VirtualMachine.DestroyVirtualMachine(p)
 
 	return err
 }

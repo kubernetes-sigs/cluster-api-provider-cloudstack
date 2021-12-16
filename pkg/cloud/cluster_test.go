@@ -29,13 +29,19 @@ import (
 
 var _ = Describe("Cluster", func() {
 	var (
+		client     cloud.Client
 		mockCtrl   *gomock.Controller
 		mockClient *cloudstack.CloudStackClient
+		zs         *cloudstack.MockZoneServiceIface
+		ns         *cloudstack.MockNetworkServiceIface
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = cloudstack.NewMockClient(mockCtrl)
+		zs = mockClient.Zone.(*cloudstack.MockZoneServiceIface)
+		ns = mockClient.Network.(*cloudstack.MockNetworkServiceIface)
+		client = cloud.NewClientFromCSAPIClient(mockClient)
 	})
 
 	AfterEach(func() {
@@ -66,14 +72,12 @@ var _ = Describe("Cluster", func() {
 		// })
 
 		It("handles zone not found.", func() {
-			zs := mockClient.Zone.(*cloudstack.MockZoneServiceIface)
 			zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 1, nil)
 
 			expectedErr := fmt.Errorf("Not found")
-			ns := mockClient.Network.(*cloudstack.MockNetworkServiceIface)
 			ns.EXPECT().GetNetworkID(netName).Return("", -1, expectedErr)
 
-			err := cloud.GetOrCreateCluster(mockClient, cluster)
+			err := client.GetOrCreateCluster(cluster)
 			Expect(errors.Cause(err)).To(MatchError(expectedErr))
 		})
 
