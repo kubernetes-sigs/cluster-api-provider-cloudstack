@@ -55,7 +55,7 @@ assuming your running environment is macOs.
     2. kind
     3. kubectl
     4. clusterctl
-        1. gotcha: use `clusterctl version` to confirm your version (0.4.4 for v1alpha4, 1.0+ for v1beta1).
+        1. gotcha: use `clusterctl version` to confirm your version (0.3.23 for v1alpha4, 1.0+ for v1beta1).
 
 2. [install cilium-cli](https://formulae.brew.sh/formula/cilium-cli) - `brew install cilium-cli` - another choice is to use [kindnet](https://github.com/aojea/kindnet)
 
@@ -136,6 +136,12 @@ assuming your running environment is macOs.
     
     # This is the standard port that the Control Plane process runs on
     export CLUSTER_ENDPOINT_PORT=6443
+
+    # Pick any name for your cluster
+    export CLUSTER_NAME="capc-cluster"
+    export CONTROL_PLANE_MACHINE_COUNT=1
+    export KUBERNETES_VERSION="v1.20.10"
+    export WORKER_MACHINE_COUNT=1
     ```
 
     2. gotcha: make sure all the env var values matching your cloudstack, offering/template/zone/network/keypair
@@ -143,11 +149,8 @@ assuming your running environment is macOs.
 
 3. generate the capc cluster spec yaml file
     ```
-    clusterctl generate cluster capc-cluster \
-        --kubernetes-version v1.20.10 \
-        --config ~/.cluster-api/cloudstack.yaml \
-        --control-plane-machine-count=1 \
-        --worker-machine-count=1 \
+    clusterctl generate cluster \
+        --from ~/.cluster-api/overrides/infrastructure-cloudstack/v0.1.0/cluster-template.yaml \
         > capc-cluster-spec.yaml
     
     ```
