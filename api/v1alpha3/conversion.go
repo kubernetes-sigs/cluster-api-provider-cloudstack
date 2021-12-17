@@ -1,8 +1,5 @@
-//go:build e2e
-// +build e2e
-
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,22 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2e
+package v1alpha3
 
-import (
-	. "github.com/onsi/ginkgo"
-)
+// Hub marks CloudStackCluster as a conversion hub.
+func (*CloudStackCluster) Hub() {}
 
-var _ = Describe("When testing MachineDeployment scale out/in", func() {
+// Hub marks CloudStackClusterList as a conversion hub.
+func (*CloudStackClusterList) Hub() {}
 
-	MachineDeploymentScaleSpec(ctx, func() MachineDeploymentScaleSpecInput {
-		return MachineDeploymentScaleSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-		}
-	})
+// Hub marks CloudStackMachine as a conversion hub.
+func (*CloudStackMachine) Hub() {}
 
-})
+// Hub marks CloudStackMachineList as a conversion hub.
+func (*CloudStackMachineList) Hub() {}

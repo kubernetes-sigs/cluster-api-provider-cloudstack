@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1alpha3
 
 import (
+	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/webhook_utilities"
 	"fmt"
-	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/webhook_utilities"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -28,35 +28,35 @@ import (
 )
 
 // log is for logging in this package.
-var cloudstackmachinetemplatelog = logf.Log.WithName("cloudstackmachinetemplate-resource")
+var cloudstackmachinelog = logf.Log.WithName("cloudstackmachine-resource")
 
-func (r *CloudStackMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (r *CloudStackMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha4-cloudstackmachinetemplate,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1alpha4,name=mcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha3-cloudstackmachine,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=create;update,versions=v1alpha3,name=mcloudstackmachine.kb.io
 
-var _ webhook.Defaulter = &CloudStackMachineTemplate{}
+var _ webhook.Defaulter = &CloudStackMachine{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *CloudStackMachineTemplate) Default() {
-	cloudstackmachinetemplatelog.Info("default", "name", r.Name)
+func (r *CloudStackMachine) Default() {
+	cloudstackmachinelog.Info("default", "name", r.Name)
 	// No defaulted values supported yet.
 }
 
-//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1alpha4-cloudstackmachinetemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1alpha4,name=vcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-cloudstackmachine,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=create;update,versions=v1alpha3,name=vcloudstackmachine.kb.io
 
-var _ webhook.Validator = &CloudStackMachineTemplate{}
+var _ webhook.Validator = &CloudStackMachine{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackMachineTemplate) ValidateCreate() error {
-	cloudstackmachinetemplatelog.Info("validate create", "name", r.Name)
+func (r *CloudStackMachine) ValidateCreate() error {
+	cloudstackmachinelog.Info("validate create", "name", r.Name)
 
 	var (
 		errorList field.ErrorList
-		spec      = r.Spec.Spec.Spec // CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
+		spec      = r.Spec
 	)
 
 	// IdentityRefs must be Secrets.
@@ -71,19 +71,19 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
-	cloudstackmachinetemplatelog.Info("validate update", "name", r.Name)
+func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
+	cloudstackmachinelog.Info("validate update", "name", r.Name)
 
 	var (
 		errorList field.ErrorList
-		spec      = r.Spec.Spec.Spec // CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
+		spec      = r.Spec
 	)
 
-	oldMachineTemplate, ok := old.(*CloudStackMachineTemplate)
+	oldMachine, ok := old.(*CloudStackMachine)
 	if !ok {
-		return errors.NewBadRequest(fmt.Sprintf("expected a CloudStackMachineTemplate but got a %T", old))
+		return errors.NewBadRequest(fmt.Sprintf("expected a CloudStackMachine but got a %T", old))
 	}
-	oldSpec := oldMachineTemplate.Spec.Spec.Spec
+	oldSpec := oldMachine.Spec
 
 	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Offering, oldSpec.Offering, "offering", errorList)
 	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
@@ -98,8 +98,8 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackMachineTemplate) ValidateDelete() error {
-	cloudstackmachinetemplatelog.Info("validate delete", "name", r.Name)
+func (r *CloudStackMachine) ValidateDelete() error {
+	cloudstackmachinelog.Info("validate delete", "name", r.Name)
 	// No deletion validations.  Deletion webhook not enabled.
 	return nil
 }

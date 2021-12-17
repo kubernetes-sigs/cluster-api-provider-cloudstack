@@ -45,5 +45,5 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
-      serviceAccountName: manager
+      serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

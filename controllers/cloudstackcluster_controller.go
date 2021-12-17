@@ -27,21 +27,20 @@ import (
 
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
-	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
+	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
 )
 
 // CloudStackClusterReconciler reconciles a CloudStackCluster object.
 type CloudStackClusterReconciler struct {
 	client.Client
+	Log    logr.Logger
 	Scheme *runtime.Scheme
 	CS     cloud.Client
 }
@@ -60,8 +59,9 @@ type CloudStackClusterReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	log := log.FromContext(ctx)
+func (r *CloudStackClusterReconciler) Reconcile(req ctrl.Request) (retRes ctrl.Result, retErr error) {
+	ctx := context.Background()
+	log := r.Log.WithValues("cluster", req.Name, "namespace", req.Namespace)
 
 	// Get CloudStack cluster.
 	csCluster := &infrav1.CloudStackCluster{}
@@ -134,29 +134,28 @@ func (r *CloudStackClusterReconciler) reconcileDelete(
 // Called in main, this registers the cluster reconciler to the CAPI controller manager.
 func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.CloudStackCluster{},
-			builder.WithPredicates(
-				predicate.Funcs{
-					UpdateFunc: func(e event.UpdateEvent) bool {
-						oldCluster := e.ObjectOld.(*infrav1.CloudStackCluster).DeepCopy()
-						newCluster := e.ObjectNew.(*infrav1.CloudStackCluster).DeepCopy()
-						// Ignore resource version because they are unique
-						oldCluster.ObjectMeta.ResourceVersion = ""
-						newCluster.ObjectMeta.ResourceVersion = ""
-						// Ignore finalizers updates
-						oldCluster.ObjectMeta.Finalizers = nil
-						newCluster.ObjectMeta.Finalizers = nil
-						// Ignore ManagedFields because they are mirror of ObjectMeta
-						oldCluster.ManagedFields = nil
-						newCluster.ManagedFields = nil
-						// Ignore incremental status updates
-						oldCluster.Status = infrav1.CloudStackClusterStatus{}
-						newCluster.Status = infrav1.CloudStackClusterStatus{}
+		For(&infrav1.CloudStackCluster{}).
+		WithEventFilter(
+			predicate.Funcs{
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					oldCluster := e.ObjectOld.(*infrav1.CloudStackCluster).DeepCopy()
+					newCluster := e.ObjectNew.(*infrav1.CloudStackCluster).DeepCopy()
+					// Ignore resource version because they are unique
+					oldCluster.ObjectMeta.ResourceVersion = ""
+					newCluster.ObjectMeta.ResourceVersion = ""
+					// Ignore finalizers updates
+					oldCluster.ObjectMeta.Finalizers = nil
+					newCluster.ObjectMeta.Finalizers = nil
+					// Ignore ManagedFields because they are mirror of ObjectMeta
+					oldCluster.ManagedFields = nil
+					newCluster.ManagedFields = nil
+					// Ignore incremental status updates
+					oldCluster.Status = infrav1.CloudStackClusterStatus{}
+					newCluster.Status = infrav1.CloudStackClusterStatus{}
 
-						return !reflect.DeepEqual(oldCluster, newCluster)
-					},
+					return !reflect.DeepEqual(oldCluster, newCluster)
 				},
-			),
+			},
 		).
 		Complete(r)
 }

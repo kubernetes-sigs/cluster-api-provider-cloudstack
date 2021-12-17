@@ -17,8 +17,8 @@ limitations under the License.
 package cloud
 
 import (
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"github.com/pkg/errors"
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
 )
 
 func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retErr error) {

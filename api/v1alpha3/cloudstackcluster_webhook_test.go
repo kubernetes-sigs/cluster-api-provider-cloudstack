@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1alpha3
 
 import (
 	"context"
@@ -29,7 +29,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 			ctx := context.Background()
 			cloudStackCluster := &CloudStackCluster{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackCluster",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -54,7 +54,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 			ctx := context.Background()
 			cloudStackCluster := &CloudStackCluster{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackCluster",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -78,7 +78,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 			ctx := context.Background()
 			cloudStackCluster := &CloudStackCluster{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackCluster",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -102,7 +102,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 			ctx := context.Background()
 			cloudStackCluster := &CloudStackCluster{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackCluster",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -126,7 +126,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				ctx := context.Background()
 				cloudStackCluster := &CloudStackCluster{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 						Kind:       "CloudStackCluster",
 					},
 					ObjectMeta: metav1.ObjectMeta{

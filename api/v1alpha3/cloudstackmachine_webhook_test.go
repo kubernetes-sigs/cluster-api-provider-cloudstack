@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1alpha3
 
 import (
 	"context"
@@ -29,7 +29,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			ctx := context.Background()
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -54,7 +54,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			ctx := context.Background()
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -82,7 +82,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			ctx := context.Background()
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -106,7 +106,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			ctx := context.Background()
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -130,7 +130,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			ctx := context.Background()
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -155,7 +155,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			ctx := context.Background()
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{

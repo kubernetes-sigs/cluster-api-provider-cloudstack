@@ -8,4 +8,4 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: a1ee8480.cluster.x-k8s.io
+  resourceName: d0f00250.cluster.x-k8s.io
