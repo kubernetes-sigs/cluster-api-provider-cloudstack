@@ -19,15 +19,13 @@ package cloud
 import (
 	"errors"
 	"fmt"
+
+	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"strings"
 
-	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-
-	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/cluster-api/util"
-
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 )
 
@@ -108,7 +106,8 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 	setIfNotEmpty(userData, p.SetUserdata)
-	if util.IsControlPlaneMachine(machine) && csCluster.Status.NetworkType == NetworkTypeShared {
+	_, isControlPlanceMachine := machine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
+	if isControlPlanceMachine && csCluster.Status.NetworkType == NetworkTypeShared {
 		setIfNotEmpty(csCluster.Spec.ControlPlaneEndpoint.Host, p.SetIpaddress)
 	}
 	if csMachine.Spec.Details != nil {

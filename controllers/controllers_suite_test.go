@@ -41,10 +41,10 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrav1 "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/api/v1alpha4"
-	csReconcilers "gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/controllers"
-	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
+	csReconcilers "cluster.x-k8s.io/cluster-api-provider-capc/controllers"
+	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/mocks"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -97,6 +97,7 @@ var ( // Mock var.
 )
 
 func TestAPIs(t *testing.T) {
+
 	RegisterFailHandler(Fail)
 
 	RunSpecsWithDefaultAndCustomReporters(t,
@@ -116,7 +117,6 @@ var _ = BeforeSuite(func() {
 	}
 
 	ctx, cancel = context.WithCancel(context.TODO())
-
 	// Setup mock CloudStack client.
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockClient = cloudstack.NewMockClient(mockCtrl)
@@ -165,12 +165,13 @@ var _ = BeforeSuite(func() {
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
 		CS:     CS,
+		Log:    logf.NullLogger{},
 	}
 	Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())
 
 	go func() {
 		defer GinkgoRecover()
-		Ω(k8sManager.Start(ctx)).Should(Succeed(), "failed to run manager")
+		Ω(k8sManager.Start(ctrl.SetupSignalHandler())).Should(Succeed(), "failed to run manager")
 	}()
 
 }, 60)

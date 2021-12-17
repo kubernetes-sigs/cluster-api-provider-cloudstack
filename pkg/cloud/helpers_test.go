@@ -20,9 +20,9 @@ import (
 	"os"
 	"path"
 
+	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"gitlab.aws.dev/ce-pike/merida/cluster-api-provider-capc/pkg/cloud"
 )
 
 const (
