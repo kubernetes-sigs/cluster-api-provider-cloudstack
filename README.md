@@ -84,17 +84,17 @@ Assuming your running environment is MacOS:
 
        ./config/default/credentials.yaml is using above env var.
 
-5. set IMG env var so that ./Makefile knows where to push docker image (if building your own)
+5. generate manifest (if building your own) to `$RELEASE_DIR`
+   1. `make build` will copy infrastructure-components.yaml, cluster-template.yaml, and metadata.yaml files to `$RELEASE_DIR`, which is `./out` by default. You may want to set `export RELEASE_DIR=~/.cluster-api/overrides/infrastructure-cloudstack/v0.1.0/` to ensure semantic version naming requirements are satisfied before running `make build`.
+
+6. set IMG env var so that ./Makefile knows where to push docker image (if building your own)
     1. `export IMG=localhost:5000/cluster-api-provider-capc`
     2. `make docker-push`
 
-6. set source image so that the CAPC deployment manifest files have the right image path in them in `config/default/manager_image_patch.yaml`
-
-7. generate manifest (if building your own)
-    1. `make dev-manifests` this will copy infrastructure-components.yaml, cluster-template.yaml, and metadata.yaml files to `~/.cluster-api/overrides/infrastructure-cloudstack/v0.1.0/`
+7. set source image so that the CAPC deployment manifest files have the right image path in them in `config/default/manager_image_patch.yaml`
 
 
-7. generate clusterctl config file, so that clusterctl knows how to provision cloudstack cluster:
+8. generate clusterctl config file, so that clusterctl knows how to provision cloudstack cluster, referencing whatever you set for `$RELEASE_DIR` from above:
     ```
     cat << EOF > ~/.cluster-api/cloudstack.yaml
     providers:
@@ -104,7 +104,7 @@ Assuming your running environment is MacOS:
     EOF
     ```
 
-8. Pre-created Cloudstack offerings: zone, pod cluster, and k8s-compatible template, compute offerings defined (2GB+ of RAM for control plane offering).
+9. Pre-created Cloudstack offerings: zone, pod cluster, and k8s-compatible template, compute offerings defined (2GB+ of RAM for control plane offering).
 
 ### Creating a CAPC Cluster:
 
