@@ -45,21 +45,21 @@ Run `tilt up` from the capi repository.
 
 ## Running CAPC without Tilt - detailed instructions
 
-Generally speaking, this cloudstack infrastructure provider will generate a docker image and 3 yaml files. `clusterctl` (a binary tool) will use the above docker image and 3 yaml files to provision a cluster using cloudstack as a provider.
+Generally speaking, this cloudstack infrastructure provider will generate a docker image and 3 yaml files. `clusterctl` (a binary tool) will use the above docker image and 3 yaml files to provision a cluster from your local machine using cloudstack as a provider.
 
 ### Prerequisites:
-assuming your running environment is macOs.
+Assuming your running environment is MacOS:
 
 1. please follow this [link](https://cluster-api.sigs.k8s.io/user/quick-start.html) to have following tools installed
     1. docker
     2. kind
     3. kubectl
     4. clusterctl
-        1. gotcha: use `clusterctl version` to confirm your version (0.3.23 for v1alpha4, 1.0+ for v1beta1).
+        1. Depending on the version of CAPC used, you may need different clusterctl versions. Download the binary by finding the necessary release [here](https://github.com/kubernetes-sigs/cluster-api/releases) ([v0.3.23](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v0.3.23) for v1alpha3, [v1.0.2](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.0.2) for v1beta1). Download the appropriate executable assets (darwin-arm64 for Macbook) and add them to your path
 
 2. [install cilium-cli](https://formulae.brew.sh/formula/cilium-cli) - `brew install cilium-cli` - another choice is to use [kindnet](https://github.com/aojea/kindnet)
 
-3. create a local docker registry to save your docker image - otherwise, you need extra account to push it somewhere else.
+3. create a local docker registry to save your docker image - otherwise, you need an image registry to push it somewhere else.
    Download this [script](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/hack/kind-install-for-capd.sh) into your local and run it.
    This script will create a kind cluster and configure it to use local docker registry:
     ```
@@ -88,7 +88,7 @@ assuming your running environment is macOs.
     1. `export IMG=localhost:5000/cluster-api-provider-capc`
     2. `make docker-push`
 
-6. set source image so that CAPC knows where to read the controller/manager image in `config/default/manager_image_patch.yaml`
+6. set source image so that the CAPC deployment manifest files have the right image path in them in `config/default/manager_image_patch.yaml`
 
 7. generate manifest (if building your own)
     1. `make dev-manifests` this will copy infrastructure-components.yaml, cluster-template.yaml, and metadata.yaml files to `~/.cluster-api/overrides/infrastructure-cloudstack/v0.1.0/`
@@ -127,8 +127,8 @@ assuming your running environment is macOs.
     export CLOUDSTACK_TEMPLATE_NAME=kube-v1.20.10/ubuntu-2004
     export CLOUDSTACK_ZONE_NAME=zone1
     
-    # The IP you put here must be available on the network referenced above. If
-    # it's not available, the control plane will fail to create.
+    # The IP you put here must be available as an unused public IP on the network 
+    # referenced above. If it's not available, the control plane will fail to create.
     # You can see the list of available IP's when you try allocating a public
     # IP in the network at 
     # Network -> Guest Networks -> <Network Name> -> IP Addresses
@@ -177,11 +177,22 @@ assuming your running environment is macOs.
     1. cilium must be installed into this newly created capc-cluster
     2. Run `KUBECONFIG=capc-cluster.kubeconfig cilium status` to confirm cilium status
 
-8. run a simple kubernetes app called 'test-thing'
-    ```
-    KUBECONFIG=capc-cluster.kubeconfig kubectl run test-thing --image=rockylinux/rockylinux:8 --restart=Never -- /bin/bash -c 'echo Hello, World!'
-    KUBECONFIG=capc-cluster.kubeconfig kubectl logs test-thing
-    ```
+8. Verify the K8s cluster is fully up
+   1. Run `KUBECONFIG=capc-cluster.kubeconfig get nodes`, and find the following output
+   ```
+   NAME                               STATUS   ROLES                  AGE     VERSION
+   capc-cluster-control-plane-xsnxt   Ready    control-plane,master   2m56s   v1.20.10
+   capc-cluster-md-0-9fr9d            Ready    <none>                 112s    v1.20.10
+   ```
+
+### Validating the CAPC Cluster:
+
+Run a simple kubernetes app called 'test-thing'
+ ```
+KUBECONFIG=capc-cluster.kubeconfig kubectl run test-thing --image=rockylinux/rockylinux:8 --restart=Never -- /bin/bash -c 'echo Hello, World!'
+KUBECONFIG=capc-cluster.kubeconfig kubectl get pods
+KUBECONFIG=capc-cluster.kubeconfig kubectl logs test-thing  # After container completes
+ ```
 
 ### kubectl/clusterctl Reference:
 - pods in capc-cluster -- cluster running in cloudstack
