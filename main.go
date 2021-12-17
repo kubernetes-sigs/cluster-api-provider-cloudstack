@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrastructurev1alpha3 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
+	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"cluster.x-k8s.io/cluster-api-provider-capc/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -45,7 +45,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(infrastructurev1alpha3.AddToScheme(scheme))
+	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -127,15 +127,15 @@ func main() {
 	}
 
 	// Start the controller manager.
-	if err = (&infrastructurev1alpha3.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err = (&infrastructurev1alpha3.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachine")
 		os.Exit(1)
 	}
-	if err = (&infrastructurev1alpha3.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachineTemplate")
 		os.Exit(1)
 	}
