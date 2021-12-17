@@ -7,14 +7,14 @@ spec:
   template:
     spec:
       containers:
-        # Change the value of image field below to your controller image URL
-        - image: localhost:5000/cluster-api-provider-cloudstack:latest
-          name: manager
-          volumeMounts:
-            - name: cloud-config
-              mountPath: /config
-              readOnly: true
+      # Change the value of image field below to your controller image URL
+      - image: localhost:5000/cluster-api-provider-cloudstack:latest
+        name: manager
+        volumeMounts:
+          - name: cloud-config
+            mountPath: /config
+            readOnly: true
       volumes:
-        - name: cloud-config
-          secret:
-            secretName: capc-cloudstack-secret
+      - name: cloud-config
+        secret:
+          secretName: capc-cloudstack-secret
