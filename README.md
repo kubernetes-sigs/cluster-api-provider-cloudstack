@@ -14,7 +14,7 @@ This project is licensed under the Apache-2.0 License.
 
 To run a particular test. In this case TestCreateInstance2.
 
-Integration tests use Controller Runtime EnvTest.  Your testing environment must be pre-configured with several EnvTest 
+Integration tests use Controller Runtime EnvTest.  Your testing environment must be pre-configured with several EnvTest
 git dependencies.
 See [configuring envtest for integration tests](https://book.kubebuilder.io/reference/envtest.html?highlight=etcd#configuring-envtest-for-integration-tests)
 
@@ -49,147 +49,158 @@ the `CLOUDSTACK_B64ENCODED_SECRET` that clusterctl would normally fill.
 
 Run `tilt up` from the capi repository.
 
-## Tutorial w/o Tilt - with detailed instructions
+## Running CAPC without Tilt - detailed instructions
 
-To run capc locally and against cloudstack environments:
+Generally speaking, this cloudstack infrastructure provider will generate a docker image and 3 yaml files. `clusterctl` (a binary tool) will use the above docker image and 3 yaml files to provision a cluster from your local machine using cloudstack as a provider.
 
-Generally speaking, this cloudstack infrastructure provider will generate a docker image and 3 yaml files.
+### Prerequisites:
+Assuming your running environment is MacOS:
 
-clusterctl (a binary tool) will use above docker image and 3 yaml files to provision a cluster using cloudstack as a provider.
+1. Follow the instructions [here](https://cluster-api.sigs.k8s.io/user/quick-start.html) to install the following tools:
+    1. Docker
+    2. KinD
+    3. KubeCtl
+    4. ClusterCtl - note that depending on the version of CAPC used, you may need different clusterctl versions. Download the binary by finding the necessary release [here](https://github.com/kubernetes-sigs/cluster-api/releases) ([v0.3.23](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v0.3.23) for v1alpha3, [v1.0.2](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.0.2) for v1beta1). Download the appropriate executable assets (darwin-arm64 for Macbook) and add them to your PATH
 
-### Some tools: 
-assuming your running environment is macOs.
-- please follow this [link](https://cluster-api.sigs.k8s.io/user/quick-start.html) to have following tools installed
- * docker
- * kind
- * kubectl
- * clusterctl
+2. [Install cilium-cli](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli). Another container networking choice is to use [kindnet](https://github.com/aojea/kindnet), but its usage will not be described here
 
-- [install cilium-cli](https://formulae.brew.sh/formula/cilium-cli) - `brew install cilium-cli` - another choice is to use [kindnet](https://github.com/aojea/kindnet)
-- gotcha: 
- * use `clusterctl version` to confirm your version. 
+3. Create a local docker registry to save your docker image - otherwise, you need an image registry to push it somewhere else.
+   
+4. Download this [script](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/hack/kind-install-for-capd.sh) into your local and run it.
+   This script will create a kind cluster and configure it to use local docker registry:
+    ```
+    wget https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/hack/kind-install-for-capd.sh
+    chmod +x ./kind-install-for-capd.sh
+    ./kind-install-for-capd.sh
+    ```
+5. Set up CloudStack credentials
+    1. Create a file named `cloud-config` in the repo's root directory, substituting in your own environment's values
+        ```
+        [Global]
+        api-url = <cloudstackApiUrl>
+        api-key = <cloudstackApiKey>
+        secret-key = <cloudstackSecretKey>
+        ```
 
-- create a local docker registry to save your docker image - otherwise, you need extra account to push it somewhere else
-Download this [script](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/hack/kind-install-for-capd.sh) into your local and run it.
-This script will create a kind cluster and configure it to use local docker registry
+    2. Run the following command to save the above cloudstack connection info into an environment variable, to be used by `./config/default/credentials.yaml` and ultimately the generated `infrastructure-components.yaml`, where it gets passed to CAPC:
 
-* `wget https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/hack/kind-install-for-capd.sh`
-* `chmod +x ./kind-install-for-capd.sh`
-* `./kind-install-for-capd.sh`
+        ```
+        export CLOUDSTACK_B64ENCODED_SECRET=`base64 -i cloud-config`
+        ```
+6. Set the IMG environment variable so that the Makefile knows where to push docker image (if building your own)
+   1. `export IMG=localhost:5000/cluster-api-provider-capc`
+   2. `make docker-build`
+   3. `make docker-push`
+   
+7. Set the source image location so that the CAPC deployment manifest files have the right image path in them in `config/default/manager_image_patch.yaml`
 
-- create a file named `cloud-config` in same directory as this README.md
-```
-[Global]
-api-url = http://192.168.1.129:8080/client/api
-api-key = bJStwHrk32ojY70rfgkyq7GVqf1Sb0I40BMzSZMID_2nT2_KkWzDBX3rddr8WB-QJmXXiYovlCk8k8mMkRywlg
-secret-key = fNLrsn8tafVd0aVJANFu25gWpn-_f7lejBdFb6LpOJqxXShJTxmz0zFmkSINWcJg-Ud4dkacZzRqmcdloC7MDw
-```
-
-run following command to save above cloudstack connection info into an environment variable:
-
-```
-export CLOUDSTACK_B64ENCODED_SECRET=`base64 -i cloud-config`
-```
-
-./config/default/credentials.yaml is using above env var.
-
-- gotcha:
- * replace the sample with your own cloudstack info in the above file. 
-
-- set IMG env var so that ./Makefile knows where to push docker image
- * `export IMG=localhost:5000/cluster-api-provider-capc`
- * `make docker-push`
-
-- generate manifest
- * `make dev-manifests` this will copy infrastructure-components.yaml file to ~/.cluster-api/overrides/infrastructure-cloudstack/v0.1.0/
+8. Generate the CAPC manifests (if building your own) into `$RELEASE_DIR`
+   1. `make build` will generate and copy `infrastructure-components.yaml` and metadata.yaml files to `$RELEASE_DIR`, which is `./out` by default. You may want to override the default value with `export RELEASE_DIR=${HOME}/.cluster-api/overrides/infrastructure-cloudstack/<VERSION>/` to deploy the generated manifests for use by clusterctl before running `make build`.
 
 
-- generate clusterctl config file, so that clusterctl knows how to provision cloudstack cluster:
-```
-cat << EOF > ~/.cluster-api/cloudstack.yaml
-providers:
-- name: "cloudstack"
-  type: "InfrastructureProvider"
-  url: ${HOME}/.cluster-api/overrides/infrastructure-cloudstack/v0.1.0/infrastructure-components.yaml
-EOF
-```
+8. Generate clusterctl config file so that clusterctl knows how to provision the CloudStack cluster, referencing whatever you set for `$RELEASE_DIR` from above for the url:
+    ```
+    cat << EOF > ~/.cluster-api/cloudstack.yaml
+    providers:
+    - name: "cloudstack"
+      type: "InfrastructureProvider"
+      url: ${HOME}/.cluster-api/overrides/infrastructure-cloudstack/<VERSION>/infrastructure-components.yaml
+    EOF
+    ```
 
-- run following command to turn kind cluster into a management cluster and load cloudstack component into it.
- * `clusterctl init --infrastructure cloudstack --config ~/.cluster-api/cloudstack.yaml`
+9. Assure that the required CloudStack resources have been created: zone, pod cluster, and k8s-compatible template, compute offerings defined (2GB+ of RAM for control plane offering).
 
-- set up env vars used by cluster-template.yaml 
- * cluster template file is here (already existed): ./templates/cluster-template.yaml 
- ```
-# Machine offerings must be pre-created. Control plane offering
-# must have have >2GB RAM available
-export CLOUDSTACK_WORKER_MACHINE_OFFERING="Small Instance"
-export CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING="Large Instance"
+### Creating a CAPC Cluster:
 
-# If the referenced network doesn't exist, a new isolated network
-# will be created.
-export CLOUDSTACK_NETWORK_NAME=GuestNet1
-export CLOUDSTACK_SSH_KEY_NAME=CAPCKeyPair6
-export CLOUDSTACK_TEMPLATE_NAME=kube-v1.20.10/ubuntu-2004
-export CLOUDSTACK_ZONE_NAME=zone1
+1. Run the following command to turn your previously generated kind cluster into a management cluster and load the cloudstack components into it.
+    1. `clusterctl init --infrastructure cloudstack --config ~/.cluster-api/cloudstack.yaml`
 
-# This IP must be available on the network referenced above. If
-# it's not available, the control plane will fail to create.
-# You can see the list of available IP's when you try allocating a public
-# IP in the network
-export CLUSTER_ENDPOINT_IP=192.168.1.161
+2. Set up the environment variables used by `templates/cluster-template.yaml`. It will be populated by the values set here. See the example values below (and replace with your own!)
+    ```
+    # Machine offerings must be pre-created. Control plane offering
+    # must have have >2GB RAM available
+    export CLOUDSTACK_WORKER_MACHINE_OFFERING="Small Instance"
+    export CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING="Large Instance"
+    
+    # If the referenced network doesn't exist, a new isolated network
+    # will be created.
+    export CLOUDSTACK_NETWORK_NAME=GuestNet1
+    export CLOUDSTACK_SSH_KEY_NAME=CAPCKeyPair6
+    # Referring to a prerequisite kubernetes-compatible image you've loaded into CloudStack
+    export CLOUDSTACK_TEMPLATE_NAME=kube-v1.20.10/ubuntu-2004
+    export CLOUDSTACK_ZONE_NAME=zone1
+    
+    # The IP you put here must be available as an unused public IP on the network 
+    # referenced above. If it's not available, the control plane will fail to create.
+    # You can see the list of available IP's when you try allocating a public
+    # IP in the network at 
+    # Network -> Guest Networks -> <Network Name> -> IP Addresses
+    export CLUSTER_ENDPOINT_IP=192.168.1.161
+    
+    # This is the standard port that the Control Plane process runs on
+    export CLUSTER_ENDPOINT_PORT=6443
 
-# This is the standard port that the Control Plane process runs on
-export CLUSTER_ENDPOINT_PORT=6443
-```
+    # Pick any name for your cluster
+    export CLUSTER_NAME="capc-cluster"
+    export CONTROL_PLANE_MACHINE_COUNT=1
+    export KUBERNETES_VERSION="v1.20.10"
+    export WORKER_MACHINE_COUNT=1
+    ```
 
-- gotcha 
- * make sure all the env var values matching your cloudstack, offering/template/zone/network/keypair
- * replace 192.168.1.161 with the ip in your GuestNet1 (sourceNat). shows in cloudstack UI: Home -> Network -> Guest networks -> GuestNet1 -> IP Addresses
+3. Generate the CAPC cluster spec yaml file
+    ```
+    clusterctl generate cluster \
+        --from ~/.cluster-api/overrides/infrastructure-cloudstack/<VERSION>/cluster-template.yaml \
+        > capc-cluster-spec.yaml
+    
+    ```
 
+4. Apply the CAPC cluster spec to your kind management cluster
+    ```
+    kubectl apply -f capc-cluster-spec.yaml
+    ```
 
-- generate the capc cluster spec yaml file 
-```
-clusterctl generate cluster capc-cluster \
-    --kubernetes-version v1.20.10 \
-    --config ~/.cluster-api/cloudstack.yaml \
-    --control-plane-machine-count=1 \
-    --worker-machine-count=1 \
-    > capc-cluster-spec.yaml
+5. Check the progress of capc-cluster, and wait for all the components to be ready
+    ```
+    clusterctl describe cluster capc-cluster 
+    ```
 
-```
+6. Get the generated kubeconfig for your newly created CloudStack cluster `capc-cluster`
+    ```
+    clusterctl get kubeconfig capc-cluster > capc-cluster.kubeconfig
+    ```
 
-- apply capc cluster spec to this kind management cluster
-```
-kubectl apply -f capc-cluster-spec.yaml
-```
+7. Install cilium on the workload cluster so that pods can see each other
+    ```
+    KUBECONFIG=capc-cluster.kubeconfig cilium install
+    ```
+    1. cilium must be installed into this newly created capc-cluster
+    2. Run `KUBECONFIG=capc-cluster.kubeconfig cilium status` to confirm cilium status
 
-- check the progress of capc-cluster
-```
-clusterctl describe cluster capc-cluster 
-```
+8. Verify the K8s cluster is fully up
+   1. Run `KUBECONFIG=capc-cluster.kubeconfig get nodes`, and observe the following output
+   ```
+   NAME                               STATUS   ROLES                  AGE     VERSION
+   capc-cluster-control-plane-xsnxt   Ready    control-plane,master   2m56s   v1.20.10
+   capc-cluster-md-0-9fr9d            Ready    <none>                 112s    v1.20.10
+   ```
 
-- get kubeconfig for this newly created cloudstack cluster `capc-cluster`
-```
-clusterctl get kubeconfig capc-cluster > capc-cluster.kubeconfig
-```
+### Validating the CAPC Cluster:
 
-- install cilium, so that pods can see each other
-```
-KUBECONFIG=capc-cluster.kubeconfig cilium install
-```
-* cilium must be installed into this newly created capc-cluster
-* `KUBECONFIG=capc-cluster.kubeconfig cilium status` to confirm cilium status
-
-- run a simple kubenetes app called 'test-thing'
+Run a simple kubernetes app called 'test-thing'
+1. Create the container
 ```
 KUBECONFIG=capc-cluster.kubeconfig kubectl run test-thing --image=rockylinux/rockylinux:8 --restart=Never -- /bin/bash -c 'echo Hello, World!'
-KUBECONFIG=capc-cluster.kubeconfig kubectl  logs test-thing
+KUBECONFIG=capc-cluster.kubeconfig kubectl get pods
+ ```
+2. Wait for the container to complete, and check the logs for 'Hello, World!'
 ```
-
-### for your reference: 
-- pods in capc-cluster -- cluster running in cloudstack
+KUBECONFIG=capc-cluster.kubeconfig kubectl logs test-thing
 ```
-cluster-api-provider-cloudstack-staging % KUBECONFIG=capc-cluster.kubeconfig kubectl  get pods -A    
+### kubectl/clusterctl Reference:
+- Pods in capc-cluster -- cluster running in cloudstack
+```
+cluster-api-provider-cloudstack-staging % KUBECONFIG=capc-cluster.kubeconfig kubectl get pods -A    
 NAMESPACE     NAME                                                       READY   STATUS      RESTARTS   AGE
 default       test-thing                                                 0/1     Completed   0          2m43s
 kube-system   cilium-jxw68                                               1/1     Running     0          6m
@@ -205,7 +216,7 @@ kube-system   kube-proxy-7gjbv                                           1/1    
 kube-system   kube-scheduler-capc-cluster-control-plane-tknwx            1/1     Running     0          9m21s
 ```
 
-- pods in original kind cluster (also called bootstrap cluster, management cluster)
+- Pods in original kind cluster (also called bootstrap cluster, management cluster)
 ```
 cluster-api-provider-cloudstack-staging % kubectl  get pods -A
 NAMESPACE                           NAME                                                             READY   STATUS    RESTARTS   AGE
@@ -226,4 +237,3 @@ kube-system                         kube-proxy-cwrhv                            
 kube-system                         kube-scheduler-capi-test-control-plane                           1/1     Running   0          48m
 local-path-storage                  local-path-provisioner-547f784dff-f2g7r                          1/1     Running   0          48m
 ```
-
