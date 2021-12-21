@@ -56,7 +56,7 @@ Assuming your running environment is MacOS:
     3. KubeCtl
     4. ClusterCtl - note that depending on the version of CAPC used, you may need different clusterctl versions. Download the binary by finding the necessary release [here](https://github.com/kubernetes-sigs/cluster-api/releases) ([v0.3.23](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v0.3.23) for v1alpha3, [v1.0.2](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.0.2) for v1beta1). Download the appropriate executable assets (darwin-arm64 for Macbook) and add them to your PATH
 
-2. [Install cilium-cli](https://formulae.brew.sh/formula/cilium-cli) with `brew install cilium-cli`, or find instructions [here](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/). Another container networking choice is to use [kindnet](https://github.com/aojea/kindnet), but its usage will not be described here
+2. [Install cilium-cli](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli). Another container networking choice is to use [kindnet](https://github.com/aojea/kindnet), but its usage will not be described here
 
 3. Create a local docker registry to save your docker image - otherwise, you need an image registry to push it somewhere else.
    
@@ -76,7 +76,7 @@ Assuming your running environment is MacOS:
         secret-key = <cloudstackSecretKey>
         ```
 
-    2. Run the following command to save the above cloudstack connection info into an environment variable, to be used by `./config/default/credentials.yaml`:
+    2. Run the following command to save the above cloudstack connection info into an environment variable, to be used by `./config/default/credentials.yaml` and ultimately the generated `infrastructure-components.yaml`, where it gets passed to CAPC:
 
         ```
         export CLOUDSTACK_B64ENCODED_SECRET=`base64 -i cloud-config`
