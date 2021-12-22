@@ -1,39 +1,38 @@
-# TODO actually turn this into a template. Right now it is a finalized/filled version.
+---
 apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
-  name: cluster1
+  name: ${CLUSTER_NAME}
 spec:
   clusterNetwork:
     pods:
       cidrBlocks:
-      - 192.168.0.0/16
+        - 192.168.0.0/16
     serviceDomain: cluster.local
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: CloudStackCluster
-    name: cluster1
+    name: ${CLUSTER_NAME}
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
     kind: KubeadmControlPlane
-    name: cluster1-control-plane
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    name: ${CLUSTER_NAME}-control-plane
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: CloudStackCluster
 metadata:
-  name: cluster1
+  name: ${CLUSTER_NAME}
 spec:
-  # This is an ACS Public IP address at which the K8s server will be exposed.
   controlPlaneEndpoint:
-    host: 192.168.1.14
-    port: 6443
-  network: GuestNet1
-  zone: zone1
+    host: ${CLUSTER_ENDPOINT_IP}
+    port: ${CLUSTER_ENDPOINT_PORT}
+  network: ${CLOUDSTACK_NETWORK_NAME}
+  zone: ${CLOUDSTACK_ZONE_NAME}
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 kind: KubeadmControlPlane
 metadata:
-  name: cluster1-control-plane
+  name: "${CLUSTER_NAME}-control-plane"
 spec:
   kubeadmConfigSpec:
     clusterConfiguration:
@@ -48,34 +47,35 @@ spec:
         kubeletExtraArgs:
           provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
         name: '{{ local_hostname }}'
-  machineTemplate:
-    infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-      kind: CloudStackMachineTemplate
-      name: cluster1-control-plane
-  replicas: 1
-  version: v1.21.1
+    users:
+      - name: ${OS_USERID}
+        sshAuthorizedKeys:
+          - ${SSH_KEY_MATERIAL}
+        sudo: ALL=(ALL) NOPASSWD:ALL
+  infrastructureTemplate:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: CloudStackMachineTemplate
+    name: "${CLUSTER_NAME}-control-plane"
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: CloudStackMachineTemplate
 metadata:
-  name: cluster1-control-plane
+  name: ${CLUSTER_NAME}-control-plane
 spec:
   template:
     spec:
-      offering: Large Instance
-      sshKey: CAPCKeyPair6
-      template: ubuntu20
-      details:
-        memoryOvercommitRatio: "1.2"
+      offering: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
+      template: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
 apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
-  name: cluster1-md-0
+  name: "${CLUSTER_NAME}-md-0"
 spec:
-  clusterName: cluster1
-  replicas: 1
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
   selector:
     matchLabels: null
   template:
@@ -84,34 +84,39 @@ spec:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
-          name: cluster1-md-0
-      clusterName: cluster1
+          name: "${CLUSTER_NAME}-md-0"
+      clusterName: "${CLUSTER_NAME}"
       infrastructureRef:
+        name: "${CLUSTER_NAME}-md-0"
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: CloudStackMachineTemplate
-        name: cluster1-md-0
-      version: v1.21.1
+      version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: CloudStackMachineTemplate
 metadata:
-  name: cluster1-md-0
+  name: ${CLUSTER_NAME}-md-0
 spec:
   template:
     spec:
-      offering: Large Instance
-      sshKey: CAPCKeyPair6
-      template: ubuntu20
+      offering: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
+      template: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
-  name: cluster1-md-0
+  name: ${CLUSTER_NAME}-md-0
 spec:
   template:
     spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
           name: '{{ local_hostname }}'
+      users:
+        - name: ${OS_USERID}
+          sshAuthorizedKeys:
+            - ${SSH_KEY_MATERIAL}
+          sudo: ALL=(ALL) NOPASSWD:ALL
+
