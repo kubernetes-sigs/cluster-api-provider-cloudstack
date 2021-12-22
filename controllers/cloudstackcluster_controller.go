@@ -23,15 +23,19 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
@@ -78,6 +82,12 @@ func (r *CloudStackClusterReconciler) Reconcile(req ctrl.Request) (retRes ctrl.R
 		return reconcile.Result{}, retErr
 	} else if cluster == nil {
 		log.Info("Waiting for CAPI Cluster controller to set owner reference on CloudStack cluster.")
+		return reconcile.Result{}, nil
+	}
+
+	// Check the cluster is not paused.
+	if annotations.IsPaused(cluster, csCluster) {
+		log.Info("Cluster is paused. Refusing to reconcile.")
 		return reconcile.Result{}, nil
 	}
 
@@ -133,7 +143,7 @@ func (r *CloudStackClusterReconciler) reconcileDelete(
 
 // Called in main, this registers the cluster reconciler to the CAPI controller manager.
 func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackCluster{}).
 		WithEventFilter(
 			predicate.Funcs{
@@ -157,5 +167,27 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				},
 			},
 		).
-		Complete(r)
+		Build(r)
+
+	if err != nil {
+		return err
+	}
+
+	// Add a watch on CAPI Cluster objects for unpause and ready events.
+	return controller.Watch(
+		&source.Kind{Type: &capiv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))},
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldCluster := e.ObjectOld.(*capiv1.Cluster)
+				newCluster := e.ObjectNew.(*capiv1.Cluster)
+				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				_, ok := e.Meta.GetAnnotations()[capiv1.PausedAnnotation]
+				return ok
+			},
+		},
+	)
 }

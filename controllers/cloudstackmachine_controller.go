@@ -29,12 +29,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
@@ -101,6 +105,12 @@ func (r *CloudStackMachineReconciler) Reconcile(req ctrl.Request) (retRes ctrl.R
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
 
+	// Check the machine is not paused.
+	if annotations.IsPaused(cluster, csMachine) {
+		log.Info("CloudStackMachine or linked Cluster is paused. Requeuing reconcile.")
+		return reconcile.Result{}, nil
+	}
+
 	// Fetch the CloudStack cluster associated with this machine.
 	csCluster := &infrav1.CloudStackCluster{}
 	if retErr := r.Client.Get(
@@ -138,7 +148,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 	// Make sure bootstrap data is available in CAPI machine.
 	if machine.Spec.Bootstrap.DataSecretName == nil {
 		log.Info("Bootstrap DataSecretName not yet available.")
-		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+		return ctrl.Result{}, nil
 	}
 	log.Info("Got Bootstrap DataSecretName: " + *machine.Spec.Bootstrap.DataSecretName)
 
@@ -198,7 +208,8 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 
 // Called in main, this registers the machine reconciler to the CAPI controller manager.
 func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackMachine{}).
 		WithEventFilter(
 			predicate.Funcs{
@@ -231,5 +242,52 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				},
 			},
 		).
-		Complete(r)
+		Build(r)
+
+	if err != nil {
+		return err
+	}
+
+	// Watch CAPI machines for changes.
+	// Queues a reconcile request for owned CloudStackMachine on change.
+	// Used to update when bootstrap data becomes available.
+	if err = controller.Watch(
+		&source.Kind{Type: &capiv1.Machine{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine")),
+		},
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldMachine := e.ObjectOld.(*capiv1.Machine)
+				newMachine := e.ObjectNew.(*capiv1.Machine)
+
+				return oldMachine.Spec.Bootstrap.DataSecretName == nil && newMachine.Spec.Bootstrap.DataSecretName != nil
+			},
+		},
+	); err != nil {
+		return err
+	}
+
+	csMachineMapper, err := util.ClusterToObjectsMapper(r.Client, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+
+	// Add a watch on CAPI Cluster objects for unpause and ready events.
+	return controller.Watch(
+		&source.Kind{Type: &capiv1.Cluster{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: csMachineMapper},
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldCluster := e.ObjectOld.(*capiv1.Cluster)
+				newCluster := e.ObjectNew.(*capiv1.Cluster)
+				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				_, ok := e.Meta.GetAnnotations()[capiv1.PausedAnnotation]
+				return ok
+			},
+		},
+	)
 }
