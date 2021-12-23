@@ -48,13 +48,13 @@ help: ## Display this help.
 # Using a flag file here as config output is too complicated to be a target.
 manifests: config/.flag.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
 config/.flag.mk: bin/controller-gen $(shell find ./controllers ./api -type f -name "*test*" -prune -o -print) # This flags that we've recently generated the configuration manifests directory.
-	sed -i'' -e 's@image: .*@image: '"$(IMG)"'@' config/default/manager_image_patch.yaml
 	controller-gen crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	@touch config/.flag.mk
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR)/* manifests ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
 $(RELEASE_DIR)/%: $(shell find config)
+	sed -i'' -e 's@image: .*@image: '"$(IMG)"'@' config/default/manager_image_patch.yaml
 	@mkdir -p $(RELEASE_DIR)
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 	kustomize build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
