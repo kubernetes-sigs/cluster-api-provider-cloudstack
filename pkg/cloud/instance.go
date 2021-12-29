@@ -37,7 +37,7 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 	csMachine.Status.InstanceState = infrav1.InstanceState(vmResponse.State)
 }
 
-// Retch retrieves VM instance details by csMachine.Spec.InstanceID or csMachine.Name, and
+// Retrieves VM instance details by csMachine.Spec.InstanceID or csMachine.Name, and
 // sets infrastructure machine spec and status if VM instance is found.
 func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) error {
 	// Attempt to fetch by ID.
@@ -122,10 +122,8 @@ func (c *client) GetOrCreateVMInstance(
 
 	// Resolve uses a VM metrics request response to fill cloudstack machine status.
 	// The deployment response is insufficient.
-	if err = c.ResolveVMInstanceDetails(csMachine); err == nil {
-		csMachine.Status.Ready = true
-	}
-	return err
+	return c.ResolveVMInstanceDetails(csMachine)
+
 }
 
 // Destroy a VM instane. Assumes machine has been fetched prior and has an instance ID.

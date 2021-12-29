@@ -68,12 +68,13 @@ const RequeueTimeout = 5 * time.Second
 func (r *CloudStackMachineReconciler) Reconcile(req ctrl.Request) (retRes ctrl.Result, retErr error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("machine", req.Name, "namespace", req.Namespace)
+	log.V(1).Info("Reconcile CloudStackMachine")
 
 	// Fetch the CloudStackMachine.
 	csMachine := &infrav1.CloudStackMachine{}
 	if retErr = r.Client.Get(ctx, req.NamespacedName, csMachine); retErr != nil {
 		if client.IgnoreNotFound(retErr) == nil {
-			log.Info("Machine not found.")
+			log.Info("CloudStackMachine not found.")
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(retErr)
 	}
@@ -111,6 +112,11 @@ func (r *CloudStackMachineReconciler) Reconcile(req ctrl.Request) (retRes ctrl.R
 		return reconcile.Result{}, nil
 	}
 
+	// Delete VM instance if deletion timestamp present.
+	if !csMachine.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(log, csMachine)
+	}
+
 	// Fetch the CloudStack cluster associated with this machine.
 	csCluster := &infrav1.CloudStackCluster{}
 	if retErr := r.Client.Get(
@@ -120,21 +126,17 @@ func (r *CloudStackMachineReconciler) Reconcile(req ctrl.Request) (retRes ctrl.R
 			Name:      cluster.Spec.InfrastructureRef.Name},
 		csCluster); retErr != nil {
 		if client.IgnoreNotFound(retErr) == nil {
+			log.Info("CloudStackCluster not found.")
 			return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 		} else {
 			return ctrl.Result{}, retErr
 		}
 	} else if csCluster.Status.ZoneID == "" {
-		log.Info("Cluster not found. Likely not ready.")
+		log.Info("CloudStackCluster ZoneId not initialized. Likely not ready.")
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
 
-	// Delete VM instance if deletion timestamp present.
-	if !csMachine.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(log, csMachine)
-	}
-
-	// Otherwise reconcile a VM instance.
+	// Reconcile a VM instance for creates/updates
 	return r.reconcile(log, csCluster, csMachine, machine)
 }
 
@@ -144,6 +146,8 @@ func (r *CloudStackMachineReconciler) reconcile(
 	csCluster *infrav1.CloudStackCluster,
 	csMachine *infrav1.CloudStackMachine,
 	machine *capiv1.Machine) (ctrl.Result, error) {
+
+	log.V(1).Info("reconcile CloudStackMachine")
 
 	// Make sure bootstrap data is available in CAPI machine.
 	if machine.Spec.Bootstrap.DataSecretName == nil {
@@ -164,10 +168,10 @@ func (r *CloudStackMachineReconciler) reconcile(
 	}
 	userData := base64.StdEncoding.EncodeToString(value)
 
-	// Create machine (or Fetch if present). Will set ready to true.
+	// Create VM (or Fetch if present). Will set ready to true.
 	if err := r.CS.GetOrCreateVMInstance(csMachine, machine, csCluster, userData); err == nil {
 		if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
-			log.Info("Machine Created", "instanceStatus", csMachine.Status, "instanceSpec", csMachine.Spec)
+			log.Info("CloudStack instance Created", "instanceStatus", csMachine.Status, "instanceSpec", csMachine.Spec)
 			controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
 		}
 	} else if err != nil {

@@ -53,16 +53,20 @@ func init() {
 func main() {
 
 	// Parse args and setup logger.
+	var cloudConfigFile string
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
 	var watchingNamespace string
+	var certDir string
+	flag.StringVar(&cloudConfigFile, "cloud-config-file", "/config/cloud-config", "Overrides the default path to the cloud-config file that contains the CloudStack credentials.")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "localhost:8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&watchingNamespace, "namespace", "", "Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
+	flag.StringVar(&certDir, "cert-dir", "", "Directory where webhook certs will be stored.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -72,8 +76,7 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	// Setup CloudStack api client.
-	filepath := "/config/cloud-config"
-	client, err := cloud.NewClient(filepath)
+	client, err := cloud.NewClient(cloudConfigFile)
 	if err != nil {
 		setupLog.Info("cannot connect to CloudStack via client at startup time.  Pressing onward...")
 	}
@@ -88,6 +91,7 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "capc-leader-election-controller",
 		Namespace:              watchingNamespace,
+		CertDir:                certDir,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
