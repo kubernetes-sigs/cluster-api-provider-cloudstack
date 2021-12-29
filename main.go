@@ -75,8 +75,7 @@ func main() {
 	filepath := "/config/cloud-config"
 	client, err := cloud.NewClient(filepath)
 	if err != nil {
-		setupLog.Error(err, "unable to start manager -- cannot connect to CloudStack via client")
-		os.Exit(1)
+		setupLog.Info("cannot connect to CloudStack via client at startup time.  Pressing onward...")
 	}
 	setupLog.Info("CloudStack client initialized.")
 

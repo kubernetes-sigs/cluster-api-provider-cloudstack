@@ -151,6 +151,7 @@ func (c *client) GetOrCreateLoadBalancerRule(csCluster *infrav1.CloudStackCluste
 
 	p := c.cs.LoadBalancer.NewCreateLoadBalancerRuleParams(
 		"roundrobin", "Kubernetes_API_Server", K8sDefaultAPIPort, K8sDefaultAPIPort)
+	p.SetNetworkid(csCluster.Status.NetworkID)
 	if csCluster.Spec.ControlPlaneEndpoint.Port != 0 { // Override default public port if endpoint port specified.
 		p.SetPublicport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
 	}
