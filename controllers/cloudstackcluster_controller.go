@@ -66,6 +66,7 @@ type CloudStackClusterReconciler struct {
 func (r *CloudStackClusterReconciler) Reconcile(req ctrl.Request) (retRes ctrl.Result, retErr error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("cluster", req.Name, "namespace", req.Namespace)
+	log.V(1).Info("Reconcile CloudStackCluster")
 
 	// Get CloudStack cluster.
 	csCluster := &infrav1.CloudStackCluster{}
@@ -115,6 +116,7 @@ func (r *CloudStackClusterReconciler) Reconcile(req ctrl.Request) (retRes ctrl.R
 func (r *CloudStackClusterReconciler) reconcile(
 	log logr.Logger,
 	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
+	log.V(1).Info("reconcile CloudStackCluster")
 
 	// Prevent premature deletion of the csCluster construct from CAPI.
 	controllerutil.AddFinalizer(csCluster, infrav1.ClusterFinalizer)
@@ -132,7 +134,7 @@ func (r *CloudStackClusterReconciler) reconcileDelete(
 	log logr.Logger,
 	csCluster *infrav1.CloudStackCluster) (retRes ctrl.Result, retErr error) {
 
-	log.Info("Deleting cluster...")
+	log.V(1).Info("reconcileDelete CloudStackCluster...")
 
 	// TODO Decide what resources to remove w/Cluster if any.
 	// cloud.DestroyCluster(r.CS, csStackCluster)

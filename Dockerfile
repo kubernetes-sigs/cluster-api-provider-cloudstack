@@ -16,7 +16,6 @@ COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
-COPY cloud-config /config/cloud-config
 
 # Build
 ARG ldflags
