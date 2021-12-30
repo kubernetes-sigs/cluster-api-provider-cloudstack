@@ -18,6 +18,7 @@ package cloud_test
 
 import (
 	"fmt"
+
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
@@ -200,7 +201,7 @@ var _ = Describe("Instance", func() {
 			vms.EXPECT().DeployVirtualMachine(gomock.Any()).Return(deploymentResp, nil)
 
 			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(Succeed())
-			Ω(csMachine.Status.Ready).Should(BeTrue())
+			Ω(csMachine.Status.Ready).Should(BeFalse())
 		})
 	})
 })

@@ -18,18 +18,19 @@
 # This is necessary as the controllers are run in goroutines when tested under testenv.
 # Add to add, remove to remove, and contains exits 1 if the statements are missing.
 
-
-FILES=${PROJECT_DIR:-$(dirname $(dirname "$0"))}/controllers/cloudstack*controller.go
+CONTROLLER_DIR=${PROJECT_DIR:-$(dirname $(dirname "$0"))}/controllers
+FILES=${CONTROLLER_DIR}/cloudstack*controller.go
 
 case $1 in
     --add) 
         # Use grep to prevent double addition of ginkgo recover statements.
         grep -i ginkgo ${FILES} 2>&1> /dev/null \
-            || (sed -i '' '/Reconcile(/a\'$'\n'$'\t''defer ginkgo.GinkgoRecover()'$'\n''' ${FILES} && \
-                sed -i '' '/^import (/a\'$'\n'$'\t''"github.com/onsi/ginkgo"'$'\n''' ${FILES})
+            || (sed -i.bak '/Reconcile(/a\'$'\n'$'\t''defer ginkgo.GinkgoRecover()'$'\n''' ${FILES} && \
+                sed -i.bak '/^import (/a\'$'\n'$'\t''"github.com/onsi/ginkgo"'$'\n''' ${FILES} && \
+                rm ${CONTROLLER_DIR}/*.bak)
         ;;
     --remove)
-            sed -i '' '/ginkgo/d' ${FILES}
+            sed -i.bak '/ginkgo/d' ${FILES} && rm ${CONTROLLER_DIR}/*.bak
         ;;
     --contains)
         grep -i ginkgo ${FILES} 2>&1> /dev/null && exit 0

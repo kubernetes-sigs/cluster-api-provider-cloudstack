@@ -44,31 +44,39 @@ all: build
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-.PHONY: manifests
+MANIFEST_GEN_INPUTS=$(shell find ./api -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
 # Using a flag file here as config output is too complicated to be a target.
+# The following triggers manifest building if $(IMG) differs from that found in config/default/manager_image_patch.yaml.
+$(shell	grep -q "$(IMG)" config/default/manager_image_patch_edited.yaml || rm -f config/.flag.mk)
+.PHONY: manifests
 manifests: config/.flag.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
-config/.flag.mk: bin/controller-gen $(shell find ./controllers ./api -type f -name "*test*" -prune -o -print) # This flags that we've recently generated the configuration manifests directory.
+config/.flag.mk: bin/controller-gen $(MANIFEST_GEN_INPUTS)
+	sed -e 's@image: .*@image: '"$(IMG)"'@' config/default/manager_image_patch.yaml > config/default/manager_image_patch_edited.yaml
 	controller-gen crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	@touch config/.flag.mk
 
 .PHONY: release-manifests
-release-manifests: $(RELEASE_DIR)/* manifests ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
-$(RELEASE_DIR)/%: $(shell find config)
-	sed -i'' -e 's@image: .*@image: '"$(IMG)"'@' config/default/manager_image_patch.yaml
+RELEASE_MANIFEST_TARGETS=$(RELEASE_DIR)/infrastructure-components.yaml $(RELEASE_DIR)/metadata.yaml
+RELEASE_MANIFEST_INPUTS=config/.flag.mk $(shell find config)
+release-manifests: $(RELEASE_MANIFEST_TARGETS) ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
+$(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
 	@mkdir -p $(RELEASE_DIR)
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 	kustomize build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
 
+DEEPCOPY_GEN_TARGETS=$(shell find api -type d -name "v*" -exec echo {}\/zz_generated.deepcopy.go \;)
+DEEPCOPY_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_generated*" -prune -o -type f -print)
 .PHONY: generate-deepcopy
-generate-deepcopy: bin/controller-gen $(shell find api -type f -name zz_generated.deepcopy.go) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-api/%/zz_generated.deepcopy.go: $(shell find ./api -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
+generate-deepcopy: $(DEEPCOPY_GEN_TARGETS) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+api/%/zz_generated.deepcopy.go: bin/controller-gen $(DEEPCOPY_GEN_INPUTS)
 	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 ##@ Build
 
+MANAGER_BIN_INPUTS=$(shell find ./controllers ./api ./pkg -name "*mock*" -prune -o -name "*test*" -prune -o -type f -print) main.go go.mod go.sum
 .PHONY: build
 build: binaries generate-deepcopy manifests release-manifests bin/manager bin/mockgen ## Build manager binary.
-bin/manager: $(shell find ./controllers ./api -type f -name "*test*" -prune -o -print)
+bin/manager: $(MANAGER_BIN_INPUTS)
 	go fmt ./...
 	go vet ./...
 	go build -o bin/manager main.go
@@ -80,9 +88,10 @@ run: generate-deepcopy fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 # Using a flag file here as docker build doesn't produce a target file.
+DOCKER_BUILD_INPUTS=$(MANAGER_BIN_INPUTS) Dockerfile
 .PHONY: docker-build
 docker-build: .dockerflag.mk ## Build docker image containing the controller manager.
-.dockerflag.mk: Dockerfile $(shell find ./controllers ./api -type f -name "*test*" -prune -o -print)
+.dockerflag.mk: $(DOCKER_BUILD_INPUTS)
 	docker build -t ${IMG} .
 	@touch .dockerflag.mk
 
@@ -104,7 +113,7 @@ vet: ## Run go vet on the whole project.
 lint: bin/golangci-lint ## Run linting for the project.
 	go fmt ./...
 	go vet ./...
-	golangci-lint run ./...
+	golangci-lint run -v --timeout 360s ./...
 	@ # The below string of commands checks that ginkgo isn't present in the controllers.
 	@(grep ginkgo ${PROJECT_DIR}/controllers/cloudstack*_controller.go && \
 		echo "Remove ginkgo from controllers. This is probably an artifact of testing." \
@@ -124,7 +133,7 @@ undeploy: bin/kustomize ## Undeploy controller from the K8s cluster specified in
 ##@ Binaries
 
 .PHONY: binaries
-binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/mockgen ## Locally install all needed bins.
+binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/mockgen bin/kubectl ## Locally install all needed bins.
 bin/controller-gen: ## Install controller-gen to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.9
 bin/golangci-lint: ## Install golangci-lint to bin.
@@ -136,6 +145,10 @@ bin/mockgen:
 bin/kustomize: ## Install kustomize to bin.
 	@mkdir -p bin
 	cd bin && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+export K8S_VERSION=1.19.2
+bin/kubectl bin/kube-apiserver bin/etcd &:
+	curl --silent -L "https://go.kubebuilder.io/test-tools/${K8S_VERSION}/$(shell go env GOOS)/$(shell go env GOARCH)" --output - | \
+		tar -C ./ --strip-components=1 -zvxf -
 
 ##@ Cleanup
 
@@ -146,15 +159,17 @@ clean: ## Clean.
 
 ##@ Testing
 
+# Tell envtest to use local bins for etcd, kubeapi-server, and kubectl.
+export KUBEBUILDER_ASSETS=$(PROJECT_DIR)/bin
+
 .PHONY: test
-test: lint generate-deepcopy generate-mocks bin/ginkgo ## Run tests. At the moment this is only unit tests.
+test: lint generate-deepcopy generate-mocks bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@ginkgo -v ./api/... ./controllers/... ./pkg/... -coverprofile cover.out; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 	
 .PHONY: generate-mocks
-generate-mocks: $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
+generate-mocks: bin/mockgen $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
 pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
 	go generate ./...
-
