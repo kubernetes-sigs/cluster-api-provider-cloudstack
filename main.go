@@ -21,6 +21,7 @@ import (
 	"flag"
 	"os"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -78,6 +79,10 @@ func main() {
 	// Setup CloudStack api client.
 	client, err := cloud.NewClient(cloudConfigFile)
 	if err != nil {
+		if !strings.Contains(err.Error(), "Timeout") {
+			setupLog.Error(err, "unable to start manager")
+			os.Exit(1)
+		}
 		setupLog.Info("cannot connect to CloudStack via client at startup time.  Pressing onward...")
 	}
 	setupLog.Info("CloudStack client initialized.")
