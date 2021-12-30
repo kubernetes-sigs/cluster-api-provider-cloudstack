@@ -19,9 +19,11 @@ package cloud
 import (
 	"errors"
 	"fmt"
+	"net"
+
+	"strings"
 
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"strings"
 
 	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
@@ -106,9 +108,13 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 	setIfNotEmpty(userData, p.SetUserdata)
+	// If this VM instance is a control plane, consider setting it's IP.
 	_, isControlPlanceMachine := machine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
 	if isControlPlanceMachine && csCluster.Status.NetworkType == NetworkTypeShared {
-		setIfNotEmpty(csCluster.Spec.ControlPlaneEndpoint.Host, p.SetIpaddress)
+		// If the specified control plane endpoint is an IP address, specify the IP address of this VM instance.
+		if net.ParseIP(csCluster.Spec.ControlPlaneEndpoint.Host) != nil {
+			p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)
+		}
 	}
 	if csMachine.Spec.Details != nil {
 		p.SetDetails(csMachine.Spec.Details)

@@ -17,12 +17,13 @@ limitations under the License.
 package cloud
 
 import (
+	"strings"
+
 	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"strings"
 )
 
 //go:generate mockgen -destination=../mocks/mock_client.go -package=mocks cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud Client
@@ -55,7 +56,7 @@ func NewClient(cc_path string) (Client, error) {
 	// TODO: attempt a less clunky client liveliness check (not just listing zones).
 	c.cs = cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
 	_, err = c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
-	if strings.Contains(err.Error(), "i/o timeout") {
+	if err != nil && strings.Contains(err.Error(), "i/o timeout") {
 		return c, errors.Wrap(err, "Timeout while checking CloudStack API Client connectivity.")
 	}
 	return c, errors.Wrap(err, "Error encountered while checking CloudStack API Client connectivity.")
