@@ -15,6 +15,9 @@ out
 .build
 .DS_Store
 
+# Ignore output of Makefile sed operations created when generating manifests.
+config/default/manager_image_patch_edited.yaml
+
 # Test binary, build with `go test -c`
 *.test
 

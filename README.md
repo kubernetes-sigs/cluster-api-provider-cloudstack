@@ -16,11 +16,17 @@ To run a particular test. In this case TestCreateInstance2.
 
 Integration tests use Controller Runtime EnvTest.  Your testing environment must be pre-configured with several EnvTest
 git dependencies.
+
 See [configuring envtest for integration tests](https://book.kubebuilder.io/reference/envtest.html?highlight=etcd#configuring-envtest-for-integration-tests)
+
+However, the makefile is setup to install kubebuilder tools in `$PROJECT_DIR/bin`. So, running `make binaries`, and setting 
+env var KUBEBUILDER_ASSETS should be enough for envtest to work.
 
 - export PROJECT_DIR=`pwd`
 
 - copy cloud-config to project dir.
+
+- `make binaries && export KUBEBUILDER_ASSETS=$(pwd)/bin`
 
 - `$ go test -v -run TestCreateInstance2 ./pkg/cloud`
 
