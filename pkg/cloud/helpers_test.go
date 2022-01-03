@@ -1,5 +1,5 @@
 /*
-Copyright 2021.
+Copyright 2022.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"os"
 	"path"
 
-	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
+	"github.com/aws/cluster-api-provider-cloudstack-staging/pkg/cloud"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
