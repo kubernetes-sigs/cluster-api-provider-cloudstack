@@ -1,4 +1,4 @@
-module cluster.x-k8s.io/cluster-api-provider-capc
+module github.com/aws/cluster-api-provider-cloudstack-staging
 
 go 1.16
 

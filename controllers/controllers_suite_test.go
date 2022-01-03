@@ -1,5 +1,5 @@
 /*
-Copyright 2021.
+Copyright 2022.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,9 +41,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
-	csReconcilers "cluster.x-k8s.io/cluster-api-provider-capc/controllers"
-	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/mocks"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
+	csReconcilers "github.com/aws/cluster-api-provider-cloudstack-staging/controllers"
+	"github.com/aws/cluster-api-provider-cloudstack-staging/pkg/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	//+kubebuilder:scaffold:imports
 )

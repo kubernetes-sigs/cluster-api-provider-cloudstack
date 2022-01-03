@@ -1,5 +1,5 @@
 /*
-Copyright 2021.
+Copyright 2022.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ limitations under the License.
 package main
 
 import (
-	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
 	"flag"
+	"github.com/aws/cluster-api-provider-cloudstack-staging/pkg/cloud"
 	"os"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"strings"
@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
-	"cluster.x-k8s.io/cluster-api-provider-capc/controllers"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
+	"github.com/aws/cluster-api-provider-cloudstack-staging/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

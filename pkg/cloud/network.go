@@ -1,5 +1,5 @@
 /*
-Copyright 2021.
+Copyright 2022.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"strings"
 
-	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
 	"github.com/pkg/errors"
 )
 

@@ -1,5 +1,5 @@
 /*
-Copyright 2021.
+Copyright 2022.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ limitations under the License.
 package cloud
 
 import (
-	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
 	"github.com/pkg/errors"
 )
 

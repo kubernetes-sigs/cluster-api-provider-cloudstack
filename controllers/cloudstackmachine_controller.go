@@ -1,5 +1,5 @@
 /*
-Copyright 2021.
+Copyright 2022.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,8 +40,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "cluster.x-k8s.io/cluster-api-provider-capc/api/v1alpha3"
-	"cluster.x-k8s.io/cluster-api-provider-capc/pkg/cloud"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
+	"github.com/aws/cluster-api-provider-cloudstack-staging/pkg/cloud"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
