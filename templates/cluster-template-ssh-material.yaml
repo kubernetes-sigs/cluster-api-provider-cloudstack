@@ -52,6 +52,8 @@ spec:
         sshAuthorizedKeys:
           - ${SSH_KEY_MATERIAL}
         sudo: ALL=(ALL) NOPASSWD:ALL
+    preKubeadmCommands:
+      - swapoff -a
   infrastructureTemplate:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: CloudStackMachineTemplate
@@ -119,4 +121,5 @@ spec:
           sshAuthorizedKeys:
             - ${SSH_KEY_MATERIAL}
           sudo: ALL=(ALL) NOPASSWD:ALL
-
+      preKubeadmCommands:
+        - swapoff -a
