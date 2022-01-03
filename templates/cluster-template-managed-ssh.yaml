@@ -47,6 +47,8 @@ spec:
         kubeletExtraArgs:
           provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
         name: '{{ local_hostname }}'
+    preKubeadmCommands:
+      - swapoff -a
   infrastructureTemplate:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: CloudStackMachineTemplate
@@ -111,4 +113,6 @@ spec:
           kubeletExtraArgs:
             provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
           name: '{{ local_hostname }}'
+      preKubeadmCommands:
+        - swapoff -a
 
