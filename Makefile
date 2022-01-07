@@ -173,3 +173,53 @@ test: lint generate-deepcopy generate-mocks bin/ginkgo bin/kubectl bin/kube-apis
 generate-mocks: bin/mockgen $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
 pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
 	go generate ./...
+
+##@ End-to-End Testing
+
+CLOUDSTACK_TEMPLATES := $(PROJECT_DIR)/test/e2e/data/infrastructure-cloudstack
+GINKGO_FOCUS ?=
+GINKGO_FOCUS_CONFORMANCE ?= "\\[Conformance\\]"
+GINKGO_SKIP ?= "\\[Conformance\\]"
+GINKGO_NODES ?= 1
+E2E_CONF_FILE ?= ${PROJECT_DIR}/test/e2e/config/cloudstack.yaml
+ARTIFACTS ?= ${PROJECT_DIR}/_artifacts
+SKIP_RESOURCE_CLEANUP ?= false
+USE_EXISTING_CLUSTER ?= true
+GINKGO_NOCOLOR ?= false
+
+# to set multiple ginkgo skip flags, if any
+ifneq ($(strip $(GINKGO_SKIP)),)
+_SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-skip="$(arg)")
+endif
+
+.PHONY: cluster-templates
+cluster-templates: cluster-templates-v1alpha3 ## Generate cluster templates for all versions
+
+.PHONY: cluster-templates-v1alpha3
+cluster-templates-v1alpha3: bin/kustomize ## Generate cluster templates for v1alpha3
+	bin/kustomize build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template.yaml
+	bin/kustomize build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-kcp-remediation > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-kcp-remediation.yaml
+	bin/kustomize build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-md-remediation > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-md-remediation.yaml
+
+.PHONY: run-e2e
+run-e2e: bin/ginkgo cluster-templates test-e2e-image-prerequisites ## Run the end-to-end tests
+# run-e2e: ## Run the end-to-end tests
+	time bin/ginkgo -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) ./test/e2e/... -- \
+	    -e2e.artifacts-folder="$(ARTIFACTS)" \
+	    -e2e.config="$(E2E_CONF_FILE)" \
+	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)
+
+.PHONY: run-conformance
+run-conformance: bin/ginkgo cluster-templates test-e2e-image-prerequisites ## Run the k8s conformance tests
+	time bin/ginkgo -v -trace -tags=e2e -focus="$(GINKGO_FOCUS_CONFORMANCE)" -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) ./test/e2e/... -- \
+	    -e2e.artifacts-folder="$(ARTIFACTS)" \
+	    -e2e.config="$(E2E_CONF_FILE)" \
+	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)
+
+test-e2e-image-prerequisites:
+	docker pull quay.io/jetstack/cert-manager-cainjector:v1.1.0
+	docker pull quay.io/jetstack/cert-manager-webhook:v1.1.0
+	docker pull quay.io/jetstack/cert-manager-controller:v1.1.0
+	docker pull gcr.io/k8s-staging-cluster-api/cluster-api-controller:v0.3.23
+	docker pull gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:v0.3.23
+	docker pull gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:v0.3.23

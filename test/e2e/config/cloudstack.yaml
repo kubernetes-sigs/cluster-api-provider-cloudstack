@@ -1,0 +1,119 @@
+---
+# E2E test scenario using local dev images and manifests built from the source tree for following providers:
+# - cluster-api
+# - bootstrap kubeadm
+# - control-plane kubeadm
+# - cloudstack
+
+managementClusterName: capi-test
+
+images:
+  # Use local dev images built source tree;
+  - name: localhost:5000/cluster-api-provider-cloudstack:latest
+    loadBehavior: mustLoad
+
+## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+
+  # Cluster API v1alpha3 Preloads
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64::v0.3.23
+    loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64::v0.3.23
+    loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64::v0.3.23
+    loadBehavior: mustLoad
+  - name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64::v0.3.23
+    loadBehavior: mustLoad
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.1.0
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-webhook:v1.1.0
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-controller:v1.1.0
+    loadBehavior: tryLoad
+
+providers:
+
+
+providers:
+  - name: cluster-api
+    type: CoreProvider
+    versions:
+      - name: v0.3.23
+        contract: v1alpha3
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/core-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+
+  - name: kubeadm
+    type: BootstrapProvider
+    versions:
+      - name: v0.3.23
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/bootstrap-components.yaml"
+        type: "url"
+        contract: v1alpha3
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+
+  - name: kubeadm
+    type: ControlPlaneProvider
+    versions:
+      - name: v0.3.23
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/control-plane-components.yaml"
+        type: "url"
+        contract: v1alpha3
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+
+  - name: cloudstack
+    type: InfrastructureProvider
+    files:
+      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-kcp-remediation.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-md-remediation.yaml"
+      - sourcePath: "../../../metadata.yaml"
+    versions:
+      - name: v0.1.0
+        value: ../../../config/default
+        contract: v1alpha3
+        replacements:
+          - old: --metrics-bind-addr=localhost:8080
+            new: --metrics-bind-addr=:8080
+
+variables:
+  KUBERNETES_VERSION: "v1.20.10"
+  CNI: "./data/cni/kindnet.yaml"
+  IP_FAMILY: "IPv4"
+
+  CLOUDSTACK_ZONE_NAME: zone1
+  CLOUDSTACK_NETWORK_NAME: Guest1
+  CLUSTER_ENDPOINT_IP: "\"\""
+  CLUSTER_ENDPOINT_PORT: 6443
+  CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
+  CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
+  CLOUDSTACK_TEMPLATE_NAME: kube-v1.20.10/ubuntu-2004
+  CLOUDSTACK_SSH_KEY_NAME: CAPCKeyPair6
+
+  CONFORMANCE_CONFIGURATION: "./data/kubetest/conformance-fast.yaml"
+  CONFORMANCE_WORKER_MACHINE_COUNT: "3"
+  CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
+
+intervals:
+  conformance/wait-control-plane: ["20m", "10s"]
+  conformance/wait-worker-nodes: ["20m", "10s"]
+
+  default/wait-controllers: ["3m", "10s"]
+  default/wait-cluster: ["20m", "10s"]
+  default/wait-control-plane: ["20m", "10s"]
+  default/wait-worker-nodes: ["20m", "10s"]
+  default/wait-delete-cluster: ["20m", "10s"]
+  default/wait-machine-remediation: ["20m", "10s"]

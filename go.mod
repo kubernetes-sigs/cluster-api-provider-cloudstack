@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/apache/cloudstack-go/v2 v2.11.1-0.20211020121644-369057554f66
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/go-logr/logr v0.1.0
 	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo v1.16.4
