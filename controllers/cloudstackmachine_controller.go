@@ -137,12 +137,13 @@ func (r *CloudStackMachineReconciler) Reconcile(req ctrl.Request) (retRes ctrl.R
 	}
 
 	// Reconcile a VM instance for creates/updates
-	return r.reconcile(log, csCluster, csMachine, machine)
+	return r.reconcile(log, ctx, csCluster, csMachine, machine)
 }
 
 // Actually reconcile/Create a VM instance.
 func (r *CloudStackMachineReconciler) reconcile(
 	log logr.Logger,
+	ctx context.Context,
 	csCluster *infrav1.CloudStackCluster,
 	csMachine *infrav1.CloudStackMachine,
 	machine *capiv1.Machine) (ctrl.Result, error) {
@@ -189,6 +190,12 @@ func (r *CloudStackMachineReconciler) reconcile(
 	if csMachine.Status.InstanceState == "Running" {
 		log.Info("Machine instance is Running...")
 		csMachine.Status.Ready = true
+	} else if csMachine.Status.InstanceState == "Error" {
+		log.Info("CloudStackMachine VM in error state.  Deleting associated Machine.", "csMachine", csMachine)
+		if err := r.Client.Delete(ctx, machine); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	} else {
 		log.Info(fmt.Sprintf("Instance not ready, is %s.", csMachine.Status.InstanceState))
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
