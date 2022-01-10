@@ -53,6 +53,18 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		return errors.Wrapf(retErr, "Error resolving Zone details for Cluster %s.", csCluster.Name)
 	}
 
+	// If provided, translate Domain name to Domain ID.
+	if csCluster.Spec.Domain != "" {
+		domainID, count, retErr := c.cs.Domain.GetDomainID(csCluster.Spec.Domain)
+		if retErr != nil {
+			return retErr
+		} else if count != 1 {
+			return errors.Errorf("Expected 1 Domain with name %s, but got %d.", csCluster.Spec.Domain, count)
+		} else {
+			csCluster.Status.DomainID = domainID
+		}
+	}
+
 	// Get or create network and needed network constructs.
 	if retErr = c.GetOrCreateNetwork(csCluster); retErr != nil {
 		return retErr
