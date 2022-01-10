@@ -66,7 +66,7 @@ func getCapiCluster() *clusterv1.Cluster {
 }
 
 const (
-	timeout = time.Second * 30
+	timeout = time.Second * 60
 )
 
 var _ = Describe("CloudStackClusterReconciler", func() {

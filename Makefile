@@ -47,7 +47,7 @@ help: ## Display this help.
 MANIFEST_GEN_INPUTS=$(shell find ./api -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
 # Using a flag file here as config output is too complicated to be a target.
 # The following triggers manifest building if $(IMG) differs from that found in config/default/manager_image_patch.yaml.
-$(shell	grep -q "$(IMG)" config/default/manager_image_patch_edited.yaml || rm -f config/.flag.mk)
+$(shell	grep -qs "$(IMG)" config/default/manager_image_patch_edited.yaml || rm -f config/.flag.mk)
 .PHONY: manifests
 manifests: config/.flag.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
 config/.flag.mk: bin/controller-gen $(MANIFEST_GEN_INPUTS)
@@ -156,6 +156,7 @@ bin/kubectl bin/kube-apiserver bin/etcd &:
 clean: ## Clean.
 	rm -rf $(RELEASE_DIR)
 	rm -rf bin
+	rm -rf cluster-api
 
 ##@ Testing
 
@@ -173,3 +174,27 @@ test: lint generate-deepcopy generate-mocks bin/ginkgo bin/kubectl bin/kube-apis
 generate-mocks: bin/mockgen $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
 pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
 	go generate ./...
+
+##@ Tilt
+
+.PHONY: tilt-up 
+tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests cloud-config # Setup and run tilt for development.
+	export CLOUDSTACK_B64ENCODED_SECRET=$(base64 -i cloud-config) && cd cluster-api && tilt up
+
+.PHONY: kind-cluster
+kind-cluster: cluster-api cluster-api/hack/kind-install-for-capd.sh # Create a kind cluster with a local Docker repository.
+	-./cluster-api/hack/kind-install-for-capd.sh
+
+cluster-api: # Clone cluster-api repository for tilt use.
+	git clone --branch v0.3.24 https://github.com/kubernetes-sigs/cluster-api.git
+
+# Need script from CAPI v1.0+
+# Can delete this target after upgrading to newer CAPI.
+cluster-api/hack/kind-install-for-capd.sh: cluster-api
+	cd cluster-api && git checkout v1.0.0 -- hack/kind-install-for-capd.sh
+
+# Need script from CAPI v1.0+
+# Can delete this target after upgrading to newer CAPI.
+cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
+	cp ./hack/tilt-settings.json cluster-api
+
