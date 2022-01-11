@@ -210,6 +210,11 @@ func (in *CloudStackMachineSpec) DeepCopyInto(out *CloudStackMachineSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.AffinityGroupIds != nil {
+		in, out := &in.AffinityGroupIds, &out.AffinityGroupIds
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.ProviderID != nil {
 		in, out := &in.ProviderID, &out.ProviderID
 		*out = new(string)

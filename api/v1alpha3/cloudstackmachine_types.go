@@ -44,6 +44,10 @@ type CloudStackMachineSpec struct {
 	// Optional details map for deployVirtualMachine
 	Details map[string]string `json:"details,omitempty"`
 
+	// Optional affinitygroupids for deployVirtualMachine
+	// +optional
+	AffinityGroupIds []string `json:"affinitygroupids,omitempty"`
+
 	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine Id)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`

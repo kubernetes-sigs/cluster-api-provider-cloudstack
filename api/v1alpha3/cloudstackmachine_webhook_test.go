@@ -77,6 +77,32 @@ var _ = Describe("CloudStackMachine webhook", func() {
 		})
 	})
 
+	Context("When creating a CloudStackMachine with all attributes", func() {
+		It("Should succeed", func() {
+			ctx := context.Background()
+			cloudStackMachine := &CloudStackMachine{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+					Kind:       "CloudStackMachine",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machine-3",
+					Namespace: "default",
+				},
+				Spec: CloudStackMachineSpec{
+					IdentityRef: &CloudStackIdentityReference{
+						Kind: defaultIdentityRefKind,
+						Name: "IdentitySecret",
+					},
+					Template:         "Template",
+					Offering:         "Offering",
+					AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cloudStackMachine)).Should(Succeed())
+		})
+	})
+
 	Context("When creating a CloudStackMachine with missing Offering attribute", func() {
 		It("Should be rejected by the validating webhooks", func() {
 			ctx := context.Background()
@@ -159,7 +185,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine-3",
+					Name:      "test-machine-4",
 					Namespace: "default",
 				},
 				Spec: CloudStackMachineSpec{
@@ -172,6 +198,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 					Details: map[string]string{
 						"memoryOvercommitRatio": "1.2",
 					},
+					AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
 				},
 			}
 			Expect(k8sClient.Create(ctx, cloudStackMachine)).Should(Succeed())
@@ -200,6 +227,10 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
 			cloudStackMachineUpdate.Spec.IdentityRef.Name = "IdentityConfigMap"
 			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "identityRef\\.Name"))
+
+			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
+			cloudStackMachineUpdate.Spec.AffinityGroupIds = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2af"}
+			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate)).Should(Succeed())
 		})
 	})
 })
