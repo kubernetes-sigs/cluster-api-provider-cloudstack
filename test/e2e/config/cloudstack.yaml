@@ -31,9 +31,6 @@ images:
     loadBehavior: tryLoad
 
 providers:
-
-
-providers:
   - name: cluster-api
     type: CoreProvider
     versions:

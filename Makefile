@@ -204,7 +204,6 @@ cluster-templates-v1alpha3: bin/kustomize ## Generate cluster templates for v1al
 
 .PHONY: run-e2e
 run-e2e: bin/ginkgo cluster-templates test-e2e-image-prerequisites ## Run the end-to-end tests
-# run-e2e: ## Run the end-to-end tests
 	time bin/ginkgo -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) ./test/e2e/... -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS)" \
 	    -e2e.config="$(E2E_CONF_FILE)" \

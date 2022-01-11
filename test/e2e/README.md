@@ -33,7 +33,7 @@ The first step to running the e2e tests is setting up the required environment v
 |  `CLOUDSTACK_TEMPLATE_NAME`                  | The machine template for both control plane and worke node VM instances          | `kube-v1.20.10/ubuntu-2004` |
 |  `CLOUDSTACK_SSH_KEY_NAME`                   | The name of SSH key added to the VM instances                                    | `CAPCKeyPair6`              |
 
-You also have to export `CLOUDSTACK_B64ENCODED_SECRET` environment variable using this command `export CLOUDSTACK_B64ENCODED_SECRET=$(cat cloud-config | base64 | tr -d '\n')` after creating `cloud-config` file with the following format.
+You also have to export `CLOUDSTACK_B64ENCODED_SECRET` environment variable using this command `export CLOUDSTACK_B64ENCODED_SECRET=$(base64 -i cloud-config)` after creating `cloud-config` file with the following format.
 
 ```
 [Global]
@@ -43,6 +43,15 @@ api-url    = http://192.168.1.96:8080/client/api
 ```
 
 The api-key and secret-key can be found or generated at Home > Accounts > admin > Users > admin of the ACS management UI. 
+
+### Before running the e2e tests
+
+```
+make manifests
+make kind-cluster
+IMG=localhost:5000/cluster-api-provider-cloudstack:latest make docker-build
+IMG=localhost:5000/cluster-api-provider-cloudstack:latest make docker-push
+```
 
 ### Running the e2e tests
 
@@ -54,7 +63,7 @@ make run-e2e
 This command runs all e2e test cases except k8s conformance testing
 
 ```shell
-GINKGO_FOCUS="\\[PR-Blocking\\]" make run-e2e
+GINKGO_FOCUS=PR-Blocking make run-e2e
 ```
 This command runs the quick e2e tests for the sanity checks
 
@@ -63,3 +72,8 @@ make run-conformance
 ```
 This command runs the k8s conformance testing
 
+### After running the e2e tests
+
+```
+kind delete clusters capi-test
+```
