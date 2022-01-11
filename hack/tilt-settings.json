@@ -1,0 +1,12 @@
+{
+    "default_registry": "public.ecr.aws/a4z9h2b1/cluster-api-provider-capc",
+    "provider_repos": [
+        ".."
+    ],
+    "enable_providers": [
+        "cloudstack",
+        "kubeadm-bootstrap",
+        "kubeadm-control-plane"
+    ],
+    "kind_cluster_name": "capi-test"
+}

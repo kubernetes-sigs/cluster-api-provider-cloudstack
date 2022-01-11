@@ -34,26 +34,7 @@ env var KUBEBUILDER_ASSETS should be enough for envtest to work.
 
 Install [tilt prerequisites](https://cluster-api.sigs.k8s.io/developer/tilt.html).
 
-Clone the capi repository at v1.0.0.
-
-`git clone https://github.com/kubernetes-sigs/cluster-api.git`
-`cd cluster-api`
-`git checkout v1.0.0`
-
-Setup a kind cluster using
-[capi repository]/hack/kind-install-for-capd.sh
-
-There is a tiltfile in the hack directory. Edit the relative repository to match the location of the capi repository.
-
-Copy the tiltfile into the capi repo.
-
-Note: Until a more automated tilt setup is built out, tilt will need the secret manually injected into 
-`config/default/credentials.yaml`. Use `base64 -i cloud-config | tr -d '\n'` to fill in 
-the `CLOUDSTACK_B64ENCODED_SECRET` that clusterctl would normally fill.
-
-  cloud-config: ${CLOUDSTACK_B64ENCODED_SECRET}
-
-Run `tilt up` from the capi repository.
+`make tilt-up`
 
 ## Running CAPC without Tilt - detailed instructions
 
@@ -91,7 +72,7 @@ Assuming your running environment is MacOS:
     2. Run the following command to save the above cloudstack connection info into an environment variable, to be used by `./config/default/credentials.yaml` and ultimately the generated `infrastructure-components.yaml`, where it gets passed to CAPC:
 
         ```
-        export CLOUDSTACK_B64ENCODED_SECRET=`base64 -i cloud-config`
+        export CLOUDSTACK_B64ENCODED_SECRET=$(base64 -i cloud-config)
         ```
 6. Set the IMG environment variable so that the Makefile knows where to push docker image (if building your own)
    1. `export IMG=localhost:5000/cluster-api-provider-capc`

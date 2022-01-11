@@ -1,0 +1,4 @@
+bases:
+- ../../default
+patchesStrategicMerge:
+- insecure_manager.yaml
