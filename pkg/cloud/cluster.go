@@ -17,8 +17,8 @@ limitations under the License.
 package cloud
 
 import (
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
-	multierror "github.com/hashicorp/go-multierror"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 

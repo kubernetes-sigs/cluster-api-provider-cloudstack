@@ -25,8 +25,8 @@ import (
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
-	multierror "github.com/hashicorp/go-multierror"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
@@ -40,7 +40,7 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 	csMachine.Status.InstanceState = infrav1.InstanceState(vmResponse.State)
 }
 
-// Retrieves VM instance details by csMachine.Spec.InstanceID or csMachine.Name, and
+// ResolveVMInstanceDetails Retrieves VM instance details by csMachine.Spec.InstanceID or csMachine.Name, and
 // sets infrastructure machine spec and status if VM instance is found.
 func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) error {
 	// Attempt to fetch by ID.
@@ -121,7 +121,7 @@ func (c *client) ResolveTemplate(csCluster *infrav1.CloudStackCluster, csMachine
 	return templateID, nil
 }
 
-// CreateVMInstance will fetch or create a VM instance, and
+// GetOrCreateVMInstance CreateVMInstance will fetch or create a VM instance, and
 // sets the infrastructure machine spec and status accordingly.
 func (c *client) GetOrCreateVMInstance(
 	csMachine *infrav1.CloudStackMachine,
@@ -179,7 +179,7 @@ func (c *client) GetOrCreateVMInstance(
 
 }
 
-// Destroy a VM instane. Assumes machine has been fetched prior and has an instance ID.
+// DestroyVMInstance Destroy a VM instane. Assumes machine has been fetched prior and has an instance ID.
 func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 
 	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
