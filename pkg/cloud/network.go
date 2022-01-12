@@ -22,6 +22,7 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
@@ -33,16 +34,26 @@ const (
 )
 
 func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	if csCluster.Status.NetworkID, _, retErr = c.cs.Network.GetNetworkID(csCluster.Spec.Network); retErr != nil {
-		return retErr
+	networkID, count, err := c.cs.Network.GetNetworkID(csCluster.Spec.Network)
+	if err != nil {
+		retErr = multierror.Append(retErr, errors.Wrapf(
+			err, "Could not get Network ID from %s.", csCluster.Spec.Network))
+		networkID = csCluster.Spec.Network
+	} else if count != 1 {
+		retErr = multierror.Append(retErr, errors.Errorf(
+			"Expected 1 Network with name %s, but got %d.", csCluster.Spec.Network, count))
 	}
 
-	var networkDetails *cloudstack.Network
-	if networkDetails, _, retErr = c.cs.Network.GetNetworkByID(csCluster.Status.NetworkID); retErr != nil {
-		return retErr
+	if networkDetails, count, err := c.cs.Network.GetNetworkByID(networkID); err != nil {
+		return multierror.Append(retErr, errors.Wrapf(
+			err, "Could not get Network by ID %s.", networkID))
+	} else if count != 1 {
+		return multierror.Append(retErr, errors.Errorf(
+			"Expected 1 Network with UUID %s, but got %d.", networkID, count))
+	} else {
+		csCluster.Status.NetworkID = networkID
+		csCluster.Status.NetworkType = networkDetails.Type
 	}
-
-	csCluster.Status.NetworkType = networkDetails.Type
 	return nil
 }
 
