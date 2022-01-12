@@ -41,9 +41,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
-	csReconcilers "github.com/aws/cluster-api-provider-cloudstack-staging/controllers"
-	"github.com/aws/cluster-api-provider-cloudstack-staging/pkg/mocks"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	csReconcilers "github.com/aws/cluster-api-provider-cloudstack/controllers"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	//+kubebuilder:scaffold:imports
 )
