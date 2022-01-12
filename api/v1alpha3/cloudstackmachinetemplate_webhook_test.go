@@ -93,6 +93,40 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 		})
 	})
 
+	Context("When creating a CloudStackMachineTemplate with all attributes", func() {
+		It("Should succeed", func() {
+			ctx := context.Background()
+			cloudStackMachineTemplate := &CloudStackMachineTemplate{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+					Kind:       "CloudStackMachineTemplate",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machinetemplate-3",
+					Namespace: "default",
+				},
+				Spec: CloudStackMachineTemplateSpec{
+					Spec: CloudStackMachineTemplateResource{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-machinetemplateresource",
+							Namespace: "default",
+						},
+						Spec: CloudStackMachineSpec{
+							IdentityRef: &CloudStackIdentityReference{
+								Kind: defaultIdentityRefKind,
+								Name: "IdentitySecret",
+							},
+							Template:         "Template",
+							Offering:         "Offering",
+							AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cloudStackMachineTemplate)).Should(Succeed())
+		})
+	})
+
 	Context("When creating a CloudStackMachineTemplate with missing Offering attribute", func() {
 		It("Should be rejected by the validating webhooks", func() {
 			ctx := context.Background()
@@ -199,7 +233,7 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 					Kind:       "CloudStackMachineTemplate",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machinetemplate-3",
+					Name:      "test-machinetemplate-4",
 					Namespace: "default",
 				},
 				Spec: CloudStackMachineTemplateSpec{
@@ -218,6 +252,7 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 							Details: map[string]string{
 								"memoryOvercommitRatio": "1.2",
 							},
+							AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
 						},
 					},
 				},
@@ -248,6 +283,10 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
 			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.IdentityRef.Name = "IdentityConfigMap"
 			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "identityRef\\.Name"))
+
+			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
+			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.AffinityGroupIds = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2ag"}
+			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate)).Should(Succeed())
 		})
 	})
 })

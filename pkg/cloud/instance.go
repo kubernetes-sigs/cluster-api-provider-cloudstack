@@ -17,7 +17,6 @@ limitations under the License.
 package cloud
 
 import (
-	"errors"
 	"fmt"
 	"net"
 
@@ -27,6 +26,8 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
+	multierror "github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 )
@@ -70,6 +71,56 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 	return errors.New("no match found")
 }
 
+func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (offeringID string, retErr error) {
+	offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering)
+	if err != nil {
+		retErr = multierror.Append(retErr, errors.Wrapf(
+			err, "Could not get Service Offering ID from %s.", csMachine.Spec.Offering))
+	} else if count != 1 {
+		retErr = multierror.Append(retErr, errors.Errorf(
+			"Expected 1 Service Offering with name %s, but got %d.", csMachine.Spec.Offering, count))
+	}
+
+	if retErr != nil {
+		if _, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering); err != nil {
+			return "", multierror.Append(retErr, errors.Wrapf(
+				err, "Could not get Service Offering by ID %s.", csMachine.Spec.Offering))
+		} else if count != 1 {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"Expected 1 Service Offering with UUID %s, but got %d.", csMachine.Spec.Offering, count))
+		} else {
+			offeringID = csMachine.Spec.Offering
+		}
+	}
+
+	return offeringID, nil
+}
+
+func (c *client) ResolveTemplate(csCluster *infrav1.CloudStackCluster, csMachine *infrav1.CloudStackMachine) (templateID string, retErr error) {
+	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID)
+	if err != nil {
+		retErr = multierror.Append(retErr, errors.Wrapf(
+			err, "Could not get Template ID from %s.", csMachine.Spec.Template))
+	} else if count != 1 {
+		retErr = multierror.Append(retErr, errors.Errorf(
+			"Expected 1 Template with name %s, but got %d.", csMachine.Spec.Template, count))
+	}
+
+	if retErr != nil {
+		if _, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template, "all"); err != nil {
+			return "", multierror.Append(retErr, errors.Wrapf(
+				err, "Could not get Template by ID %s.", csMachine.Spec.Template))
+		} else if count != 1 {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"Expected 1 Template with UUID %s, but got %d.", csMachine.Spec.Template, count))
+		} else {
+			templateID = csMachine.Spec.Template
+		}
+	}
+
+	return templateID, nil
+}
+
 // CreateVMInstance will fetch or create a VM instance, and
 // sets the infrastructure machine spec and status accordingly.
 func (c *client) GetOrCreateVMInstance(
@@ -83,22 +134,14 @@ func (c *client) GetOrCreateVMInstance(
 		!strings.Contains(strings.ToLower(err.Error()), "no match") {
 		return err
 	}
-	// Get machine offering ID from name.
-	offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering)
+	offeringID, err := c.ResolveServiceOffering(csMachine)
 	if err != nil {
 		return err
-	} else if count != 1 {
-		return fmt.Errorf(
-			"Did not find exactly one machine offering with the name %s", csMachine.Spec.Offering)
 	}
 
-	// Get template ID from name.
-	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID)
+	templateID, err := c.ResolveTemplate(csCluster, csMachine)
 	if err != nil {
 		return err
-	} else if count != 1 {
-		return fmt.Errorf(
-			"Did not find exactly one template with the name %s", csMachine.Spec.Template)
 	}
 
 	// Create VM instance.
@@ -108,6 +151,10 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 	setIfNotEmpty(userData, p.SetUserdata)
+
+	if len(csMachine.Spec.AffinityGroupIds) > 0 {
+		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
+	}
 	// If this VM instance is a control plane, consider setting it's IP.
 	_, isControlPlanceMachine := machine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
 	if isControlPlanceMachine && csCluster.Status.NetworkType == NetworkTypeShared {

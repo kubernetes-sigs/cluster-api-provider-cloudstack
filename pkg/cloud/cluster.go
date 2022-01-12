@@ -18,18 +18,39 @@ package cloud
 
 import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
-func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	var count int
-
-	// Translate zone name to  zone ID.
-	csCluster.Status.ZoneID, count, retErr = c.cs.Zone.GetZoneID(csCluster.Spec.Zone)
-	if retErr != nil {
-		return retErr
+func (c *client) ResolveZone(csCluster *infrav1.CloudStackCluster) (retErr error) {
+	if zoneID, count, err := c.cs.Zone.GetZoneID(csCluster.Spec.Zone); err != nil {
+		retErr = multierror.Append(retErr, errors.Wrapf(
+			err, "Could not get Zone ID from %s.", csCluster.Spec.Zone))
 	} else if count != 1 {
-		return errors.Errorf("Expected 1 zone with name %s, but got %d.", csCluster.Spec.Zone, count)
+		retErr = multierror.Append(retErr, errors.Errorf(
+			"Expected 1 Zone with name %s, but got %d.", csCluster.Spec.Zone, count))
+	} else {
+		csCluster.Status.ZoneID = zoneID
+	}
+
+	if retErr != nil {
+		if _, count, err := c.cs.Zone.GetZoneByID(csCluster.Spec.Zone); err != nil {
+			return multierror.Append(retErr, errors.Wrapf(
+				err, "Could not get Zone by ID %s.", csCluster.Spec.Zone))
+		} else if count != 1 {
+			return multierror.Append(retErr, errors.Errorf(
+				"Expected 1 Zone with UUID %s, but got %d.", csCluster.Spec.Zone, count))
+		} else {
+			csCluster.Status.ZoneID = csCluster.Spec.Zone
+		}
+	}
+
+	return nil
+}
+
+func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retErr error) {
+	if retErr = c.ResolveZone(csCluster); retErr != nil {
+		return errors.Wrapf(retErr, "Error resolving Zone details for Cluster %s.", csCluster.Name)
 	}
 
 	// Get or create network and needed network constructs.

@@ -68,7 +68,7 @@ var _ = Describe("Network", func() {
 	Context("for an existing network", func() {
 		It("resolves network details in cluster status", func() {
 			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
-			ns.EXPECT().GetNetworkByID("fakeNetID").Return(&cloudstack.Network{Type: "Isolated"}, 0, nil)
+			ns.EXPECT().GetNetworkByID("fakeNetID").Return(&cloudstack.Network{Type: "Isolated"}, 1, nil)
 			Ω(client.ResolveNetwork(csCluster)).Should(Succeed())
 			Ω(csCluster.Status.NetworkID).Should(Equal("fakeNetID"))
 			Ω(csCluster.Status.NetworkType).Should(Equal("Isolated"))
@@ -76,15 +76,24 @@ var _ = Describe("Network", func() {
 
 		It("does not call to create a new network via GetOrCreateNetwork", func() {
 			ns.EXPECT().GetNetworkID("fakeNetName").Return("fakeNetID", 1, nil)
-			ns.EXPECT().GetNetworkByID("fakeNetID").Return(&cloudstack.Network{Type: "Isolated"}, 0, nil)
+			ns.EXPECT().GetNetworkByID("fakeNetID").Return(&cloudstack.Network{Type: "Isolated"}, 1, nil)
 
+			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
+		})
+
+		It("resolves network details with network ID instead of network name", func() {
+			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("No match found for blah."))
+			ns.EXPECT().GetNetworkByID("fakeNetID").Return(&cloudstack.Network{Type: "Isolated"}, 1, nil)
+
+			csCluster.Spec.Network = "fakeNetID"
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
 	})
 
 	Context("for a non-existent network", func() {
 		It("when GetOrCreateNetwork is called it calls CloudStack to create a network", func() {
-			ns.EXPECT().GetNetworkID("fakeNetName").Return("", -1, errors.New("No match found for blah."))
+			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("No match found for blah."))
+			ns.EXPECT().GetNetworkByID(gomock.Any()).Return(nil, -1, errors.New("No match found for blah."))
 			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&cloudstack.CreateNetworkParams{})
