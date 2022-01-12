@@ -2,7 +2,7 @@ domain: cluster.x-k8s.io
 layout:
 - go.kubebuilder.io/v3
 projectName: cluster-api-provider-capc
-repo: github.com/aws/cluster-api-provider-cloudstack-staging
+repo: github.com/aws/cluster-api-provider-cloudstack
 resources:
 - api:
     crdVersion: v1
@@ -11,7 +11,7 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackCluster
-  path: github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3
+  path: github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3
   version: v1alpha3
   webhooks:
     defaulting: true
@@ -24,7 +24,7 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachine
-  path: github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3
+  path: github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3
   version: v1alpha3
   webhooks:
     defaulting: true
@@ -37,7 +37,7 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineTemplate
-  path: github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3
+  path: github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3
   version: v1alpha3
   webhooks:
     defaulting: true

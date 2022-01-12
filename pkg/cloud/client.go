@@ -20,13 +20,13 @@ import (
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
-//go:generate mockgen -destination=../mocks/mock_client.go -package=mocks github.com/aws/cluster-api-provider-cloudstack-staging/pkg/cloud Client
+//go:generate mockgen -destination=../mocks/mock_client.go -package=mocks github.com/aws/cluster-api-provider-cloudstack/pkg/cloud Client
 
 type Client interface {
 	GetOrCreateCluster(*infrav1.CloudStackCluster) error

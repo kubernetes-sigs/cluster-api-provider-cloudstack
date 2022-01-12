@@ -1,4 +1,4 @@
-module github.com/aws/cluster-api-provider-cloudstack-staging
+module github.com/aws/cluster-api-provider-cloudstack
 
 go 1.16
 
