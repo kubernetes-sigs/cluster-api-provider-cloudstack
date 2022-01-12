@@ -21,8 +21,8 @@ import (
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
-	multierror "github.com/hashicorp/go-multierror"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
@@ -102,7 +102,7 @@ func (c *client) ResolvePublicIPDetails(csCluster *infrav1.CloudStackCluster) (*
 	}
 }
 
-// Gets a PublicIP and associates it.
+// AssociatePublicIpAddress Gets a PublicIP and associates it.
 func (c *client) AssociatePublicIpAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	publicAddress, err := c.ResolvePublicIPDetails(csCluster)
 	if err != nil {
@@ -152,7 +152,7 @@ func (c *client) ResolveLoadBalancerRuleDetails(csCluster *infrav1.CloudStackClu
 	return errors.New("no load balancer rule found")
 }
 
-// Create a load balancer rule that can be assigned to instances.
+// GetOrCreateLoadBalancerRule Create a load balancer rule that can be assigned to instances.
 func (c *client) GetOrCreateLoadBalancerRule(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	// Check if rule exists.
 	if err := c.ResolveLoadBalancerRuleDetails(csCluster); err == nil ||

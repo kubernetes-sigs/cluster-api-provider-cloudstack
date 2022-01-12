@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
