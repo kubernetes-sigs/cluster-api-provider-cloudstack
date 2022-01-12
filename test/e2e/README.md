@@ -44,15 +44,6 @@ api-url    = http://192.168.1.96:8080/client/api
 
 The api-key and secret-key can be found or generated at Home > Accounts > admin > Users > admin of the ACS management UI. 
 
-### Before running the e2e tests
-
-```
-make manifests
-make kind-cluster
-IMG=localhost:5000/cluster-api-provider-cloudstack:latest make docker-build
-IMG=localhost:5000/cluster-api-provider-cloudstack:latest make docker-push
-```
-
 ### Running the e2e tests
 
 Run the following command to execute the CAPC e2e tests:
@@ -63,7 +54,7 @@ make run-e2e
 This command runs all e2e test cases except k8s conformance testing
 
 ```shell
-GINKGO_FOCUS=PR-Blocking make run-e2e
+make run-e2e-pr-blocking
 ```
 This command runs the quick e2e tests for the sanity checks
 
@@ -71,9 +62,3 @@ This command runs the quick e2e tests for the sanity checks
 make run-conformance
 ```
 This command runs the k8s conformance testing
-
-### After running the e2e tests
-
-```
-kind delete clusters capi-test
-```
