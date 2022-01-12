@@ -33,14 +33,12 @@ var _ = Describe("Cluster", func() {
 		mockCtrl   *gomock.Controller
 		mockClient *cloudstack.CloudStackClient
 		zs         *cloudstack.MockZoneServiceIface
-		ns         *cloudstack.MockNetworkServiceIface
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = cloudstack.NewMockClient(mockCtrl)
 		zs = mockClient.Zone.(*cloudstack.MockZoneServiceIface)
-		ns = mockClient.Network.(*cloudstack.MockNetworkServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 	})
 
@@ -72,14 +70,21 @@ var _ = Describe("Cluster", func() {
 		// })
 
 		It("handles zone not found.", func() {
-			zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 1, nil)
-
 			expectedErr := fmt.Errorf("Not found")
-			ns.EXPECT().GetNetworkID(netName).Return("", -1, expectedErr)
+			zs.EXPECT().GetZoneID(zoneName).Return("", -1, expectedErr)
+			zs.EXPECT().GetZoneByID(zoneName).Return(nil, -1, expectedErr)
 
 			err := client.GetOrCreateCluster(cluster)
 			Expect(errors.Cause(err)).To(MatchError(expectedErr))
 		})
 
+		It("handles multiple zone IDs returned", func() {
+			zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 2, nil)
+			zs.EXPECT().GetZoneByID(zoneName).Return(nil, -1, fmt.Errorf("Not found"))
+
+			err := client.GetOrCreateCluster(cluster)
+			Expect(err.Error()).To(ContainSubstring("Expected 1 Zone with name zoneName, but got 2."))
+			Expect(err.Error()).To(ContainSubstring("Could not get Zone by ID zoneName.: Not found"))
+		})
 	})
 })
