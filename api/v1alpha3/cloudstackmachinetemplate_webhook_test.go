@@ -224,8 +224,8 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 		})
 	})
 
-	Context("When updating a CloudStackMachine", func() {
-		It("Should be rejected by the validating webhooks", func() {
+	Context("When updating a CloudStackMachine template", func() {
+		It("Should not be rejected by the validating webhooks", func() {
 			ctx := context.Background()
 			cloudStackMachineTemplate := &CloudStackMachineTemplate{
 				TypeMeta: metav1.TypeMeta{
@@ -259,16 +259,137 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 			}
 			Expect(k8sClient.Create(ctx, cloudStackMachineTemplate)).Should(Succeed())
 
-			forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
 			cloudStackMachineTemplateUpdate := &CloudStackMachineTemplate{}
 
 			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
 			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.Template = "Template2"
-			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "template"))
+			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate)).Should(Succeed())
+		})
+	})
+
+	Context("When updating a CloudStackMachine offering", func() {
+		It("Should not be rejected by the validating webhooks", func() {
+			ctx := context.Background()
+			cloudStackMachineTemplate := &CloudStackMachineTemplate{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+					Kind:       "CloudStackMachineTemplate",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machinetemplate-5",
+					Namespace: "default",
+				},
+				Spec: CloudStackMachineTemplateSpec{
+					Spec: CloudStackMachineTemplateResource{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-machinetemplateresource",
+							Namespace: "default",
+						},
+						Spec: CloudStackMachineSpec{
+							IdentityRef: &CloudStackIdentityReference{
+								Kind: defaultIdentityRefKind,
+								Name: "IdentitySecret",
+							},
+							Template: "Template",
+							Offering: "Offering",
+							Details: map[string]string{
+								"memoryOvercommitRatio": "1.2",
+							},
+							AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cloudStackMachineTemplate)).Should(Succeed())
+
+			cloudStackMachineTemplateUpdate := &CloudStackMachineTemplate{}
 
 			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
 			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.Offering = "Offering2"
-			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "offering"))
+			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate)).Should(Succeed())
+		})
+	})
+
+	Context("When updating a CloudStackMachine affinitygroupids", func() {
+		It("Should not be rejected by the validating webhooks", func() {
+			ctx := context.Background()
+			cloudStackMachineTemplate := &CloudStackMachineTemplate{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+					Kind:       "CloudStackMachineTemplate",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machinetemplate-6",
+					Namespace: "default",
+				},
+				Spec: CloudStackMachineTemplateSpec{
+					Spec: CloudStackMachineTemplateResource{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-machinetemplateresource",
+							Namespace: "default",
+						},
+						Spec: CloudStackMachineSpec{
+							IdentityRef: &CloudStackIdentityReference{
+								Kind: defaultIdentityRefKind,
+								Name: "IdentitySecret",
+							},
+							Template: "Template",
+							Offering: "Offering",
+							Details: map[string]string{
+								"memoryOvercommitRatio": "1.2",
+							},
+							AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cloudStackMachineTemplate)).Should(Succeed())
+
+			cloudStackMachineTemplateUpdate := &CloudStackMachineTemplate{}
+
+			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
+			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.AffinityGroupIds = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2ag"}
+			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate)).Should(Succeed())
+		})
+	})
+
+	Context("When updating a CloudStackMachine", func() {
+		It("Should be rejected by the validating webhooks", func() {
+			ctx := context.Background()
+			cloudStackMachineTemplate := &CloudStackMachineTemplate{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+					Kind:       "CloudStackMachineTemplate",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machinetemplate-7",
+					Namespace: "default",
+				},
+				Spec: CloudStackMachineTemplateSpec{
+					Spec: CloudStackMachineTemplateResource{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-machinetemplateresource",
+							Namespace: "default",
+						},
+						Spec: CloudStackMachineSpec{
+							IdentityRef: &CloudStackIdentityReference{
+								Kind: defaultIdentityRefKind,
+								Name: "IdentitySecret",
+							},
+							Template: "Template",
+							Offering: "Offering",
+							Details: map[string]string{
+								"memoryOvercommitRatio": "1.2",
+							},
+							AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cloudStackMachineTemplate)).Should(Succeed())
+
+			forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
+			cloudStackMachineTemplateUpdate := &CloudStackMachineTemplate{}
 
 			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
 			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.Details = map[string]string{
@@ -283,10 +404,6 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
 			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.IdentityRef.Name = "IdentityConfigMap"
 			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "identityRef\\.Name"))
-
-			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
-			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.AffinityGroupIds = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2ag"}
-			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate)).Should(Succeed())
 		})
 	})
 })
