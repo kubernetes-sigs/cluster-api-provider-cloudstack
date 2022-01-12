@@ -19,8 +19,8 @@ import (
 	"fmt"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
-	"github.com/aws/cluster-api-provider-cloudstack-staging/pkg/cloud"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

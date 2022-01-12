@@ -20,7 +20,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/aws/cluster-api-provider-cloudstack-staging/pkg/cloud"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

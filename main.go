@@ -18,7 +18,7 @@ package main
 
 import (
 	"flag"
-	"github.com/aws/cluster-api-provider-cloudstack-staging/pkg/cloud"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"os"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"strings"
@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack-staging/api/v1alpha3"
-	"github.com/aws/cluster-api-provider-cloudstack-staging/controllers"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	"github.com/aws/cluster-api-provider-cloudstack/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
