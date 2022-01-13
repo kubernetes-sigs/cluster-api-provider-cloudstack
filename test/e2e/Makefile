@@ -40,12 +40,15 @@ KUSTOMIZE := $(BIN_DIR)/kustomize
 CONTROLLER_GEN := $(BIN_DIR)/controller-gen
 
 $(GINKGO): # Build ginkgo from bin folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/ginkgo
+	@mkdir -p $(BIN_DIR)
+	GOBIN=$(BIN_DIR) go install github.com/onsi/ginkgo/ginkgo@v1.16.5
 
 $(KUSTOMIZE): # Build kustomize from bin folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/kustomize sigs.k8s.io/kustomize/kustomize/v3
+	@mkdir -p $(BIN_DIR)
+	cd $(BIN_DIR) && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
 
 $(CONTROLLER_GEN): ## Install controller-gen to bin.
+	@mkdir -p $(BIN_DIR)
 	GOBIN=$(BIN_DIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.9
 
 ## --------------------------------------
