@@ -85,8 +85,6 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	}
 	oldSpec := oldMachineTemplate.Spec.Spec.Spec
 
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
-	errorList = webhook_utilities.EnsureStringStringMapFieldsAreEqual(&spec.Details, &oldSpec.Details, "details", errorList)
 	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
 		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
 		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)

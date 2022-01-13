@@ -21,9 +21,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strconv"
 )
 
 var _ = Describe("CloudStackMachine webhook", func() {
+	index := 0
 	Context("When creating a CloudStackMachine with all validated attributes", func() {
 		It("Should succeed", func() {
 			ctx := context.Background()
@@ -52,13 +54,14 @@ var _ = Describe("CloudStackMachine webhook", func() {
 	Context("When creating a CloudStackMachine with all attributes", func() {
 		It("Should succeed", func() {
 			ctx := context.Background()
+			index++
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine-2",
+					Name:      "test-machine-" + strconv.Itoa(index),
 					Namespace: "default",
 				},
 				Spec: CloudStackMachineSpec{
@@ -80,13 +83,14 @@ var _ = Describe("CloudStackMachine webhook", func() {
 	Context("When creating a CloudStackMachine with all attributes", func() {
 		It("Should succeed", func() {
 			ctx := context.Background()
+			index++
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine-3",
+					Name:      "test-machine-" + strconv.Itoa(index),
 					Namespace: "default",
 				},
 				Spec: CloudStackMachineSpec{
@@ -179,13 +183,14 @@ var _ = Describe("CloudStackMachine webhook", func() {
 	Context("When updating a CloudStackMachine affinitygroupids", func() {
 		It("Should not be rejected by the validating webhooks", func() {
 			ctx := context.Background()
+			index++
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine-4",
+					Name:      "test-machine-" + strconv.Itoa(index),
 					Namespace: "default",
 				},
 				Spec: CloudStackMachineSpec{
@@ -213,13 +218,14 @@ var _ = Describe("CloudStackMachine webhook", func() {
 	Context("When updating a CloudStackMachine template", func() {
 		It("Should not be rejected by the validating webhooks", func() {
 			ctx := context.Background()
+			index++
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine-5",
+					Name:      "test-machine-" + strconv.Itoa(index),
 					Namespace: "default",
 				},
 				Spec: CloudStackMachineSpec{
@@ -247,13 +253,14 @@ var _ = Describe("CloudStackMachine webhook", func() {
 	Context("When updating a CloudStackMachine offering", func() {
 		It("Should not be rejected by the validating webhooks", func() {
 			ctx := context.Background()
+			index++
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine-6",
+					Name:      "test-machine-" + strconv.Itoa(index),
 					Namespace: "default",
 				},
 				Spec: CloudStackMachineSpec{
@@ -278,16 +285,91 @@ var _ = Describe("CloudStackMachine webhook", func() {
 		})
 	})
 
-	Context("When updating a CloudStackMachine", func() {
-		It("Should be rejected by the validating webhooks", func() {
+	Context("When updating a CloudStackMachine details", func() {
+		It("Should not be rejected by the validating webhooks", func() {
 			ctx := context.Background()
+			index++
 			cloudStackMachine := &CloudStackMachine{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 					Kind:       "CloudStackMachine",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine-7",
+					Name:      "test-machine-" + strconv.Itoa(index),
+					Namespace: "default",
+				},
+				Spec: CloudStackMachineSpec{
+					IdentityRef: &CloudStackIdentityReference{
+						Kind: defaultIdentityRefKind,
+						Name: "IdentitySecret",
+					},
+					Template: "Template",
+					Offering: "Offering",
+					Details: map[string]string{
+						"memoryOvercommitRatio": "1.2",
+					},
+					AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cloudStackMachine)).Should(Succeed())
+
+			cloudStackMachineUpdate := &CloudStackMachine{}
+
+			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
+			cloudStackMachineUpdate.Spec.Details = map[string]string{
+				"memoryOvercommitRatio": "1.5",
+			}
+			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate)).Should(Succeed())
+		})
+	})
+
+	Context("When updating a CloudStackMachine ssh keys", func() {
+		It("Should not be rejected by the validating webhooks", func() {
+			ctx := context.Background()
+			index++
+			cloudStackMachine := &CloudStackMachine{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+					Kind:       "CloudStackMachine",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machine-" + strconv.Itoa(index),
+					Namespace: "default",
+				},
+				Spec: CloudStackMachineSpec{
+					IdentityRef: &CloudStackIdentityReference{
+						Kind: defaultIdentityRefKind,
+						Name: "IdentitySecret",
+					},
+					Template: "Template",
+					Offering: "Offering",
+					SSHKey:   "Keypair1",
+					Details: map[string]string{
+						"memoryOvercommitRatio": "1.2",
+					},
+					AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cloudStackMachine)).Should(Succeed())
+
+			cloudStackMachineUpdate := &CloudStackMachine{}
+			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
+			cloudStackMachineUpdate.Spec.SSHKey = "Keypair2"
+			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate)).Should(Succeed())
+		})
+	})
+
+	Context("When updating a CloudStackMachine", func() {
+		It("Should be rejected by the validating webhooks", func() {
+			ctx := context.Background()
+			index++
+			cloudStackMachine := &CloudStackMachine{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+					Kind:       "CloudStackMachine",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machine-" + strconv.Itoa(index),
 					Namespace: "default",
 				},
 				Spec: CloudStackMachineSpec{
@@ -307,12 +389,6 @@ var _ = Describe("CloudStackMachine webhook", func() {
 
 			forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
 			cloudStackMachineUpdate := &CloudStackMachine{}
-
-			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
-			cloudStackMachineUpdate.Spec.Details = map[string]string{
-				"memoryOvercommitRatio": "1.5",
-			}
-			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "details"))
 
 			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
 			cloudStackMachineUpdate.Spec.IdentityRef.Kind = "ConfigMap"
