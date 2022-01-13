@@ -187,7 +187,7 @@ KUBECONFIG=capc-cluster.kubeconfig kubectl logs test-thing
 ### kubectl/clusterctl Reference:
 - Pods in capc-cluster -- cluster running in cloudstack
 ```
-cluster-api-provider-cloudstack-staging % KUBECONFIG=capc-cluster.kubeconfig kubectl get pods -A    
+% KUBECONFIG=capc-cluster.kubeconfig kubectl get pods -A    
 NAMESPACE     NAME                                                       READY   STATUS      RESTARTS   AGE
 default       test-thing                                                 0/1     Completed   0          2m43s
 kube-system   cilium-jxw68                                               1/1     Running     0          6m
@@ -205,7 +205,7 @@ kube-system   kube-scheduler-capc-cluster-control-plane-tknwx            1/1    
 
 - Pods in original kind cluster (also called bootstrap cluster, management cluster)
 ```
-cluster-api-provider-cloudstack-staging % kubectl  get pods -A
+% kubectl  get pods -A
 NAMESPACE                           NAME                                                             READY   STATUS    RESTARTS   AGE
 capc-system                         capc-controller-manager-55798f8594-lp2xs                         1/1     Running   0          30m
 capi-kubeadm-bootstrap-system       capi-kubeadm-bootstrap-controller-manager-7857cd7bb8-rldnw       1/1     Running   0          30m
