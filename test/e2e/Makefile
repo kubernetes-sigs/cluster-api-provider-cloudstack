@@ -1,23 +1,6 @@
-# Copyright 2020 The Kubernetes Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# If you update this file, please follow:
-# https://suva.sh/posts/well-documented-makefiles/
-
-# Use GOPROXY environment variable if set
-
 .DEFAULT_GOAL:=help
+
+IMG ?= public.ecr.aws/a4z9h2b1/cluster-api-provider-capc:latest
 
 GOPROXY := $(shell go env GOPROXY)
 ifeq ($(GOPROXY),)
@@ -27,8 +10,8 @@ export GOPROXY
 
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
 
-help:  ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+help:
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ## --------------------------------------
 ## Binaries
@@ -64,13 +47,18 @@ $(REPO_ROOT)/cluster-api: # Clone cluster-api repository for tilt use.
 
 # Need script from CAPI v1.0+
 # Can delete this target after upgrading to newer CAPI.
-cluster-api/hack/kind-install-for-capd.sh: cluster-api
-	cd cluster-api && git checkout v1.0.0 -- hack/kind-install-for-capd.sh
+$(REPO_ROOT)/cluster-api/hack/kind-install-for-capd.sh: $(REPO_ROOT)/cluster-api
+	cd $(REPO_ROOT)/cluster-api && git checkout v1.0.0 -- hack/kind-install-for-capd.sh
+
+## --------------------------------------
+## Manifests
+## --------------------------------------
 
 MANIFEST_GEN_INPUTS=$(shell find $(REPO_ROOT)/api -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
 .PHONY: manifests
-manifests: $(REPO_ROOT)/config/.flag.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
+manifests: $(REPO_ROOT)/config/.flag.mk
 $(REPO_ROOT)/config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
+	cd $(REPO_ROOT)
 	sed -e 's@image: .*@image: '"$(IMG)"'@' $(REPO_ROOT)/config/default/manager_image_patch.yaml > $(REPO_ROOT)/config/default/manager_image_patch_edited.yaml
 	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(REPO_ROOT)/config/crd/bases
 	@touch $(REPO_ROOT)/config/.flag.mk
@@ -82,10 +70,10 @@ $(REPO_ROOT)/config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
 CLOUDSTACK_TEMPLATES := $(REPO_ROOT)/test/e2e/data/infrastructure-cloudstack
 
 .PHONY: cluster-templates
-cluster-templates: cluster-templates-v1alpha3 ## Generate cluster templates for all versions
+cluster-templates: cluster-templates-v1alpha3
 
 .PHONY: cluster-templates-v1alpha3
-cluster-templates-v1alpha3: $(KUSTOMIZE) ## Generate cluster templates for v1alpha3
+cluster-templates-v1alpha3: $(KUSTOMIZE)
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-kcp-remediation > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-kcp-remediation.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-md-remediation > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-md-remediation.yaml
@@ -95,7 +83,7 @@ cluster-templates-v1alpha3: $(KUSTOMIZE) ## Generate cluster templates for v1alp
 ## --------------------------------------
 
 .PHONY: run-e2e
-run-e2e: $(GINKGO) kind-cluster manifests cluster-templates
+run-e2e: $(GINKGO) kind-cluster manifests cluster-templates ## Run End-to-End Tests
 	time $(GINKGO) -v -trace -tags=e2e -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
@@ -103,7 +91,7 @@ run-e2e: $(GINKGO) kind-cluster manifests cluster-templates
 	kind delete clusters capi-test
 
 .PHONY: run-e2e-pr-blocking
-run-e2e-pr-blocking: $(GINKGO) kind-cluster manifests cluster-templates
+run-e2e-pr-blocking: $(GINKGO) kind-cluster manifests cluster-templates ## Run Only End-to-End Tests containing PR-Blocking tag
 	time $(GINKGO) -v -trace -tags=e2e -focus=PR-Blocking -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
@@ -111,7 +99,7 @@ run-e2e-pr-blocking: $(GINKGO) kind-cluster manifests cluster-templates
 	kind delete clusters capi-test
 
 .PHONY: run-conformance
-run-conformance: $(GINKGO) kind-cluster manifests cluster-templates
+run-conformance: $(GINKGO) kind-cluster manifests cluster-templates ## Run K8S Conformance Tests
 	time $(GINKGO) -v -trace -tags=e2e -focus=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
