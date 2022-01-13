@@ -1,0 +1,116 @@
+# Copyright 2020 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# If you update this file, please follow:
+# https://suva.sh/posts/well-documented-makefiles/
+
+# Use GOPROXY environment variable if set
+
+.DEFAULT_GOAL:=help
+
+GOPROXY := $(shell go env GOPROXY)
+ifeq ($(GOPROXY),)
+GOPROXY := https://proxy.golang.org
+endif
+export GOPROXY
+
+REPO_ROOT := $(shell git rev-parse --show-toplevel)
+
+help:  ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z0-9_-]+:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+## --------------------------------------
+## Binaries
+## --------------------------------------
+
+BIN_DIR := $(REPO_ROOT)/bin
+GINKGO := $(BIN_DIR)/ginkgo
+KUSTOMIZE := $(BIN_DIR)/kustomize
+CONTROLLER_GEN := $(BIN_DIR)/controller-gen
+
+$(GINKGO): # Build ginkgo from bin folder.
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/ginkgo
+
+$(KUSTOMIZE): # Build kustomize from bin folder.
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/kustomize sigs.k8s.io/kustomize/kustomize/v3
+
+$(CONTROLLER_GEN): ## Install controller-gen to bin.
+	GOBIN=$(BIN_DIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.9
+
+## --------------------------------------
+## Kind Cluster
+## --------------------------------------
+
+.PHONY: kind-cluster
+kind-cluster: $(REPO_ROOT)/cluster-api $(REPO_ROOT)/cluster-api/hack/kind-install-for-capd.sh # Create a kind cluster with a local Docker repository.
+	-$(REPO_ROOT)/cluster-api/hack/kind-install-for-capd.sh
+
+$(REPO_ROOT)/cluster-api: # Clone cluster-api repository for tilt use.
+	git clone --branch v0.3.24 https://github.com/kubernetes-sigs/cluster-api.git $(REPO_ROOT)/cluster-api
+
+# Need script from CAPI v1.0+
+# Can delete this target after upgrading to newer CAPI.
+cluster-api/hack/kind-install-for-capd.sh: cluster-api
+	cd cluster-api && git checkout v1.0.0 -- hack/kind-install-for-capd.sh
+
+MANIFEST_GEN_INPUTS=$(shell find $(REPO_ROOT)/api -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
+.PHONY: manifests
+manifests: $(REPO_ROOT)/config/.flag.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
+$(REPO_ROOT)/config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
+	sed -e 's@image: .*@image: '"$(IMG)"'@' $(REPO_ROOT)/config/default/manager_image_patch.yaml > $(REPO_ROOT)/config/default/manager_image_patch_edited.yaml
+	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(REPO_ROOT)/config/crd/bases
+	@touch $(REPO_ROOT)/config/.flag.mk
+
+## --------------------------------------
+## Templates
+## --------------------------------------
+
+CLOUDSTACK_TEMPLATES := $(REPO_ROOT)/test/e2e/data/infrastructure-cloudstack
+
+.PHONY: cluster-templates
+cluster-templates: cluster-templates-v1alpha3 ## Generate cluster templates for all versions
+
+.PHONY: cluster-templates-v1alpha3
+cluster-templates-v1alpha3: $(KUSTOMIZE) ## Generate cluster templates for v1alpha3
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-kcp-remediation > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-kcp-remediation.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-md-remediation > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-md-remediation.yaml
+
+## --------------------------------------
+## End-to-End Tests
+## --------------------------------------
+
+.PHONY: run-e2e
+run-e2e: $(GINKGO) kind-cluster manifests cluster-templates
+	time $(GINKGO) -v -trace -tags=e2e -skip=Conformance -nodes=1 --noColor=false ./... -- \
+	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
+	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	kind delete clusters capi-test
+
+.PHONY: run-e2e-pr-blocking
+run-e2e-pr-blocking: $(GINKGO) kind-cluster manifests cluster-templates
+	time $(GINKGO) -v -trace -tags=e2e -focus=PR-Blocking -skip=Conformance -nodes=1 --noColor=false ./... -- \
+	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
+	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	kind delete clusters capi-test
+
+.PHONY: run-conformance
+run-conformance: $(GINKGO) kind-cluster manifests cluster-templates
+	time $(GINKGO) -v -trace -tags=e2e -focus=Conformance -nodes=1 --noColor=false ./... -- \
+	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
+	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	kind delete clusters capi-test
