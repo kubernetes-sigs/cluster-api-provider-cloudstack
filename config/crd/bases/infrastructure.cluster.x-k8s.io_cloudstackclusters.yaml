@@ -36,6 +36,9 @@ spec:
           spec:
             description: CloudStackClusterSpec defines the desired state of CloudStackCluster.
             properties:
+              account:
+                description: CloudStack account.
+                type: string
               controlPlaneEndpoint:
                 description: The kubernetes control plane endpoint.
                 properties:
@@ -50,6 +53,9 @@ spec:
                 - host
                 - port
                 type: object
+              domain:
+                description: CloudStack domain.
+                type: string
               identityRef:
                 description: CloudStackIdentityReference is a reference to an infrastructure
                   provider identity to be used to provision cluster resources.
@@ -79,6 +85,9 @@ spec:
           status:
             description: The actual cluster state reported by CloudStack.
             properties:
+              domainID:
+                description: Cloudstack Domain ID the cluster is built in.
+                type: string
               loadBalancerRuleID:
                 description: The ID of the lb rule used to assign VMs to the lb.
                 type: string
