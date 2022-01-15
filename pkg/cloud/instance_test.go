@@ -26,6 +26,7 @@ import (
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
@@ -180,6 +181,49 @@ var _ = Describe("Instance", func() {
 
 			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(MatchError("unknown err"))
 		})
+
+		describeDomainAccountTest := func(desc string) func(string, string) string {
+			return func(account string, domainID string) string {
+				return fmt.Sprintf("%s and %s to beet to, %s ", account, domainID, desc)
+			}
+		}
+		DescribeTable("DomainID and Account test table.",
+			func(account string, domainID string) {
+				gomock.InOrder(
+					vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).
+						Return(nil, -1, notFoundError),
+					sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return(serviceOfferingID, 1, nil),
+					ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).
+						Return(templateID, 1, nil),
+					vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).
+						Return(&cloudstack.VirtualMachinesMetric{}, 1, nil))
+
+				vms.EXPECT().NewDeployVirtualMachineParams(serviceOfferingID, templateID, csCluster.Status.ZoneID).
+					Return(&cloudstack.DeployVirtualMachineParams{})
+
+				csCluster.Spec.Account = account
+				csCluster.Status.DomainID = domainID
+				deploymentResp := &cloudstack.DeployVirtualMachineResponse{Id: *csMachine.Spec.InstanceID}
+				accountMatcher := WithTransform(
+					func(x *cloudstack.DeployVirtualMachineParams) string {
+						acc, _ := x.GetAccount()
+						return acc
+					}, Equal(account))
+				domainIDMatcher := WithTransform(
+					func(x *cloudstack.DeployVirtualMachineParams) string {
+						id, _ := x.GetDomainid()
+						return id
+					}, Equal(domainID))
+
+				vms.EXPECT().DeployVirtualMachine(
+					ParamMatch(And(accountMatcher, domainIDMatcher))).Return(deploymentResp, nil)
+				vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, notFoundError)
+
+				Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(Succeed())
+			},
+			Entry(describeDomainAccountTest("all set case"), "FakeAccount", "FakeDomainID"),
+			Entry(describeDomainAccountTest("empty case"), "", ""),
+		)
 
 		Context("when using UUIDs and/or names to locate service offerings and templates", func() {
 			BeforeEach(func() {
