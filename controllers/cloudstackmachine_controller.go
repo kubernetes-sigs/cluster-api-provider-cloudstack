@@ -179,14 +179,6 @@ func (r *CloudStackMachineReconciler) reconcile(
 		return ctrl.Result{}, err
 	}
 
-	if util.IsControlPlaneMachine(machine) && csCluster.Status.NetworkType != cloud.NetworkTypeShared {
-		log.Info("Assigning VM to load balancer rule.")
-		err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
 	if csMachine.Status.InstanceState == "Running" {
 		log.Info("Machine instance is Running...")
 		csMachine.Status.Ready = true
@@ -199,6 +191,14 @@ func (r *CloudStackMachineReconciler) reconcile(
 	} else {
 		log.Info(fmt.Sprintf("Instance not ready, is %s.", csMachine.Status.InstanceState))
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+	}
+
+	if util.IsControlPlaneMachine(machine) && csCluster.Status.NetworkType != cloud.NetworkTypeShared {
+		log.Info("Assigning VM to load balancer rule.")
+		err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
