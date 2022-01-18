@@ -33,12 +33,16 @@ var _ = Describe("Cluster", func() {
 		mockCtrl   *gomock.Controller
 		mockClient *cloudstack.CloudStackClient
 		zs         *cloudstack.MockZoneServiceIface
+		ds         *cloudstack.MockDomainServiceIface
+		ns         *cloudstack.MockNetworkServiceIface
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = cloudstack.NewMockClient(mockCtrl)
 		zs = mockClient.Zone.(*cloudstack.MockZoneServiceIface)
+		ds = mockClient.Domain.(*cloudstack.MockDomainServiceIface)
+		ns = mockClient.Network.(*cloudstack.MockNetworkServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 	})
 
@@ -56,19 +60,6 @@ var _ = Describe("Cluster", func() {
 				Zone:    zoneName,
 				Network: netName}}
 
-		// This will take more extensive mocking to completely test now that is does so much more.
-		// It("should fetch cluster information.", func() {
-		// 	zs := mockClient.Zone.(*cloudstack.MockZoneServiceIface)
-		// 	zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 1, nil)
-
-		// 	ns := mockClient.Network.(*cloudstack.MockNetworkServiceIface)
-		// 	ns.EXPECT().GetNetworkID(netName).Return(netID, 1, nil)
-
-		// 	Ω(cloud.CreateCluster(mockClient, cluster)).Should(Succeed())
-		// 	Ω(cluster.Status.ZoneID).Should(Equal(zoneID))
-		// 	Ω(cluster.Status.NetworkID).Should(Equal(netID))
-		// })
-
 		It("handles zone not found.", func() {
 			expectedErr := fmt.Errorf("Not found")
 			zs.EXPECT().GetZoneID(zoneName).Return("", -1, expectedErr)
@@ -85,6 +76,24 @@ var _ = Describe("Cluster", func() {
 			err := client.GetOrCreateCluster(cluster)
 			Expect(err.Error()).To(ContainSubstring("Expected 1 Zone with name zoneName, but got 2."))
 			Expect(err.Error()).To(ContainSubstring("Could not get Zone by ID zoneName.: Not found"))
+		})
+
+		It("translates Domain to DomainID when Domain is set", func() {
+			cluster.Spec.Domain = "FakeDomain"
+			cluster.Spec.Network = "FakeNetwork"
+			domainID := "FakeDomainID"
+			zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 1, nil)
+			ds.EXPECT().GetDomainID(cluster.Spec.Domain).Return(domainID, 1, nil)
+
+			// End the fetching with a fake network error here.
+			// Only trying to test domain functions.
+			// TODO: turn the pkg/cloud/client.go client into a composition of interfaces such that the
+			// individual services can be mocked.
+			ns.EXPECT().GetNetworkID(cluster.Spec.Network).Return("", -1, fmt.Errorf("FakeError"))
+			ns.EXPECT().GetNetworkByID(cluster.Spec.Network).Return(&cloudstack.Network{}, -1, fmt.Errorf("FakeError"))
+
+			Ω(client.GetOrCreateCluster(cluster)).ShouldNot(Succeed())
+			Ω(cluster.Status.DomainID).Should(Equal(domainID))
 		})
 	})
 })
