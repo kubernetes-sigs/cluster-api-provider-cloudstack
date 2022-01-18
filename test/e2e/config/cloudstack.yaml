@@ -79,6 +79,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-md-remediation.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-invalid-zone.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-invalid-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-invalid-cp-offering.yaml"
       - sourcePath: "../../../metadata.yaml"
     versions:
       - name: v0.1.0
@@ -99,6 +100,7 @@ variables:
   CLUSTER_ENDPOINT_IP: "\"\""
   CLUSTER_ENDPOINT_PORT: 6443
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
+  CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
   CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
   CLOUDSTACK_TEMPLATE_NAME: kube-v1.20.10/ubuntu-2004
   CLOUDSTACK_INVALID_TEMPLATE_NAME: templateXXXX
