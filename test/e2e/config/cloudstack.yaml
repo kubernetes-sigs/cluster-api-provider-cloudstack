@@ -77,6 +77,8 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-kcp-remediation.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-md-remediation.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-invalid-zone.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-invalid-template.yaml"
       - sourcePath: "../../../metadata.yaml"
     versions:
       - name: v0.1.0
@@ -92,12 +94,14 @@ variables:
   IP_FAMILY: "IPv4"
 
   CLOUDSTACK_ZONE_NAME: zone1
+  CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
   CLOUDSTACK_NETWORK_NAME: Guest1
   CLUSTER_ENDPOINT_IP: "\"\""
   CLUSTER_ENDPOINT_PORT: 6443
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
   CLOUDSTACK_TEMPLATE_NAME: kube-v1.20.10/ubuntu-2004
+  CLOUDSTACK_INVALID_TEMPLATE_NAME: templateXXXX
   CLOUDSTACK_SSH_KEY_NAME: CAPCKeyPair6
 
   CONFORMANCE_CONFIGURATION: "./data/kubetest/conformance-fast.yaml"
@@ -108,6 +112,7 @@ intervals:
   conformance/wait-control-plane: ["20m", "10s"]
   conformance/wait-worker-nodes: ["20m", "10s"]
 
+  default/wait-errors: ["1m", "10s"]
   default/wait-controllers: ["3m", "10s"]
   default/wait-cluster: ["20m", "10s"]
   default/wait-control-plane: ["20m", "10s"]

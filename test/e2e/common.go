@@ -38,6 +38,8 @@ const (
 	CNIPath                     = "CNI"
 	CNIResources                = "CNI_RESOURCES"
 	IPFamily                    = "IP_FAMILY"
+	InvalidZoneName             = "CLOUDSTACK_INVALID_ZONE_NAME"
+	InvalidTemplateName         = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
 )
 
 func Byf(format string, a ...interface{}) {
