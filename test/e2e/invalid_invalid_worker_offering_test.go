@@ -24,9 +24,9 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When the specified control plane offering does not exist [TC7a]", func() {
-	InvalidCPOfferingSpec(context.TODO(), func() InvalidCPOfferingSpecInput {
-		return InvalidCPOfferingSpecInput{
+var _ = Describe("When the specified worker offering does not exist [TC7b]", func() {
+	InvalidWorkerOfferingSpec(context.TODO(), func() InvalidWorkerOfferingSpecInput {
+		return InvalidWorkerOfferingSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

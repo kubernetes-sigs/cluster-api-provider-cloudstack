@@ -80,6 +80,7 @@ cluster-templates-v1alpha3: $(KUSTOMIZE)
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-zone > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-zone.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-template > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-template.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-cp-offering > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-cp-offering.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-worker-offering > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-worker-offering.yaml
 
 ## --------------------------------------
 ## End-to-End Tests

@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// InvalidCPOfferingSpecInput is the input for InvalidCPOfferingSpec.
-type InvalidCPOfferingSpecInput struct {
+// InvalidWorkerOfferingSpecInput is the input for InvalidWorkerOfferingSpec.
+type InvalidWorkerOfferingSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -49,11 +49,11 @@ type InvalidCPOfferingSpecInput struct {
 	Flavor *string
 }
 
-// InvalidCPOfferingSpec implements a test that verifies that creating a new cluster fails when the specified control plane offering does not exist
-func InvalidCPOfferingSpec(ctx context.Context, inputGetter func() InvalidCPOfferingSpecInput) {
+// InvalidWorkerOfferingSpec implements a test that verifies that creating a new cluster fails when the specified worker offering does not exist
+func InvalidWorkerOfferingSpec(ctx context.Context, inputGetter func() InvalidWorkerOfferingSpecInput) {
 	var (
-		specName         = "invalid-cp-offering"
-		input            InvalidCPOfferingSpecInput
+		specName         = "invalid-worker-offering"
+		input            InvalidWorkerOfferingSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -74,7 +74,7 @@ func InvalidCPOfferingSpec(ctx context.Context, inputGetter func() InvalidCPOffe
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should fail due to the specified control plane offering is not found", func() {
+	It("Should fail due to the specified worker offering is not found", func() {
 		logFolder := filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName())
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
@@ -85,7 +85,7 @@ func InvalidCPOfferingSpec(ctx context.Context, inputGetter func() InvalidCPOffe
 			// pass the clusterctl config file that points to the local provider repository created for this test,
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			// select template
-			Flavor: "invalid-cp-offering",
+			Flavor: "invalid-worker-offering",
 			// define template variables
 			Namespace:                namespace.Name,
 			ClusterName:              clusterName,
@@ -114,7 +114,7 @@ func InvalidCPOfferingSpec(ctx context.Context, inputGetter func() InvalidCPOffe
 				}
 				if strings.Contains(path, "capc-controller-manager") && strings.Contains(path, "manager.log") {
 					log, _ := os.ReadFile(path)
-					if strings.Contains(string(log), "No match found for "+input.E2EConfig.GetVariable(InvalidCPOfferingName)) {
+					if strings.Contains(string(log), "No match found for "+input.E2EConfig.GetVariable(InvalidWorkerOfferingName)) {
 						By("Found 'offering not found' error")
 						return errors.New("expected error found")
 					}

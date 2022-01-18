@@ -41,6 +41,7 @@ const (
 	InvalidZoneName             = "CLOUDSTACK_INVALID_ZONE_NAME"
 	InvalidTemplateName         = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
 	InvalidCPOfferingName       = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
+	InvalidWorkerOfferingName   = "CLOUDSTACK_INVALID_WORKER_MACHINE_OFFERING"
 )
 
 func Byf(format string, a ...interface{}) {
