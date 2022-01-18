@@ -17,7 +17,6 @@ limitations under the License.
 package cloud_test
 
 import (
-	"fmt"
 	"os"
 	"path"
 
@@ -66,8 +65,7 @@ func ParamMatch(matcher types.GomegaMatcher) gomock.Matcher {
 }
 
 func (p paramMatcher) String() string {
-	return fmt.Sprintf(
-		"a gomega matcher to match, and said matcher should have paniced before this message was printed.")
+	return "a gomega matcher to match, and said matcher should have paniced before this message was printed."
 }
 
 func (p paramMatcher) Matches(x interface{}) (retVal bool) {
