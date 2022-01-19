@@ -33,10 +33,10 @@ func setIfNotEmpty(str string, setFn set) {
 func CompressAndEncodeString(str string) (string, error) {
 	buf := &bytes.Buffer{}
 	gzipWriter := gzip.NewWriter(buf)
-	defer gzipWriter.Close()
 	if _, err := gzipWriter.Write([]byte(str)); err != nil {
+		gzipWriter.Close()
 		return "", err
 	}
-	gzipWriter.Flush()
+	gzipWriter.Close()
 	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
