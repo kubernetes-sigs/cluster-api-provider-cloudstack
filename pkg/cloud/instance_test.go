@@ -182,9 +182,11 @@ var _ = Describe("Instance", func() {
 			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(MatchError("unknown err"))
 		})
 
+		// The folloing test checks that DomainId and Account are set (or not) in the DeployVirtualMachineParams
+		// interface passed to DeployVirtualMachine.
 		describeDomainAccountTest := func(desc string) func(string, string) string {
 			return func(account string, domainID string) string {
-				return fmt.Sprintf("%s and %s to beet to, %s ", account, domainID, desc)
+				return fmt.Sprintf(`"%s" and "%s", %s`, account, domainID, desc)
 			}
 		}
 		DescribeTable("DomainID and Account test table.",
@@ -204,12 +206,12 @@ var _ = Describe("Instance", func() {
 				csCluster.Spec.Account = account
 				csCluster.Status.DomainID = domainID
 				deploymentResp := &cloudstack.DeployVirtualMachineResponse{Id: *csMachine.Spec.InstanceID}
-				accountMatcher := WithTransform(
+				accountMatcher := WithTransform( // Call GetAccount on th DeployVM param passed.
 					func(x *cloudstack.DeployVirtualMachineParams) string {
 						acc, _ := x.GetAccount()
 						return acc
 					}, Equal(account))
-				domainIDMatcher := WithTransform(
+				domainIDMatcher := WithTransform( // Call GetDomainid on the DeployVM param passed.
 					func(x *cloudstack.DeployVirtualMachineParams) string {
 						id, _ := x.GetDomainid()
 						return id
