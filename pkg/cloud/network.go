@@ -76,6 +76,8 @@ func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retEr
 		csCluster.Spec.Network,
 		offeringId,
 		csCluster.Status.ZoneID)
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	resp, err := c.cs.Network.CreateNetwork(p)
 	if err != nil {
 		return err
@@ -89,6 +91,8 @@ func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retEr
 func (c *client) ResolvePublicIPDetails(csCluster *infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error) {
 	p := c.cs.Address.NewListPublicIpAddressesParams()
 	p.SetAllocatedonly(false)
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	if ip := csCluster.Spec.ControlPlaneEndpoint.Host; ip != "" {
 		p.SetIpaddress(ip)
 	}
@@ -121,6 +125,8 @@ func (c *client) AssociatePublicIpAddress(csCluster *infrav1.CloudStackCluster) 
 	p := c.cs.Address.NewAssociateIpAddressParams()
 	p.SetNetworkid(csCluster.Status.NetworkID)
 	p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	if _, err := c.cs.Address.AssociateIpAddress(p); err != nil {
 		return err
 	}
@@ -139,6 +145,8 @@ func (c *client) OpenFirewallRules(csCluster *infrav1.CloudStackCluster) (retErr
 func (c *client) ResolveLoadBalancerRuleDetails(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	p := c.cs.LoadBalancer.NewListLoadBalancerRulesParams()
 	p.SetPublicipid(csCluster.Status.PublicIPID)
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	loadBalancerRules, err := c.cs.LoadBalancer.ListLoadBalancerRules(p)
 	if err != nil {
 		return err
@@ -168,6 +176,8 @@ func (c *client) GetOrCreateLoadBalancerRule(csCluster *infrav1.CloudStackCluste
 	}
 	p.SetPublicipid(csCluster.Status.PublicIPID)
 	p.SetProtocol("tcp")
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	resp, err := c.cs.LoadBalancer.CreateLoadBalancerRule(p)
 	if err != nil {
 		return err
