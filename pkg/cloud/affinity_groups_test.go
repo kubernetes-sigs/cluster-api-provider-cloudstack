@@ -17,6 +17,8 @@ limitations under the License.
 package cloud_test
 
 import (
+	"errors"
+
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
@@ -25,11 +27,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("AffinityGroup", func() {
+var _ = Describe("AffinityGroup Unit Tests", func() {
 	var ( // Declare shared vars.
 		mockCtrl   *gomock.Controller
 		mockClient *cloudstack.CloudStackClient
 		ags        *cloudstack.MockAffinityGroupServiceIface
+		fakeAG     cloud.AffinityGroup
 		cluster    *infrav1.CloudStackCluster
 		client     cloud.Client
 	)
@@ -40,17 +43,50 @@ var _ = Describe("AffinityGroup", func() {
 		mockClient = cloudstack.NewMockClient(mockCtrl)
 		ags = mockClient.AffinityGroup.(*cloudstack.MockAffinityGroupServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
+		fakeAG = cloud.AffinityGroup{
+			Name: "FakeAffinityGroup",
+			Type: cloud.AffinityGroupType}
 	})
 
 	AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
-	Context("for non-existent affinity group", func() {
-		XIt("creates an affinity group", func() {
-			ags.EXPECT().GetAffinityGroupByName("FakeAG").Return(&cloudstack.AffinityGroup{}, 1, nil)
+	It("fetches an affinity group", func() {
+		ags.EXPECT().GetAffinityGroupByName(fakeAG.Name).Return(&cloudstack.AffinityGroup{}, 1, nil)
 
-			Ω(client.GetOrCreateAffinityGroup(cluster, cloud.AffinityGroup{Name: "FakeAG", AntiAffinity: true})).ShouldNot(Succeed())
+		Ω(client.GetOrCreateAffinityGroup(cluster, fakeAG)).Should(Succeed())
+	})
+	It("creates an affinity group", func() {
+		fakeAG.Id = "FakeID"
+		ags.EXPECT().GetAffinityGroupByID(fakeAG.Id).Return(nil, -1, errors.New("FakeError"))
+		//ags.EXPECT().GetAffinityGroupByName(fakeAG.Name).Return(nil, -1, errors.New("FakeError"))
+		ags.EXPECT().NewCreateAffinityGroupParams(fakeAG.Name, fakeAG.Type).
+			Return(&cloudstack.CreateAffinityGroupParams{})
+		ags.EXPECT().CreateAffinityGroup(gomock.Any()).Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
+
+		Ω(client.GetOrCreateAffinityGroup(cluster, fakeAG)).Should(Succeed())
+	})
+
+	Context("AffinityGroup Integ Tests", func() {
+		client, err := cloud.NewClient("../../cloud-config")
+		var ( // Declare shared vars.
+			cluster     *infrav1.CloudStackCluster
+			arbitraryAG cloud.AffinityGroup
+		)
+		BeforeEach(func() {
+			if err != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
+				Skip("Could not connect to ACS instance.")
+			}
+			cluster = &infrav1.CloudStackCluster{Spec: infrav1.CloudStackClusterSpec{}}
+			arbitraryAG = cloud.AffinityGroup{Name: "ArbitraryAffinityGroup", Type: cloud.AffinityGroupType}
+		})
+
+		It("Creates an affinity group.", func() {
+			Ω(client.GetOrCreateAffinityGroup(cluster, arbitraryAG)).Should(Succeed())
+		})
+		It("Deletes an affinity group.", func() {
+			Ω(client.DeleteAffinityGroup(cluster, arbitraryAG)).Should(Succeed())
 		})
 	})
 })
