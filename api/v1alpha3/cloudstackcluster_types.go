@@ -50,6 +50,14 @@ type CloudStackClusterSpec struct {
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
+	// CloudStack account.
+	// +optional
+	Account string `json:"account,omitempty"`
+
+	// CloudStack domain.
+	// +optional
+	Domain string `json:"domain,omitempty"`
+
 	// +optional
 	// +k8s:conversion-gen=false
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
@@ -68,6 +76,9 @@ type CloudStackClusterStatus struct {
 
 	// Cloudstack Network Type the cluster is built in.
 	NetworkType string `json:"networkType,omitempty"`
+
+	// Cloudstack Domain ID the cluster is built in.
+	DomainID string `json:"domainID,omitempty"`
 
 	// The CS public IP ID to use for the k8s endpoint.
 	PublicIPID string `json:"publicIPID,omitempty"`
