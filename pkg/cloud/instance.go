@@ -160,7 +160,6 @@ func (c *client) GetOrCreateVMInstance(
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
 	}
-	p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 
