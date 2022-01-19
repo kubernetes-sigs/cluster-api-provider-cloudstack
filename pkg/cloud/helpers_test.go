@@ -49,8 +49,8 @@ var _ = Describe("Helpers", func() {
 		str := "Hello World"
 
 		compressedAndEncodedData, err := cloud.CompressAndEncodeString(str)
-		compressedData, _ := base64.StdEncoding.DecodeString(compressedAndEncodedData)
 
+		compressedData, _ := base64.StdEncoding.DecodeString(compressedAndEncodedData)
 		reader, _ := gzip.NewReader(bytes.NewReader(compressedData))
 		result, _ := ioutil.ReadAll(reader)
 

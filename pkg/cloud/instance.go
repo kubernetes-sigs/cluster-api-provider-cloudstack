@@ -151,10 +151,10 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
-	if compressAndEncodedUserData, err := CompressAndEncodeString(userData); err != nil {
+	if compressedAndEncodedUserData, err := CompressAndEncodeString(userData); err != nil {
 		return err
 	} else {
-		setIfNotEmpty(compressAndEncodedUserData, p.SetUserdata)
+		setIfNotEmpty(compressedAndEncodedUserData, p.SetUserdata)
 	}
 
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
