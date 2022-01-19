@@ -16,10 +16,27 @@ limitations under the License.
 
 package cloud
 
+import (
+	"bytes"
+	"compress/gzip"
+	"encoding/base64"
+)
+
 type set func(string)
 
 func setIfNotEmpty(str string, setFn set) {
 	if str != "" {
 		setFn(str)
 	}
+}
+
+func CompressAndEncodeString(str string) (string, error) {
+	buf := &bytes.Buffer{}
+	gzipWriter := gzip.NewWriter(buf)
+	if _, err := gzipWriter.Write([]byte(str)); err != nil {
+		gzipWriter.Close()
+		return "", err
+	}
+	gzipWriter.Close()
+	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }

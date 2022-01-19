@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"reflect"
@@ -167,10 +166,9 @@ func (r *CloudStackMachineReconciler) reconcile(
 	if !ok {
 		return ctrl.Result{}, errors.New("Bootstrap secret data not ok.")
 	}
-	userData := base64.StdEncoding.EncodeToString(value)
 
 	// Create VM (or Fetch if present). Will set ready to true.
-	if err := r.CS.GetOrCreateVMInstance(csMachine, machine, csCluster, userData); err == nil {
+	if err := r.CS.GetOrCreateVMInstance(csMachine, machine, csCluster, string(value)); err == nil {
 		if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
 			log.Info("CloudStack instance Created", "instanceStatus", csMachine.Status, "instanceSpec", csMachine.Spec)
 			controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
