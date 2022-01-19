@@ -156,6 +156,14 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "network"))
 
 				cloudStackCluster.DeepCopyInto(cloudStackClusterUpdate)
+				cloudStackClusterUpdate.Spec.ControlPlaneEndpoint.Host = "1.1.1.1"
+				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "controlplaneendpointhost"))
+
+				cloudStackCluster.DeepCopyInto(cloudStackClusterUpdate)
+				cloudStackClusterUpdate.Spec.ControlPlaneEndpoint.Port = 1234
+				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "controlplaneendpointport"))
+
+				cloudStackCluster.DeepCopyInto(cloudStackClusterUpdate)
 				cloudStackClusterUpdate.Spec.IdentityRef.Kind = "ConfigMap"
 				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "identityRef\\.Kind"))
 

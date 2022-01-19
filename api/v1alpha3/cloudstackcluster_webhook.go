@@ -94,6 +94,8 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	// No spec fields may be changed
 	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Zone, oldSpec.Zone, "zone", errorList)
 	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Network, oldSpec.Network, "network", errorList)
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpointhost", errorList)
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(string(spec.ControlPlaneEndpoint.Port), string(oldSpec.ControlPlaneEndpoint.Port), "controlplaneendpointport", errorList)
 	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
 		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
 		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
