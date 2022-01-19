@@ -172,8 +172,10 @@ func (r *CloudStackMachineReconciler) reconcile(
 
 	buf := &bytes.Buffer{}
 	gzipWriter := gzip.NewWriter(buf)
-	gzipWriter.Write(value)
-	gzipWriter.Close()
+	defer gzipWriter.Close()
+	if _, err := gzipWriter.Write(value); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	userData := base64.StdEncoding.EncodeToString(buf.Bytes())
 
