@@ -1,4 +1,5 @@
+namespace: capc-system
 bases:
-- ../../default
+- default
 patchesStrategicMerge:
 - insecure_manager.yaml
