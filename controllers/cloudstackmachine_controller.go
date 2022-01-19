@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -167,7 +169,13 @@ func (r *CloudStackMachineReconciler) reconcile(
 	if !ok {
 		return ctrl.Result{}, errors.New("Bootstrap secret data not ok.")
 	}
-	userData := base64.StdEncoding.EncodeToString(value)
+
+	buf := &bytes.Buffer{}
+	gzipWriter := gzip.NewWriter(buf)
+	gzipWriter.Write(value)
+	gzipWriter.Close()
+
+	userData := base64.StdEncoding.EncodeToString(buf.Bytes())
 
 	// Create VM (or Fetch if present). Will set ready to true.
 	if err := r.CS.GetOrCreateVMInstance(csMachine, machine, csCluster, userData); err == nil {
