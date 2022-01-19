@@ -25,8 +25,10 @@ import (
 	"path"
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
 )
 
 const (
@@ -62,4 +64,27 @@ var _ = Describe("Helpers", func() {
 func getConfigPath(filename string) string {
 	dir, _ := os.Getwd()
 	return path.Join(dir, FixturePath, filename)
+}
+
+// This matcher is used to make gomega matching compatible with gomock parameter matching.
+// It's pretty awesome!
+//
+// This sort of hacks the gomock interface to inject a gomega matcher.
+//
+// Gomega matchers are far more flexible than gomock matchers, but they normally can't be used on parameters.
+
+type paramMatcher struct {
+	matcher types.GomegaMatcher
+}
+
+func ParamMatch(matcher types.GomegaMatcher) gomock.Matcher {
+	return paramMatcher{matcher}
+}
+
+func (p paramMatcher) String() string {
+	return "a gomega matcher to match, and said matcher should have paniced before this message was printed."
+}
+
+func (p paramMatcher) Matches(x interface{}) (retVal bool) {
+	return Ω(x).Should(p.matcher)
 }

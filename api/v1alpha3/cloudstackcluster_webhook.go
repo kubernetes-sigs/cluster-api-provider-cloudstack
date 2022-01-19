@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/webhook_utilities"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,19 +55,20 @@ var _ webhook.Validator = &CloudStackCluster{}
 func (r *CloudStackCluster) ValidateCreate() error {
 	cloudstackclusterlog.Info("validate create", "name", r.Name)
 
-	var (
-		errorList field.ErrorList
-		spec      = r.Spec
-	)
+	var errorList field.ErrorList
 
 	// IdentityRefs must be Secrets.
-	if spec.IdentityRef != nil && spec.IdentityRef.Kind != defaultIdentityRefKind {
+	if r.Spec.IdentityRef != nil && r.Spec.IdentityRef.Kind != defaultIdentityRefKind {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
+	if (r.Spec.Account == "") != (r.Spec.Domain == "") {
+		errorList = append(errorList, field.Required(field.NewPath("spec", "account"), "account and domain must be specified together"))
+	}
+
 	// Zone and Network are required fields
-	errorList = webhook_utilities.EnsureFieldExists(spec.Zone, "Zone", errorList)
-	errorList = webhook_utilities.EnsureFieldExists(spec.Network, "Network", errorList)
+	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Zone, "Zone", errorList)
+	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Network, "Network", errorList)
 
 	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
@@ -94,6 +96,8 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	// No spec fields may be changed
 	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Zone, oldSpec.Zone, "zone", errorList)
 	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Network, oldSpec.Network, "network", errorList)
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpointhost", errorList)
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(string(spec.ControlPlaneEndpoint.Port), string(oldSpec.ControlPlaneEndpoint.Port), "controlplaneendpointport", errorList)
 	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
 		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
 		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)

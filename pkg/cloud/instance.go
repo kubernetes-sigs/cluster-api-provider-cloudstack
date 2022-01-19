@@ -160,6 +160,10 @@ func (c *client) GetOrCreateVMInstance(
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
 	}
+	p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
+
 	// If this VM instance is a control plane, consider setting it's IP.
 	_, isControlPlanceMachine := machine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
 	if isControlPlanceMachine && csCluster.Status.NetworkType == NetworkTypeShared {
