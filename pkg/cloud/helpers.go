@@ -16,25 +16,10 @@ limitations under the License.
 
 package cloud
 
-import (
-	"bytes"
-	"compress/gzip"
-)
-
 type set func(string)
 
 func setIfNotEmpty(str string, setFn set) {
 	if str != "" {
 		setFn(str)
 	}
-}
-
-func CompressData(data []byte) ([]byte, error) {
-	buf := &bytes.Buffer{}
-	gzipWriter := gzip.NewWriter(buf)
-	defer gzipWriter.Close()
-	if _, err := gzipWriter.Write(data); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
 }
