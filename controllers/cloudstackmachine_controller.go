@@ -17,9 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"reflect"
@@ -169,17 +167,8 @@ func (r *CloudStackMachineReconciler) reconcile(
 		return ctrl.Result{}, errors.New("Bootstrap secret data not ok.")
 	}
 
-	buf := &bytes.Buffer{}
-	err := cloud.CompressData(value, buf)
-	if err != nil {
-		log.Error(err, "Failed to compress userData")
-		return ctrl.Result{}, err
-	}
-	compressedValue := buf.Bytes()
-	userData := base64.StdEncoding.EncodeToString(compressedValue)
-
 	// Create VM (or Fetch if present). Will set ready to true.
-	if err := r.CS.GetOrCreateVMInstance(csMachine, machine, csCluster, userData); err == nil {
+	if err := r.CS.GetOrCreateVMInstance(csMachine, machine, csCluster, string(value)); err == nil {
 		if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
 			log.Info("CloudStack instance Created", "instanceStatus", csMachine.Status, "instanceSpec", csMachine.Spec)
 			controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)

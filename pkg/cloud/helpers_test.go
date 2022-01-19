@@ -19,6 +19,7 @@ package cloud_test
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"path"
@@ -44,26 +45,17 @@ var _ = Describe("Helpers", func() {
 		})
 	})
 
-	It("should compress data", func() {
+	It("should compress and encode string", func() {
 		str := "Hello World"
-		data := []byte(str)
-		buf := &bytes.Buffer{}
 
-		err := cloud.CompressData(data, buf)
-		reader, _ := gzip.NewReader(bytes.NewReader(buf.Bytes()))
-		uncompressedData, _ := ioutil.ReadAll(reader)
+		compressedAndEncodedData, err := cloud.CompressAndEncodeString(str)
+		compressedData, _ := base64.StdEncoding.DecodeString(compressedAndEncodedData)
+
+		reader, _ := gzip.NewReader(bytes.NewReader(compressedData))
+		result, _ := ioutil.ReadAll(reader)
 
 		Ω(err).Should(BeNil())
-		Ω(string(uncompressedData)).Should(Equal(str))
-	})
-
-	It("should return error when a nil is passed", func() {
-		str := "Hello World"
-		data := []byte(str)
-
-		err := cloud.CompressData(data, nil)
-
-		Ω(err).ShouldNot(BeNil())
+		Ω(string(result)).Should(Equal(str))
 	})
 })
 

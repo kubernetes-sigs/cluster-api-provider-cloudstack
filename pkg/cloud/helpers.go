@@ -19,7 +19,7 @@ package cloud
 import (
 	"bytes"
 	"compress/gzip"
-	"errors"
+	"encoding/base64"
 )
 
 type set func(string)
@@ -30,14 +30,13 @@ func setIfNotEmpty(str string, setFn set) {
 	}
 }
 
-func CompressData(data []byte, buf *bytes.Buffer) error {
-	if buf == nil {
-		return errors.New("buf is nil")
-	}
+func CompressAndEncodeString(str string) (string, error) {
+	buf := &bytes.Buffer{}
 	gzipWriter := gzip.NewWriter(buf)
 	defer gzipWriter.Close()
-	if _, err := gzipWriter.Write(data); err != nil {
-		return err
+	if _, err := gzipWriter.Write([]byte(str)); err != nil {
+		return "", err
 	}
-	return nil
+	gzipWriter.Flush()
+	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
