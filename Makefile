@@ -179,7 +179,7 @@ pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -p
 
 .PHONY: tilt-up 
 tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests cloud-config # Setup and run tilt for development.
-	export CLOUDSTACK_B64ENCODED_SECRET=$(base64 -i cloud-config) && cd cluster-api && tilt up
+	export CLOUDSTACK_B64ENCODED_SECRET=$$(base64 -i cloud-config) && cd cluster-api && tilt up
 
 .PHONY: kind-cluster
 kind-cluster: cluster-api cluster-api/hack/kind-install-for-capd.sh # Create a kind cluster with a local Docker repository.
