@@ -40,7 +40,7 @@ type Client interface {
 	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
 	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
 	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
-	GetOrCreateAffinityGroup(*infrav1.CloudStackCluster, AffinityGroup) error
+	AffinityGroupIFace
 }
 
 type client struct {

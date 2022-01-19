@@ -23,18 +23,25 @@ type AffinityGroup struct {
 	Name         string
 }
 
+type AffinityGroupIFace interface {
+	GetOrCreateAffinityGroup(*infrav1.CloudStackCluster, AffinityGroup) error
+	DeleteAffinityGroup(*infrav1.CloudStackCluster, AffinityGroup) error
+	AssociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
+	DissassociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
+}
+
 func (c *client) GetOrCreateAffinityGroup(csCluster *infrav1.CloudStackCluster, group AffinityGroup) (retErr error) {
 	return nil
 }
 
-func (c *client) DeleteAffinityGroup(csCluster *infrav1.CloudStackCluster, antiAffinity bool) (retErr error) {
+func (c *client) DeleteAffinityGroup(csCluster *infrav1.CloudStackCluster, group AffinityGroup) (retErr error) {
 	return nil
 }
 
-func (c *client) AssociateAffinityGroup(csCluster *infrav1.CloudStackMachine, affinityGroupID string) (retErr error) {
+func (c *client) AssociateAffinityGroup(csCluster *infrav1.CloudStackMachine, group AffinityGroup) (retErr error) {
 	return nil
 }
 
-func (c *client) DissassociateAffinityGroup(csCluster *infrav1.CloudStackMachine, affinityGroupID string) (retErr error) {
+func (c *client) DissassociateAffinityGroup(csCluster *infrav1.CloudStackMachine, group AffinityGroup) (retErr error) {
 	return nil
 }
