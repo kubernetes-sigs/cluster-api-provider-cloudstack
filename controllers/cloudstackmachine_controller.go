@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -168,12 +169,13 @@ func (r *CloudStackMachineReconciler) reconcile(
 		return ctrl.Result{}, errors.New("Bootstrap secret data not ok.")
 	}
 
-	compressedValue, err := cloud.CompressData(value)
+	buf := &bytes.Buffer{}
+	err := cloud.CompressData(value, buf)
 	if err != nil {
 		log.Error(err, "Failed to compress userData")
 		return ctrl.Result{}, err
 	}
-
+	compressedValue := buf.Bytes()
 	userData := base64.StdEncoding.EncodeToString(compressedValue)
 
 	// Create VM (or Fetch if present). Will set ready to true.

@@ -19,6 +19,7 @@ package cloud
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 )
 
 type set func(string)
@@ -29,12 +30,14 @@ func setIfNotEmpty(str string, setFn set) {
 	}
 }
 
-func CompressData(data []byte) ([]byte, error) {
-	buf := &bytes.Buffer{}
+func CompressData(data []byte, buf *bytes.Buffer) error {
+	if buf == nil {
+		return errors.New("buf is nil")
+	}
 	gzipWriter := gzip.NewWriter(buf)
 	defer gzipWriter.Close()
 	if _, err := gzipWriter.Write(data); err != nil {
-		return nil, err
+		return err
 	}
-	return buf.Bytes(), nil
+	return nil
 }

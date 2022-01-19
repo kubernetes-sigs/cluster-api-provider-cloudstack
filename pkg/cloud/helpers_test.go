@@ -17,6 +17,9 @@ limitations under the License.
 package cloud_test
 
 import (
+	"bytes"
+	"compress/gzip"
+	"io/ioutil"
 	"os"
 	"path"
 
@@ -39,6 +42,28 @@ var _ = Describe("Helpers", func() {
 			Ω(client).Should(BeNil())
 			Ω(err.Error()).Should(ContainSubstring("section Global not found"))
 		})
+	})
+
+	It("should compress data", func() {
+		str := "Hello World"
+		data := []byte(str)
+		buf := &bytes.Buffer{}
+
+		err := cloud.CompressData(data, buf)
+		reader, _ := gzip.NewReader(bytes.NewReader(buf.Bytes()))
+		uncompressedData, _ := ioutil.ReadAll(reader)
+
+		Ω(err).Should(BeNil())
+		Ω(string(uncompressedData)).Should(Equal(str))
+	})
+
+	It("should return error when a nil is passed", func() {
+		str := "Hello World"
+		data := []byte(str)
+
+		err := cloud.CompressData(data, nil)
+
+		Ω(err).ShouldNot(BeNil())
 	})
 })
 
