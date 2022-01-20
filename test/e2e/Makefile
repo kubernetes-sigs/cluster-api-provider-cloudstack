@@ -96,6 +96,9 @@ run-e2e: $(GINKGO) kind-cluster manifests cluster-templates ## Run End-to-End Te
 
 .PHONY: run-e2e-pr-blocking
 run-e2e-pr-blocking: $(GINKGO) kind-cluster manifests cluster-templates ## Run Only End-to-End Tests containing PR-Blocking tag
+	echo $CLOUDSTACK_B64ENCODED_SECRET
+	export CLOUDSTACK_B64ENCODED_SECRET=$(echo $CLOUDSTACK_B64ENCODED_SECRET | base64 --)
+	echo $CLOUDSTACK_B64ENCODED_SECRET
 	$(GINKGO) -v -trace -tags=e2e -focus=PR-Blocking -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
