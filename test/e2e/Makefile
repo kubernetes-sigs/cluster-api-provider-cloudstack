@@ -88,7 +88,7 @@ cluster-templates-v1alpha3: $(KUSTOMIZE)
 
 .PHONY: run-e2e
 run-e2e: $(GINKGO) kind-cluster manifests cluster-templates ## Run End-to-End Tests
-	time $(GINKGO) -v -trace -tags=e2e -skip=Conformance -nodes=1 --noColor=false ./... -- \
+	$(GINKGO) -v -trace -tags=e2e -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
@@ -96,7 +96,7 @@ run-e2e: $(GINKGO) kind-cluster manifests cluster-templates ## Run End-to-End Te
 
 .PHONY: run-e2e-pr-blocking
 run-e2e-pr-blocking: $(GINKGO) kind-cluster manifests cluster-templates ## Run Only End-to-End Tests containing PR-Blocking tag
-	time $(GINKGO) -v -trace -tags=e2e -focus=PR-Blocking -skip=Conformance -nodes=1 --noColor=false ./... -- \
+	$(GINKGO) -v -trace -tags=e2e -focus=PR-Blocking -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
@@ -104,7 +104,7 @@ run-e2e-pr-blocking: $(GINKGO) kind-cluster manifests cluster-templates ## Run O
 
 .PHONY: run-conformance
 run-conformance: $(GINKGO) kind-cluster manifests cluster-templates ## Run K8S Conformance Tests
-	time $(GINKGO) -v -trace -tags=e2e -focus=Conformance -nodes=1 --noColor=false ./... -- \
+	$(GINKGO) -v -trace -tags=e2e -focus=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
