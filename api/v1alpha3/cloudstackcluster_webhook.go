@@ -63,7 +63,7 @@ func (r *CloudStackCluster) ValidateCreate() error {
 	}
 
 	if (r.Spec.Account != "") && (r.Spec.Domain == "") {
-		errorList = append(errorList, field.Required(field.NewPath("spec", "account"), "account and domain must be specified together"))
+		errorList = append(errorList, field.Required(field.NewPath("spec", "account"), "specifying account requires additionally specifying domain"))
 	}
 
 	// Zone and Network are required fields
