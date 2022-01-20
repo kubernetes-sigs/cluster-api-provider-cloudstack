@@ -62,7 +62,7 @@ func (r *CloudStackCluster) ValidateCreate() error {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
-	if (r.Spec.Account == "") != (r.Spec.Domain == "") {
+	if (r.Spec.Account != "") && (r.Spec.Domain == "") {
 		errorList = append(errorList, field.Required(field.NewPath("spec", "account"), "account and domain must be specified together"))
 	}
 
