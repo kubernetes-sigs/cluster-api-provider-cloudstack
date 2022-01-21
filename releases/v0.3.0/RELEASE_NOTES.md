@@ -11,16 +11,14 @@ THE SOFTWARE SHOULD NOT BE USED FOR PRODUCTION WORKLOADS
 
 * This software creates virtual machine instances in a target CloudStack environment and configures them into a Kubernetes cluster.
 * This is a release of partial functionality for mid-development-process review by stakeholders.
-    * Cluster creation, deletion and upgrade with CAPC via EKS Anywhere.
+    * Cluster creation, deletion and upgrade.
     * Support for CloudStack Affinity Groups
     * Baseline Components
         * Apache CloudStack 4.14
-        * Cluster API clusterctl v0.4.4
-        * Guest OS - RHEL 8
-        * Host OS - CentOS 7
+        * Cluster API clusterctl v0.3.23
         * Cilium Container Network
     * Note: The default mode of operation for the deployed Kubernetes cluster components is to use self-signed certificates.  Options exist for use of an enterprise certificate authority via cert-manager (https://cert-manager.io/docs/configuration/).  Detailed configuration of this component is outside the scope of this release.
-* The following pre-conditions must be met for CreateCluster feature to operate as designed.
+* The following pre-conditions must be met for CAPC to operate as designed.
     * A functional CloudStack 4.14 deployment
     * The CloudStack account used by CAPC must have domain administrator privileges or be otherwise appropriately privileged to execute the API calls specified in the below CAPC CloudStack API Calls document link.
     * Network and Zone must be pre-created and available to CAPC prior to CreateCluster API call.
@@ -31,7 +29,7 @@ THE SOFTWARE SHOULD NOT BE USED FOR PRODUCTION WORKLOADS
 
 ### Release Assets :
 
-* cluster-api-provider-cloudstack.tar.gz: container image of the CAPC controller
+* cluster-api-provider-cloudstack-v0.3.0.tar.gz: container image of the CAPC controller
 * cluster-api.zip: configuration files for clusterctl
     * infrastructure-components.yaml
     * metadata.yaml
