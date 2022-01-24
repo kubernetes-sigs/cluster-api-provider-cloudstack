@@ -1,0 +1,1 @@
+798157ee495591e08bdd70a546ce37625d3e3f6c  cluster-api-provider-cloudstack-v0.3.0.tar.gz
