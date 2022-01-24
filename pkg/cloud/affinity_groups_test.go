@@ -46,6 +46,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		fakeAG = cloud.AffinityGroup{
 			Name: "FakeAffinityGroup",
 			Type: cloud.AffinityGroupType}
+		cluster = &infrav1.CloudStackCluster{Spec: infrav1.CloudStackClusterSpec{}}
 	})
 
 	AfterEach(func() {
@@ -59,11 +60,13 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 	})
 	It("creates an affinity group", func() {
 		fakeAG.Id = "FakeID"
+		cluster.Spec.Account = "FakeAccount"
+		cluster.Status.DomainID = "FakeDomainId"
 		ags.EXPECT().GetAffinityGroupByID(fakeAG.Id).Return(nil, -1, errors.New("FakeError"))
-		//ags.EXPECT().GetAffinityGroupByName(fakeAG.Name).Return(nil, -1, errors.New("FakeError"))
 		ags.EXPECT().NewCreateAffinityGroupParams(fakeAG.Name, fakeAG.Type).
 			Return(&cloudstack.CreateAffinityGroupParams{})
-		ags.EXPECT().CreateAffinityGroup(gomock.Any()).Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
+		ags.EXPECT().CreateAffinityGroup(ParamMatch(And(AccountEquals("FakeAccount"), DomainIdEquals("FakeDomainId")))).
+			Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
 		Ω(client.GetOrCreateAffinityGroup(cluster, fakeAG)).Should(Succeed())
 	})
@@ -71,14 +74,12 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 	Context("AffinityGroup Integ Tests", func() {
 		client, err := cloud.NewClient("../../cloud-config")
 		var ( // Declare shared vars.
-			cluster     *infrav1.CloudStackCluster
 			arbitraryAG cloud.AffinityGroup
 		)
 		BeforeEach(func() {
 			if err != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
 				Skip("Could not connect to ACS instance.")
 			}
-			cluster = &infrav1.CloudStackCluster{Spec: infrav1.CloudStackClusterSpec{}}
 			arbitraryAG = cloud.AffinityGroup{Name: "ArbitraryAffinityGroup", Type: cloud.AffinityGroupType}
 		})
 

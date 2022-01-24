@@ -75,7 +75,8 @@ func (c *client) FetchAffinityGroup(csCluster *infrav1.CloudStackCluster, group 
 func (c *client) GetOrCreateAffinityGroup(csCluster *infrav1.CloudStackCluster, group AffinityGroup) (retErr error) {
 	if err := c.FetchAffinityGroup(csCluster, group); err != nil { // Group not found?
 		p := c.cs.AffinityGroup.NewCreateAffinityGroupParams(group.Name, group.Type)
-		// TODO: Add domain and account here once PR is completed.
+		setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+		setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 		if resp, err := c.cs.AffinityGroup.CreateAffinityGroup(p); err != nil {
 			return err
 		} else {
@@ -89,7 +90,8 @@ func (c *client) DeleteAffinityGroup(csCluster *infrav1.CloudStackCluster, group
 	p := c.cs.AffinityGroup.NewDeleteAffinityGroupParams()
 	setIfNotEmpty(group.Id, p.SetId)
 	setIfNotEmpty(group.Name, p.SetName)
-	// TODO: Add domain and account here once PR is completed.
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	_, retErr = c.cs.AffinityGroup.DeleteAffinityGroup(p)
 	return retErr
 }
