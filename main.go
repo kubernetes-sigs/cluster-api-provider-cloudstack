@@ -18,21 +18,21 @@ package main
 
 import (
 	"flag"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"os"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"strings"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
 	"github.com/aws/cluster-api-provider-cloudstack/controllers"
@@ -51,33 +51,61 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
-func main() {
+type managerOpts struct {
+	CloudConfigFile      string
+	MetricsAddr          string
+	EnableLeaderElection bool
+	ProbeAddr            string
+	WatchingNamespace    string
+	CertDir              string
+}
 
-	// Parse args and setup logger.
-	var cloudConfigFile string
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	var watchingNamespace string
-	var certDir string
-	flag.StringVar(&cloudConfigFile, "cloud-config-file", "/config/cloud-config", "Overrides the default path to the cloud-config file that contains the CloudStack credentials.")
-	flag.StringVar(&metricsAddr, "metrics-bind-address", "localhost:8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+func setFlags() *managerOpts {
+	opts := &managerOpts{}
+	flag.StringVar(
+		&opts.CloudConfigFile,
+		"cloud-config-file",
+		"/config/cloud-config",
+		"Overrides the default path to the cloud-config file that contains the CloudStack credentials.")
+	flag.StringVar(
+		&opts.MetricsAddr,
+		"metrics-bind-address",
+		"localhost:8080",
+		"The address the metric endpoint binds to.")
+	flag.StringVar(
+		&opts.ProbeAddr,
+		"health-probe-bind-address",
+		":8081",
+		"The address the probe endpoint binds to.")
+	flag.BoolVar(
+		&opts.EnableLeaderElection,
+		"leader-elect",
+		false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&watchingNamespace, "namespace", "", "Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
-	flag.StringVar(&certDir, "cert-dir", "", "Directory where webhook certs will be stored.")
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
+	flag.StringVar(
+		&opts.WatchingNamespace,
+		"namespace",
+		"",
+		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, "+
+			"the controller watches for cluster-api objects across all namespaces.")
+	flag.StringVar(
+		&opts.CertDir,
+		"webhook-cert-dir",
+		"",
+		"Specify the directory where webhooks will get tls certificates.")
+	return opts
+}
+
+func main() {
+	opts := setFlags()  // Add our options to flag set.
+	klog.InitFlags(nil) // Add klog options to flag set.
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	ctrl.SetLogger(klogr.New())
 
 	// Setup CloudStack api client.
-	client, err := cloud.NewClient(cloudConfigFile)
+	client, err := cloud.NewClient(opts.CloudConfigFile)
 	if err != nil {
 		if !strings.Contains(err.Error(), "Timeout") {
 			setupLog.Error(err, "unable to start manager")
@@ -90,13 +118,13 @@ func main() {
 	// Create the controller manager.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
+		MetricsBindAddress:     opts.MetricsAddr,
 		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
+		HealthProbeBindAddress: opts.ProbeAddr,
+		LeaderElection:         opts.EnableLeaderElection,
 		LeaderElectionID:       "capc-leader-election-controller",
-		Namespace:              watchingNamespace,
-		CertDir:                certDir,
+		Namespace:              opts.WatchingNamespace,
+		CertDir:                opts.CertDir,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
