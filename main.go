@@ -18,11 +18,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/klog"
@@ -34,7 +35,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -57,6 +58,7 @@ type managerOpts struct {
 	EnableLeaderElection bool
 	ProbeAddr            string
 	WatchingNamespace    string
+	WatchFilterValue     string
 	CertDir              string
 }
 
@@ -89,6 +91,14 @@ func setFlags() *managerOpts {
 		"",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, "+
 			"the controller watches for cluster-api objects across all namespaces.")
+	flag.StringVar( // TODO: use filter per CAPI book instructions in upgrade to v1alpha4.
+		&opts.WatchFilterValue,
+		"watch-filter",
+		"",
+		fmt.Sprintf(
+			"Label value that the controller watches to reconcile cluster-api objects. "+
+				"Label key is always %s. If unspecified, the controller watches for all cluster-api objects.",
+			clusterv1.WatchLabel))
 	flag.StringVar(
 		&opts.CertDir,
 		"webhook-cert-dir",
