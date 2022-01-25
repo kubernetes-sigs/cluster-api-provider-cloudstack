@@ -25,16 +25,19 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 var _ = Describe("AffinityGroup Unit Tests", func() {
 	var ( // Declare shared vars.
-		mockCtrl   *gomock.Controller
-		mockClient *cloudstack.CloudStackClient
-		ags        *cloudstack.MockAffinityGroupServiceIface
-		fakeAG     cloud.AffinityGroup
-		cluster    *infrav1.CloudStackCluster
-		client     cloud.Client
+		mockCtrl    *gomock.Controller
+		mockClient  *cloudstack.CloudStackClient
+		ags         *cloudstack.MockAffinityGroupServiceIface
+		fakeAG      *cloud.AffinityGroup
+		cluster     *infrav1.CloudStackCluster
+		machine     *infrav1.CloudStackMachine
+		capiMachine *capiv1.Machine
+		client      cloud.Client
 	)
 
 	BeforeEach(func() {
@@ -43,10 +46,15 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		mockClient = cloudstack.NewMockClient(mockCtrl)
 		ags = mockClient.AffinityGroup.(*cloudstack.MockAffinityGroupServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
-		fakeAG = cloud.AffinityGroup{
+		fakeAG = &cloud.AffinityGroup{
 			Name: "FakeAffinityGroup",
 			Type: cloud.AffinityGroupType}
-		cluster = &infrav1.CloudStackCluster{Spec: infrav1.CloudStackClusterSpec{}}
+		cluster = &infrav1.CloudStackCluster{Spec: infrav1.CloudStackClusterSpec{
+			Zone: "Zone1", Network: "SharedGuestNet1"}}
+		machine = &infrav1.CloudStackMachine{Spec: infrav1.CloudStackMachineSpec{
+			Offering: "Medium Instance", Template: "Ubuntu20"}}
+		machine.ObjectMeta.SetName("rejoshed-affinity-group-test-vm")
+		capiMachine = &capiv1.Machine{}
 	})
 
 	AfterEach(func() {
@@ -72,22 +80,40 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 	})
 
 	Context("AffinityGroup Integ Tests", func() {
-		client, err := cloud.NewClient("../../cloud-config")
+		client, connectionErr := cloud.NewClient("../../cloud-config")
+
 		var ( // Declare shared vars.
-			arbitraryAG cloud.AffinityGroup
+			arbitraryAG *cloud.AffinityGroup
 		)
 		BeforeEach(func() {
-			if err != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
+			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
 				Skip("Could not connect to ACS instance.")
 			}
-			arbitraryAG = cloud.AffinityGroup{Name: "ArbitraryAffinityGroup", Type: cloud.AffinityGroupType}
+			arbitraryAG = &cloud.AffinityGroup{Name: "ArbitraryAffinityGroup", Type: cloud.AffinityGroupType}
+		})
+		AfterEach(func() {
+			mockCtrl.Finish()
 		})
 
 		It("Creates an affinity group.", func() {
 			Ω(client.GetOrCreateAffinityGroup(cluster, arbitraryAG)).Should(Succeed())
+			arbitraryAG2 := &cloud.AffinityGroup{Name: arbitraryAG.Name}
+			Ω(client.GetOrCreateAffinityGroup(cluster, arbitraryAG2)).Should(Succeed())
+			Ω(arbitraryAG2).Should(Equal(arbitraryAG))
+		})
+		It("Associates an affinity group.", func() {
+			if err := client.GetOrCreateCluster(cluster); err != nil {
+				Skip("Could not flesh out Cluster." + err.Error())
+			}
+			if err := client.GetOrCreateVMInstance(machine, capiMachine, cluster, ""); err != nil {
+				Skip("Could not create VM." + err.Error())
+			}
+			Ω(client.GetOrCreateAffinityGroup(cluster, arbitraryAG)).Should(Succeed())
+			Ω(client.AssociateAffinityGroup(machine, *arbitraryAG)).Should(Succeed())
 		})
 		It("Deletes an affinity group.", func() {
 			Ω(client.DeleteAffinityGroup(cluster, arbitraryAG)).Should(Succeed())
+			Ω(client.FetchAffinityGroup(cluster, arbitraryAG)).ShouldNot(Succeed())
 		})
 	})
 })
