@@ -1,0 +1,31 @@
+# This custom resource can be optionally be defined for a cluster, enabling CAPI Machine Health Checking
+# for its worker nodes.  See https://cluster-api.sigs.k8s.io/tasks/healthcheck.html
+#
+# This has intentionally been segregated from the cluster-templates, as it introduces a few complexities
+# surrounding CNIs:
+#  - The CNI must be deployed and the cluster nodes become ready within the nodeStartTimeout (or else
+#    the MachineHealthCheck remediation processes will begin terminating the unready worker nodes).
+#  - Certain CNIs have been observed to hang the MachineHealthCheck remediation processes's attempts
+#    to delete the failed node (inability to drain).
+# As such, the deployment of this component is left to the discretion of the cluster deployer.
+# If deployed independently of cluster-template, be sure to replace the placeholders in the below
+# before applying it to your management cluster.
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineHealthCheck
+metadata:
+  name: ${CLUSTER_NAME}-workers-unhealthy-2m
+spec:
+  clusterName: ${CLUSTER_NAME}
+  maxUnhealthy: 100%
+  nodeStartupTimeout: 10m
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/deployment-name: ${CLUSTER_NAME}-md-0
+  unhealthyConditions:
+    - type: Ready
+      status: Unknown
+      timeout: 120s
+    - type: Ready
+      status: "False"
+      timeout: 120s
