@@ -10,6 +10,7 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.17.0
 	github.com/pkg/errors v0.9.1
+	github.com/spf13/pflag v1.0.5 // indirect
 	gopkg.in/ini.v1 v1.63.2
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2

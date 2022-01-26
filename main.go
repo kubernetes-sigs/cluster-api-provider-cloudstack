@@ -17,12 +17,12 @@ limitations under the License.
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"

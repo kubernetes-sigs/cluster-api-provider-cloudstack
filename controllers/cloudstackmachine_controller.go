@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -64,8 +65,7 @@ const RequeueTimeout = 5 * time.Second
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *CloudStackMachineReconciler) Reconcile(req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	ctx := context.Background()
+func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
 	log := r.Log.WithValues("machine", req.Name, "namespace", req.Namespace)
 	log.V(1).Info("Reconcile CloudStackMachine")
 
@@ -218,7 +218,13 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 // Called in main, this registers the machine reconciler to the CAPI controller manager.
 func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	// Used below, this maps CAPI clusters to CAPC machines
+	csMachineMapper, err := util.ClusterToObjectsMapper(r.Client, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+
+	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackMachine{}).
 		WithEventFilter(
 			predicate.Funcs{
@@ -251,52 +257,38 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				},
 			},
 		).
-		Build(r)
+		// Watch CAPI machines for changes.
+		// Queues a reconcile request for owned CloudStackMachine on change.
+		// Used to update when bootstrap data becomes available.
+		Watches(
+			&source.Kind{Type: &capiv1.Machine{}},
+			handler.EnqueueRequestsFromMapFunc(
+				util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine"))),
+			builder.WithPredicates(
+				predicate.Funcs{
+					UpdateFunc: func(e event.UpdateEvent) bool {
+						oldMachine := e.ObjectOld.(*capiv1.Machine)
+						newMachine := e.ObjectNew.(*capiv1.Machine)
 
-	if err != nil {
-		return err
-	}
-
-	// Watch CAPI machines for changes.
-	// Queues a reconcile request for owned CloudStackMachine on change.
-	// Used to update when bootstrap data becomes available.
-	if err = controller.Watch(
-		&source.Kind{Type: &capiv1.Machine{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine")),
-		},
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldMachine := e.ObjectOld.(*capiv1.Machine)
-				newMachine := e.ObjectNew.(*capiv1.Machine)
-
-				return oldMachine.Spec.Bootstrap.DataSecretName == nil && newMachine.Spec.Bootstrap.DataSecretName != nil
-			},
-		},
-	); err != nil {
-		return err
-	}
-
-	csMachineMapper, err := util.ClusterToObjectsMapper(r.Client, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
-	if err != nil {
-		return err
-	}
-
-	// Add a watch on CAPI Cluster objects for unpause and ready events.
-	return controller.Watch(
-		&source.Kind{Type: &capiv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: csMachineMapper},
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*capiv1.Cluster)
-				newCluster := e.ObjectNew.(*capiv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
-			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				_, ok := e.Meta.GetAnnotations()[capiv1.PausedAnnotation]
-				return ok
-			},
-		},
-	)
+						return oldMachine.Spec.Bootstrap.DataSecretName == nil && newMachine.Spec.Bootstrap.DataSecretName != nil
+					},
+				}),
+		).
+		// Add a watch on CAPI Cluster objects for unpause and ready events.
+		Watches(
+			&source.Kind{Type: &capiv1.Cluster{}},
+			handler.EnqueueRequestsFromMapFunc(csMachineMapper),
+			builder.WithPredicates(predicate.Funcs{
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					oldCluster := e.ObjectOld.(*capiv1.Cluster)
+					newCluster := e.ObjectNew.(*capiv1.Cluster)
+					return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+				},
+				CreateFunc: func(e event.CreateEvent) bool {
+					_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
+					return ok
+				},
+			}),
+		).
+		Complete(r)
 }

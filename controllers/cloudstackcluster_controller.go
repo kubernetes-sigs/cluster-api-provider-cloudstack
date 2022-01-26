@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -63,8 +64,7 @@ type CloudStackClusterReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *CloudStackClusterReconciler) Reconcile(req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	ctx := context.Background()
+func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
 	log := r.Log.WithValues("cluster", req.Name, "namespace", req.Namespace)
 	log.V(1).Info("Reconcile CloudStackCluster")
 
@@ -145,7 +145,7 @@ func (r *CloudStackClusterReconciler) reconcileDelete(
 
 // Called in main, this registers the cluster reconciler to the CAPI controller manager.
 func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackCluster{}).
 		WithEventFilter(
 			predicate.Funcs{
@@ -169,27 +169,19 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				},
 			},
 		).
-		Build(r)
-
-	if err != nil {
-		return err
-	}
-
-	// Add a watch on CAPI Cluster objects for unpause and ready events.
-	return controller.Watch(
-		&source.Kind{Type: &capiv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))},
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*capiv1.Cluster)
-				newCluster := e.ObjectNew.(*capiv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
-			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				_, ok := e.Meta.GetAnnotations()[capiv1.PausedAnnotation]
-				return ok
-			},
-		},
-	)
+		Watches( // Add a watch on CAPI Cluster objects for unpause and ready events.
+			&source.Kind{Type: &capiv1.Cluster{}},
+			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))),
+			builder.WithPredicates(
+				predicate.Funcs{
+					UpdateFunc: func(e event.UpdateEvent) bool {
+						oldCluster := e.ObjectOld.(*capiv1.Cluster)
+						newCluster := e.ObjectNew.(*capiv1.Cluster)
+						return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+					},
+					CreateFunc: func(e event.CreateEvent) bool {
+						_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
+						return ok
+					}}),
+		).Complete(r)
 }
