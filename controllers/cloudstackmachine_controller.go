@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -218,13 +217,7 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 // Called in main, this registers the machine reconciler to the CAPI controller manager.
 func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
-	// Used below, this maps CAPI clusters to CAPC machines
-	csMachineMapper, err := util.ClusterToObjectsMapper(r.Client, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
-	if err != nil {
-		return err
-	}
-
-	return ctrl.NewControllerManagedBy(mgr).
+	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackMachine{}).
 		WithEventFilter(
 			predicate.Funcs{
@@ -256,39 +249,50 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					return !reflect.DeepEqual(oldMachine, newMachine)
 				},
 			},
-		).
-		// Watch CAPI machines for changes.
-		// Queues a reconcile request for owned CloudStackMachine on change.
-		// Used to update when bootstrap data becomes available.
-		Watches(
-			&source.Kind{Type: &capiv1.Machine{}},
-			handler.EnqueueRequestsFromMapFunc(
-				util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine"))),
-			builder.WithPredicates(
-				predicate.Funcs{
-					UpdateFunc: func(e event.UpdateEvent) bool {
-						oldMachine := e.ObjectOld.(*capiv1.Machine)
-						newMachine := e.ObjectNew.(*capiv1.Machine)
+		).Build(r)
+	if err != nil {
+		return err
+	}
 
-						return oldMachine.Spec.Bootstrap.DataSecretName == nil && newMachine.Spec.Bootstrap.DataSecretName != nil
-					},
-				}),
-		).
-		// Add a watch on CAPI Cluster objects for unpause and ready events.
-		Watches(
-			&source.Kind{Type: &capiv1.Cluster{}},
-			handler.EnqueueRequestsFromMapFunc(csMachineMapper),
-			builder.WithPredicates(predicate.Funcs{
-				UpdateFunc: func(e event.UpdateEvent) bool {
-					oldCluster := e.ObjectOld.(*capiv1.Cluster)
-					newCluster := e.ObjectNew.(*capiv1.Cluster)
-					return oldCluster.Spec.Paused && !newCluster.Spec.Paused
-				},
-				CreateFunc: func(e event.CreateEvent) bool {
-					_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
-					return ok
-				},
-			}),
-		).
-		Complete(r)
+	// Watch CAPI machines for changes.
+	// Queues a reconcile request for owned CloudStackMachine on change.
+	// Used to update when bootstrap data becomes available.
+	if err = controller.Watch(
+		&source.Kind{Type: &capiv1.Machine{}},
+		handler.EnqueueRequestsFromMapFunc(
+			util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine"))),
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldMachine := e.ObjectOld.(*capiv1.Machine)
+				newMachine := e.ObjectNew.(*capiv1.Machine)
+
+				return oldMachine.Spec.Bootstrap.DataSecretName == nil && newMachine.Spec.Bootstrap.DataSecretName != nil
+			},
+		},
+	); err != nil {
+		return err
+	}
+
+	// Used below, this maps CAPI clusters to CAPC machines
+	csMachineMapper, err := util.ClusterToObjectsMapper(r.Client, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+
+	// Add a watch on CAPI Cluster objects for unpause and ready events.
+	return controller.Watch(
+		&source.Kind{Type: &capiv1.Cluster{}},
+		handler.EnqueueRequestsFromMapFunc(csMachineMapper),
+		predicate.Funcs{
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				oldCluster := e.ObjectOld.(*capiv1.Cluster)
+				newCluster := e.ObjectNew.(*capiv1.Cluster)
+				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
+			},
+			CreateFunc: func(e event.CreateEvent) bool {
+				_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
+				return ok
+			},
+		},
+	)
 }
