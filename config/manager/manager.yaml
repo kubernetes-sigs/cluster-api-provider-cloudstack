@@ -22,7 +22,6 @@ spec:
         - /manager
         args:
         - --leader-elect
-        - "--metrics-bind-addr=127.0.0.1:8080"
         image: controller:latest
         name: manager
         securityContext:
@@ -46,5 +45,5 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
-      serviceAccountName: manager
+      serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
