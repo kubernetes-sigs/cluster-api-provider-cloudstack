@@ -71,7 +71,7 @@ func setFlags() *managerOpts {
 		"Overrides the default path to the cloud-config file that contains the CloudStack credentials.")
 	flag.StringVar(
 		&opts.MetricsAddr,
-		"metrics-bind-address",
+		"metrics-bind-addr",
 		"localhost:8080",
 		"The address the metric endpoint binds to.")
 	flag.StringVar(
@@ -102,7 +102,7 @@ func setFlags() *managerOpts {
 	flag.StringVar(
 		&opts.CertDir,
 		"webhook-cert-dir",
-		"",
+		"/tmp/k8s-webhook-server/serving-certs/",
 		"Specify the directory where webhooks will get tls certificates.")
 	return opts
 }
