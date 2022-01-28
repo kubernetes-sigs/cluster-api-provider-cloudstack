@@ -20,3 +20,5 @@ require (
 	sigs.k8s.io/cluster-api v1.0.0
 	sigs.k8s.io/controller-runtime v0.10.2
 )
+
+replace github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.0.0 // Indirect upgrade to address https://github.com/advisories/GHSA-w73w-5m7g-f7qc
