@@ -134,7 +134,7 @@ undeploy: bin/kustomize ## Undeploy controller from the K8s cluster specified in
 .PHONY: binaries
 binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/mockgen bin/kubectl ## Locally install all needed bins.
 bin/controller-gen: ## Install controller-gen to bin.
-	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.8.0
+	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
 bin/golangci-lint: ## Install golangci-lint to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
 bin/ginkgo: ## Install ginkgo to bin.
