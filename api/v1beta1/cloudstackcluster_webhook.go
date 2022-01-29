@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1beta1
 
 import (
 	"fmt"
@@ -37,7 +37,7 @@ func (r *CloudStackCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha3-cloudstackcluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1alpha3,name=mcloudstackcluster.kb.io
+//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackcluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1beta1,name=mcloudstackcluster.kb.io,admissionReviewVersions=v1beta1
 
 var _ webhook.Defaulter = &CloudStackCluster{}
 
@@ -47,7 +47,7 @@ func (r *CloudStackCluster) Default() {
 	// No defaulted values supported yet.
 }
 
-//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-cloudstackcluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1alpha3,name=vcloudstackcluster.kb.io
+//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackcluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1beta1,name=vcloudstackcluster.kb.io,admissionReviewVersions=v1beta1
 
 var _ webhook.Validator = &CloudStackCluster{}
 

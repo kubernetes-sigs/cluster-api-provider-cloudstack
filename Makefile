@@ -134,7 +134,7 @@ undeploy: bin/kustomize ## Undeploy controller from the K8s cluster specified in
 .PHONY: binaries
 binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/mockgen bin/kubectl ## Locally install all needed bins.
 bin/controller-gen: ## Install controller-gen to bin.
-	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.9
+	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
 bin/golangci-lint: ## Install golangci-lint to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
 bin/ginkgo: ## Install ginkgo to bin.
@@ -181,19 +181,12 @@ tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests cloud
 	export CLOUDSTACK_B64ENCODED_SECRET=$$(base64 -i cloud-config) && cd cluster-api && tilt up
 
 .PHONY: kind-cluster
-kind-cluster: cluster-api cluster-api/hack/kind-install-for-capd.sh # Create a kind cluster with a local Docker repository.
+kind-cluster: cluster-api # Create a kind cluster with a local Docker repository.
 	-./cluster-api/hack/kind-install-for-capd.sh
 
 cluster-api: # Clone cluster-api repository for tilt use.
-	git clone --branch v0.3.24 https://github.com/kubernetes-sigs/cluster-api.git
+	git clone --branch v1.0.0 https://github.com/kubernetes-sigs/cluster-api.git
 
-# Need script from CAPI v1.0+
-# Can delete this target after upgrading to newer CAPI.
-cluster-api/hack/kind-install-for-capd.sh: cluster-api
-	cd cluster-api && git checkout v1.0.0 -- hack/kind-install-for-capd.sh
-
-# Need script from CAPI v1.0+
-# Can delete this target after upgrading to newer CAPI.
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
 

@@ -23,7 +23,6 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -37,8 +36,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // CloudStackClusterReconciler reconciles a CloudStackCluster object.
@@ -63,8 +63,7 @@ type CloudStackClusterReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *CloudStackClusterReconciler) Reconcile(req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	ctx := context.Background()
+func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
 	log := r.Log.WithValues("cluster", req.Name, "namespace", req.Namespace)
 	log.V(1).Info("Reconcile CloudStackCluster")
 
@@ -168,18 +167,14 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					return !reflect.DeepEqual(oldCluster, newCluster)
 				},
 			},
-		).
-		Build(r)
-
+		).Build(r)
 	if err != nil {
 		return err
 	}
-
-	// Add a watch on CAPI Cluster objects for unpause and ready events.
-	return controller.Watch(
+	return controller.Watch( // Add a watch on CAPI Cluster objects for unpause and ready events.
 		&source.Kind{Type: &capiv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))},
+		handler.EnqueueRequestsFromMapFunc(
+			util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldCluster := e.ObjectOld.(*capiv1.Cluster)
@@ -187,9 +182,8 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
 			CreateFunc: func(e event.CreateEvent) bool {
-				_, ok := e.Meta.GetAnnotations()[capiv1.PausedAnnotation]
+				_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
 				return ok
-			},
-		},
+			}},
 	)
 }

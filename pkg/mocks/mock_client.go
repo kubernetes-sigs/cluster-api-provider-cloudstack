@@ -8,9 +8,9 @@ import (
 	reflect "reflect"
 
 	cloudstack "github.com/apache/cloudstack-go/v2/cloudstack"
-	v1alpha3 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	v1beta1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	gomock "github.com/golang/mock/gomock"
-	v1alpha30 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	v1beta10 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // MockClient is a mock of Client interface.
@@ -37,7 +37,7 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // AssignVMToLoadBalancerRule mocks base method.
-func (m *MockClient) AssignVMToLoadBalancerRule(arg0 *v1alpha3.CloudStackCluster, arg1 string) error {
+func (m *MockClient) AssignVMToLoadBalancerRule(arg0 *v1beta1.CloudStackCluster, arg1 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AssignVMToLoadBalancerRule", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -51,7 +51,7 @@ func (mr *MockClientMockRecorder) AssignVMToLoadBalancerRule(arg0, arg1 interfac
 }
 
 // DestroyVMInstance mocks base method.
-func (m *MockClient) DestroyVMInstance(arg0 *v1alpha3.CloudStackMachine) error {
+func (m *MockClient) DestroyVMInstance(arg0 *v1beta1.CloudStackMachine) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DestroyVMInstance", arg0)
 	ret0, _ := ret[0].(error)
@@ -65,7 +65,7 @@ func (mr *MockClientMockRecorder) DestroyVMInstance(arg0 interface{}) *gomock.Ca
 }
 
 // GetOrCreateCluster mocks base method.
-func (m *MockClient) GetOrCreateCluster(arg0 *v1alpha3.CloudStackCluster) error {
+func (m *MockClient) GetOrCreateCluster(arg0 *v1beta1.CloudStackCluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOrCreateCluster", arg0)
 	ret0, _ := ret[0].(error)
@@ -79,7 +79,7 @@ func (mr *MockClientMockRecorder) GetOrCreateCluster(arg0 interface{}) *gomock.C
 }
 
 // GetOrCreateLoadBalancerRule mocks base method.
-func (m *MockClient) GetOrCreateLoadBalancerRule(arg0 *v1alpha3.CloudStackCluster) error {
+func (m *MockClient) GetOrCreateLoadBalancerRule(arg0 *v1beta1.CloudStackCluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOrCreateLoadBalancerRule", arg0)
 	ret0, _ := ret[0].(error)
@@ -93,7 +93,7 @@ func (mr *MockClientMockRecorder) GetOrCreateLoadBalancerRule(arg0 interface{}) 
 }
 
 // GetOrCreateNetwork mocks base method.
-func (m *MockClient) GetOrCreateNetwork(arg0 *v1alpha3.CloudStackCluster) error {
+func (m *MockClient) GetOrCreateNetwork(arg0 *v1beta1.CloudStackCluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOrCreateNetwork", arg0)
 	ret0, _ := ret[0].(error)
@@ -107,7 +107,7 @@ func (mr *MockClientMockRecorder) GetOrCreateNetwork(arg0 interface{}) *gomock.C
 }
 
 // GetOrCreateVMInstance mocks base method.
-func (m *MockClient) GetOrCreateVMInstance(arg0 *v1alpha3.CloudStackMachine, arg1 *v1alpha30.Machine, arg2 *v1alpha3.CloudStackCluster, arg3 string) error {
+func (m *MockClient) GetOrCreateVMInstance(arg0 *v1beta1.CloudStackMachine, arg1 *v1beta10.Machine, arg2 *v1beta1.CloudStackCluster, arg3 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOrCreateVMInstance", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
@@ -121,7 +121,7 @@ func (mr *MockClientMockRecorder) GetOrCreateVMInstance(arg0, arg1, arg2, arg3 i
 }
 
 // OpenFirewallRules mocks base method.
-func (m *MockClient) OpenFirewallRules(arg0 *v1alpha3.CloudStackCluster) error {
+func (m *MockClient) OpenFirewallRules(arg0 *v1beta1.CloudStackCluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "OpenFirewallRules", arg0)
 	ret0, _ := ret[0].(error)
@@ -135,7 +135,7 @@ func (mr *MockClientMockRecorder) OpenFirewallRules(arg0 interface{}) *gomock.Ca
 }
 
 // ResolveLoadBalancerRuleDetails mocks base method.
-func (m *MockClient) ResolveLoadBalancerRuleDetails(arg0 *v1alpha3.CloudStackCluster) error {
+func (m *MockClient) ResolveLoadBalancerRuleDetails(arg0 *v1beta1.CloudStackCluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolveLoadBalancerRuleDetails", arg0)
 	ret0, _ := ret[0].(error)
@@ -149,7 +149,7 @@ func (mr *MockClientMockRecorder) ResolveLoadBalancerRuleDetails(arg0 interface{
 }
 
 // ResolveNetwork mocks base method.
-func (m *MockClient) ResolveNetwork(arg0 *v1alpha3.CloudStackCluster) error {
+func (m *MockClient) ResolveNetwork(arg0 *v1beta1.CloudStackCluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolveNetwork", arg0)
 	ret0, _ := ret[0].(error)
@@ -163,7 +163,7 @@ func (mr *MockClientMockRecorder) ResolveNetwork(arg0 interface{}) *gomock.Call 
 }
 
 // ResolvePublicIPDetails mocks base method.
-func (m *MockClient) ResolvePublicIPDetails(arg0 *v1alpha3.CloudStackCluster) (*cloudstack.PublicIpAddress, error) {
+func (m *MockClient) ResolvePublicIPDetails(arg0 *v1beta1.CloudStackCluster) (*cloudstack.PublicIpAddress, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolvePublicIPDetails", arg0)
 	ret0, _ := ret[0].(*cloudstack.PublicIpAddress)
@@ -178,7 +178,7 @@ func (mr *MockClientMockRecorder) ResolvePublicIPDetails(arg0 interface{}) *gomo
 }
 
 // ResolveVMInstanceDetails mocks base method.
-func (m *MockClient) ResolveVMInstanceDetails(arg0 *v1alpha3.CloudStackMachine) error {
+func (m *MockClient) ResolveVMInstanceDetails(arg0 *v1beta1.CloudStackMachine) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolveVMInstanceDetails", arg0)
 	ret0, _ := ret[0].(error)

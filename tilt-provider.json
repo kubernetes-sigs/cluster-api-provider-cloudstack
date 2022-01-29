@@ -1,8 +1,8 @@
 {
     "name": "cloudstack",
+    "label": "CAPC",
     "config": {
-        "context": ".",
-        "image": "public.ecr.aws/a4z9h2b1/cluster-api-provider-capc",
+        "image": "localhost:5000/cluster-api-provider-cloudstack",
         "live_reload_deps": [
             "main.go",
             "go.mod",
@@ -12,6 +12,5 @@
             "controllers",
             "pkg"
         ]
-    },
-    "label": "CAPC"
+    }
 }

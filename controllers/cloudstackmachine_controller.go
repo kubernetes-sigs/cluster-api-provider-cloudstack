@@ -39,9 +39,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // CloudStackMachineReconciler reconciles a CloudStackMachine object
@@ -64,8 +64,7 @@ const RequeueTimeout = 5 * time.Second
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *CloudStackMachineReconciler) Reconcile(req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	ctx := context.Background()
+func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
 	log := r.Log.WithValues("machine", req.Name, "namespace", req.Namespace)
 	log.V(1).Info("Reconcile CloudStackMachine")
 
@@ -250,9 +249,7 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					return !reflect.DeepEqual(oldMachine, newMachine)
 				},
 			},
-		).
-		Build(r)
-
+		).Build(r)
 	if err != nil {
 		return err
 	}
@@ -262,9 +259,8 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Used to update when bootstrap data becomes available.
 	if err = controller.Watch(
 		&source.Kind{Type: &capiv1.Machine{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine")),
-		},
+		handler.EnqueueRequestsFromMapFunc(
+			util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine"))),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldMachine := e.ObjectOld.(*capiv1.Machine)
@@ -277,6 +273,7 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
+	// Used below, this maps CAPI clusters to CAPC machines
 	csMachineMapper, err := util.ClusterToObjectsMapper(r.Client, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -285,8 +282,7 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
 	return controller.Watch(
 		&source.Kind{Type: &capiv1.Cluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: csMachineMapper},
+		handler.EnqueueRequestsFromMapFunc(csMachineMapper),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldCluster := e.ObjectOld.(*capiv1.Cluster)
@@ -294,7 +290,7 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
 			CreateFunc: func(e event.CreateEvent) bool {
-				_, ok := e.Meta.GetAnnotations()[capiv1.PausedAnnotation]
+				_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
 				return ok
 			},
 		},

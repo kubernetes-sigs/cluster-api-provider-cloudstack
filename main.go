@@ -17,24 +17,25 @@ limitations under the License.
 package main
 
 import (
-	"flag"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"fmt"
 	"os"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"strings"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	flag "github.com/spf13/pflag"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/controllers"
 	//+kubebuilder:scaffold:imports
 )
@@ -51,33 +52,70 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
-func main() {
+type managerOpts struct {
+	CloudConfigFile      string
+	MetricsAddr          string
+	EnableLeaderElection bool
+	ProbeAddr            string
+	WatchingNamespace    string
+	WatchFilterValue     string
+	CertDir              string
+}
 
-	// Parse args and setup logger.
-	var cloudConfigFile string
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	var watchingNamespace string
-	var certDir string
-	flag.StringVar(&cloudConfigFile, "cloud-config-file", "/config/cloud-config", "Overrides the default path to the cloud-config file that contains the CloudStack credentials.")
-	flag.StringVar(&metricsAddr, "metrics-bind-address", "localhost:8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+func setFlags() *managerOpts {
+	opts := &managerOpts{}
+	flag.StringVar(
+		&opts.CloudConfigFile,
+		"cloud-config-file",
+		"/config/cloud-config",
+		"Overrides the default path to the cloud-config file that contains the CloudStack credentials.")
+	flag.StringVar(
+		&opts.MetricsAddr,
+		"metrics-bind-addr",
+		"localhost:8080",
+		"The address the metric endpoint binds to.")
+	flag.StringVar(
+		&opts.ProbeAddr,
+		"health-probe-bind-address",
+		":8081",
+		"The address the probe endpoint binds to.")
+	flag.BoolVar(
+		&opts.EnableLeaderElection,
+		"leader-elect",
+		false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&watchingNamespace, "namespace", "", "Namespace that the controller watches to reconcile cluster-api objects. If unspecified, the controller watches for cluster-api objects across all namespaces.")
-	flag.StringVar(&certDir, "cert-dir", "", "Directory where webhook certs will be stored.")
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
+	flag.StringVar(
+		&opts.WatchingNamespace,
+		"namespace",
+		"",
+		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, "+
+			"the controller watches for cluster-api objects across all namespaces.")
+	flag.StringVar( // TODO: use filter per CAPI book instructions in upgrade to v1alpha4.
+		&opts.WatchFilterValue,
+		"watch-filter",
+		"",
+		fmt.Sprintf(
+			"Label value that the controller watches to reconcile cluster-api objects. "+
+				"Label key is always %s. If unspecified, the controller watches for all cluster-api objects.",
+			clusterv1.WatchLabel))
+	flag.StringVar(
+		&opts.CertDir,
+		"webhook-cert-dir",
+		"/tmp/k8s-webhook-server/serving-certs/",
+		"Specify the directory where webhooks will get tls certificates.")
+	return opts
+}
+
+func main() {
+	opts := setFlags()  // Add our options to flag set.
+	klog.InitFlags(nil) // Add klog options to flag set.
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	ctrl.SetLogger(klogr.New())
 
 	// Setup CloudStack api client.
-	client, err := cloud.NewClient(cloudConfigFile)
+	client, err := cloud.NewClient(opts.CloudConfigFile)
 	if err != nil {
 		if !strings.Contains(err.Error(), "Timeout") {
 			setupLog.Error(err, "unable to start manager")
@@ -90,13 +128,13 @@ func main() {
 	// Create the controller manager.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
+		MetricsBindAddress:     opts.MetricsAddr,
 		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
+		HealthProbeBindAddress: opts.ProbeAddr,
+		LeaderElection:         opts.EnableLeaderElection,
 		LeaderElectionID:       "capc-leader-election-controller",
-		Namespace:              watchingNamespace,
-		CertDir:                certDir,
+		Namespace:              opts.WatchingNamespace,
+		CertDir:                opts.CertDir,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
