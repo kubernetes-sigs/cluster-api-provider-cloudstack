@@ -72,7 +72,7 @@ func setFlags() *managerOpts {
 	flag.StringVar(
 		&opts.MetricsAddr,
 		"metrics-bind-addr",
-		":8080",
+		"localhost:8080",
 		"The address the metric endpoint binds to.")
 	flag.StringVar(
 		&opts.ProbeAddr,
