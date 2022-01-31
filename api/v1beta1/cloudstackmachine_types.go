@@ -48,6 +48,11 @@ type CloudStackMachineSpec struct {
 	// +optional
 	AffinityGroupIds []string `json:"affinitygroupids,omitempty"`
 
+	// Mutually exclusive parameter with AffinityGroupIds.
+	// Defaults to `no`. Can be `pro` or `anti`. Will create an affinity group per machine set.
+	// +optional
+	Affinity string `json:"affinity,omitempty"`
+
 	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine Id)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`

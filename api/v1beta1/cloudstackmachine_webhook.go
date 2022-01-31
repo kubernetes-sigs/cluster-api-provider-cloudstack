@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/webhook_utilities"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -65,6 +66,15 @@ func (r *CloudStackMachine) ValidateCreate() error {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
+	if r.Spec.Affinity == "" {
+		r.Spec.Affinity = "no"
+	}
+
+	if (r.Spec.Affinity != "no") && (len(r.Spec.AffinityGroupIds) > 0) {
+		errorList = append(errorList, field.Required(field.NewPath("spec", "AffinityGroupIds"),
+			"AffinityGroupIds cannot be specified when Affinity is specified as anything but `no`"))
+	}
+
 	errorList = webhook_utilities.EnsureFieldExists(spec.Offering, "Offering", errorList)
 	errorList = webhook_utilities.EnsureFieldExists(spec.Template, "Template", errorList)
 
@@ -90,6 +100,10 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
 	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Template, oldSpec.Template, "template", errorList)
 	errorList = webhook_utilities.EnsureStringStringMapFieldsAreEqual(&spec.Details, &oldSpec.Details, "details", errorList)
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Affinity, oldSpec.Affinity, "template", errorList)
+	if !reflect.DeepEqual(spec.AffinityGroupIds, oldSpec.AffinityGroupIds) { // Equivalent to other Ensure funcs.
+		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"), "AffinityGroupIds"))
+	}
 	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
 		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
 		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
