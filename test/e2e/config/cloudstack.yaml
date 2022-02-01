@@ -12,86 +12,86 @@ images:
   - name: localhost:5000/cluster-api-provider-cloudstack:latest
     loadBehavior: mustLoad
 
-## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+  ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
 
-  # Cluster API v1alpha3 Preloads
-  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64::v0.3.23
-    loadBehavior: mustLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64::v0.3.23
-    loadBehavior: mustLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64::v0.3.23
-    loadBehavior: mustLoad
-  - name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64::v0.3.23
-    loadBehavior: mustLoad
-  - name: quay.io/jetstack/cert-manager-cainjector:v1.1.0
+  # Cluster API v1beta1 Preloads
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v1.0.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v1.1.0
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v1.0.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v1.1.0
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v1.0.1
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:v1.0.1
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.5.3
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-webhook:v1.5.3
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-controller:v1.5.3
     loadBehavior: tryLoad
 
 providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.23
-        contract: v1alpha3
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/core-components.yaml"
+      - name: v0.4.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.1/core-components.yaml"
         type: "url"
+        contract: v1beta1
         replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
-          - old: --metrics-bind-addr=127.0.0.1:8080
-            new: --metrics-bind-addr=:8080
+        - old: --metrics-addr=127.0.0.1:8080
+          new: --metrics-addr=:8080
+        files:
+        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: v0.3.23
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/bootstrap-components.yaml"
+      - name: v0.4.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.1/bootstrap-components.yaml"
         type: "url"
-        contract: v1alpha3
+        contract: v1beta1
         replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
-          - old: --metrics-bind-addr=127.0.0.1:8080
-            new: --metrics-bind-addr=:8080
+        - old: --metrics-addr=127.0.0.1:8080
+          new: --metrics-addr=:8080
+        files:
+        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: v0.3.23
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/control-plane-components.yaml"
+      - name: v0.4.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.1/control-plane-components.yaml"
         type: "url"
-        contract: v1alpha3
+        contract: v1beta1
         replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
-          - old: --metrics-bind-addr=127.0.0.1:8080
-            new: --metrics-bind-addr=:8080
+        - old: --metrics-addr=127.0.0.1:8080
+          new: --metrics-addr=:8080
+        files:
+        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
   - name: cloudstack
     type: InfrastructureProvider
     files:
-      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-kcp-remediation.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-md-remediation.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-invalid-zone.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-invalid-template.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-invalid-cp-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1alpha3/cluster-template-invalid-worker-offering.yaml"
-      - sourcePath: "../../../metadata.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-kcp-remediation.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-md-remediation.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-zone.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-cp-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-worker-offering.yaml"
+      - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
-      - name: v0.1.0
+      - name: v0.4.0
         value: ../../../config/default
-        contract: v1alpha3
+        contract: v1beta1
         replacements:
           - old: --metrics-bind-addr=localhost:8080
             new: --metrics-bind-addr=:8080
 
 variables:
-  KUBERNETES_VERSION: "v1.20.10"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.21.1"
+  KUBERNETES_VERSION: "v1.21.1"
   CNI: "./data/cni/kindnet.yaml"
   IP_FAMILY: "IPv4"
 

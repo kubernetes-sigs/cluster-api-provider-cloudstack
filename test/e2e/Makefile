@@ -43,7 +43,7 @@ kind-cluster: $(REPO_ROOT)/cluster-api $(REPO_ROOT)/cluster-api/hack/kind-instal
 	-$(REPO_ROOT)/cluster-api/hack/kind-install-for-capd.sh
 
 $(REPO_ROOT)/cluster-api: # Clone cluster-api repository for tilt use.
-	git clone --branch v0.3.24 https://github.com/kubernetes-sigs/cluster-api.git $(REPO_ROOT)/cluster-api
+	git clone --branch v1.0.0 https://github.com/kubernetes-sigs/cluster-api.git $(REPO_ROOT)/cluster-api
 
 # Need script from CAPI v1.0+
 # Can delete this target after upgrading to newer CAPI.
@@ -70,17 +70,17 @@ $(REPO_ROOT)/config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
 CLOUDSTACK_TEMPLATES := $(REPO_ROOT)/test/e2e/data/infrastructure-cloudstack
 
 .PHONY: cluster-templates
-cluster-templates: cluster-templates-v1alpha3
+cluster-templates: cluster-templates-v1beta1
 
-.PHONY: cluster-templates-v1alpha3
-cluster-templates-v1alpha3: $(KUSTOMIZE)
-	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template.yaml
-	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-kcp-remediation > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-kcp-remediation.yaml
-	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-md-remediation > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-md-remediation.yaml
-	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-zone > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-zone.yaml
-	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-template > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-template.yaml
-	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-cp-offering > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-cp-offering.yaml
-	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-worker-offering > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-invalid-worker-offering.yaml
+.PHONY: cluster-templates-v1beta1
+cluster-templates-v1beta1: $(KUSTOMIZE)
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-kcp-remediation > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-kcp-remediation.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-md-remediation > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-md-remediation.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-zone > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-zone.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-template > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-template.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-cp-offering > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-cp-offering.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-worker-offering > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-worker-offering.yaml
 
 ## --------------------------------------
 ## End-to-End Tests
