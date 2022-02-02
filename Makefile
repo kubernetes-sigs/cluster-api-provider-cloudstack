@@ -56,7 +56,7 @@ config/.flag.mk: bin/controller-gen $(MANIFEST_GEN_INPUTS)
 
 .PHONY: release-manifests
 RELEASE_MANIFEST_TARGETS=$(RELEASE_DIR)/infrastructure-components.yaml $(RELEASE_DIR)/metadata.yaml
-RELEASE_MANIFEST_INPUTS=config/.flag.mk $(shell find config)
+RELEASE_MANIFEST_INPUTS=bin/kustomize config/.flag.mk $(shell find config) 
 release-manifests: $(RELEASE_MANIFEST_TARGETS) ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
 $(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
 	@mkdir -p $(RELEASE_DIR)
