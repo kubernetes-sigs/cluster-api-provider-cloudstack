@@ -21,6 +21,8 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api/util"
@@ -69,52 +71,58 @@ func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Get CloudStack cluster.
 	csCluster := &infrav1.CloudStackCluster{}
-	if retErr = r.Client.Get(ctx, req.NamespacedName, csCluster); retErr != nil {
-		if client.IgnoreNotFound(retErr) == nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, csCluster); err != nil {
+		if client.IgnoreNotFound(err) == nil {
 			log.Info("Cluster not found.")
 		}
-		return ctrl.Result{}, client.IgnoreNotFound(retErr)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Get CAPI cluster.
-	cluster, retErr := util.GetOwnerCluster(ctx, r.Client, csCluster.ObjectMeta)
-	if retErr != nil {
-		return reconcile.Result{}, retErr
-	} else if cluster == nil {
+	capiCluster, err := util.GetOwnerCluster(ctx, r.Client, csCluster.ObjectMeta)
+	if err != nil {
+		return reconcile.Result{}, err
+	} else if capiCluster == nil {
 		log.Info("Waiting for CAPI Cluster controller to set owner reference on CloudStack cluster.")
 		return reconcile.Result{}, nil
 	}
 
 	// Check the cluster is not paused.
-	if annotations.IsPaused(cluster, csCluster) {
+	if annotations.IsPaused(capiCluster, csCluster) {
 		log.Info("Cluster is paused. Refusing to reconcile.")
 		return reconcile.Result{}, nil
 	}
 
 	// Setup patcher. This ensures modifications to the csCluster copy fetched above are patched into the origin.
-	if patchHelper, retErr := patch.NewHelper(csCluster, r.Client); retErr != nil {
-		return ctrl.Result{}, retErr
+	if patchHelper, err := patch.NewHelper(csCluster, r.Client); err != nil {
+		return ctrl.Result{}, err
 	} else {
 		defer func() {
-			if err := patchHelper.Patch(ctx, csCluster); retErr == nil && err != nil {
-				retErr = err
+			if err = patchHelper.Patch(ctx, csCluster); err != nil {
+				msg := "error patching CloudStackCluster %s/%s"
+				err = errors.Wrapf(err, msg, csCluster.Namespace, csCluster.Name)
+				retErr = multierror.Append(retErr, err)
 			}
 		}()
 	}
 
 	// Delete Cluster Resources if deletion timestamp present.
 	if !csCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(log, csCluster)
+		return r.reconcileDelete(ctx, log, capiCluster, csCluster)
 	}
 
 	// Reconcile remaining clusters.
-	return r.reconcile(log, csCluster)
+	return r.reconcile(ctx, log, capiCluster, csCluster)
 }
 
 // Actually reconcile cluster.
 func (r *CloudStackClusterReconciler) reconcile(
+	ctx context.Context,
 	log logr.Logger,
-	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
+	capiCluster *capiv1.Cluster,
+	csCluster *infrav1.CloudStackCluster,
+) (ctrl.Result, error) {
+
 	log.V(1).Info("reconcile CloudStackCluster")
 
 	// Prevent premature deletion of the csCluster construct from CAPI.
@@ -123,15 +131,19 @@ func (r *CloudStackClusterReconciler) reconcile(
 	// Create and or fetch cluster components -- sets cluster to ready if no errors.
 	err := r.CS.GetOrCreateCluster(csCluster)
 	if err == nil {
-		log.Info("Fetched cluster info successfully.", "clusterSpec", csCluster.Spec, "clusterStatus", csCluster.Status)
+		log.Info("Fetched cluster info successfully.", "clusterSpec", csCluster.Spec,
+			"clusterStatus", csCluster.Status)
 	}
 	return ctrl.Result{}, err
 }
 
 // Delete a cluster.
 func (r *CloudStackClusterReconciler) reconcileDelete(
+	ctx context.Context,
 	log logr.Logger,
-	csCluster *infrav1.CloudStackCluster) (retRes ctrl.Result, retErr error) {
+	capiCluster *capiv1.Cluster,
+	csCluster *infrav1.CloudStackCluster,
+) (ctrl.Result, error) {
 
 	log.V(1).Info("reconcileDelete CloudStackCluster...")
 

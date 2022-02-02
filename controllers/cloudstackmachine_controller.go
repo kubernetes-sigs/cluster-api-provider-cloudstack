@@ -18,14 +18,16 @@ package controllers
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-multierror"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -42,6 +44,7 @@ import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 // CloudStackMachineReconciler reconciles a CloudStackMachine object
@@ -53,6 +56,58 @@ type CloudStackMachineReconciler struct {
 }
 
 const RequeueTimeout = 5 * time.Second
+
+func (r *CloudStackMachineReconciler) GetMachineSet(ctx context.Context, capiMachine *capiv1.Machine) (*capiv1.MachineSet, error) {
+	for _, ref := range capiMachine.OwnerReferences {
+		if ref.Kind != "MachineSet" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if gv.Group == capiv1.GroupVersion.Group {
+			machineSet := &capiv1.MachineSet{}
+			key := client.ObjectKey{
+				Namespace: capiMachine.Namespace,
+				Name:      ref.Name,
+			}
+
+			if err := r.Client.Get(ctx, key, machineSet); err != nil {
+				return nil, errors.Wrapf(err, "failed to get MachineSet/%s", ref.Name)
+			}
+
+			return machineSet, nil
+		}
+	}
+	return nil, nil
+}
+
+func (r *CloudStackMachineReconciler) GetKubeadmControlPlane(ctx context.Context, capiMachine *capiv1.Machine) (*controlplanev1.KubeadmControlPlane, error) {
+	for _, ref := range capiMachine.OwnerReferences {
+		if ref.Kind != "KubeadmControlPlane" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if gv.Group == controlplanev1.GroupVersion.Group {
+			controlPlane := &controlplanev1.KubeadmControlPlane{}
+			key := client.ObjectKey{
+				Namespace: capiMachine.Namespace,
+				Name:      ref.Name,
+			}
+
+			if err := r.Client.Get(ctx, key, controlPlane); err != nil {
+				return nil, errors.Wrapf(err, "failed to get KubeadmControlPlane/%s", ref.Name)
+			}
+
+			return controlPlane, nil
+		}
+	}
+	return nil, nil
+}
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
@@ -70,68 +125,70 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Fetch the CloudStackMachine.
 	csMachine := &infrav1.CloudStackMachine{}
-	if retErr = r.Client.Get(ctx, req.NamespacedName, csMachine); retErr != nil {
-		if client.IgnoreNotFound(retErr) == nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, csMachine); err != nil {
+		if client.IgnoreNotFound(err) == nil {
 			log.Info("CloudStackMachine not found.")
 		}
-		return ctrl.Result{}, client.IgnoreNotFound(retErr)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Setup patcher. This ensures modifications to the csMachine copy fetched above are patched into the origin.
-	if patchHelper, retErr := patch.NewHelper(csMachine, r.Client); retErr != nil {
-		return ctrl.Result{}, retErr
+	if patchHelper, err := patch.NewHelper(csMachine, r.Client); err != nil {
+		return ctrl.Result{}, err
 	} else {
 		defer func() { // If there was no error on return, but the patch fails, set the error accordingly.
-			if err := patchHelper.Patch(ctx, csMachine); retErr == nil && err != nil {
-				retErr = err
+			if err = patchHelper.Patch(ctx, csMachine); err != nil {
+				msg := "error patching CloudStackMachine %s/%s"
+				err = errors.Wrapf(err, msg, csMachine.Namespace, csMachine.Name)
+				retErr = multierror.Append(retErr, err)
 			}
 		}()
 	}
 
 	// Fetch the CAPI Machine.
-	machine, retErr := util.GetOwnerMachine(ctx, r.Client, csMachine.ObjectMeta)
-	if retErr != nil {
-		return ctrl.Result{}, retErr
+	machine, err := util.GetOwnerMachine(ctx, r.Client, csMachine.ObjectMeta)
+	if err != nil {
+		return ctrl.Result{}, err
 	} else if machine == nil {
 		log.Info("Waiting for CAPI cluster controller to set owner reference on CloudStack machine.")
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
 
 	// Fetch the CAPI Cluster.
-	cluster, retErr := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
-	if retErr != nil {
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
+	if err != nil {
 		log.Info("Machine is missing cluster label or cluster does not exist.")
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
 
-	// Check the machine is not paused.
+	// Check the machine is paused.
 	if annotations.IsPaused(cluster, csMachine) {
 		log.Info("CloudStackMachine or linked Cluster is paused. Requeuing reconcile.")
 		return reconcile.Result{}, nil
 	}
 
-	// Delete VM instance if deletion timestamp present.
-	if !csMachine.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(log, csMachine)
-	}
-
 	// Fetch the CloudStack cluster associated with this machine.
 	csCluster := &infrav1.CloudStackCluster{}
-	if retErr := r.Client.Get(
+	if err := r.Client.Get(
 		ctx,
 		client.ObjectKey{
 			Namespace: csMachine.Namespace,
 			Name:      cluster.Spec.InfrastructureRef.Name},
-		csCluster); retErr != nil {
-		if client.IgnoreNotFound(retErr) == nil {
+		csCluster); err != nil {
+		if client.IgnoreNotFound(err) == nil {
 			log.Info("CloudStackCluster not found.")
 			return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 		} else {
-			return ctrl.Result{}, retErr
+			return ctrl.Result{}, err
 		}
 	} else if csCluster.Status.ZoneID == "" {
 		log.Info("CloudStackCluster ZoneId not initialized. Likely not ready.")
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+	}
+
+	// Delete VM instance if deletion timestamp present.
+	if !csMachine.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(log, ctx, csMachine, machine, csCluster)
 	}
 
 	// Reconcile a VM instance for creates/updates
@@ -204,10 +261,26 @@ func (r *CloudStackMachineReconciler) reconcile(
 // Reconcile/Destroy a deleted VM instance.
 func (r *CloudStackMachineReconciler) reconcileDelete(
 	log logr.Logger,
-	csMachine *infrav1.CloudStackMachine) (ctrl.Result, error) {
+	ctx context.Context,
+	csMachine *infrav1.CloudStackMachine,
+	machine *capiv1.Machine,
+	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
+
+	// Remove any CAPC managed Affinity groups if owner references a deleted object.
+	if !util.IsControlPlaneMachine(machine) {
+		if md, _ := r.GetKubeadmControlPlane(ctx, machine); md == nil {
+			log.Info("Deleting control plane based affinity groups if any.")
+			_ = r.CS.RemoveManagedAffinity(csMachine, csCluster)
+		}
+	} else {
+		if md, _ := r.GetMachineSet(ctx, machine); md == nil {
+			log.Info("Deleting machine set based affinity groups if any.")
+			_ = r.CS.RemoveManagedAffinity(csMachine, csCluster)
+		}
+	}
 
 	log.Info("Deleting instance", "instance-id", *csMachine.Spec.InstanceID)
-	if err := r.CS.DestroyVMInstance(csMachine); err != nil {
+	if err := r.CS.DestroyVMInstance(csMachine, csCluster); err != nil {
 		return ctrl.Result{}, err
 	}
 	controllerutil.RemoveFinalizer(csMachine, infrav1.MachineFinalizer)
