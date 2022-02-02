@@ -29,10 +29,10 @@ import (
 //go:generate mockgen -destination=../mocks/mock_client.go -package=mocks github.com/aws/cluster-api-provider-cloudstack/pkg/cloud Client
 
 type Client interface {
-	GetOrCreateCluster(*infrav1.CloudStackCluster) error
+	ClusterIface
 	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
-	DestroyVMInstance(*infrav1.CloudStackMachine) error
+	DestroyVMInstance(*infrav1.CloudStackMachine, *infrav1.CloudStackCluster) error
 	AssignVMToLoadBalancerRule(*infrav1.CloudStackCluster, string) error
 	ResolveNetwork(*infrav1.CloudStackCluster) error
 	GetOrCreateNetwork(*infrav1.CloudStackCluster) error
@@ -44,7 +44,8 @@ type Client interface {
 }
 
 type client struct {
-	cs *cloudstack.CloudStackClient
+	cs  *cloudstack.CloudStackClient
+	csA *cloudstack.CloudStackClient
 }
 
 func NewClient(cc_path string) (Client, error) {
@@ -55,6 +56,7 @@ func NewClient(cc_path string) (Client, error) {
 	}
 
 	// TODO: attempt a less clunky client liveliness check (not just listing zones).
+	c.csA = cloudstack.NewClient(apiUrl, apiKey, secretKey, false)
 	c.cs = cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
 	_, err = c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
 	if err != nil && strings.Contains(err.Error(), "i/o timeout") {

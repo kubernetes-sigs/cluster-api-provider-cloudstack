@@ -159,6 +159,12 @@ func (c *client) GetOrCreateVMInstance(
 
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
+	} else if !(strings.ToLower(csMachine.Spec.Affinity) == "no" || csMachine.Spec.Affinity == "") {
+		group, err := c.ResolveManagedAffinity(csMachine, csCluster)
+		if err != nil {
+			return err
+		}
+		p.SetAffinitygroupids([]string{group.Id})
 	}
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
@@ -188,14 +194,13 @@ func (c *client) GetOrCreateVMInstance(
 }
 
 // DestroyVMInstance Destroy a VM instane. Assumes machine has been fetched prior and has an instance ID.
-func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
-
+func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine, csCluster *infrav1.CloudStackCluster) error {
 	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
 	p.SetExpunge(true)
-	_, err := c.cs.VirtualMachine.DestroyVirtualMachine(p)
+	_, err := c.csA.VirtualMachine.DestroyVirtualMachine(p)
 	if err != nil && strings.Contains(err.Error(), "Unable to find UUID for id ") {
 		// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
 		return nil
 	}
-	return err
+	return errors.New("VM deletion in progress.")
 }
