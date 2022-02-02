@@ -9,6 +9,7 @@ import (
 
 	cloudstack "github.com/apache/cloudstack-go/v2/cloudstack"
 	v1beta1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	cloud "github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	gomock "github.com/golang/mock/gomock"
 	v1beta10 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -50,18 +51,88 @@ func (mr *MockClientMockRecorder) AssignVMToLoadBalancerRule(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssignVMToLoadBalancerRule", reflect.TypeOf((*MockClient)(nil).AssignVMToLoadBalancerRule), arg0, arg1)
 }
 
-// DestroyVMInstance mocks base method.
-func (m *MockClient) DestroyVMInstance(arg0 *v1beta1.CloudStackMachine) error {
+// AssociateAffinityGroup mocks base method.
+func (m *MockClient) AssociateAffinityGroup(arg0 *v1beta1.CloudStackMachine, arg1 cloud.AffinityGroup) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DestroyVMInstance", arg0)
+	ret := m.ctrl.Call(m, "AssociateAffinityGroup", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AssociateAffinityGroup indicates an expected call of AssociateAffinityGroup.
+func (mr *MockClientMockRecorder) AssociateAffinityGroup(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateAffinityGroup", reflect.TypeOf((*MockClient)(nil).AssociateAffinityGroup), arg0, arg1)
+}
+
+// DeleteAffinityGroup mocks base method.
+func (m *MockClient) DeleteAffinityGroup(arg0 *v1beta1.CloudStackCluster, arg1 *cloud.AffinityGroup) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAffinityGroup", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteAffinityGroup indicates an expected call of DeleteAffinityGroup.
+func (mr *MockClientMockRecorder) DeleteAffinityGroup(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAffinityGroup", reflect.TypeOf((*MockClient)(nil).DeleteAffinityGroup), arg0, arg1)
+}
+
+// DestroyVMInstance mocks base method.
+func (m *MockClient) DestroyVMInstance(arg0 *v1beta1.CloudStackMachine, arg1 *v1beta1.CloudStackCluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DestroyVMInstance", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DestroyVMInstance indicates an expected call of DestroyVMInstance.
-func (mr *MockClientMockRecorder) DestroyVMInstance(arg0 interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) DestroyVMInstance(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyVMInstance", reflect.TypeOf((*MockClient)(nil).DestroyVMInstance), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyVMInstance", reflect.TypeOf((*MockClient)(nil).DestroyVMInstance), arg0, arg1)
+}
+
+// DissassociateAffinityGroup mocks base method.
+func (m *MockClient) DissassociateAffinityGroup(arg0 *v1beta1.CloudStackMachine, arg1 cloud.AffinityGroup) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DissassociateAffinityGroup", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DissassociateAffinityGroup indicates an expected call of DissassociateAffinityGroup.
+func (mr *MockClientMockRecorder) DissassociateAffinityGroup(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DissassociateAffinityGroup", reflect.TypeOf((*MockClient)(nil).DissassociateAffinityGroup), arg0, arg1)
+}
+
+// FetchAffinityGroup mocks base method.
+func (m *MockClient) FetchAffinityGroup(arg0 *v1beta1.CloudStackCluster, arg1 *cloud.AffinityGroup) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchAffinityGroup", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FetchAffinityGroup indicates an expected call of FetchAffinityGroup.
+func (mr *MockClientMockRecorder) FetchAffinityGroup(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchAffinityGroup", reflect.TypeOf((*MockClient)(nil).FetchAffinityGroup), arg0, arg1)
+}
+
+// GetOrCreateAffinityGroup mocks base method.
+func (m *MockClient) GetOrCreateAffinityGroup(arg0 *v1beta1.CloudStackCluster, arg1 *cloud.AffinityGroup) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrCreateAffinityGroup", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GetOrCreateAffinityGroup indicates an expected call of GetOrCreateAffinityGroup.
+func (mr *MockClientMockRecorder) GetOrCreateAffinityGroup(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrCreateAffinityGroup", reflect.TypeOf((*MockClient)(nil).GetOrCreateAffinityGroup), arg0, arg1)
 }
 
 // GetOrCreateCluster mocks base method.
@@ -132,6 +203,20 @@ func (m *MockClient) OpenFirewallRules(arg0 *v1beta1.CloudStackCluster) error {
 func (mr *MockClientMockRecorder) OpenFirewallRules(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenFirewallRules", reflect.TypeOf((*MockClient)(nil).OpenFirewallRules), arg0)
+}
+
+// RemoveManagedAffinity mocks base method.
+func (m *MockClient) RemoveManagedAffinity(arg0 *v1beta1.CloudStackMachine, arg1 *v1beta1.CloudStackCluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveManagedAffinity", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveManagedAffinity indicates an expected call of RemoveManagedAffinity.
+func (mr *MockClientMockRecorder) RemoveManagedAffinity(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveManagedAffinity", reflect.TypeOf((*MockClient)(nil).RemoveManagedAffinity), arg0, arg1)
 }
 
 // ResolveLoadBalancerRuleDetails mocks base method.
