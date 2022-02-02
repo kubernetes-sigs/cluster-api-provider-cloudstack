@@ -174,43 +174,6 @@ generate-mocks: bin/mockgen $(shell find ./pkg/mocks -type f -name "mock*.go") #
 pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
 	go generate ./...
 
-##@ End-to-End Testing
-
-CLOUDSTACK_TEMPLATES := $(PROJECT_DIR)/test/e2e/data/infrastructure-cloudstack
-
-.PHONY: cluster-templates
-cluster-templates: cluster-templates-v1alpha3 ## Generate cluster templates for all versions
-
-.PHONY: cluster-templates-v1alpha3
-cluster-templates-v1alpha3: bin/kustomize ## Generate cluster templates for v1alpha3
-	bin/kustomize build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template.yaml
-	bin/kustomize build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-kcp-remediation > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-kcp-remediation.yaml
-	bin/kustomize build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-md-remediation > $(CLOUDSTACK_TEMPLATES)/v1alpha3/cluster-template-md-remediation.yaml
-
-.PHONY: run-e2e
-run-e2e: bin/ginkgo kind-cluster manifests cluster-templates
-	time bin/ginkgo -v -trace -tags=e2e -skip=Conformance -nodes=1 --noColor=false ./test/e2e/... -- \
-	    -e2e.artifacts-folder=${PROJECT_DIR}/_artifacts \
-	    -e2e.config=${PROJECT_DIR}/test/e2e/config/cloudstack.yaml \
-	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
-	kind delete clusters capi-test
-
-.PHONY: run-e2e-pr-blocking
-run-e2e-pr-blocking: bin/ginkgo kind-cluster manifests cluster-templates
-	time bin/ginkgo -v -trace -tags=e2e -focus=PR-Blocking -skip=Conformance -nodes=1 --noColor=false ./test/e2e/... -- \
-	    -e2e.artifacts-folder=${PROJECT_DIR}/_artifacts \
-	    -e2e.config=${PROJECT_DIR}/test/e2e/config/cloudstack.yaml \
-	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
-	kind delete clusters capi-test
-
-.PHONY: run-conformance
-run-conformance: bin/ginkgo kind-cluster manifests cluster-templates
-	time bin/ginkgo -v -trace -tags=e2e -focus=Conformance -nodes=1 --noColor=false ./test/e2e/... -- \
-	    -e2e.artifacts-folder=${PROJECT_DIR}/_artifacts \
-	    -e2e.config=${PROJECT_DIR}/test/e2e/config/cloudstack.yaml \
-	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
-	kind delete clusters capi-test
-
 ##@ Tilt
 
 .PHONY: tilt-up 
