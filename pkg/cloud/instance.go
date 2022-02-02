@@ -32,6 +32,13 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+type VMIface interface {
+	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
+	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
+	DestroyVMInstance(*infrav1.CloudStackMachine) error
+	AssignVMToLoadBalancerRule(*infrav1.CloudStackCluster, string) error
+}
+
 // Set infrastructure spec and status from the CloudStack API's virtual machine metrics type.
 func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, csMachine *infrav1.CloudStackMachine) {
 	csMachine.Spec.ProviderID = pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
@@ -193,14 +200,15 @@ func (c *client) GetOrCreateVMInstance(
 
 }
 
-// DestroyVMInstance Destroy a VM instane. Assumes machine has been fetched prior and has an instance ID.
-func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine, csCluster *infrav1.CloudStackCluster) error {
+// DestroyVMInstance Destroy a VM instance. Assumes machine has been fetched prior and has an instance ID.
+func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
+
 	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
 	p.SetExpunge(true)
-	_, err := c.csA.VirtualMachine.DestroyVirtualMachine(p)
+	_, err := c.cs.VirtualMachine.DestroyVirtualMachine(p)
 	if err != nil && strings.Contains(err.Error(), "Unable to find UUID for id ") {
 		// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
 		return nil
 	}
-	return errors.New("VM deletion in progress.")
+	return err
 }

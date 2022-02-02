@@ -23,17 +23,13 @@ import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 //go:generate mockgen -destination=../mocks/mock_client.go -package=mocks github.com/aws/cluster-api-provider-cloudstack/pkg/cloud Client
 
 type Client interface {
 	ClusterIface
-	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
-	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
-	DestroyVMInstance(*infrav1.CloudStackMachine, *infrav1.CloudStackCluster) error
-	AssignVMToLoadBalancerRule(*infrav1.CloudStackCluster, string) error
+	VMIface
 	ResolveNetwork(*infrav1.CloudStackCluster) error
 	GetOrCreateNetwork(*infrav1.CloudStackCluster) error
 	OpenFirewallRules(*infrav1.CloudStackCluster) error

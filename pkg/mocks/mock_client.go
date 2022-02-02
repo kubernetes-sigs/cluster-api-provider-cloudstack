@@ -80,17 +80,17 @@ func (mr *MockClientMockRecorder) DeleteAffinityGroup(arg0, arg1 interface{}) *g
 }
 
 // DestroyVMInstance mocks base method.
-func (m *MockClient) DestroyVMInstance(arg0 *v1beta1.CloudStackMachine, arg1 *v1beta1.CloudStackCluster) error {
+func (m *MockClient) DestroyVMInstance(arg0 *v1beta1.CloudStackMachine) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DestroyVMInstance", arg0, arg1)
+	ret := m.ctrl.Call(m, "DestroyVMInstance", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DestroyVMInstance indicates an expected call of DestroyVMInstance.
-func (mr *MockClientMockRecorder) DestroyVMInstance(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) DestroyVMInstance(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyVMInstance", reflect.TypeOf((*MockClient)(nil).DestroyVMInstance), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyVMInstance", reflect.TypeOf((*MockClient)(nil).DestroyVMInstance), arg0)
 }
 
 // DissassociateAffinityGroup mocks base method.
