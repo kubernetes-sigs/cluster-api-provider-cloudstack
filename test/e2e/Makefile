@@ -1,6 +1,6 @@
 .DEFAULT_GOAL:=help
 
-IMG ?= public.ecr.aws/a4z9h2b1/cluster-api-provider-capc:latest
+IMG ?= localhost:5000/cluster-api-provider-cloudstack:latest
 
 GOPROXY := $(shell go env GOPROXY)
 ifeq ($(GOPROXY),)
