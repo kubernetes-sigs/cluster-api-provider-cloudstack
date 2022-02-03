@@ -70,7 +70,7 @@ func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 		return nil
 	}
 
-	log.Info(`Deleting affinity group "%s"`, name)
+	log.Info(fmt.Sprintf(`Deleting affinity group "%s"`, name))
 
 	return r.CS.DeleteAffinityGroup(csCluster, group)
 }
