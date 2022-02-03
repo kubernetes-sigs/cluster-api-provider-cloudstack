@@ -30,28 +30,29 @@ import (
 )
 
 // GetMachineSet attempts to fetch a MachineSet from CAPI machine owner reference.
-func GetMachineSet(ctx context.Context, client clientPkg.Client, capiMachine *capiv1.Machine) (*capiv1.MachineSet, error) {
-	for _, ref := range capiMachine.OwnerReferences {
-		if ref.Kind != "MachineSet" {
-			continue
-		}
-		gv, err := schema.ParseGroupVersion(ref.APIVersion)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		if gv.Group == capiv1.GroupVersion.Group {
-			machineSet := &capiv1.MachineSet{}
-			key := clientPkg.ObjectKey{
-				Namespace: capiMachine.Namespace,
-				Name:      ref.Name,
-			}
+func GetMachineSetFromCAPIMachine(
+	ctx context.Context,
+	client clientPkg.Client,
+	capiMachine *capiv1.Machine,
+) (*capiv1.MachineSet, error) {
 
-			if err := client.Get(ctx, key, machineSet); err != nil {
-				return nil, errors.Wrapf(err, "failed to get MachineSet/%s", ref.Name)
-			}
-
-			return machineSet, nil
+	ref := GetManagementOwnerRef(capiMachine)
+	gv, err := schema.ParseGroupVersion(ref.APIVersion)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if gv.Group == capiv1.GroupVersion.Group {
+		key := clientPkg.ObjectKey{
+			Namespace: capiMachine.Namespace,
+			Name:      ref.Name,
 		}
+
+		machineSet := &capiv1.MachineSet{}
+		if err := client.Get(ctx, key, machineSet); err != nil {
+			return nil, errors.Wrapf(err, "failed to get MachineSet/%s", ref.Name)
+		}
+
+		return machineSet, nil
 	}
 	return nil, nil
 }
@@ -63,44 +64,45 @@ func GetKubeadmControlPlaneFromCAPIMachine(
 	capiMachine *capiv1.Machine,
 ) (*controlplanev1.KubeadmControlPlane, error) {
 
-	for _, ref := range capiMachine.OwnerReferences {
-		if ref.Kind != "KubeadmControlPlane" {
-			continue
+	ref := GetManagementOwnerRef(capiMachine)
+	gv, err := schema.ParseGroupVersion(ref.APIVersion)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if gv.Group == controlplanev1.GroupVersion.Group {
+		key := clientPkg.ObjectKey{
+			Namespace: capiMachine.Namespace,
+			Name:      ref.Name,
 		}
-		gv, err := schema.ParseGroupVersion(ref.APIVersion)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		if gv.Group == controlplanev1.GroupVersion.Group {
-			controlPlane := &controlplanev1.KubeadmControlPlane{}
-			key := clientPkg.ObjectKey{
-				Namespace: capiMachine.Namespace,
-				Name:      ref.Name,
-			}
 
-			if err := client.Get(ctx, key, controlPlane); err != nil {
-				return nil, errors.Wrapf(err, "failed to get KubeadmControlPlane/%s", ref.Name)
-			}
-
-			return controlPlane, nil
+		controlPlane := &controlplanev1.KubeadmControlPlane{}
+		if err := client.Get(ctx, key, controlPlane); err != nil {
+			return nil, errors.Wrapf(err, "failed to get KubeadmControlPlane/%s", ref.Name)
 		}
+
+		return controlPlane, nil
 	}
 	return nil, nil
 }
 
 // IsOwnerDeleted returns a boolean if the owner of the CAPI machine has been deleted.
-func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *capiv1.Machine) bool {
-
+func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *capiv1.Machine) (bool, error) {
 	if util.IsControlPlaneMachine(capiMachine) {
-		if md, _ := GetKubeadmControlPlaneFromCAPIMachine(ctx, client, capiMachine); md == nil {
-			return true
+		if md, err := GetKubeadmControlPlaneFromCAPIMachine(ctx, client, capiMachine); md != nil {
+			if err != nil {
+				return false, err
+			}
+			return false, nil
 		}
 	} else {
-		if md, _ := GetMachineSet(ctx, client, capiMachine); md == nil {
-			return true
+		if md, err := GetMachineSetFromCAPIMachine(ctx, client, capiMachine); md != nil {
+			if err != nil {
+				return false, err
+			}
+			return false, nil
 		}
 	}
-	return false
+	return true, nil
 }
 
 // fetchRef simply searches a list of OwnerReference objects for a given kind.
@@ -115,9 +117,9 @@ func fetchRef(reflist []meta.OwnerReference, kind string) *meta.OwnerReference {
 
 // GetManagementOwnerRef returns the reference object pointing to the CAPI machine's manager.
 func GetManagementOwnerRef(capiMachine *capiv1.Machine) *meta.OwnerReference {
-	if !util.IsControlPlaneMachine(capiMachine) {
-		return fetchRef(capiMachine.OwnerReferences, "MachineSet")
-	} else {
+	if util.IsControlPlaneMachine(capiMachine) {
 		return fetchRef(capiMachine.OwnerReferences, "KubeadmControlPlane")
+	} else {
+		return fetchRef(capiMachine.OwnerReferences, "MachineSet")
 	}
 }
