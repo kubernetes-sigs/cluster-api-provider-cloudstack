@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/webhook_utilities"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -56,27 +57,25 @@ var _ webhook.Validator = &CloudStackMachine{}
 func (r *CloudStackMachine) ValidateCreate() error {
 	cloudstackmachinelog.Info("validate create", "name", r.Name)
 
-	var (
-		errorList field.ErrorList
-		spec      = r.Spec
-	)
+	var errorList field.ErrorList
 
 	// IdentityRefs must be Secrets.
-	if spec.IdentityRef != nil && spec.IdentityRef.Kind != defaultIdentityRefKind {
+	if r.Spec.IdentityRef != nil && r.Spec.IdentityRef.Kind != defaultIdentityRefKind {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
-	if r.Spec.Affinity == "" {
-		r.Spec.Affinity = "no"
+	affinity := strings.ToLower(r.Spec.Affinity)
+	if !(affinity == "" || affinity == "no" || affinity == "pro" || affinity == "anti") {
+		errorList = append(errorList, field.Invalid(field.NewPath("spec", "Affinity"), r.Spec.Affinity,
+			`Affinity must be "no", "pro", "anti", or unspecified.`))
 	}
-
-	if (r.Spec.Affinity != "no") && (len(r.Spec.AffinityGroupIds) > 0) {
-		errorList = append(errorList, field.Required(field.NewPath("spec", "AffinityGroupIds"),
+	if (affinity != "no") && affinity != "" && (len(r.Spec.AffinityGroupIds) > 0) {
+		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"),
 			"AffinityGroupIds cannot be specified when Affinity is specified as anything but `no`"))
 	}
 
-	errorList = webhook_utilities.EnsureFieldExists(spec.Offering, "Offering", errorList)
-	errorList = webhook_utilities.EnsureFieldExists(spec.Template, "Template", errorList)
+	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Offering, "Offering", errorList)
+	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Template, "Template", errorList)
 
 	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
@@ -85,10 +84,7 @@ func (r *CloudStackMachine) ValidateCreate() error {
 func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	cloudstackmachinelog.Info("validate update", "name", r.Name)
 
-	var (
-		errorList field.ErrorList
-		spec      = r.Spec
-	)
+	var errorList field.ErrorList
 
 	oldMachine, ok := old.(*CloudStackMachine)
 	if !ok {
@@ -96,17 +92,19 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	}
 	oldSpec := oldMachine.Spec
 
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Offering, oldSpec.Offering, "offering", errorList)
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Template, oldSpec.Template, "template", errorList)
-	errorList = webhook_utilities.EnsureStringStringMapFieldsAreEqual(&spec.Details, &oldSpec.Details, "details", errorList)
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Affinity, oldSpec.Affinity, "template", errorList)
-	if !reflect.DeepEqual(spec.AffinityGroupIds, oldSpec.AffinityGroupIds) { // Equivalent to other Ensure funcs.
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.Offering, oldSpec.Offering, "offering", errorList)
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.Template, oldSpec.Template, "template", errorList)
+	errorList = webhook_utilities.EnsureStringStringMapFieldsAreEqual(&r.Spec.Details, &oldSpec.Details, "details", errorList)
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.Affinity, oldSpec.Affinity, "template", errorList)
+	if !reflect.DeepEqual(r.Spec.AffinityGroupIds, oldSpec.AffinityGroupIds) { // Equivalent to other Ensure funcs.
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"), "AffinityGroupIds"))
 	}
-	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
-		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
-		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
+	if r.Spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
+		errorList = webhook_utilities.EnsureStringFieldsAreEqual(
+			r.Spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
+		errorList = webhook_utilities.EnsureStringFieldsAreEqual(
+			r.Spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
 	}
 
 	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
