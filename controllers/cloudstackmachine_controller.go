@@ -61,6 +61,7 @@ const RequeueTimeout = 5 * time.Second
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/finalizers,verbs=update
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -215,7 +216,9 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
 
 	// Remove any CAPC managed Affinity groups if owner references a deleted object.
-	if csCtrlrUtils.IsOwnerDeleted(ctx, r.Client, capiMachine) {
+	if deleted, err := csCtrlrUtils.IsOwnerDeleted(ctx, r.Client, capiMachine); err != nil {
+		return ctrl.Result{}, err
+	} else if deleted {
 		if err := r.RemoveManagedAffinity(log, capiMachine, csMachine, csCluster); err != nil {
 			return ctrl.Result{}, err
 		}
