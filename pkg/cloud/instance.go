@@ -173,7 +173,6 @@ func (c *client) GetOrCreateVMInstance(
 			return errors.Errorf("Could not find management owner reference for %s/%s",
 				csMachine.Namespace, csMachine.Name)
 		}
-		fmt.Println(ownerRef)
 		name := fmt.Sprintf("Affinity-%s", ownerRef.UID)
 		affinityType := AffinityGroupType
 		if strings.ToLower(csMachine.Spec.Affinity) == "anti" {
