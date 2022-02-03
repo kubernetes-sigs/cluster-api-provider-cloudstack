@@ -93,22 +93,22 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Fetch the CAPI Machine.
-	machine, err := util.GetOwnerMachine(ctx, r.Client, csMachine.ObjectMeta)
+	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, csMachine.ObjectMeta)
 	if err != nil {
 		return ctrl.Result{}, err
-	} else if machine == nil {
+	} else if capiMachine == nil {
 		log.Info("Waiting for CAPI cluster controller to set owner reference on CloudStack machine.")
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
 
 	// Fetch the CAPI Cluster.
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		log.Info("Machine is missing cluster label or cluster does not exist.")
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
 
-	// Check the machine is paused.
+	// Check if the machine is paused.
 	if annotations.IsPaused(cluster, csMachine) {
 		log.Info("CloudStackMachine or linked Cluster is paused. Requeuing reconcile.")
 		return reconcile.Result{}, nil
@@ -135,32 +135,32 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Delete VM instance if deletion timestamp present.
 	if !csMachine.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(log, ctx, csMachine, machine, csCluster)
+		return r.reconcileDelete(ctx, log, csMachine, capiMachine, csCluster)
 	}
 
 	// Reconcile a VM instance for creates/updates
-	return r.reconcile(log, ctx, csCluster, csMachine, machine)
+	return r.reconcile(ctx, log, csMachine, capiMachine, csCluster)
 }
 
 // Actually reconcile/Create a VM instance.
 func (r *CloudStackMachineReconciler) reconcile(
-	log logr.Logger,
 	ctx context.Context,
-	csCluster *infrav1.CloudStackCluster,
+	log logr.Logger,
 	csMachine *infrav1.CloudStackMachine,
-	machine *capiv1.Machine) (ctrl.Result, error) {
+	capiMachine *capiv1.Machine,
+	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
 
 	log.V(1).Info("reconcile CloudStackMachine")
 
 	// Make sure bootstrap data is available in CAPI machine.
-	if machine.Spec.Bootstrap.DataSecretName == nil {
+	if capiMachine.Spec.Bootstrap.DataSecretName == nil {
 		log.Info("Bootstrap DataSecretName not yet available.")
 		return ctrl.Result{}, nil
 	}
-	log.Info("Got Bootstrap DataSecretName: " + *machine.Spec.Bootstrap.DataSecretName)
+	log.Info("Got Bootstrap DataSecretName: " + *capiMachine.Spec.Bootstrap.DataSecretName)
 
 	secret := &corev1.Secret{}
-	key := types.NamespacedName{Namespace: machine.Namespace, Name: *machine.Spec.Bootstrap.DataSecretName}
+	key := types.NamespacedName{Namespace: capiMachine.Namespace, Name: *capiMachine.Spec.Bootstrap.DataSecretName}
 	if err := r.Client.Get(context.TODO(), key, secret); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -171,7 +171,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 	}
 
 	// Create VM (or Fetch if present). Will set ready to true.
-	if err := r.CS.GetOrCreateVMInstance(csMachine, machine, csCluster, string(value)); err == nil {
+	if err := r.CS.GetOrCreateVMInstance(csMachine, capiMachine, csCluster, string(value)); err == nil {
 		if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
 			log.Info("CloudStack instance Created", "instanceStatus", csMachine.Status, "instanceSpec", csMachine.Spec)
 			controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
@@ -185,7 +185,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 		csMachine.Status.Ready = true
 	} else if csMachine.Status.InstanceState == "Error" {
 		log.Info("CloudStackMachine VM in error state.  Deleting associated Machine.", "csMachine", csMachine)
-		if err := r.Client.Delete(ctx, machine); err != nil {
+		if err := r.Client.Delete(ctx, capiMachine); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
@@ -194,7 +194,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
 
-	if util.IsControlPlaneMachine(machine) && csCluster.Status.NetworkType != cloud.NetworkTypeShared {
+	if util.IsControlPlaneMachine(capiMachine) && csCluster.Status.NetworkType != cloud.NetworkTypeShared {
 		log.Info("Assigning VM to load balancer rule.")
 		err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
 		if err != nil {
@@ -207,8 +207,8 @@ func (r *CloudStackMachineReconciler) reconcile(
 
 // Reconcile/Destroy a deleted VM instance.
 func (r *CloudStackMachineReconciler) reconcileDelete(
-	log logr.Logger,
 	ctx context.Context,
+	log logr.Logger,
 	csMachine *infrav1.CloudStackMachine,
 	capiMachine *capiv1.Machine,
 	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
