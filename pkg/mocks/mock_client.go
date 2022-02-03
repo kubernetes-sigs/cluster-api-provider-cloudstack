@@ -205,20 +205,6 @@ func (mr *MockClientMockRecorder) OpenFirewallRules(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OpenFirewallRules", reflect.TypeOf((*MockClient)(nil).OpenFirewallRules), arg0)
 }
 
-// RemoveManagedAffinity mocks base method.
-func (m *MockClient) RemoveManagedAffinity(arg0 *v1beta1.CloudStackMachine, arg1 *v1beta1.CloudStackCluster) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveManagedAffinity", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RemoveManagedAffinity indicates an expected call of RemoveManagedAffinity.
-func (mr *MockClientMockRecorder) RemoveManagedAffinity(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveManagedAffinity", reflect.TypeOf((*MockClient)(nil).RemoveManagedAffinity), arg0, arg1)
-}
-
 // ResolveLoadBalancerRuleDetails mocks base method.
 func (m *MockClient) ResolveLoadBalancerRuleDetails(arg0 *v1beta1.CloudStackCluster) error {
 	m.ctrl.T.Helper()

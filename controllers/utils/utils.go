@@ -18,7 +18,6 @@ package utils
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -92,7 +91,7 @@ func GetKubeadmControlPlaneFromCAPIMachine(
 // IsOwnerDeleted returns a boolean if the owner of the CAPI machine has been deleted.
 func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *capiv1.Machine) bool {
 
-	if !util.IsControlPlaneMachine(capiMachine) {
+	if util.IsControlPlaneMachine(capiMachine) {
 		if md, _ := GetKubeadmControlPlaneFromCAPIMachine(ctx, client, capiMachine); md == nil {
 			return true
 		}
@@ -108,12 +107,9 @@ func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *c
 func fetchRef(reflist []meta.OwnerReference, kind string) *meta.OwnerReference {
 	for _, ref := range reflist {
 		if ref.Kind == kind {
-			fmt.Println("here")
 			return &ref
 		}
 	}
-	fmt.Println("here")
-	fmt.Println(reflist)
 	return nil
 }
 

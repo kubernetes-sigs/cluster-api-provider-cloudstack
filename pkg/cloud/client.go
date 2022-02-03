@@ -40,8 +40,9 @@ type Client interface {
 }
 
 type client struct {
-	cs  *cloudstack.CloudStackClient
-	csA *cloudstack.CloudStackClient
+	cs *cloudstack.CloudStackClient
+	// This is a placeholder for sending non-blocking requests.
+	// csA *cloudstack.CloudStackClient
 }
 
 func NewClient(cc_path string) (Client, error) {
@@ -51,8 +52,9 @@ func NewClient(cc_path string) (Client, error) {
 		return nil, errors.Wrapf(err, "Error encountered while reading config at path: %s", cc_path)
 	}
 
+	// This is a placeholder for sending non-blocking requests.
+	// c.csA = cloudstack.NewClient(apiUrl, apiKey, secretKey, false)
 	// TODO: attempt a less clunky client liveliness check (not just listing zones).
-	c.csA = cloudstack.NewClient(apiUrl, apiKey, secretKey, false)
 	c.cs = cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
 	_, err = c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
 	if err != nil && strings.Contains(err.Error(), "i/o timeout") {

@@ -17,8 +17,6 @@ limitations under the License.
 package cloud
 
 import (
-	"fmt"
-
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/pkg/errors"
 )
@@ -40,7 +38,6 @@ type AffinityGroupIFace interface {
 	DeleteAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error
 	AssociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
 	DissassociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
-	RemoveManagedAffinity(*infrav1.CloudStackMachine, *infrav1.CloudStackCluster) error
 }
 
 func (c *client) FetchAffinityGroup(csCluster *infrav1.CloudStackCluster, group *AffinityGroup) (reterr error) {
@@ -183,36 +180,4 @@ func (c *client) DissassociateAffinityGroup(csMachine *infrav1.CloudStackMachine
 		groups.RemoveGroup(group)
 		return c.StopAndModifyAffinityGroups(csMachine, groups)
 	}
-}
-
-// ResolveManagedAffinity assumes the machine's affinity is managed by CAPC, computes what it should be, and then either
-// creates or fetches said group.
-func (c *client) ResolveManagedAffinity(csMachine *infrav1.CloudStackMachine,
-	csCluster *infrav1.CloudStackCluster) (AffinityGroup, error) {
-	name := fmt.Sprintf("Affinity-%s", string(csMachine.OwnerReferences[0].UID))
-	ag := AffinityGroup{Name: name}
-	if csMachine.Spec.Affinity == "anti" {
-		ag.Type = AntiAffinityGroupType
-	} else {
-		ag.Type = AffinityGroupType
-	}
-	err := c.GetOrCreateAffinityGroup(csCluster, &ag)
-	return ag, err
-}
-
-// RemoveManagedAffinity considers a machine's affinity management strategy and removes the created affinity group
-// if it exists.
-func (c *client) RemoveManagedAffinity(
-	csMachine *infrav1.CloudStackMachine,
-	csCluster *infrav1.CloudStackCluster) error {
-
-	group := &AffinityGroup{Name: fmt.Sprintf("Affinity-%s", string(csMachine.OwnerReferences[0].UID))}
-	_ = c.FetchAffinityGroup(csCluster, group)
-	if group.Id == "" { // Affinity group not found, must have been deleted.
-		return nil
-	}
-
-	// TODO: Bring a logger in here to warn about failed affinity group manipulation.
-
-	return c.DeleteAffinityGroup(csCluster, group)
 }

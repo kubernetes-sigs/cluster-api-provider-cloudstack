@@ -78,8 +78,10 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		if retErr = c.OpenFirewallRules(csCluster); retErr != nil {
 			return retErr
 		}
-		if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
-			return retErr
+		if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
+			if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
+				return retErr
+			}
 		}
 		if retErr = c.GetOrCreateLoadBalancerRule(csCluster); retErr != nil {
 			return retErr

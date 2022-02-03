@@ -26,6 +26,7 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -167,8 +168,19 @@ func (c *client) GetOrCreateVMInstance(
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
 	} else if !(strings.ToLower(csMachine.Spec.Affinity) == "no" || csMachine.Spec.Affinity == "") {
-		group, err := c.ResolveManagedAffinity(csMachine, csCluster)
-		if err != nil {
+		ownerRef := csCtrlrUtils.GetManagementOwnerRef(machine)
+		if ownerRef == nil {
+			return errors.Errorf("Could not find management owner reference for %s/%s",
+				csMachine.Namespace, csMachine.Name)
+		}
+		fmt.Println(ownerRef)
+		name := fmt.Sprintf("Affinity-%s", ownerRef.UID)
+		affinityType := AffinityGroupType
+		if strings.ToLower(csMachine.Spec.Affinity) == "anti" {
+			affinityType = AntiAffinityGroupType
+		}
+		group := &AffinityGroup{Name: name, Type: affinityType}
+		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
 			return err
 		}
 		p.SetAffinitygroupids([]string{group.Id})
