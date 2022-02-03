@@ -43,7 +43,7 @@ all: build
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-MANIFEST_GEN_INPUTS=$(shell find ./api -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
+MANIFEST_GEN_INPUTS=$(shell find ./api ./controllers -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
 # Using a flag file here as config output is too complicated to be a target.
 # The following triggers manifest building if $(IMG) differs from that found in config/default/manager_image_patch.yaml.
 $(shell	grep -qs "$(IMG)" config/default/manager_image_patch_edited.yaml || rm -f config/.flag.mk)
