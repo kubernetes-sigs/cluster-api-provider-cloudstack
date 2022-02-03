@@ -83,7 +83,8 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 		var workerMachineCount int64 = 5
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy: input.BootstrapClusterProxy,
+			ClusterProxy:    input.BootstrapClusterProxy,
+			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,

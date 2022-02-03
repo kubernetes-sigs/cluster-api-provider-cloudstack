@@ -71,7 +71,8 @@ func MachineDeploymentScaleSpec(ctx context.Context, inputGetter func() MachineD
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy: input.BootstrapClusterProxy,
+			ClusterProxy:    input.BootstrapClusterProxy,
+			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
