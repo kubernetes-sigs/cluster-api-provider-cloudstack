@@ -90,15 +90,15 @@ providers:
             new: --metrics-bind-addr=:8080
 
 variables:
-  KUBERNETES_VERSION_MANAGEMENT: "v1.21.1"
-  KUBERNETES_VERSION: "v1.21.1"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.20.10"
+  KUBERNETES_VERSION: "v1.20.10"
   CNI: "./data/cni/kindnet.yaml"
   IP_FAMILY: "IPv4"
 
   CLOUDSTACK_ZONE_NAME: zone1
   CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
-  CLOUDSTACK_NETWORK_NAME: Guest1
-  CLUSTER_ENDPOINT_IP: 172.16.2.99
+  CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
+  CLUSTER_ENDPOINT_IP: 172.16.2.199
   CLUSTER_ENDPOINT_PORT: 6443
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
@@ -123,3 +123,5 @@ intervals:
   default/wait-worker-nodes: ["20m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-remediation: ["20m", "10s"]
+  default/wait-machine-upgrade: ["20m", "10s"]
+  
