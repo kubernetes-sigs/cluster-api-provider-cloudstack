@@ -109,3 +109,11 @@ run-conformance: $(GINKGO) kind-cluster manifests cluster-templates ## Run K8S C
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
 	kind delete clusters capi-test
+
+.PHONY: run-all
+run-all: $(GINKGO) kind-cluster manifests cluster-templates ## Run K8S Conformance Tests
+	PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -nodes=1 --noColor=false ./... -- \
+	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
+	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	kind delete clusters capi-test
