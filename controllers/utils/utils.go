@@ -18,6 +18,7 @@ package utils
 
 import (
 	"context"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -49,7 +50,7 @@ func GetMachineSetFromCAPIMachine(
 
 		machineSet := &capiv1.MachineSet{}
 		if err := client.Get(ctx, key, machineSet); err != nil {
-			return nil, errors.Wrapf(err, "failed to get MachineSet/%s", ref.Name)
+			return nil, err
 		}
 
 		return machineSet, nil
@@ -77,7 +78,7 @@ func GetKubeadmControlPlaneFromCAPIMachine(
 
 		controlPlane := &controlplanev1.KubeadmControlPlane{}
 		if err := client.Get(ctx, key, controlPlane); err != nil {
-			return nil, errors.Wrapf(err, "failed to get KubeadmControlPlane/%s", ref.Name)
+			return nil, err
 		}
 
 		return controlPlane, nil
@@ -88,18 +89,20 @@ func GetKubeadmControlPlaneFromCAPIMachine(
 // IsOwnerDeleted returns a boolean if the owner of the CAPI machine has been deleted.
 func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *capiv1.Machine) (bool, error) {
 	if util.IsControlPlaneMachine(capiMachine) {
-		if md, err := GetKubeadmControlPlaneFromCAPIMachine(ctx, client, capiMachine); md != nil {
-			if err != nil {
-				return false, err
-			}
+		// The controlplane sticks around after deletion pending the deletion of its machiens.
+		// As such, need to check the deletion timestamp thereof.
+		if cp, err := GetKubeadmControlPlaneFromCAPIMachine(ctx, client, capiMachine); cp != nil && cp.DeletionTimestamp == nil {
 			return false, nil
+		} else if err != nil && !strings.Contains(err.Error(), "not found") {
+			return false, err
 		}
 	} else {
-		if md, err := GetMachineSetFromCAPIMachine(ctx, client, capiMachine); md != nil {
-			if err != nil {
-				return false, err
-			}
+		// The machienset is deleted immediately, regardless of machine ownership.
+		// It is sufficient to check for its existence.
+		if ms, err := GetMachineSetFromCAPIMachine(ctx, client, capiMachine); ms != nil {
 			return false, nil
+		} else if err != nil && !strings.Contains(err.Error(), "not found") {
+			return false, err
 		}
 	}
 	return true, nil

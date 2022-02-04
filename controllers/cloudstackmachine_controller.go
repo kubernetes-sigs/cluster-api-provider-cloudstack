@@ -159,7 +159,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 		log.Info("Bootstrap DataSecretName not yet available.")
 		return ctrl.Result{}, nil
 	}
-	log.Info("Got Bootstrap DataSecretName: " + *capiMachine.Spec.Bootstrap.DataSecretName)
+	log.Info("Got Bootstrap DataSecretName.")
 
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: capiMachine.Namespace, Name: *capiMachine.Spec.Bootstrap.DataSecretName}
