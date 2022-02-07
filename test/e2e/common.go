@@ -39,6 +39,8 @@ const (
 	CNIResources                 = "CNI_RESOURCES"
 	IPFamily                     = "IP_FAMILY"
 	InvalidZoneName              = "CLOUDSTACK_INVALID_ZONE_NAME"
+	InvalidAccountName           = "CLOUDSTACK_INVALID_ACCOUNT_NAME"
+	InvalidDomainName            = "CLOUDSTACK_INVALID_DOMAIN_NAME"
 	InvalidTemplateName          = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
 	InvalidCPOfferingName        = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
 	ExtremelyLargeCPOfferingName = "CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING"
