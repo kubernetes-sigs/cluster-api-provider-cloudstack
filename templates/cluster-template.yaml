@@ -10,7 +10,7 @@ spec:
         - 192.168.0.0/16
     serviceDomain: cluster.local
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: CloudStackCluster
     name: ${CLUSTER_NAME}
   controlPlaneRef:
@@ -18,7 +18,7 @@ spec:
     apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
     name: ${CLUSTER_NAME}-control-plane
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -50,13 +50,13 @@ spec:
     preKubeadmCommands:
       - swapoff -a
   infrastructureTemplate:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: CloudStackMachineTemplate
     name: "${CLUSTER_NAME}-control-plane"
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
@@ -85,11 +85,11 @@ spec:
       clusterName: "${CLUSTER_NAME}"
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: CloudStackMachineTemplate
       version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0

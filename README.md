@@ -136,7 +136,7 @@ Assuming your running environment is MacOS:
 
 3. Generate the CAPC cluster spec yaml file
     ```
-    clusterctl generate cluster \
+    clusterctl generate cluster capc-cluster \
         --from ~/.cluster-api/overrides/infrastructure-cloudstack/<VERSION>/cluster-template.yaml \
         > capc-cluster-spec.yaml
     
@@ -165,7 +165,7 @@ Assuming your running environment is MacOS:
     2. Run `KUBECONFIG=capc-cluster.kubeconfig cilium status` to confirm cilium status
 
 8. Verify the K8s cluster is fully up
-   1. Run `KUBECONFIG=capc-cluster.kubeconfig get nodes`, and observe the following output
+   1. Run `KUBECONFIG=capc-cluster.kubeconfig kubectl get nodes`, and observe the following output
    ```
    NAME                               STATUS   ROLES                  AGE     VERSION
    capc-cluster-control-plane-xsnxt   Ready    control-plane,master   2m56s   v1.20.10
