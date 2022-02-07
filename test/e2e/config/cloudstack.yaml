@@ -79,7 +79,9 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-zone.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-template.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-cp-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-insufficient-compute-resources.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-worker-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-node-drain.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
       - name: v1.0.0
@@ -94,6 +96,7 @@ variables:
   KUBERNETES_VERSION: "v1.20.10"
   CNI: "./data/cni/kindnet.yaml"
   IP_FAMILY: "IPv4"
+  NODE_DRAIN_TIMEOUT: "60s"
 
   CLOUDSTACK_ZONE_NAME: zone1
   CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
@@ -102,6 +105,7 @@ variables:
   CLUSTER_ENDPOINT_PORT: 6443
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
+  CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING: "Extremely Large Instance"
   CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
   CLOUDSTACK_INVALID_WORKER_MACHINE_OFFERING: "OfferingYYYY"
   CLOUDSTACK_TEMPLATE_NAME: kube-v1.20.10/ubuntu-2004
@@ -124,4 +128,9 @@ intervals:
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-remediation: ["20m", "10s"]
   default/wait-machine-upgrade: ["20m", "10s"]
+
+  node-drain/wait-deployment-available: ["3m", "10s"]
+  node-drain/wait-control-plane: ["15m", "10s"]
+  node-drain/wait-machine-deleted: ["2m", "10s"]
+
   

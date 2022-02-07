@@ -81,6 +81,8 @@ cluster-templates-v1beta1: $(KUSTOMIZE)
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-template > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-template.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-cp-offering > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-cp-offering.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-worker-offering > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-worker-offering.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-insufficient-compute-resources > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-insufficient-compute-resources.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-node-drain > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-node-drain.yaml
 
 ## --------------------------------------
 ## End-to-End Tests
