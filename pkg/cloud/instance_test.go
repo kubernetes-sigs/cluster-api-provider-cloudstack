@@ -27,14 +27,14 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("Instance", func() {
 	notFoundError := errors.New("no match found")
-	unknownError := errors.New("unknown err")
+	const unknownErrorMessage = "unknown err"
+	unknownError := errors.New(unknownErrorMessage)
 
 	var (
 		mockCtrl   *gomock.Controller
@@ -75,7 +75,7 @@ var _ = Describe("Instance", func() {
 	Context("when fetching a VM instance", func() {
 		It("Handles an unknown error when fetching by ID", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, unknownError)
-			Ω(client.ResolveVMInstanceDetails(csMachine)).To(MatchError("unknown err"))
+			Ω(client.ResolveVMInstanceDetails(csMachine)).To(MatchError(unknownErrorMessage))
 		})
 
 		It("Handles finding more than one VM instance by ID", func() {
@@ -96,7 +96,7 @@ var _ = Describe("Instance", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, unknownError)
 
-			Ω(client.ResolveVMInstanceDetails(csMachine)).Should(MatchError("unknown err"))
+			Ω(client.ResolveVMInstanceDetails(csMachine)).Should(MatchError(unknownErrorMessage))
 		})
 
 		It("handles finding more than one VM instance by Name", func() {
@@ -131,7 +131,7 @@ var _ = Describe("Instance", func() {
 
 		It("returns unknown errors encountered while fetching VM instance", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, unknownError)
-			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(MatchError("unknown err"))
+			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(MatchError(unknownErrorMessage))
 		})
 
 		It("returns errors occuring while fetching sevice offering information", func() {
@@ -150,13 +150,14 @@ var _ = Describe("Instance", func() {
 			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).ShouldNot(Succeed())
 		})
 
+		const allFilter = "all"
 		It("returns errors encountered while fetching template", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, notFoundError)
 			sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return(serviceOfferingID, 1, nil)
-			ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).
+			ts.EXPECT().GetTemplateID(csMachine.Spec.Template, allFilter, csCluster.Status.ZoneID).
 				Return("", -1, unknownError)
-			ts.EXPECT().GetTemplateByID(csMachine.Spec.Template, "all").Return(nil, -1, unknownError)
+			ts.EXPECT().GetTemplateByID(csMachine.Spec.Template, allFilter).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).ShouldNot(Succeed())
 		})
 
@@ -164,8 +165,8 @@ var _ = Describe("Instance", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, notFoundError)
 			sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return(serviceOfferingID, 1, nil)
-			ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).Return("", 2, nil)
-			ts.EXPECT().GetTemplateByID(csMachine.Spec.Template, "all").Return(nil, -1, unknownError)
+			ts.EXPECT().GetTemplateID(csMachine.Spec.Template, allFilter, csCluster.Status.ZoneID).Return("", 2, nil)
+			ts.EXPECT().GetTemplateByID(csMachine.Spec.Template, allFilter).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).ShouldNot(Succeed())
 		})
 
@@ -173,13 +174,13 @@ var _ = Describe("Instance", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, notFoundError)
 			sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return(serviceOfferingID, 1, nil)
-			ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).
+			ts.EXPECT().GetTemplateID(csMachine.Spec.Template, allFilter, csCluster.Status.ZoneID).
 				Return(templateID, 1, nil)
 			vms.EXPECT().NewDeployVirtualMachineParams(serviceOfferingID, templateID, csCluster.Status.ZoneID).
 				Return(&cloudstack.DeployVirtualMachineParams{})
 			vms.EXPECT().DeployVirtualMachine(gomock.Any()).Return(nil, unknownError)
 
-			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(MatchError("unknown err"))
+			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(MatchError(unknownErrorMessage))
 		})
 
 		// The folloing test checks that DomainId and Account are set (or not) in the DeployVirtualMachineParams
@@ -195,7 +196,7 @@ var _ = Describe("Instance", func() {
 					vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).
 						Return(nil, -1, notFoundError),
 					sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return(serviceOfferingID, 1, nil),
-					ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).
+					ts.EXPECT().GetTemplateID(csMachine.Spec.Template, allFilter, csCluster.Status.ZoneID).
 						Return(templateID, 1, nil),
 					vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).
 						Return(&cloudstack.VirtualMachinesMetric{}, 1, nil))
@@ -250,7 +251,7 @@ var _ = Describe("Instance", func() {
 
 			It("works with service offering name and template name", func() {
 				sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return(serviceOfferingID, 1, nil)
-				ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).
+				ts.EXPECT().GetTemplateID(csMachine.Spec.Template, allFilter, csCluster.Status.ZoneID).
 					Return(templateID, 1, nil)
 
 				ActionAndAssert()
@@ -260,7 +261,7 @@ var _ = Describe("Instance", func() {
 				csMachine.Spec.Offering = serviceOfferingID
 				sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return("", -1, notFoundError)
 				sos.EXPECT().GetServiceOfferingByID(csMachine.Spec.Offering).Return(&cloudstack.ServiceOffering{}, 1, nil)
-				ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).
+				ts.EXPECT().GetTemplateID(csMachine.Spec.Template, allFilter, csCluster.Status.ZoneID).
 					Return(templateID, 1, nil)
 
 				ActionAndAssert()
@@ -269,9 +270,9 @@ var _ = Describe("Instance", func() {
 			It("works with service offering name and template ID", func() {
 				csMachine.Spec.Template = templateID
 				sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return(serviceOfferingID, 1, nil)
-				ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).
+				ts.EXPECT().GetTemplateID(csMachine.Spec.Template, allFilter, csCluster.Status.ZoneID).
 					Return("", -1, notFoundError)
-				ts.EXPECT().GetTemplateByID(csMachine.Spec.Template, "all").
+				ts.EXPECT().GetTemplateByID(csMachine.Spec.Template, allFilter).
 					Return(&cloudstack.Template{}, 1, nil)
 
 				ActionAndAssert()
@@ -282,9 +283,9 @@ var _ = Describe("Instance", func() {
 				csMachine.Spec.Template = templateID
 				sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return("", -1, notFoundError)
 				sos.EXPECT().GetServiceOfferingByID(csMachine.Spec.Offering).Return(&cloudstack.ServiceOffering{}, 1, nil)
-				ts.EXPECT().GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID).
+				ts.EXPECT().GetTemplateID(csMachine.Spec.Template, allFilter, csCluster.Status.ZoneID).
 					Return("", -1, notFoundError)
-				ts.EXPECT().GetTemplateByID(csMachine.Spec.Template, "all").
+				ts.EXPECT().GetTemplateByID(csMachine.Spec.Template, allFilter).
 					Return(&cloudstack.Template{}, 1, nil)
 
 				ActionAndAssert()

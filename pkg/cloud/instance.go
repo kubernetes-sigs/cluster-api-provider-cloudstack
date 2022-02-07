@@ -163,9 +163,9 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 
-	// If this VM instance is a control plane, consider setting it's IP.
-	_, isControlPlanceMachine := machine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
-	if isControlPlanceMachine && csCluster.Status.NetworkType == NetworkTypeShared {
+	// If this VM instance is a control plane, consider setting its IP.
+	_, isControlPlaneMachine := machine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
+	if isControlPlaneMachine && csCluster.Status.NetworkType == NetworkTypeShared {
 		// If the specified control plane endpoint is an IP address, specify the IP address of this VM instance.
 		if net.ParseIP(csCluster.Spec.ControlPlaneEndpoint.Host) != nil {
 			p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)

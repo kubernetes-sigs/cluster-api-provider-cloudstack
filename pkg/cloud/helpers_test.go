@@ -27,7 +27,6 @@ import (
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 )
 
@@ -82,7 +81,7 @@ func ParamMatch(matcher types.GomegaMatcher) gomock.Matcher {
 }
 
 func (p paramMatcher) String() string {
-	return "a gomega matcher to match, and said matcher should have paniced before this message was printed."
+	return "a gomega matcher to match, and said matcher should have panicked before this message was printed."
 }
 
 func (p paramMatcher) Matches(x interface{}) (retVal bool) {
