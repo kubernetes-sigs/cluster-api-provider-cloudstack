@@ -33,6 +33,8 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+const AntiAffinityValue = "anti"
+
 type VMIface interface {
 	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
@@ -167,17 +169,17 @@ func (c *client) GetOrCreateVMInstance(
 
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
-	} else if !(strings.ToLower(csMachine.Spec.Affinity) == "no" || csMachine.Spec.Affinity == "") {
+	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
 		ownerRef := csCtrlrUtils.GetManagementOwnerRef(machine)
 		if ownerRef == nil {
 			return errors.Errorf("Could not find management owner reference for %s/%s",
 				csMachine.Namespace, csMachine.Name)
 		}
-		name := fmt.Sprintf("Affinity-%s", ownerRef.UID)
 		affinityType := AffinityGroupType
-		if strings.ToLower(csMachine.Spec.Affinity) == "anti" {
+		if strings.ToLower(csMachine.Spec.Affinity) == AntiAffinityValue {
 			affinityType = AntiAffinityGroupType
 		}
+		name := fmt.Sprintf("%sAffinity-%s-%s", affinityType, csCluster.ClusterName, ownerRef.UID)
 		group := &AffinityGroup{Name: name, Type: affinityType}
 		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
 			return err
