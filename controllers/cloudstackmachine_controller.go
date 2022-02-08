@@ -314,3 +314,27 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		},
 	)
 }
+
+// RemoveManagedAffinity considers a machine's affinity management strategy and removes the created affinity group
+// if it exists.
+func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
+	log logr.Logger,
+	capiMachine *capiv1.Machine,
+	csMachine *infrav1.CloudStackMachine,
+) error {
+
+	ownerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
+	if ownerRef == nil {
+		return errors.Errorf("Could not find management owner reference for %s/%s", csMachine.Namespace, csMachine.Name)
+	}
+	name := fmt.Sprintf("Affinity-%s", ownerRef.UID)
+	group := &cloud.AffinityGroup{Name: name}
+	_ = r.CS.FetchAffinityGroup(group)
+	if group.Id == "" { // Affinity group not found, must have been deleted.
+		return nil
+	}
+
+	log.Info(fmt.Sprintf("Deleting affinity group '%s'", name))
+
+	return r.CS.DeleteAffinityGroup(group)
+}
