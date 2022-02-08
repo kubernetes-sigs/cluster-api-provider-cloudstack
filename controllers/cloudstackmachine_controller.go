@@ -116,6 +116,11 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return reconcile.Result{}, nil
 	}
 
+	// Delete VM instance if deletion timestamp present.
+	if !csMachine.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, log, csMachine, capiMachine)
+	}
+
 	// Fetch the CloudStack cluster associated with this machine.
 	csCluster := &infrav1.CloudStackCluster{}
 	if err := r.Client.Get(
@@ -133,11 +138,6 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	} else if csCluster.Status.ZoneID == "" {
 		log.Info("CloudStackCluster ZoneId not initialized. Likely not ready.")
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
-	}
-
-	// Delete VM instance if deletion timestamp present.
-	if !csMachine.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, log, csMachine, capiMachine, csCluster)
 	}
 
 	// Reconcile a VM instance for creates/updates
@@ -213,13 +213,13 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 	log logr.Logger,
 	csMachine *infrav1.CloudStackMachine,
 	capiMachine *capiv1.Machine,
-	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
+) (ctrl.Result, error) {
 
 	// Remove any CAPC managed Affinity groups if owner references a deleted object.
 	if deleted, err := csCtrlrUtils.IsOwnerDeleted(ctx, r.Client, capiMachine); err != nil {
 		return ctrl.Result{}, err
 	} else if deleted {
-		if err := r.RemoveManagedAffinity(log, capiMachine, csMachine, csCluster); err != nil {
+		if err := r.RemoveManagedAffinity(log, capiMachine, csMachine); err != nil {
 			return ctrl.Result{}, err
 		}
 	}

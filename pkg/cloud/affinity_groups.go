@@ -33,14 +33,14 @@ type AffinityGroup struct {
 }
 
 type AffinityGroupIFace interface {
-	FetchAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error
+	FetchAffinityGroup(*AffinityGroup) error
 	GetOrCreateAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error
-	DeleteAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error
+	DeleteAffinityGroup(*AffinityGroup) error
 	AssociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
 	DissassociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
 }
 
-func (c *client) FetchAffinityGroup(csCluster *infrav1.CloudStackCluster, group *AffinityGroup) (reterr error) {
+func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 	if group.Id != "" {
 		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByID(group.Id)
 		if err != nil {
@@ -73,7 +73,7 @@ func (c *client) FetchAffinityGroup(csCluster *infrav1.CloudStackCluster, group 
 }
 
 func (c *client) GetOrCreateAffinityGroup(csCluster *infrav1.CloudStackCluster, group *AffinityGroup) (retErr error) {
-	if err := c.FetchAffinityGroup(csCluster, group); err != nil { // Group not found?
+	if err := c.FetchAffinityGroup(group); err != nil { // Group not found?
 		p := c.cs.AffinityGroup.NewCreateAffinityGroupParams(group.Name, group.Type)
 		setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 		setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
@@ -86,12 +86,10 @@ func (c *client) GetOrCreateAffinityGroup(csCluster *infrav1.CloudStackCluster, 
 	return nil
 }
 
-func (c *client) DeleteAffinityGroup(csCluster *infrav1.CloudStackCluster, group *AffinityGroup) (retErr error) {
+func (c *client) DeleteAffinityGroup(group *AffinityGroup) (retErr error) {
 	p := c.cs.AffinityGroup.NewDeleteAffinityGroupParams()
 	setIfNotEmpty(group.Id, p.SetId)
 	setIfNotEmpty(group.Name, p.SetName)
-	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
-	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	_, retErr = c.cs.AffinityGroup.DeleteAffinityGroup(p)
 	return retErr
 }

@@ -167,7 +167,7 @@ func (c *client) GetOrCreateVMInstance(
 
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
-	} else if !(strings.ToLower(csMachine.Spec.Affinity) == "no" || csMachine.Spec.Affinity == "") {
+	} else if !(csMachine.Spec.Affinity == infrav1.AffintyVals.No || csMachine.Spec.Affinity == infrav1.AffintyVals.Unspecified) {
 		ownerRef := csCtrlrUtils.GetManagementOwnerRef(machine)
 		if ownerRef == nil {
 			return errors.Errorf("Could not find management owner reference for %s/%s",
@@ -175,7 +175,7 @@ func (c *client) GetOrCreateVMInstance(
 		}
 		name := fmt.Sprintf("Affinity-%s", ownerRef.UID)
 		affinityType := AffinityGroupType
-		if strings.ToLower(csMachine.Spec.Affinity) == "anti" {
+		if csMachine.Spec.Affinity == infrav1.AffintyVals.Anti {
 			affinityType = AntiAffinityGroupType
 		}
 		group := &AffinityGroup{Name: name, Type: affinityType}

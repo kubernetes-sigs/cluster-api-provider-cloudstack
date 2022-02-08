@@ -26,6 +26,28 @@ const (
 	MachineFinalizer = "cloudstackmachine.infrastructure.cluster.x-k8s.io"
 )
 
+// Affinity Enum Type
+type Affinity string
+
+const (
+	Unspecified Affinity = ""
+	Pro                  = "pro"
+	No                   = "no"
+	Anti                 = "anti"
+)
+
+var AffintyVals = struct {
+	Unspecified Affinity
+	Pro         Affinity
+	No          Affinity
+	Anti        Affinity
+}{
+	Unspecified: Unspecified,
+	Pro:         Pro,
+	No:          No,
+	Anti:        Anti,
+}
+
 // CloudStackMachineSpec defines the desired state of CloudStackMachine
 type CloudStackMachineSpec struct {
 	// Instance ID. Should only be useful to modify an existing instance.
@@ -51,7 +73,7 @@ type CloudStackMachineSpec struct {
 	// Mutually exclusive parameter with AffinityGroupIds.
 	// Defaults to `no`. Can be `pro` or `anti`. Will create an affinity group per machine set.
 	// +optional
-	Affinity string `json:"affinity,omitempty"`
+	Affinity Affinity `json:"affinity,omitempty"`
 
 	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine Id)
 	// +optional
