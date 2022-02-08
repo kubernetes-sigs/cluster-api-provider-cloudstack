@@ -112,8 +112,8 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 			Ω(client.AssociateAffinityGroup(machine, *arbitraryAG)).Should(Succeed())
 		})
 		It("Deletes an affinity group.", func() {
-			Ω(client.DeleteAffinityGroup(cluster, arbitraryAG)).Should(Succeed())
-			Ω(client.FetchAffinityGroup(cluster, arbitraryAG)).ShouldNot(Succeed())
+			Ω(client.DeleteAffinityGroup(arbitraryAG)).Should(Succeed())
+			Ω(client.FetchAffinityGroup(arbitraryAG)).ShouldNot(Succeed())
 		})
 	})
 })

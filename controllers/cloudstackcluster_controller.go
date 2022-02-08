@@ -108,18 +108,17 @@ func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Delete Cluster Resources if deletion timestamp present.
 	if !csCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, log, capiCluster, csCluster)
+		return r.reconcileDelete(ctx, log, csCluster)
 	}
 
 	// Reconcile remaining clusters.
-	return r.reconcile(ctx, log, capiCluster, csCluster)
+	return r.reconcile(ctx, log, csCluster)
 }
 
 // Actually reconcile cluster.
 func (r *CloudStackClusterReconciler) reconcile(
 	ctx context.Context,
 	log logr.Logger,
-	capiCluster *capiv1.Cluster,
 	csCluster *infrav1.CloudStackCluster,
 ) (ctrl.Result, error) {
 
@@ -141,7 +140,6 @@ func (r *CloudStackClusterReconciler) reconcile(
 func (r *CloudStackClusterReconciler) reconcileDelete(
 	ctx context.Context,
 	log logr.Logger,
-	capiCluster *capiv1.Cluster,
 	csCluster *infrav1.CloudStackCluster,
 ) (ctrl.Result, error) {
 

@@ -66,17 +66,17 @@ func (mr *MockClientMockRecorder) AssociateAffinityGroup(arg0, arg1 interface{})
 }
 
 // DeleteAffinityGroup mocks base method.
-func (m *MockClient) DeleteAffinityGroup(arg0 *v1beta1.CloudStackCluster, arg1 *cloud.AffinityGroup) error {
+func (m *MockClient) DeleteAffinityGroup(arg0 *cloud.AffinityGroup) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAffinityGroup", arg0, arg1)
+	ret := m.ctrl.Call(m, "DeleteAffinityGroup", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteAffinityGroup indicates an expected call of DeleteAffinityGroup.
-func (mr *MockClientMockRecorder) DeleteAffinityGroup(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) DeleteAffinityGroup(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAffinityGroup", reflect.TypeOf((*MockClient)(nil).DeleteAffinityGroup), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAffinityGroup", reflect.TypeOf((*MockClient)(nil).DeleteAffinityGroup), arg0)
 }
 
 // DestroyVMInstance mocks base method.
@@ -108,17 +108,17 @@ func (mr *MockClientMockRecorder) DissassociateAffinityGroup(arg0, arg1 interfac
 }
 
 // FetchAffinityGroup mocks base method.
-func (m *MockClient) FetchAffinityGroup(arg0 *v1beta1.CloudStackCluster, arg1 *cloud.AffinityGroup) error {
+func (m *MockClient) FetchAffinityGroup(arg0 *cloud.AffinityGroup) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchAffinityGroup", arg0, arg1)
+	ret := m.ctrl.Call(m, "FetchAffinityGroup", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // FetchAffinityGroup indicates an expected call of FetchAffinityGroup.
-func (mr *MockClientMockRecorder) FetchAffinityGroup(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) FetchAffinityGroup(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchAffinityGroup", reflect.TypeOf((*MockClient)(nil).FetchAffinityGroup), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchAffinityGroup", reflect.TypeOf((*MockClient)(nil).FetchAffinityGroup), arg0)
 }
 
 // GetOrCreateAffinityGroup mocks base method.

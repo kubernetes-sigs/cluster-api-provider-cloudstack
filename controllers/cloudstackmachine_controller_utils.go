@@ -57,7 +57,7 @@ func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 	log logr.Logger,
 	capiMachine *capiv1.Machine,
 	csMachine *infrav1.CloudStackMachine,
-	csCluster *infrav1.CloudStackCluster) error {
+) error {
 
 	ownerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
 	if ownerRef == nil {
@@ -65,12 +65,12 @@ func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 	}
 	name := fmt.Sprintf("Affinity-%s", ownerRef.UID)
 	group := &cloud.AffinityGroup{Name: name}
-	_ = r.CS.FetchAffinityGroup(csCluster, group)
+	_ = r.CS.FetchAffinityGroup(group)
 	if group.Id == "" { // Affinity group not found, must have been deleted.
 		return nil
 	}
 
-	log.Info(fmt.Sprintf(`Deleting affinity group "%s"`, name))
+	log.Info(fmt.Sprintf("Deleting affinity group '%s'", name))
 
-	return r.CS.DeleteAffinityGroup(csCluster, group)
+	return r.CS.DeleteAffinityGroup(group)
 }
