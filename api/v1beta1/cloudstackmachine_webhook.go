@@ -69,7 +69,7 @@ func (r *CloudStackMachine) ValidateCreate() error {
 		errorList = append(errorList, field.Invalid(field.NewPath("spec", "Affinity"), r.Spec.Affinity,
 			`Affinity must be "no", "pro", "anti", or unspecified.`))
 	}
-	if (affinity != "no") && affinity != "" && (len(r.Spec.AffinityGroupIds) > 0) {
+	if affinity != "no" && affinity != "" && len(r.Spec.AffinityGroupIds) > 0 {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"),
 			"AffinityGroupIds cannot be specified when Affinity is specified as anything but `no`"))
 	}
