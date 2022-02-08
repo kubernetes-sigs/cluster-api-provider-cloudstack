@@ -108,9 +108,9 @@ func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *c
 	return true, nil
 }
 
-// fetchRef simply searches a list of OwnerReference objects for a given kind.
-func fetchRef(reflist []meta.OwnerReference, kind string) *meta.OwnerReference {
-	for _, ref := range reflist {
+// fetchOwnerRef simply searches a list of OwnerReference objects for a given kind.
+func fetchOwnerRef(refList []meta.OwnerReference, kind string) *meta.OwnerReference {
+	for _, ref := range refList {
 		if ref.Kind == kind {
 			return &ref
 		}
@@ -121,8 +121,8 @@ func fetchRef(reflist []meta.OwnerReference, kind string) *meta.OwnerReference {
 // GetManagementOwnerRef returns the reference object pointing to the CAPI machine's manager.
 func GetManagementOwnerRef(capiMachine *capiv1.Machine) *meta.OwnerReference {
 	if util.IsControlPlaneMachine(capiMachine) {
-		return fetchRef(capiMachine.OwnerReferences, "KubeadmControlPlane")
+		return fetchOwnerRef(capiMachine.OwnerReferences, "KubeadmControlPlane")
 	} else {
-		return fetchRef(capiMachine.OwnerReferences, "MachineSet")
+		return fetchOwnerRef(capiMachine.OwnerReferences, "MachineSet")
 	}
 }
