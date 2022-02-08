@@ -97,7 +97,7 @@ func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *c
 			return false, err
 		}
 	} else {
-		// The machienset is deleted immediately, regardless of machine ownership.
+		// The machineset is deleted immediately, regardless of machine ownership.
 		// It is sufficient to check for its existence.
 		if ms, err := GetMachineSetFromCAPIMachine(ctx, client, capiMachine); ms != nil {
 			return false, nil
