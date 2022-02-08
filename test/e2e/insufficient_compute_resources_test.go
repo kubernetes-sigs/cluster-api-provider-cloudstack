@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When the compute resources are insufficient [TC7a]", func() {
+var _ = Describe("When the compute resources are insufficient [TC8]", func() {
 	InsufficientComputeResourcesSpec(context.TODO(), func() InsufficientComputeResources {
 		return InsufficientComputeResources{
 			E2EConfig:             e2eConfig,

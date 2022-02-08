@@ -24,9 +24,9 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When the specified account does not exist [TC4a]", func() {
-	InvalidAccountSpec(context.TODO(), func() InvalidAccountSpecInput {
-		return InvalidAccountSpecInput{
+var _ = Describe("When the specified network does not exist [TC5]", func() {
+	InvalidNetworkSpec(context.TODO(), func() InvalidNetworkSpecInput {
+		return InvalidNetworkSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

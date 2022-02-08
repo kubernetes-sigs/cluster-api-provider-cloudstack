@@ -35,8 +35,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// InvalidWorkerOfferingSpecInput is the input for InvalidWorkerOfferingSpec.
-type InvalidWorkerOfferingSpecInput struct {
+// InvalidNetworkSpecInput is the input for InvalidNetworkSpec.
+type InvalidNetworkSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -49,11 +49,11 @@ type InvalidWorkerOfferingSpecInput struct {
 	Flavor *string
 }
 
-// InvalidWorkerOfferingSpec implements a test that verifies that creating a new cluster fails when the specified worker offering does not exist
-func InvalidWorkerOfferingSpec(ctx context.Context, inputGetter func() InvalidWorkerOfferingSpecInput) {
+// InvalidNetworkSpec implements a test that verifies that creating a new cluster fails when the specified network does not exist
+func InvalidNetworkSpec(ctx context.Context, inputGetter func() InvalidNetworkSpecInput) {
 	var (
-		specName         = "invalid-worker-offering"
-		input            InvalidWorkerOfferingSpecInput
+		specName         = "invalid-network"
+		input            InvalidNetworkSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -74,7 +74,7 @@ func InvalidWorkerOfferingSpec(ctx context.Context, inputGetter func() InvalidWo
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should fail due to the specified worker offering is not found", func() {
+	It("Should fail due to the specified network is not found", func() {
 		logFolder := filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName())
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
@@ -85,7 +85,7 @@ func InvalidWorkerOfferingSpec(ctx context.Context, inputGetter func() InvalidWo
 			// pass the clusterctl config file that points to the local provider repository created for this test,
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			// select template
-			Flavor: "invalid-worker-offering",
+			Flavor: "invalid-network",
 			// define template variables
 			Namespace:                namespace.Name,
 			ClusterName:              clusterName,
@@ -106,7 +106,7 @@ func InvalidWorkerOfferingSpec(ctx context.Context, inputGetter func() InvalidWo
 			Namespace: namespace.Name,
 		})
 
-		By("Waiting for 'offering not found' error to occur")
+		By("Waiting for 'network not found' error to occur")
 		Eventually(func() (string, error) {
 			err := filepath.Walk(logFolder, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
@@ -114,8 +114,8 @@ func InvalidWorkerOfferingSpec(ctx context.Context, inputGetter func() InvalidWo
 				}
 				if strings.Contains(path, "capc-controller-manager") && strings.Contains(path, "manager.log") {
 					log, _ := os.ReadFile(path)
-					if strings.Contains(string(log), "No match found for "+input.E2EConfig.GetVariable(InvalidWorkerOfferingName)) {
-						By("Found 'offering not found' error")
+					if strings.Contains(string(log), "No match found for "+input.E2EConfig.GetVariable(InvalidNetworkName)) {
+						By("Found 'network not found' error")
 						return errors.New("expected error found")
 					}
 				}
@@ -126,7 +126,7 @@ func InvalidWorkerOfferingSpec(ctx context.Context, inputGetter func() InvalidWo
 			} else {
 				return err.Error(), nil
 			}
-		}, input.E2EConfig.GetIntervals(specName, "wait-errors-long")...).Should(Equal(string("expected error found")))
+		}, input.E2EConfig.GetIntervals(specName, "wait-errors")...).Should(Equal(string("expected error found")))
 
 		By("PASSED!")
 	})

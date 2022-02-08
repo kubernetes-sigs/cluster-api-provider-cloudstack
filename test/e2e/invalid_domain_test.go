@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When the specified account does not exist [TC3]", func() {
+var _ = Describe("When the specified domain does not exist [TC4b]", func() {
 	InvalidDomainSpec(context.TODO(), func() InvalidDomainSpecInput {
 		return InvalidDomainSpecInput{
 			E2EConfig:             e2eConfig,

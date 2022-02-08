@@ -77,6 +77,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-kcp-remediation.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-md-remediation.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-zone.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-network.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-account.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-domain.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-template.yaml"
@@ -102,6 +103,7 @@ variables:
 
   CLOUDSTACK_ZONE_NAME: zone1
   CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
+  CLOUDSTACK_INVALID_NETWORK_NAME: networkXXXX
   CLOUDSTACK_ACCOUNT_NAME: admin
   CLOUDSTACK_INVALID_ACCOUNT_NAME: accountXXXX
   CLOUDSTACK_DOMAIN_NAME: ROOT
@@ -126,7 +128,8 @@ intervals:
   conformance/wait-control-plane: ["20m", "10s"]
   conformance/wait-worker-nodes: ["20m", "10s"]
 
-  default/wait-errors: ["5m", "10s"]
+  default/wait-errors: ["1m", "10s"]
+  default/wait-errors-long: ["5m", "10s"]
   default/wait-controllers: ["3m", "10s"]
   default/wait-cluster: ["20m", "10s"]
   default/wait-control-plane: ["20m", "10s"]

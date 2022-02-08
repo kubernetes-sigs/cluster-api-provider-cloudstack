@@ -78,6 +78,7 @@ cluster-templates-v1beta1: $(KUSTOMIZE)
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-kcp-remediation > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-kcp-remediation.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-md-remediation > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-md-remediation.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-zone > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-zone.yaml
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-network > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-network.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-account > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-account.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-domain > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-domain.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-template > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-invalid-template.yaml
