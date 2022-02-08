@@ -49,10 +49,11 @@ spec:
         name: '{{ local_hostname }}'
     preKubeadmCommands:
       - swapoff -a
-  infrastructureTemplate:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-    kind: CloudStackMachineTemplate
-    name: "${CLUSTER_NAME}-control-plane"
+  machineTemplate:
+    infrastructureRef:
+      kind: CloudStackMachineTemplate
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      name: "${CLUSTER_NAME}-control-plane"
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: ${KUBERNETES_VERSION}
 ---
