@@ -220,7 +220,7 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 		return ctrl.Result{}, err
 	} else if deleted {
 		if err := r.RemoveManagedAffinity(log, capiMachine, csMachine); err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.Wrap(err, "Error encountered when removing affinity group.")
 		}
 	}
 
