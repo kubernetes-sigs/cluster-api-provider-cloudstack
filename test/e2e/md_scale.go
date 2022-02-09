@@ -100,12 +100,12 @@ func MachineDeploymentScaleSpec(ctx context.Context, inputGetter func() MachineD
 			Replicas:                  3,
 			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		})
-		By("Scaling the MachineDeployment down to 1")
+		By("Scaling the MachineDeployment down to 2")
 		framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
 			ClusterProxy:              input.BootstrapClusterProxy,
 			Cluster:                   clusterResources.Cluster,
 			MachineDeployment:         clusterResources.MachineDeployments[0],
-			Replicas:                  1,
+			Replicas:                  2,
 			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		})
 		By("PASSED!")

@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing MachineDeployment scale out/in", func() {
+var _ = Describe("When testing MachineDeployment scale out/in [TC17][TC18]", func() {
 
 	MachineDeploymentScaleSpec(context.TODO(), func() MachineDeploymentScaleSpecInput {
 		return MachineDeploymentScaleSpecInput{
