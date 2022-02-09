@@ -38,7 +38,9 @@ Install [tilt prerequisites](https://cluster-api.sigs.k8s.io/developer/tilt.html
 
 ## Running CAPC without Tilt - detailed instructions
 
-Generally speaking, this cloudstack infrastructure provider will generate a docker image and 3 yaml files. `clusterctl` (a binary tool) will use the above docker image and 3 yaml files to provision a cluster from your local machine using cloudstack as a provider.
+Generally speaking, this cloudstack infrastructure provider will generate a docker image and 3 yaml files. 
+`clusterctl` (a binary tool) will use the above docker image and 3 yaml files to provision a cluster from your local 
+machine using cloudstack as a provider.
 
 ### Prerequisites:
 Assuming your running environment is MacOS:
@@ -47,9 +49,13 @@ Assuming your running environment is MacOS:
     1. Docker
     2. KinD
     3. KubeCtl
-    4. ClusterCtl - note that depending on the version of CAPC used, you may need different clusterctl versions. Download the binary by finding the necessary release [here](https://github.com/kubernetes-sigs/cluster-api/releases) ([v0.3.23](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v0.3.23) for v1alpha3, [v1.0.2](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.0.2) for v1beta1). Download the appropriate executable assets (darwin-arm64 for Macbook) and add them to your PATH
+    4. ClusterCtl - note that depending on the version of CAPC used, you may need different clusterctl versions. 
+    Download the binary by finding the necessary release [here](https://github.com/kubernetes-sigs/cluster-api/releases) 
+    [v1.0.2](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.0.2) for v1beta1). 
+    Download the appropriate executable assets (darwin-arm64 for Macbook) and add them to your PATH
 
-2. [Install cilium-cli](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli). Another container networking choice is to use [kindnet](https://github.com/aojea/kindnet), but its usage will not be described here
+2. [Install cilium-cli](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli).
+Another container networking choice is to use [kindnet](https://github.com/aojea/kindnet), but its usage will not be described here
 
 3. Create a local docker registry to save your docker image - otherwise, you need an image registry to push it somewhere else.
    

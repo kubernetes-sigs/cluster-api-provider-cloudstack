@@ -11,7 +11,7 @@
 # If deployed independently of cluster-template, be sure to replace the placeholders in the below
 # before applying it to your management cluster.
 ---
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineHealthCheck
 metadata:
   name: ${CLUSTER_NAME}-kcp-unhealthy-2m

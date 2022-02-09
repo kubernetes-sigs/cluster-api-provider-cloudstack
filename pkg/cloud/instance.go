@@ -32,6 +32,15 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+const AntiAffinityValue = "anti"
+
+type VMIface interface {
+	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
+	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
+	DestroyVMInstance(*infrav1.CloudStackMachine) error
+	AssignVMToLoadBalancerRule(*infrav1.CloudStackCluster, string) error
+}
+
 // Set infrastructure spec and status from the CloudStack API's virtual machine metrics type.
 func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, csMachine *infrav1.CloudStackMachine) {
 	csMachine.Spec.ProviderID = pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
@@ -125,7 +134,7 @@ func (c *client) ResolveTemplate(csCluster *infrav1.CloudStackCluster, csMachine
 // sets the infrastructure machine spec and status accordingly.
 func (c *client) GetOrCreateVMInstance(
 	csMachine *infrav1.CloudStackMachine,
-	machine *capiv1.Machine,
+	capiMachine *capiv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
 	userData string) error {
 
@@ -159,12 +168,26 @@ func (c *client) GetOrCreateVMInstance(
 
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
+	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
+		affinityType := AffinityGroupType
+		if strings.ToLower(csMachine.Spec.Affinity) == AntiAffinityValue {
+			affinityType = AntiAffinityGroupType
+		}
+		name, err := csMachine.AffinityGroupName(capiMachine)
+		if err != nil {
+			return err
+		}
+		group := &AffinityGroup{Name: name, Type: affinityType}
+		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
+			return err
+		}
+		p.SetAffinitygroupids([]string{group.Id})
 	}
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 
 	// If this VM instance is a control plane, consider setting it's IP.
-	_, isControlPlanceMachine := machine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
+	_, isControlPlanceMachine := capiMachine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
 	if isControlPlanceMachine && csCluster.Status.NetworkType == NetworkTypeShared {
 		// If the specified control plane endpoint is an IP address, specify the IP address of this VM instance.
 		if net.ParseIP(csCluster.Spec.ControlPlaneEndpoint.Host) != nil {
@@ -187,7 +210,7 @@ func (c *client) GetOrCreateVMInstance(
 
 }
 
-// DestroyVMInstance Destroy a VM instane. Assumes machine has been fetched prior and has an instance ID.
+// DestroyVMInstance Destroy a VM instance. Assumes machine has been fetched prior and has an instance ID.
 func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 
 	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)

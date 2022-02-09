@@ -11,8 +11,8 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackCluster
-  path: github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3
-  version: v1alpha3
+  path: github.com/aws/cluster-api-provider-cloudstack/api/v1beta1
+  version: v1beta1
   webhooks:
     defaulting: true
     validation: true
@@ -24,8 +24,8 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachine
-  path: github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3
-  version: v1alpha3
+  path: github.com/aws/cluster-api-provider-cloudstack/api/v1beta1
+  version: v1beta1
   webhooks:
     defaulting: true
     validation: true
@@ -37,10 +37,10 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineTemplate
-  path: github.com/aws/cluster-api-provider-cloudstack/api/v1alpha3
-  version: v1alpha3
+  path: github.com/aws/cluster-api-provider-cloudstack/api/v1beta1
+  version: v1beta1
   webhooks:
     defaulting: true
     validation: true
     webhookVersion: v1
-version: "3"
+version: "0.4"

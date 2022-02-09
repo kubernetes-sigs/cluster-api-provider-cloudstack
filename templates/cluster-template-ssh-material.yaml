@@ -1,5 +1,5 @@
 ---
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -10,15 +10,15 @@ spec:
         - 192.168.0.0/16
     serviceDomain: cluster.local
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: CloudStackCluster
     name: ${CLUSTER_NAME}
   controlPlaneRef:
     kind: KubeadmControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: ${CLUSTER_NAME}-control-plane
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -29,7 +29,7 @@ spec:
   network: ${CLOUDSTACK_NETWORK_NAME}
   zone: ${CLOUDSTACK_ZONE_NAME}
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
@@ -54,14 +54,15 @@ spec:
         sudo: ALL=(ALL) NOPASSWD:ALL
     preKubeadmCommands:
       - swapoff -a
-  infrastructureTemplate:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: CloudStackMachineTemplate
-    name: "${CLUSTER_NAME}-control-plane"
+  machineTemplate:
+    infrastructureRef:
+      kind: CloudStackMachineTemplate
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      name: "${CLUSTER_NAME}-control-plane"
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
@@ -71,7 +72,7 @@ spec:
       offering: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
       template: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
   name: "${CLUSTER_NAME}-md-0"
@@ -84,17 +85,17 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfigTemplate
           name: "${CLUSTER_NAME}-md-0"
       clusterName: "${CLUSTER_NAME}"
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: CloudStackMachineTemplate
       version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
@@ -104,7 +105,7 @@ spec:
       offering: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
       template: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0

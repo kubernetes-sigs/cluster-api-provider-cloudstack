@@ -287,7 +287,7 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 
 			cloudStackMachineTemplate.DeepCopyInto(cloudStackMachineTemplateUpdate)
 			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.AffinityGroupIds = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2ag"}
-			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate)).ShouldNot(Succeed())
 		})
 	})
 })

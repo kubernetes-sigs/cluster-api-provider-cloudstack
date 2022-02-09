@@ -43,7 +43,7 @@ all: build
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-MANIFEST_GEN_INPUTS=$(shell find ./api -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
+MANIFEST_GEN_INPUTS=$(shell find ./api ./controllers -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
 # Using a flag file here as config output is too complicated to be a target.
 # The following triggers manifest building if $(IMG) differs from that found in config/default/manager_image_patch.yaml.
 $(shell	grep -qs "$(IMG)" config/default/manager_image_patch_edited.yaml || rm -f config/.flag.mk)
@@ -56,7 +56,7 @@ config/.flag.mk: bin/controller-gen $(MANIFEST_GEN_INPUTS)
 
 .PHONY: release-manifests
 RELEASE_MANIFEST_TARGETS=$(RELEASE_DIR)/infrastructure-components.yaml $(RELEASE_DIR)/metadata.yaml
-RELEASE_MANIFEST_INPUTS=config/.flag.mk $(shell find config)
+RELEASE_MANIFEST_INPUTS=bin/kustomize config/.flag.mk $(shell find config) 
 release-manifests: $(RELEASE_MANIFEST_TARGETS) ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
 $(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
 	@mkdir -p $(RELEASE_DIR)
@@ -163,7 +163,7 @@ clean: ## Clean.
 export KUBEBUILDER_ASSETS=$(PROJECT_DIR)/bin
 
 .PHONY: test
-test: lint generate-deepcopy generate-mocks bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
+test: generate-mocks lint generate-deepcopy bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@ginkgo -v ./api/... ./controllers/... ./pkg/... -coverprofile cover.out; EXIT_STATUS=$$?;\
