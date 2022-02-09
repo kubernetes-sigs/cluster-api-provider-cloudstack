@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/webhook_utilities"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -89,6 +90,11 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 			r.Spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
 		errorList = webhook_utilities.EnsureStringFieldsAreEqual(
 			r.Spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
+	}
+	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.Affinity, oldSpec.Affinity, "affinity", errorList)
+
+	if !reflect.DeepEqual(r.Spec.AffinityGroupIds, oldSpec.AffinityGroupIds) { // Equivalent to other Ensure funcs.
+		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"), "AffinityGroupIds"))
 	}
 
 	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
