@@ -103,9 +103,7 @@ func (c *client) ResolvePublicIPDetails(csCluster *infrav1.CloudStackCluster) (*
 	if err != nil {
 		return nil, err
 	} else if ip != "" && publicAddresses.Count == 1 { // Endpoint specified and IP found.
-		if publicAddresses.PublicIpAddresses[0].Allocated != "" { // Need to check availability (allocation).
-			return nil, errors.Errorf(`specified endpoint IP "%s", is already allocated`, ip)
-		}
+		// Ignore already allocated here since the IP was specified.
 		return publicAddresses.PublicIpAddresses[0], nil
 	} else if publicAddresses.Count > 0 { // Endpoint not specified.
 		for _, v := range publicAddresses.PublicIpAddresses { // Pick first availabe address.

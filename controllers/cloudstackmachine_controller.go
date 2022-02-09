@@ -327,7 +327,10 @@ func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 	if ownerRef == nil {
 		return errors.Errorf("Could not find management owner reference for %s/%s", csMachine.Namespace, csMachine.Name)
 	}
-	name := fmt.Sprintf("Affinity-%s", ownerRef.UID)
+	name, err := csMachine.AffinityGroupName(capiMachine)
+	if err != nil {
+		return err
+	}
 	group := &cloud.AffinityGroup{Name: name}
 	_ = r.CS.FetchAffinityGroup(group)
 	if group.Id == "" { // Affinity group not found, must have been deleted.

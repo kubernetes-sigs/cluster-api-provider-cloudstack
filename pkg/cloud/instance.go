@@ -26,7 +26,6 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -135,7 +134,7 @@ func (c *client) ResolveTemplate(csCluster *infrav1.CloudStackCluster, csMachine
 // sets the infrastructure machine spec and status accordingly.
 func (c *client) GetOrCreateVMInstance(
 	csMachine *infrav1.CloudStackMachine,
-	machine *capiv1.Machine,
+	capiMachine *capiv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
 	userData string) error {
 
@@ -170,16 +169,14 @@ func (c *client) GetOrCreateVMInstance(
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
 	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
-		ownerRef := csCtrlrUtils.GetManagementOwnerRef(machine)
-		if ownerRef == nil {
-			return errors.Errorf("Could not find management owner reference for %s/%s",
-				csMachine.Namespace, csMachine.Name)
-		}
 		affinityType := AffinityGroupType
 		if strings.ToLower(csMachine.Spec.Affinity) == AntiAffinityValue {
 			affinityType = AntiAffinityGroupType
 		}
-		name := fmt.Sprintf("%sAffinity-%s-%s", affinityType, csCluster.ClusterName, ownerRef.UID)
+		name, err := csMachine.AffinityGroupName(capiMachine)
+		if err != nil {
+			return err
+		}
 		group := &AffinityGroup{Name: name, Type: affinityType}
 		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
 			return err
@@ -190,7 +187,7 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 
 	// If this VM instance is a control plane, consider setting it's IP.
-	_, isControlPlanceMachine := machine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
+	_, isControlPlanceMachine := capiMachine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
 	if isControlPlanceMachine && csCluster.Status.NetworkType == NetworkTypeShared {
 		// If the specified control plane endpoint is an IP address, specify the IP address of this VM instance.
 		if net.ParseIP(csCluster.Spec.ControlPlaneEndpoint.Host) != nil {
