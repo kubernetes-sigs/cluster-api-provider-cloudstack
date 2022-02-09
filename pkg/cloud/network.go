@@ -31,7 +31,7 @@ const (
 	K8sDefaultAPIPort   = 6443
 	NetworkTypeIsolated = "Isolated"
 	NetworkTypeShared   = "Shared"
-	tcp                 = "tcp"
+	NetworkProtocolTCP  = "tcp"
 )
 
 func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
@@ -145,7 +145,7 @@ func (c *client) AssociatePublicIpAddress(csCluster *infrav1.CloudStackCluster) 
 }
 
 func (c *client) OpenFirewallRules(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, tcp)
+	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, NetworkProtocolTCP)
 	_, retErr = c.cs.Firewall.CreateEgressFirewallRule(p)
 	if retErr != nil && strings.Contains(retErr.Error(), "There is already") { // Already a firewall rule here.
 		retErr = nil
@@ -186,7 +186,7 @@ func (c *client) GetOrCreateLoadBalancerRule(csCluster *infrav1.CloudStackCluste
 		p.SetPublicport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
 	}
 	p.SetPublicipid(csCluster.Status.PublicIPID)
-	p.SetProtocol(tcp)
+	p.SetProtocol(NetworkProtocolTCP)
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	resp, err := c.cs.LoadBalancer.CreateLoadBalancerRule(p)
