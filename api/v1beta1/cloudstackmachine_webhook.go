@@ -18,8 +18,6 @@ package v1beta1
 
 import (
 	"fmt"
-	"reflect"
-	"strings"
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/webhook_utilities"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -64,16 +62,6 @@ func (r *CloudStackMachine) ValidateCreate() error {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
-	affinity := strings.ToLower(r.Spec.Affinity)
-	if !(affinity == "" || affinity == "no" || affinity == "pro" || affinity == "anti") {
-		errorList = append(errorList, field.Invalid(field.NewPath("spec", "Affinity"), r.Spec.Affinity,
-			`Affinity must be "no", "pro", "anti", or unspecified.`))
-	}
-	if affinity != "no" && affinity != "" && len(r.Spec.AffinityGroupIds) > 0 {
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"),
-			"AffinityGroupIds cannot be specified when Affinity is specified as anything but `no`"))
-	}
-
 	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Offering, "Offering", errorList)
 	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Template, "Template", errorList)
 
@@ -96,10 +84,6 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
 	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.Template, oldSpec.Template, "template", errorList)
 	errorList = webhook_utilities.EnsureStringStringMapFieldsAreEqual(&r.Spec.Details, &oldSpec.Details, "details", errorList)
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.Affinity, oldSpec.Affinity, "template", errorList)
-	if !reflect.DeepEqual(r.Spec.AffinityGroupIds, oldSpec.AffinityGroupIds) { // Equivalent to other Ensure funcs.
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"), "AffinityGroupIds"))
-	}
 	if r.Spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
 		errorList = webhook_utilities.EnsureStringFieldsAreEqual(
 			r.Spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)

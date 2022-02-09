@@ -17,8 +17,14 @@ limitations under the License.
 package v1beta1
 
 import (
+	"fmt"
+	"strings"
+
+	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -96,6 +102,18 @@ type CloudStackMachine struct {
 
 	Spec   CloudStackMachineSpec   `json:"spec,omitempty"`
 	Status CloudStackMachineStatus `json:"status,omitempty"`
+}
+
+// The computed affinity group name relevant to this machine.
+func (csm CloudStackMachine) AffinityGroupName(
+	capiMachine *capiv1.Machine,
+) (string, error) {
+
+	managerOwnerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
+	if managerOwnerRef == nil {
+		return "", errors.Errorf("Could not find owner UID for %s/%s.", csm.Namespace, csm.Name)
+	}
+	return fmt.Sprintf("%sAffinity-%s-%s", strings.Title(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID), nil
 }
 
 //+kubebuilder:object:root=true
