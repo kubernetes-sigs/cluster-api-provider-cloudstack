@@ -192,34 +192,18 @@ var _ = Describe("Instance", func() {
 		}
 		DescribeTable("DomainID and Account test table.",
 			func(account string, domainID string) {
-				gomock.InOrder(
-					vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).
-						Return(nil, -1, notFoundError),
-					sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return(serviceOfferingID, 1, nil),
-					ts.EXPECT().GetTemplateID(csMachine.Spec.Template, allFilter, csCluster.Status.ZoneID).
-						Return(templateID, 1, nil),
-					vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).
-						Return(&cloudstack.VirtualMachinesMetric{}, 1, nil))
-
-				vms.EXPECT().NewDeployVirtualMachineParams(serviceOfferingID, templateID, csCluster.Status.ZoneID).
-					Return(&cloudstack.DeployVirtualMachineParams{})
-
 				csCluster.Spec.Account = account
 				csCluster.Status.DomainID = domainID
-				deploymentResp := &cloudstack.DeployVirtualMachineResponse{Id: *csMachine.Spec.InstanceID}
-				accountMatcher := WithTransform( // Call GetAccount on th DeployVM param passed.
-					func(x *cloudstack.DeployVirtualMachineParams) string {
-						acc, _ := x.GetAccount()
-						return acc
-					}, Equal(account))
-				domainIDMatcher := WithTransform( // Call GetDomainid on the DeployVM param passed.
-					func(x *cloudstack.DeployVirtualMachineParams) string {
-						id, _ := x.GetDomainid()
-						return id
-					}, Equal(domainID))
-
-				vms.EXPECT().DeployVirtualMachine(
-					ParamMatch(And(accountMatcher, domainIDMatcher))).Return(deploymentResp, nil)
+				vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
+				sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return(serviceOfferingID, 1, nil)
+				ts.EXPECT().GetTemplateID(csMachine.Spec.Template, allFilter, csCluster.Status.ZoneID).
+					Return(templateID, 1, nil)
+				vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).
+					Return(&cloudstack.VirtualMachinesMetric{}, 1, nil)
+				vms.EXPECT().NewDeployVirtualMachineParams(serviceOfferingID, templateID, csCluster.Status.ZoneID).
+					Return(&cloudstack.DeployVirtualMachineParams{})
+				vms.EXPECT().DeployVirtualMachine(ParamMatch(And(AccountEquals(account), DomainIdEquals(domainID)))).
+					Return(&cloudstack.DeployVirtualMachineResponse{Id: *csMachine.Spec.InstanceID}, nil)
 				vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, notFoundError)
 
 				Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(Succeed())
