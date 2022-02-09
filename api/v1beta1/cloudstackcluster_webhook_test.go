@@ -20,20 +20,19 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var _ = Describe("CloudStackCluster webhooks", func() {
 	const (
-		apiVersion       = "infrastructure.cluster.x-k8s.io/v1beta1"
-		clusterKind      = "CloudStackCluster"
-		clusterName      = "test-cluster"
-		clusterNamespace = "default"
-		identityName     = "IdentitySecret"
-		zone             = "Zone"
-		network          = "Network"
+		apiVersion         = "infrastructure.cluster.x-k8s.io/v1beta1"
+		clusterKind        = "CloudStackCluster"
+		clusterName        = "test-cluster"
+		clusterNamespace   = "default"
+		identitySecretName = "IdentitySecret"
+		zone               = "Zone"
+		network            = "Network"
 	)
 
 	Context("When creating a CloudStackCluster with all validated attributes", func() {
@@ -51,7 +50,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
 						Kind: defaultIdentityRefKind,
-						Name: identityName,
+						Name: identitySecretName,
 					},
 					Zone:    zone,
 					Network: network,
@@ -76,7 +75,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
 						Kind: defaultIdentityRefKind,
-						Name: identityName,
+						Name: identitySecretName,
 					},
 					Zone: zone,
 				},
@@ -100,7 +99,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
 						Kind: defaultIdentityRefKind,
-						Name: identityName,
+						Name: identitySecretName,
 					},
 					Network: network,
 				},
@@ -111,8 +110,8 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 
 	Context("When creating a CloudStackCluster with the wrong kind of IdentityReference", func() {
 		const (
-			kind = "ConfigMap"
-			name = "IdentityConfigMap"
+			configMapKind = "ConfigMap"
+			configMapName = "IdentityConfigMap"
 		)
 
 		It("Should be rejected by the validating webhooks", func() {
@@ -128,8 +127,8 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
-						Kind: kind,
-						Name: name,
+						Kind: configMapKind,
+						Name: configMapName,
 					},
 					Zone:    zone,
 					Network: network,
@@ -159,10 +158,12 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 					Spec: CloudStackClusterSpec{
 						IdentityRef: &CloudStackIdentityReference{
 							Kind: defaultIdentityRefKind,
-							Name: identityName,
+							Name: identitySecretName,
 						},
 						Zone:    zone,
 						Network: network,
+						// Need CP Endpoint not to be nil before test or webhook will allow modification.
+						ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "fakeIP", Port: int32(1234)},
 					},
 				}
 				cloudStackClusterUpdate = &CloudStackCluster{}
@@ -190,7 +191,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "identityRef\\.Kind"))
 
 				cloudStackCluster.DeepCopyInto(cloudStackClusterUpdate)
-				cloudStackClusterUpdate.Spec.IdentityRef.Name = name
+				cloudStackClusterUpdate.Spec.IdentityRef.Name = configMapName
 				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "identityRef\\.Name"))
 			})
 
