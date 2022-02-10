@@ -261,3 +261,17 @@ func (mr *MockClientMockRecorder) ResolveVMInstanceDetails(arg0 interface{}) *go
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveVMInstanceDetails", reflect.TypeOf((*MockClient)(nil).ResolveVMInstanceDetails), arg0)
 }
+
+// TagNetwork mocks base method.
+func (m *MockClient) TagNetwork(arg0 string, arg1 map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TagNetwork", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TagNetwork indicates an expected call of TagNetwork.
+func (mr *MockClientMockRecorder) TagNetwork(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagNetwork", reflect.TypeOf((*MockClient)(nil).TagNetwork), arg0, arg1)
+}

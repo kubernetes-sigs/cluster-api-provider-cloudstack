@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("AffinityGroup Unit Tests", func() {
+var _ = Describe("Tag Unit Tests", func() {
 	var ( // Declare shared vars.
 		mockCtrl *gomock.Controller
 		// 	mockClient  *cloudstack.CloudStackClient
@@ -88,7 +88,9 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 				Skip("Could not connect to ACS instance.")
 			}
 			arbitraryTag = &map[string]string{"Arbitrary": "Tag"}
-			client.GetOrCreateNetwork(cluster)
+			if err := client.GetOrCreateNetwork(cluster); err != nil {
+				Skip("Could not find network.")
+			}
 			networkId = cluster.Status.NetworkID
 		})
 
