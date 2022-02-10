@@ -28,6 +28,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -118,4 +119,44 @@ func (m *validVersionMatcher) FailureMessage(actual interface{}) (message string
 
 func (m *validVersionMatcher) NegatedFailureMessage(actual interface{}) (message string) {
 	return fmt.Sprintf("Expected\n%s\n%s", m.version, " not to be a valid version ")
+}
+
+func KubectlExec(ctx context.Context, command string, kubeconfigPath string, args ...string) (string, error) {
+	execArgs := append([]string{command, "--kubeconfig", kubeconfigPath}, args...)
+	runCmd := exec.NewCommand(
+		exec.WithCommand("kubectl"),
+		exec.WithArgs(execArgs...),
+	)
+	stdout, stderr, err := runCmd.Run(ctx)
+	if err != nil {
+		fmt.Println(string(stderr))
+		return "", err
+	}
+	return string(stdout), nil
+}
+
+func DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx context.Context, workloadKubeconfigPath string, appName string, appConfigLink string, timeout int) error {
+	applyArgs := []string{
+		"-f", appConfigLink,
+	}
+	_, err := KubectlExec(ctx, "apply", workloadKubeconfigPath, applyArgs...)
+	if err != nil {
+		return err
+	}
+
+	waitArgs := []string{
+		"--for=condition=ready", fmt.Sprintf("--timeout=%ds", timeout), "pods", "-l", fmt.Sprintf("app=%s", appName),
+	}
+	_, err = KubectlExec(ctx, "wait", workloadKubeconfigPath, waitArgs...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DownloadFromAppInWorkloadCluster(ctx context.Context, workloadKubeconfigPath string, appName string, port int, path string) (string, error) {
+	runArgs := []string{
+		"-i", "--restart=Never", "dummy", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", fmt.Sprintf("%s:%d%s", appName, port, path),
+	}
+	return KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
 }
