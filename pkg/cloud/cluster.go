@@ -22,7 +22,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *client) ResolveZone(csCluster *infrav1.CloudStackCluster) (retErr error) {
+type ClusterIface interface {
+	GetOrCreateCluster(*infrav1.CloudStackCluster) error
+}
+
+func (c *client) resolveZone(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	if zoneID, count, err := c.cs.Zone.GetZoneID(csCluster.Spec.Zone); err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(
 			err, "Could not get Zone ID from %s.", csCluster.Spec.Zone))
@@ -49,7 +53,7 @@ func (c *client) ResolveZone(csCluster *infrav1.CloudStackCluster) (retErr error
 }
 
 func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	if retErr = c.ResolveZone(csCluster); retErr != nil {
+	if retErr = c.resolveZone(csCluster); retErr != nil {
 		return errors.Wrapf(retErr, "Error resolving Zone details for Cluster %s.", csCluster.Name)
 	}
 
@@ -74,8 +78,10 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		if retErr = c.OpenFirewallRules(csCluster); retErr != nil {
 			return retErr
 		}
-		if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
-			return retErr
+		if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
+			if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
+				return retErr
+			}
 		}
 		if retErr = c.GetOrCreateLoadBalancerRule(csCluster); retErr != nil {
 			return retErr

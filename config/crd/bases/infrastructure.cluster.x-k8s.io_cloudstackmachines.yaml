@@ -61,6 +61,11 @@ spec:
           spec:
             description: CloudStackMachineSpec defines the desired state of CloudStackMachine
             properties:
+              affinity:
+                description: Mutually exclusive parameter with AffinityGroupIds. Defaults
+                  to `no`. Can be `pro` or `anti`. Will create an affinity group per
+                  machine set.
+                type: string
               affinitygroupids:
                 description: Optional affinitygroupids for deployVirtualMachine
                 items:

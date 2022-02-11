@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"reflect"
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
@@ -82,9 +83,36 @@ func ParamMatch(matcher types.GomegaMatcher) gomock.Matcher {
 }
 
 func (p paramMatcher) String() string {
-	return "a gomega matcher to match, and said matcher should have paniced before this message was printed."
+	return "a gomega matcher to match, and said matcher should have panicked before this message was printed."
 }
 
 func (p paramMatcher) Matches(x interface{}) (retVal bool) {
 	return Ω(x).Should(p.matcher)
 }
+
+// This generates translating matchers.
+//
+// The CloudStack Go API uses param interfaces that can't be accessed except through builtin methods.
+//
+// This generates translation matchers:
+//
+//    Essentially it will generate a matcher that checks the value from p.Get<some field>() is Equal to an input String.
+//
+// 		DomainIdEquals = FieldMatcherGenerator("GetDomainid")
+//      p := &CreateNewSomethingParams{Domainid: "FakeDomainId"}
+//      Ω(p).DomainIdEquals("FakeDomainId")
+func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
+	return (func(expected string) types.GomegaMatcher {
+		return WithTransform(
+			func(x interface{}) string {
+				meth := reflect.ValueOf(x).MethodByName(fetchFunc)
+				meth.Call(nil)
+				return meth.Call(nil)[0].String()
+			}, Equal(expected))
+	})
+}
+
+var (
+	DomainIdEquals = FieldMatcherGenerator("GetDomainid")
+	AccountEquals  = FieldMatcherGenerator("GetAccount")
+)

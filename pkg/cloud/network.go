@@ -31,6 +31,7 @@ const (
 	K8sDefaultAPIPort   = 6443
 	NetworkTypeIsolated = "Isolated"
 	NetworkTypeShared   = "Shared"
+	NetworkProtocolTCP  = "tcp"
 )
 
 func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
@@ -89,21 +90,31 @@ func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retEr
 }
 
 func (c *client) ResolvePublicIPDetails(csCluster *infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error) {
+	ip := csCluster.Spec.ControlPlaneEndpoint.Host
+
 	p := c.cs.Address.NewListPublicIpAddressesParams()
 	p.SetAllocatedonly(false)
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
-	if ip := csCluster.Spec.ControlPlaneEndpoint.Host; ip != "" {
+	if ip != "" {
 		p.SetIpaddress(ip)
 	}
 	publicAddresses, err := c.cs.Address.ListPublicIpAddresses(p)
+
 	if err != nil {
 		return nil, err
-	} else if publicAddresses.Count > 0 {
+	} else if ip != "" && publicAddresses.Count == 1 { // Endpoint specified and IP found.
+		// Ignore already allocated here since the IP was specified.
 		return publicAddresses.PublicIpAddresses[0], nil
-	} else {
-		return nil, errors.New("no public addresses found")
+	} else if publicAddresses.Count > 0 { // Endpoint not specified.
+		for _, v := range publicAddresses.PublicIpAddresses { // Pick first availabe address.
+			if v.Allocated == "" { // Found un-allocated Public IP.
+				return v, nil
+			}
+		}
+		return nil, errors.New("all Public IP Adresse(s) found were already allocated")
 	}
+	return nil, errors.Errorf(`no public addresses found in network: "%s"`, csCluster.Spec.Network)
 }
 
 // AssociatePublicIpAddress Gets a PublicIP and associates it.
@@ -134,7 +145,7 @@ func (c *client) AssociatePublicIpAddress(csCluster *infrav1.CloudStackCluster) 
 }
 
 func (c *client) OpenFirewallRules(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, "tcp")
+	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, NetworkProtocolTCP)
 	_, retErr = c.cs.Firewall.CreateEgressFirewallRule(p)
 	if retErr != nil && strings.Contains(retErr.Error(), "There is already") { // Already a firewall rule here.
 		retErr = nil
@@ -175,7 +186,7 @@ func (c *client) GetOrCreateLoadBalancerRule(csCluster *infrav1.CloudStackCluste
 		p.SetPublicport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
 	}
 	p.SetPublicipid(csCluster.Status.PublicIPID)
-	p.SetProtocol("tcp")
+	p.SetProtocol(NetworkProtocolTCP)
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	resp, err := c.cs.LoadBalancer.CreateLoadBalancerRule(p)

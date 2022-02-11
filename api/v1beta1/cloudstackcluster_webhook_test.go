@@ -22,28 +22,39 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var _ = Describe("CloudStackCluster webhooks", func() {
+	const (
+		apiVersion         = "infrastructure.cluster.x-k8s.io/v1beta1"
+		clusterKind        = "CloudStackCluster"
+		clusterName        = "test-cluster"
+		clusterNamespace   = "default"
+		identitySecretName = "IdentitySecret"
+		zone               = "Zone"
+		network            = "Network"
+	)
+
 	Context("When creating a CloudStackCluster with all validated attributes", func() {
 		It("Should succeed", func() {
 			ctx := context.Background()
 			cloudStackCluster := &CloudStackCluster{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackCluster",
+					APIVersion: apiVersion,
+					Kind:       clusterKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "default",
+					Name:      clusterName,
+					Namespace: clusterNamespace,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
 						Kind: defaultIdentityRefKind,
-						Name: "IdentitySecret",
+						Name: identitySecretName,
 					},
-					Zone:    "Zone",
-					Network: "Network",
+					Zone:    zone,
+					Network: network,
 				},
 			}
 			Expect(k8sClient.Create(ctx, cloudStackCluster)).Should(Succeed())
@@ -55,19 +66,19 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 			ctx := context.Background()
 			cloudStackCluster := &CloudStackCluster{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackCluster",
+					APIVersion: apiVersion,
+					Kind:       clusterKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "default",
+					Name:      clusterName,
+					Namespace: clusterNamespace,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
 						Kind: defaultIdentityRefKind,
-						Name: "IdentitySecret",
+						Name: identitySecretName,
 					},
-					Zone: "Zone",
+					Zone: zone,
 				},
 			}
 			Expect(k8sClient.Create(ctx, cloudStackCluster).Error()).Should(MatchRegexp("admission webhook.*denied the request.*Required value\\: Network"))
@@ -79,19 +90,19 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 			ctx := context.Background()
 			cloudStackCluster := &CloudStackCluster{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackCluster",
+					APIVersion: apiVersion,
+					Kind:       clusterKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "default",
+					Name:      clusterName,
+					Namespace: clusterNamespace,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
 						Kind: defaultIdentityRefKind,
-						Name: "IdentitySecret",
+						Name: identitySecretName,
 					},
-					Network: "Network",
+					Network: network,
 				},
 			}
 			Expect(k8sClient.Create(ctx, cloudStackCluster).Error()).Should(MatchRegexp("admission webhook.*denied the request.*Required value\\: Zone"))
@@ -99,54 +110,70 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 	})
 
 	Context("When creating a CloudStackCluster with the wrong kind of IdentityReference", func() {
+		const (
+			configMapKind = "ConfigMap"
+			configMapName = "IdentityConfigMap"
+		)
+
 		It("Should be rejected by the validating webhooks", func() {
 			ctx := context.Background()
 			cloudStackCluster := &CloudStackCluster{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackCluster",
+					APIVersion: apiVersion,
+					Kind:       clusterKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "default",
+					Name:      clusterName,
+					Namespace: clusterNamespace,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
-						Kind: "ConfigMap",
-						Name: "IdentityConfigMap",
+						Kind: configMapKind,
+						Name: configMapName,
 					},
-					Zone:    "Zone",
-					Network: "Network",
+					Zone:    zone,
+					Network: network,
 				},
 			}
 			Expect(k8sClient.Create(ctx, cloudStackCluster).Error()).Should(MatchRegexp("admission webhook.*denied the request.*Forbidden\\: must be a Secret"))
 		})
 
 		Context("When updating a CloudStackCluster", func() {
-			It("Should be rejected by the validating webhooks", func() {
-				ctx := context.Background()
-				cloudStackCluster := &CloudStackCluster{
+			var (
+				ctx                     context.Context
+				cloudStackCluster       *CloudStackCluster
+				cloudStackClusterUpdate *CloudStackCluster
+			)
+
+			BeforeEach(func() {
+				ctx = context.Background()
+				cloudStackCluster = &CloudStackCluster{
 					TypeMeta: metav1.TypeMeta{
 						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 						Kind:       "CloudStackCluster",
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-cluster2",
-						Namespace: "default",
+						Namespace: clusterNamespace,
 					},
 					Spec: CloudStackClusterSpec{
 						IdentityRef: &CloudStackIdentityReference{
 							Kind: defaultIdentityRefKind,
-							Name: "IdentitySecret",
+							Name: identitySecretName,
 						},
-						Zone:    "Zone",
-						Network: "Network",
+						Zone:    zone,
+						Network: network,
+						// Need CP Endpoint not to be nil before test or webhook will allow modification.
+						ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "fakeIP", Port: int32(1234)},
 					},
 				}
+				cloudStackClusterUpdate = &CloudStackCluster{}
+			})
+
+			It("Should be rejected by the validating webhooks", func() {
 				Expect(k8sClient.Create(ctx, cloudStackCluster)).Should(Succeed())
 
 				forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
-				cloudStackClusterUpdate := &CloudStackCluster{}
 
 				cloudStackCluster.DeepCopyInto(cloudStackClusterUpdate)
 				cloudStackClusterUpdate.Spec.Zone = "Zone2"
@@ -161,16 +188,18 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "controlplaneendpointhost"))
 
 				cloudStackCluster.DeepCopyInto(cloudStackClusterUpdate)
-				cloudStackClusterUpdate.Spec.ControlPlaneEndpoint.Port = 1234
-				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "controlplaneendpointport"))
-
-				cloudStackCluster.DeepCopyInto(cloudStackClusterUpdate)
 				cloudStackClusterUpdate.Spec.IdentityRef.Kind = "ConfigMap"
 				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "identityRef\\.Kind"))
 
 				cloudStackCluster.DeepCopyInto(cloudStackClusterUpdate)
-				cloudStackClusterUpdate.Spec.IdentityRef.Name = "IdentityConfigMap"
+				cloudStackClusterUpdate.Spec.IdentityRef.Name = configMapName
 				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "identityRef\\.Name"))
+			})
+
+			It("Should reject changing the port", func() {
+				cloudStackCluster.DeepCopyInto(cloudStackClusterUpdate)
+				cloudStackClusterUpdate.Spec.ControlPlaneEndpoint.Port = int32(1234)
+				Expect(k8sClient.Update(ctx, cloudStackClusterUpdate)).ShouldNot(Succeed()) //(forbiddenRegex, "controlplaneendpointport"))
 			})
 		})
 	})

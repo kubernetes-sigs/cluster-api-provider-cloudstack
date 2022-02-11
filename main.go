@@ -37,6 +37,7 @@ import (
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/controllers"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -49,6 +50,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(controlplanev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

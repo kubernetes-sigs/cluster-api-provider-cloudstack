@@ -231,7 +231,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 
 			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
 			cloudStackMachineUpdate.Spec.AffinityGroupIds = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2af"}
-			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate)).Should(Succeed())
+			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "AffinityGroupIds"))
 		})
 	})
 })

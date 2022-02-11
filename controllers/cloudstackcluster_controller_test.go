@@ -77,6 +77,8 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 
 	It("Should create a cluster", func() {
 		By("Fetching a CS Cluster Object")
+		CS.EXPECT().GetOrCreateCluster(gomock.Any()).MinTimes(1)
+
 		// Create the CS Cluster object for the reconciler to fetch.
 		csCluster := getCloudStackCluster()
 		Ω(k8sClient.Create(ctx, csCluster)).Should(Succeed())
@@ -107,7 +109,6 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 			return ph.Patch(ctx, csCluster, patch.WithStatusObservedGeneration{})
 		}, timeout).Should(Succeed())
 
-		CS.EXPECT().GetOrCreateCluster(gomock.Any()).MinTimes(1)
 		Eventually(func() bool {
 			if err := k8sClient.Get(ctx, key, csCluster); err != nil {
 				return false
