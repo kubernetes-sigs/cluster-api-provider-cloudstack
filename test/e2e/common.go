@@ -28,6 +28,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -48,6 +49,19 @@ const (
 	ExtremelyLargeCPOfferingName = "CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING"
 	InvalidWorkerOfferingName    = "CLOUDSTACK_INVALID_WORKER_MACHINE_OFFERING"
 )
+
+type CommonSpecInput struct {
+	E2EConfig             *clusterctl.E2EConfig
+	ClusterctlConfigPath  string
+	BootstrapClusterProxy framework.ClusterProxy
+	ArtifactFolder        string
+	SkipCleanup           bool
+
+	// Flavor, if specified is the template flavor used to create the cluster for testing.
+	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
+	// otherwise the default flavor is used.
+	Flavor *string
+}
 
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))

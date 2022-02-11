@@ -35,25 +35,11 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// InvalidAccountSpecInput is the input for InvalidAccountSpec.
-type InvalidAccountSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-
-	// Flavor, if specified is the template flavor used to create the cluster for testing.
-	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
-	// otherwise the default flavor is used.
-	Flavor *string
-}
-
 // InvalidAccountSpec implements a test that verifies that creating a new cluster fails when the specified Account does not exist
-func InvalidAccountSpec(ctx context.Context, inputGetter func() InvalidAccountSpecInput) {
+func InvalidAccountSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName         = "invalid-account"
-		input            InvalidAccountSpecInput
+		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult

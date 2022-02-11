@@ -32,21 +32,11 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// MachineDeploymentRolloutSpecInput is the input for MachineDeploymentRolloutSpec.
-type MachineDeploymentRolloutSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-	Flavor                string
-}
-
 // MachineDeploymentRolloutSpec implements a test that verifies that MachineDeployment rolling updates are successful.
-func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() MachineDeploymentRolloutSpecInput) {
+func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName         = "md-rollout"
-		input            MachineDeploymentRolloutSpecInput
+		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -77,7 +67,7 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   input.Flavor,
+				Flavor:                   clusterctl.DefaultFlavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),

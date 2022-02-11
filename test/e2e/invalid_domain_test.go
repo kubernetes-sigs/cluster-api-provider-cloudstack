@@ -25,8 +25,8 @@ import (
 )
 
 var _ = Describe("When the specified domain does not exist [TC4b]", func() {
-	InvalidDomainSpec(context.TODO(), func() InvalidDomainSpecInput {
-		return InvalidDomainSpecInput{
+	InvalidDomainSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

@@ -32,25 +32,11 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// DeleteClusterSpecInput is the input for DeleteClusterSpec.
-type DeleteClusterSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-
-	// Flavor, if specified is the template flavor used to create the cluster for testing.
-	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
-	// otherwise the default flavor is used.
-	Flavor *string
-}
-
 // DeleteClusterSpec implements a test that verifies that deleting a cluster doesn't affect remaining clusters
-func DeleteClusterSpec(ctx context.Context, inputGetter func() DeleteClusterSpecInput) {
+func DeleteClusterSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName         = "delete-cluster"
-		input            DeleteClusterSpecInput
+		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult

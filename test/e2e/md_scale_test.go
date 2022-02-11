@@ -26,8 +26,8 @@ import (
 
 var _ = Describe("When testing MachineDeployment scale out/in [TC17][TC18]", func() {
 
-	MachineDeploymentScaleSpec(context.TODO(), func() MachineDeploymentScaleSpecInput {
-		return MachineDeploymentScaleSpecInput{
+	MachineDeploymentScaleSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

@@ -25,8 +25,8 @@ import (
 )
 
 var _ = Describe("When the specified account does not exist [TC4a]", func() {
-	InvalidAccountSpec(context.TODO(), func() InvalidAccountSpecInput {
-		return InvalidAccountSpecInput{
+	InvalidAccountSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

@@ -26,8 +26,8 @@ import (
 
 var _ = Describe("When testing unhealthy machines remediation", func() {
 
-	MachineRemediationSpec(context.TODO(), func() MachineRemediationSpecInput {
-		return MachineRemediationSpecInput{
+	MachineRemediationSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

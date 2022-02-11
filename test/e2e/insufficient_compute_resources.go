@@ -35,25 +35,11 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// InsufficientComputeResources is the input for InsufficientComputeResourcesSpec.
-type InsufficientComputeResources struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-
-	// Flavor, if specified is the template flavor used to create the cluster for testing.
-	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
-	// otherwise the default flavor is used.
-	Flavor *string
-}
-
-// InsufficientComputeResourcesSpec implements a test that verifies that creating a new cluster fails when the specified control plane offering does not exist
-func InsufficientComputeResourcesSpec(ctx context.Context, inputGetter func() InsufficientComputeResources) {
+// CommonSpecInputSpec implements a test that verifies that creating a new cluster fails when the specified control plane offering does not exist
+func CommonSpecInputSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName         = "insufficient-compute-resources"
-		input            InsufficientComputeResources
+		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult

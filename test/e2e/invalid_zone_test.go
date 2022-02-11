@@ -25,8 +25,8 @@ import (
 )
 
 var _ = Describe("When the specified zone does not exist [TC3]", func() {
-	InvalidZoneSpec(context.TODO(), func() InvalidZoneSpecInput {
-		return InvalidZoneSpecInput{
+	InvalidZoneSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

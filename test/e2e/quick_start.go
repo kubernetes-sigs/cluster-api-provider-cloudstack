@@ -27,33 +27,18 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
-	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
-
-// QuickStartSpecInput is the input for QuickStartSpec.
-type QuickStartSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-
-	// Flavor, if specified is the template flavor used to create the cluster for testing.
-	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
-	// otherwise the default flavor is used.
-	Flavor *string
-}
 
 // QuickStartSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
 // creating a workload cluster.
 // This test is meant to provide a first, fast signal to detect regression; it is recommended to use it as a PR blocker test.
 // NOTE: This test works with Clusters with and without ClusterClass.
-func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput) {
+func QuickStartSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName         = "quick-start"
-		input            QuickStartSpecInput
+		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult

@@ -25,8 +25,8 @@ import (
 )
 
 var _ = Describe("When testing cluster deletion", func() {
-	DeleteClusterSpec(context.TODO(), func() DeleteClusterSpecInput {
-		return DeleteClusterSpecInput{
+	DeleteClusterSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

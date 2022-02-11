@@ -26,8 +26,8 @@ import (
 
 var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", func() {
 
-	QuickStartSpec(context.TODO(), func() QuickStartSpecInput {
-		return QuickStartSpecInput{
+	QuickStartSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

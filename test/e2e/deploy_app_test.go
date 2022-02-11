@@ -26,8 +26,8 @@ import (
 
 var _ = Describe("When testing app deployment to the workload cluster [TC1]", func() {
 
-	DeployAppSpec(context.TODO(), func() DeployAppSpecInput {
-		return DeployAppSpecInput{
+	DeployAppSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

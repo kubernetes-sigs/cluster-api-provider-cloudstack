@@ -24,8 +24,8 @@ import (
 )
 
 var _ = Describe("When testing MachineDeployment rolling upgrades", func() {
-	MachineDeploymentRolloutSpec(ctx, func() MachineDeploymentRolloutSpecInput {
-		return MachineDeploymentRolloutSpecInput{
+	MachineDeploymentRolloutSpec(ctx, func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

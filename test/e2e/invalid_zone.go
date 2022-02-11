@@ -35,25 +35,11 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// InvalidZoneSpecInput is the input for InvalidZoneSpec.
-type InvalidZoneSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-
-	// Flavor, if specified is the template flavor used to create the cluster for testing.
-	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
-	// otherwise the default flavor is used.
-	Flavor *string
-}
-
 // InvalidZoneSpec implements a test that verifies that creating a new cluster fails when the specified zone does not exist
-func InvalidZoneSpec(ctx context.Context, inputGetter func() InvalidZoneSpecInput) {
+func InvalidZoneSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName         = "invalid-zone"
-		input            InvalidZoneSpecInput
+		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult

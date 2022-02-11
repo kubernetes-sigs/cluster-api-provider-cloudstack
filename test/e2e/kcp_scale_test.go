@@ -26,8 +26,8 @@ import (
 
 var _ = Describe("When testing ControlPlane scale out/in [TC20][TC21]", func() {
 
-	ControlPlaneScaleSpec(context.TODO(), func() ControlPlaneScaleSpecInput {
-		return ControlPlaneScaleSpecInput{
+	ControlPlaneScaleSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

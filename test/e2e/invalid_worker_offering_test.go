@@ -25,8 +25,8 @@ import (
 )
 
 var _ = Describe("When the specified worker offering does not exist [TC7b]", func() {
-	InvalidWorkerOfferingSpec(context.TODO(), func() InvalidWorkerOfferingSpecInput {
-		return InvalidWorkerOfferingSpecInput{
+	InvalidWorkerOfferingSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

@@ -27,30 +27,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
-	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/kubetest"
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// K8SConformanceSpecInput is the input for K8SConformanceSpec.
-type K8SConformanceSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-	Flavor                string
-}
-
 // K8SConformanceSpec implements a spec that creates a cluster and runs Kubernetes conformance suite.
-func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSpecInput) {
+func K8SConformanceSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	const (
 		kubetestConfigurationVariable = "CONFORMANCE_CONFIGURATION"
 	)
 	var (
 		specName               = "k8s-conformance"
-		input                  K8SConformanceSpecInput
+		input                  CommonSpecInput
 		namespace              *corev1.Namespace
 		cancelWatches          context.CancelFunc
 		clusterResources       *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -90,7 +79,7 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   input.Flavor,
+				Flavor:                   clusterctl.DefaultFlavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),

@@ -35,25 +35,11 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// InvalidTemplateSpecInput is the input for InvalidTemplateSpec.
-type InvalidTemplateSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-
-	// Flavor, if specified is the template flavor used to create the cluster for testing.
-	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
-	// otherwise the default flavor is used.
-	Flavor *string
-}
-
 // InvalidTemplateSpec implements a test that verifies that creating a new cluster fails when the specified template does not exist
-func InvalidTemplateSpec(ctx context.Context, inputGetter func() InvalidTemplateSpecInput) {
+func InvalidTemplateSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName         = "invalid-template"
-		input            InvalidTemplateSpecInput
+		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult

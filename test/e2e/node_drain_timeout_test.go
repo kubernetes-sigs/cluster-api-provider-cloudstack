@@ -24,8 +24,8 @@ import (
 )
 
 var _ = Describe("When testing node drain timeout", func() {
-	NodeDrainTimeoutSpec(ctx, func() NodeDrainTimeoutSpecInput {
-		return NodeDrainTimeoutSpecInput{
+	NodeDrainTimeoutSpec(ctx, func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

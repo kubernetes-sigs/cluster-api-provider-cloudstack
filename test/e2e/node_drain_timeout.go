@@ -36,26 +36,10 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// NodeDrainTimeoutSpecInput is the input for NodeDrainTimeoutSpec.
-type NodeDrainTimeoutSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-
-	// Flavor, if specified, must refer to a template that contains
-	// a KubeadmControlPlane resource with spec.machineTemplate.nodeDrainTimeout
-	// configured and a MachineDeployment resource that has
-	// spec.template.spec.nodeDrainTimeout configured.
-	// If not specified, "node-drain" is used.
-	Flavor *string
-}
-
-func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeoutSpecInput) {
+func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName           = "node-drain"
-		input              NodeDrainTimeoutSpecInput
+		input              CommonSpecInput
 		namespace          *corev1.Namespace
 		cancelWatches      context.CancelFunc
 		clusterResources   *clusterctl.ApplyClusterTemplateAndWaitResult

@@ -25,8 +25,8 @@ import (
 )
 
 var _ = Describe("When the specified control plane offering does not exist [TC7a]", func() {
-	InvalidCPOfferingSpec(context.TODO(), func() InvalidCPOfferingSpecInput {
-		return InvalidCPOfferingSpecInput{
+	InvalidCPOfferingSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

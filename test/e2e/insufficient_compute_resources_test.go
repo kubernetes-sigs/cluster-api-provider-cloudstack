@@ -25,8 +25,8 @@ import (
 )
 
 var _ = Describe("When the compute resources are insufficient [TC8]", func() {
-	InsufficientComputeResourcesSpec(context.TODO(), func() InsufficientComputeResources {
-		return InsufficientComputeResources{
+	CommonSpecInputSpec(context.TODO(), func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

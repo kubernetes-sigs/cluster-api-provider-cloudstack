@@ -27,30 +27,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
-	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// DeployAppSpecInput is the input for DeployAppSpec.
-type DeployAppSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-
-	// Flavor, if specified is the template flavor used to create the cluster for testing.
-	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
-	// otherwise the default flavor is used.
-	Flavor *string
-}
-
 // DeployAppSpec implements a test that verifies that an app deployed to the workload cluster works.
-func DeployAppSpec(ctx context.Context, inputGetter func() DeployAppSpecInput) {
+func DeployAppSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName                  = "quick-start"
-		input                     DeployAppSpecInput
+		input                     CommonSpecInput
 		namespace                 *corev1.Namespace
 		cancelWatches             context.CancelFunc
 		clusterResources          *clusterctl.ApplyClusterTemplateAndWaitResult

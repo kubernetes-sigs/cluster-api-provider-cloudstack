@@ -24,8 +24,8 @@ import (
 )
 
 var _ = Describe("When testing K8S conformance [Conformance]", func() {
-	K8SConformanceSpec(ctx, func() K8SConformanceSpecInput {
-		return K8SConformanceSpecInput{
+	K8SConformanceSpec(ctx, func() CommonSpecInput {
+		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

@@ -32,21 +32,11 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// MachineDeploymentScaleSpecInput is the input for MachineDeploymentScaleSpec.
-type MachineDeploymentScaleSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-	Flavor                string
-}
-
 // MachineDeploymentScaleSpec implements a test that verifies that MachineDeployment scale operations are successful.
-func MachineDeploymentScaleSpec(ctx context.Context, inputGetter func() MachineDeploymentScaleSpecInput) {
+func MachineDeploymentScaleSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName         = "md-scale"
-		input            MachineDeploymentScaleSpecInput
+		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -78,7 +68,7 @@ func MachineDeploymentScaleSpec(ctx context.Context, inputGetter func() MachineD
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   input.Flavor,
+				Flavor:                   clusterctl.DefaultFlavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
