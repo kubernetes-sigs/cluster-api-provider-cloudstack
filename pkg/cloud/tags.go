@@ -18,11 +18,42 @@ package cloud
 
 type TagIFace interface {
 	TagNetwork(string, map[string]string) error
+	GetNetworkTags(string) (map[string]string, error)
+	DeleteNetworkTags(string, map[string]string) error
 }
 
+const resourceTypeNetwork = "network"
+
 // TagNetwork adds tags to a network by network id.
-func (c *client) TagNetwork(networkId string, tag map[string]string) error {
-	p := c.cs.Resourcetags.NewCreateTagsParams([]string{"someid"}, "network", map[string]string{"some": "tag"})
+func (c *client) TagNetwork(networkId string, tags map[string]string) error {
+	// https://cloudstack.apache.org/api/apidocs-4.16/apis/createTags.html
+	p := c.cs.Resourcetags.NewCreateTagsParams([]string{networkId}, resourceTypeNetwork, tags)
 	_, err := c.cs.Resourcetags.CreateTags(p)
+	return err
+}
+
+// GetNetworkTags gets tags by network id.
+func (c *client) GetNetworkTags(networkId string) (map[string]string, error) {
+	// https://cloudstack.apache.org/api/apidocs-4.16/apis/listTags.html
+	p := c.cs.Resourcetags.NewListTagsParams()
+	p.SetResourceid(networkId)
+	p.SetResourcetype(resourceTypeNetwork)
+	if listTagResponse, err := c.cs.Resourcetags.ListTags(p); err != nil {
+		return nil, err
+	} else {
+		tags := make(map[string]string, listTagResponse.Count)
+		for _, t := range listTagResponse.Tags {
+			tags[t.Key] = t.Value
+		}
+		return tags, nil
+	}
+}
+
+// DeleteNetworkTags deletes matching tags from a network
+func (c *client) DeleteNetworkTags(networkId string, tagsToDelete map[string]string) error {
+	// https://cloudstack.apache.org/api/apidocs-4.16/apis/deleteTags.html
+	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{networkId}, resourceTypeNetwork)
+	p.SetTags(tagsToDelete)
+	_, err := c.cs.Resourcetags.DeleteTags(p)
 	return err
 }
