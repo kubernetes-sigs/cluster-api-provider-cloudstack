@@ -37,12 +37,13 @@ var _ = Describe("Tag Unit Tests", func() {
 		client, connectionErr := cloud.NewClient("../../cloud-config")
 
 		const (
-			tagKey   = "TestTag"
-			tagValue = "ArbitraryValue"
+			tagKey   = "test_tag"
+			tagValue = "arbitrary_value"
 		)
 
 		var (
 			networkId string
+			testTags  map[string]string
 		)
 
 		BeforeEach(func() {
@@ -55,13 +56,13 @@ var _ = Describe("Tag Unit Tests", func() {
 			}
 
 			networkId = cluster.Status.NetworkID
+			testTags = map[string]string{tagKey: tagValue}
 		})
 
 		It("Tags a network with an arbitrary tag.", func() {
-			tags := map[string]string{tagKey: tagValue}
 			// Delete the tag if it already exists from a prior test run, otherwise the test will fail.
-			_ = client.DeleteNetworkTags(networkId, tags)
-			Ω(client.TagNetwork(networkId, tags)).Should(Succeed())
+			_ = client.DeleteNetworkTags(networkId, testTags)
+			Ω(client.AddNetworkTags(networkId, testTags)).Should(Succeed())
 		})
 
 		It("Fetches said tag.", func() {
@@ -71,7 +72,7 @@ var _ = Describe("Tag Unit Tests", func() {
 		})
 
 		It("Deletes said tag.", func() {
-			Ω(client.DeleteNetworkTags(networkId, map[string]string{tagKey: tagValue})).Should(Succeed())
+			Ω(client.DeleteNetworkTags(networkId, testTags)).Should(Succeed())
 			remainingTags, err := client.GetNetworkTags(networkId)
 			Ω(err).Should(BeNil())
 			Ω(remainingTags[tagKey]).Should(Equal(""))

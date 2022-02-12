@@ -17,7 +17,7 @@ limitations under the License.
 package cloud
 
 type TagIFace interface {
-	TagNetwork(string, map[string]string) error
+	AddNetworkTags(string, map[string]string) error
 	GetNetworkTags(string) (map[string]string, error)
 	DeleteNetworkTags(string, map[string]string) error
 }
@@ -25,7 +25,7 @@ type TagIFace interface {
 const resourceTypeNetwork = "network"
 
 // TagNetwork adds tags to a network by network id.
-func (c *client) TagNetwork(networkId string, tags map[string]string) error {
+func (c *client) AddNetworkTags(networkId string, tags map[string]string) error {
 	// https://cloudstack.apache.org/api/apidocs-4.16/apis/createTags.html
 	p := c.cs.Resourcetags.NewCreateTagsParams([]string{networkId}, resourceTypeNetwork, tags)
 	_, err := c.cs.Resourcetags.CreateTags(p)

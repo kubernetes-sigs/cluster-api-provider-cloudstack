@@ -59,8 +59,18 @@ func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster) (retErr er
 }
 
 func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
+	// Tag the network so we can clean it up later
+	tagNetwork := func(csCluster *infrav1.CloudStackCluster, createdByCapc bool) error {
+		clusterTag := "CAPC_cluster_" + string(csCluster.UID)
+		tags := map[string]string{clusterTag: "1"}
+		if createdByCapc {
+			tags["created_by_CAPC"] = "1"
+		}
+		return c.AddNetworkTags(csCluster.Status.NetworkID, tags)
+	}
+
 	if retErr = c.ResolveNetwork(csCluster); retErr == nil { // Found network.
-		return nil
+		return tagNetwork(csCluster, false)
 	} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
 		return retErr
 	} // Network not found.
@@ -86,7 +96,7 @@ func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retEr
 	csCluster.Status.NetworkID = resp.Id
 	csCluster.Status.NetworkType = resp.Type
 
-	return nil
+	return tagNetwork(csCluster, true)
 }
 
 func (c *client) ResolvePublicIPDetails(csCluster *infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error) {
