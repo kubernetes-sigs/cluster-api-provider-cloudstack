@@ -24,8 +24,8 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When the specified domain does not exist [TC4b]", func() {
-	InvalidDomainSpec(context.TODO(), func() CommonSpecInput {
+var _ = Describe("When the specified resource does not exist", func() {
+	InvalidResourceSpec(context.TODO(), func() CommonSpecInput {
 		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
@@ -34,5 +34,4 @@ var _ = Describe("When the specified domain does not exist [TC4b]", func() {
 			SkipCleanup:           skipCleanup,
 		}
 	})
-
 })

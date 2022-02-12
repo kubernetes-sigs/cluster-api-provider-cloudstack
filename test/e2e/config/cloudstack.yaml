@@ -127,8 +127,7 @@ intervals:
   conformance/wait-control-plane: ["20m", "10s"]
   conformance/wait-worker-nodes: ["20m", "10s"]
 
-  default/wait-errors: ["1m", "10s"]
-  default/wait-errors-long: ["5m", "10s"]
+  default/wait-errors: ["5m", "10s"]
   default/wait-controllers: ["3m", "10s"]
   default/wait-cluster: ["20m", "10s"]
   default/wait-control-plane: ["20m", "10s"]
