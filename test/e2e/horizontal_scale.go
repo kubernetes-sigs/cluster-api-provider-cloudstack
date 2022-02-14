@@ -35,7 +35,7 @@ import (
 // ControlPlaneScaleSpec implements a test that verifies that ControlPlane scale operations are successful.
 func ControlPlaneScaleSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
-		specName         = "kcp-scale"
+		specName         = "horizontal-scale"
 		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
@@ -73,32 +73,12 @@ func ControlPlaneScaleSpec(ctx context.Context, inputGetter func() CommonSpecInp
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
-				WorkerMachineCount:       pointer.Int64Ptr(0),
+				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
-
-		Expect(clusterResources.ControlPlane.Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
-		Expect(clusterResources.MachineDeployments[0].Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
-
-		By("Scaling the ControlPlane out to 3")
-		framework.ScaleAndWaitControlPlane(ctx, framework.ScaleAndWaitControlPlaneInput{
-			ClusterProxy:        input.BootstrapClusterProxy,
-			Cluster:             clusterResources.Cluster,
-			ControlPlane:        clusterResources.ControlPlane,
-			Replicas:            3,
-			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-		})
-		By("Scaling the ControlPlane down to 1")
-		framework.ScaleAndWaitControlPlane(ctx, framework.ScaleAndWaitControlPlaneInput{
-			ClusterProxy:        input.BootstrapClusterProxy,
-			Cluster:             clusterResources.Cluster,
-			ControlPlane:        clusterResources.ControlPlane,
-			Replicas:            1,
-			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-		})
 
 		By("Scaling the MachineDeployment out to 3")
 		framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
@@ -115,6 +95,32 @@ func ControlPlaneScaleSpec(ctx context.Context, inputGetter func() CommonSpecInp
 			MachineDeployment:         clusterResources.MachineDeployments[0],
 			Replicas:                  2,
 			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
+		By("Scaling the MachineDeployment down to 0")
+		framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
+			ClusterProxy:              input.BootstrapClusterProxy,
+			Cluster:                   clusterResources.Cluster,
+			MachineDeployment:         clusterResources.MachineDeployments[0],
+			Replicas:                  0,
+			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
+		By("Scaling the ControlPlane out to 3")
+		framework.ScaleAndWaitControlPlane(ctx, framework.ScaleAndWaitControlPlaneInput{
+			ClusterProxy:        input.BootstrapClusterProxy,
+			Cluster:             clusterResources.Cluster,
+			ControlPlane:        clusterResources.ControlPlane,
+			Replicas:            3,
+			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+		})
+		By("Scaling the ControlPlane down to 1")
+		framework.ScaleAndWaitControlPlane(ctx, framework.ScaleAndWaitControlPlaneInput{
+			ClusterProxy:        input.BootstrapClusterProxy,
+			Cluster:             clusterResources.Cluster,
+			ControlPlane:        clusterResources.ControlPlane,
+			Replicas:            1,
+			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 		})
 
 		By("PASSED!")

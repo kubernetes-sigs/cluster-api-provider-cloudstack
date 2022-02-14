@@ -34,7 +34,7 @@ import (
 // DeployAppSpec implements a test that verifies that an app deployed to the workload cluster works.
 func DeployAppSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
-		specName                  = "quick-start"
+		specName                  = "deploy-app"
 		input                     CommonSpecInput
 		namespace                 *corev1.Namespace
 		cancelWatches             context.CancelFunc
