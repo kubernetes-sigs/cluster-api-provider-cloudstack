@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing app deployment to the workload cluster [TC1]", func() {
+var _ = Describe("When testing app deployment to the workload cluster [TC1][PR-Blocking]", func() {
 
 	DeployAppSpec(context.TODO(), func() CommonSpecInput {
 		return CommonSpecInput{

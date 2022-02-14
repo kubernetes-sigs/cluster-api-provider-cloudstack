@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing ControlPlane scale out/in [TC20][TC21]", func() {
+var _ = Describe("When testing horizontal scale out/in [TC17][TC18][TC20][TC21]", func() {
 
 	ControlPlaneScaleSpec(context.TODO(), func() CommonSpecInput {
 		return CommonSpecInput{

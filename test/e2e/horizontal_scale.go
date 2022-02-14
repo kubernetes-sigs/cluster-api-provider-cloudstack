@@ -57,7 +57,7 @@ func ControlPlaneScaleSpec(ctx context.Context, inputGetter func() CommonSpecInp
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should successfully scale a ControlPlane up and down upon changes to the ControlPlane replica count", func() {
+	It("Should successfully scale machine replicas up and down horizontally", func() {
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -81,6 +81,7 @@ func ControlPlaneScaleSpec(ctx context.Context, inputGetter func() CommonSpecInp
 		}, clusterResources)
 
 		Expect(clusterResources.ControlPlane.Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
+		Expect(clusterResources.MachineDeployments[0].Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
 
 		By("Scaling the ControlPlane out to 3")
 		framework.ScaleAndWaitControlPlane(ctx, framework.ScaleAndWaitControlPlaneInput{
@@ -98,6 +99,24 @@ func ControlPlaneScaleSpec(ctx context.Context, inputGetter func() CommonSpecInp
 			Replicas:            1,
 			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 		})
+
+		By("Scaling the MachineDeployment out to 3")
+		framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
+			ClusterProxy:              input.BootstrapClusterProxy,
+			Cluster:                   clusterResources.Cluster,
+			MachineDeployment:         clusterResources.MachineDeployments[0],
+			Replicas:                  3,
+			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+		By("Scaling the MachineDeployment down to 2")
+		framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
+			ClusterProxy:              input.BootstrapClusterProxy,
+			Cluster:                   clusterResources.Cluster,
+			MachineDeployment:         clusterResources.MachineDeployments[0],
+			Replicas:                  2,
+			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
 		By("PASSED!")
 	})
 
