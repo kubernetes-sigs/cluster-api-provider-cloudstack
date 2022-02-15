@@ -170,8 +170,8 @@ test: generate-mocks lint generate-deepcopy bin/ginkgo bin/kubectl bin/kube-apis
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 	
 .PHONY: generate-mocks
-generate-mocks: bin/mockgen $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
-pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
+generate-mocks: bin/mockgen $(shell find ./pkg/mocks -type f -name "mock*.go") pkg/mocks/.keep ## Generate mocks needed for testing. Primarily mocks of the cloud package.
+pkg/mocks/%: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
 	go generate ./...
 
 ##@ Tilt
