@@ -36,7 +36,7 @@ var _ = Describe("Instance", func() {
 
 	BeforeEach(func() {
 		// This test fixture is useful for development, but the actual method of parsing is confinded to the client's
-		// new client method. The parsing used here is more of a schema, and we don't need to test another libraries
+		// new client method. The parsing used here is more of a schema, and we don't need to test another library's
 		// abilities to parse said schema.
 		Skip("Dev test suite.")
 	})
