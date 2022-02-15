@@ -74,7 +74,7 @@ api/%/zz_generated.deepcopy.go: bin/controller-gen $(DEEPCOPY_GEN_INPUTS)
 
 MANAGER_BIN_INPUTS=$(shell find ./controllers ./api ./pkg -name "*mock*" -prune -o -name "*test*" -prune -o -type f -print) main.go go.mod go.sum
 .PHONY: build
-build: binaries generate-deepcopy manifests release-manifests bin/manager bin/mockgen ## Build manager binary.
+build: binaries generate-mocks generate-deepcopy manifests release-manifests ## Build manager binary.
 bin/manager: $(MANAGER_BIN_INPUTS)
 	go fmt ./...
 	go vet ./...
