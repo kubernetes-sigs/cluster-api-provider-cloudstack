@@ -17,6 +17,7 @@ limitations under the License.
 package cloud
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
@@ -46,25 +47,30 @@ type client struct {
 }
 
 // cloud-config ini structure.
-type cfg struct {
-	apiUrl    string `ini:"api-url"`
-	apiKey    string `ini:"api-key"`
-	secretKey string `ini:"secret-key"`
-	verifySSL bool   `ini:"verify-ssl"`
+type config struct {
+	ApiUrl    string `ini:"api-url"`
+	ApiKey    string `ini:"api-key"`
+	SecretKey string `ini:"secret-key"`
+	VerifySSL bool   `ini:"verify-ssl"`
 }
 
 func NewClient(cc_path string) (Client, error) {
 	c := &client{}
-	cfg := &cfg{verifySSL: true}
-	if err := ini.MapTo(cfg, cc_path); err != nil {
+	cfg := &config{VerifySSL: true}
+	rawCfg, err := ini.Load(cc_path)
+	if err != nil {
 		return nil, errors.Wrapf(err, "Error encountered while reading config at path: %s", cc_path)
 	}
+	if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
+		return nil, errors.Wrapf(err, "Error encountered while parsing [Global] section from config at path: %s", cc_path)
+	}
+	fmt.Println(cfg.VerifySSL)
 
 	// This is a placeholder for sending non-blocking requests.
 	// c.csA = cloudstack.NewClient(apiUrl, apiKey, secretKey, false)
 	// TODO: attempt a less clunky client liveliness check (not just listing zones).
-	c.cs = cloudstack.NewAsyncClient(cfg.apiUrl, cfg.apiKey, cfg.secretKey, cfg.verifySSL)
-	_, err := c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
+	c.cs = cloudstack.NewAsyncClient(cfg.ApiUrl, cfg.ApiKey, cfg.SecretKey, cfg.VerifySSL)
+	_, err = c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
 	if err != nil && strings.Contains(err.Error(), "i/o timeout") {
 		return c, errors.Wrap(err, "Timeout while checking CloudStack API Client connectivity.")
 	}
