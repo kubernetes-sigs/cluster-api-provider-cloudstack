@@ -58,6 +58,8 @@ func NewClient(cc_path string) (Client, error) {
 	cfg := &config{VerifySSL: true}
 	if rawCfg, err := ini.Load(cc_path); err != nil {
 		return nil, errors.Wrapf(err, "Error encountered while reading config at path: %s", cc_path)
+	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
+		return nil, errors.New("Section Global not found.")
 	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
 		return nil, errors.Wrapf(err, "Error encountered while parsing [Global] section from config at path: %s", cc_path)
 	}
