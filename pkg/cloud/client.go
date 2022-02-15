@@ -45,35 +45,30 @@ type client struct {
 	// csA *cloudstack.CloudStackClient
 }
 
+// cloud-config ini structure.
+type cfg struct {
+	apiUrl    string `ini:"api-url"`
+	apiKey    string `ini:"api-key"`
+	secretKey string `ini:"secret-key"`
+	verifySSL bool   `ini:"verify-ssl"`
+}
+
 func NewClient(cc_path string) (Client, error) {
 	c := &client{}
-	apiUrl, apiKey, secretKey, err := readAPIConfig(cc_path)
-	if err != nil {
+	cfg := &cfg{verifySSL: true}
+	if err := ini.MapTo(cfg, cc_path); err != nil {
 		return nil, errors.Wrapf(err, "Error encountered while reading config at path: %s", cc_path)
 	}
 
 	// This is a placeholder for sending non-blocking requests.
 	// c.csA = cloudstack.NewClient(apiUrl, apiKey, secretKey, false)
 	// TODO: attempt a less clunky client liveliness check (not just listing zones).
-	c.cs = cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
-	_, err = c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
+	c.cs = cloudstack.NewAsyncClient(cfg.apiUrl, cfg.apiKey, cfg.secretKey, cfg.verifySSL)
+	_, err := c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
 	if err != nil && strings.Contains(err.Error(), "i/o timeout") {
 		return c, errors.Wrap(err, "Timeout while checking CloudStack API Client connectivity.")
 	}
 	return c, errors.Wrap(err, "Error encountered while checking CloudStack API Client connectivity.")
-}
-
-// CloudStack API config reader.
-func readAPIConfig(cc_path string) (string, string, string, error) {
-	cfg, err := ini.Load(cc_path)
-	if err != nil {
-		return "", "", "", err
-	}
-	g := cfg.Section("Global")
-	if len(g.Keys()) == 0 {
-		return "", "", "", errors.New("section Global not found")
-	}
-	return g.Key("api-url").Value(), g.Key("api-key").Value(), g.Key("secret-key").Value(), err
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
