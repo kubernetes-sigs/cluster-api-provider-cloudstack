@@ -56,11 +56,9 @@ type config struct {
 func NewClient(cc_path string) (Client, error) {
 	c := &client{}
 	cfg := &config{VerifySSL: true}
-	rawCfg, err := ini.Load(cc_path)
-	if err != nil {
+	if rawCfg, err := ini.Load(cc_path); err != nil {
 		return nil, errors.Wrapf(err, "Error encountered while reading config at path: %s", cc_path)
-	}
-	if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
+	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
 		return nil, errors.Wrapf(err, "Error encountered while parsing [Global] section from config at path: %s", cc_path)
 	}
 
@@ -68,7 +66,7 @@ func NewClient(cc_path string) (Client, error) {
 	// c.csA = cloudstack.NewClient(apiUrl, apiKey, secretKey, false)
 	// TODO: attempt a less clunky client liveliness check (not just listing zones).
 	c.cs = cloudstack.NewAsyncClient(cfg.ApiUrl, cfg.ApiKey, cfg.SecretKey, cfg.VerifySSL)
-	_, err = c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
+	_, err := c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
 	if err != nil && strings.Contains(err.Error(), "i/o timeout") {
 		return c, errors.Wrap(err, "Timeout while checking CloudStack API Client connectivity.")
 	}
