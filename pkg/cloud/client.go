@@ -17,7 +17,6 @@ limitations under the License.
 package cloud
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
@@ -64,7 +63,6 @@ func NewClient(cc_path string) (Client, error) {
 	if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
 		return nil, errors.Wrapf(err, "Error encountered while parsing [Global] section from config at path: %s", cc_path)
 	}
-	fmt.Println(cfg.VerifySSL)
 
 	// This is a placeholder for sending non-blocking requests.
 	// c.csA = cloudstack.NewClient(apiUrl, apiKey, secretKey, false)
