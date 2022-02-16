@@ -74,7 +74,7 @@ api/%/zz_generated.deepcopy.go: bin/controller-gen $(DEEPCOPY_GEN_INPUTS)
 
 MANAGER_BIN_INPUTS=$(shell find ./controllers ./api ./pkg -name "*mock*" -prune -o -name "*test*" -prune -o -type f -print) main.go go.mod go.sum
 .PHONY: build
-build: binaries generate-deepcopy manifests release-manifests bin/manager bin/mockgen ## Build manager binary.
+build: binaries generate-mocks generate-deepcopy manifests release-manifests ## Build manager binary.
 bin/manager: $(MANAGER_BIN_INPUTS)
 	go fmt ./...
 	go vet ./...
@@ -170,7 +170,7 @@ test: generate-mocks lint generate-deepcopy bin/ginkgo bin/kubectl bin/kube-apis
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 	
 .PHONY: generate-mocks
-generate-mocks: bin/mockgen $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
+generate-mocks: bin/mockgen pkg/mocks/mock_client.go $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
 pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
 	go generate ./...
 
