@@ -39,13 +39,35 @@ type CloudStackIdentityReference struct {
 	Name string `json:"name"`
 }
 
+type Network struct {
+	// Cloudstack Network ID the cluster is built in.
+	Id string `json:"networkID,omitempty"`
+
+	// Cloudstack Network Type the cluster is built in.
+	// + optional
+	Type string `json:"networkType,omitempty"`
+
+	// Name of the infrastructure identity to be used.
+	// +optional
+	Name string `json:"name"`
+}
+
+type Zone struct {
+	// The Zone name.
+	// + optional
+	Name string `json:"name"`
+
+	// The CS zone ID the cluster is built in.
+	// + optional
+	Id string `json:"iD"`
+
+	// The network within the Zone to use.
+	Network Network `json:"network"`
+}
+
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
 type CloudStackClusterSpec struct {
-	// CloudStack Zone name.
-	Zone string `json:"zone"`
-
-	// CloudStack guest network name.
-	Network string `json:"network,omitempty"`
+	Zones []Zone `json:"zones"`
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
@@ -67,15 +89,6 @@ type CloudStackClusterSpec struct {
 type CloudStackClusterStatus struct {
 	// Reflects the readiness of the CS cluster.
 	Ready bool `json:"ready"`
-
-	// The CS zone ID the cluster is built in.
-	ZoneID string `json:"zoneID"`
-
-	// Cloudstack Network ID the cluster is built in.
-	NetworkID string `json:"networkID,omitempty"`
-
-	// Cloudstack Network Type the cluster is built in.
-	NetworkType string `json:"networkType,omitempty"`
 
 	// Cloudstack Domain ID the cluster is built in.
 	DomainID string `json:"domainID,omitempty"`
