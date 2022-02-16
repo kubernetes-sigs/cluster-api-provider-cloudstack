@@ -40,6 +40,7 @@ func getCloudStackCluster() *infrav1.CloudStackCluster {
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "cs-cluster-test1-",
 			Namespace:    "default",
+			UID:          "0",
 		},
 		Spec: infrav1.CloudStackClusterSpec{
 			Zone:    "zone",

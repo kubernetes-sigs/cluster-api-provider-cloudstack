@@ -24,6 +24,7 @@ import (
 
 type ClusterIface interface {
 	GetOrCreateCluster(*infrav1.CloudStackCluster) error
+	DisposeClusterResources(cluster *infrav1.CloudStackCluster) error
 }
 
 func (c *client) resolveZone(csCluster *infrav1.CloudStackCluster) (retErr error) {
@@ -91,4 +92,8 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 	// Set cluster to ready to indicate readiness to CAPI.
 	csCluster.Status.Ready = true
 	return nil
+}
+
+func (c *client) DisposeClusterResources(csCluster *infrav1.CloudStackCluster) (retError error) {
+	return c.UntagAndDestroyNetwork(csCluster)
 }

@@ -22,7 +22,11 @@ type TagIFace interface {
 	DeleteNetworkTags(string, map[string]string) error
 }
 
-const resourceTypeNetwork = "network"
+const (
+	clusterTagNamePrefix = "CAPC_cluster_"
+	createdByCapcTagName = "created_by_CAPC"
+	resourceTypeNetwork  = "network"
+)
 
 // TagNetwork adds tags to a network by network id.
 func (c *client) AddNetworkTags(networkId string, tags map[string]string) error {

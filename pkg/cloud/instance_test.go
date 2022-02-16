@@ -18,6 +18,7 @@ package cloud_test
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
@@ -64,8 +65,9 @@ var _ = Describe("Instance", func() {
 				Template:   "template-name"}}
 		csMachine.Name = "instance-name"
 		csCluster = &infrav1.CloudStackCluster{
-			Spec:   infrav1.CloudStackClusterSpec{},
-			Status: infrav1.CloudStackClusterStatus{ZoneID: "zone-id"}}
+			Spec:       infrav1.CloudStackClusterSpec{},
+			Status:     infrav1.CloudStackClusterStatus{ZoneID: "zone-id"},
+			ObjectMeta: metav1.ObjectMeta{UID: "0"}}
 		machine = &capiv1.Machine{}
 	})
 

@@ -18,13 +18,13 @@ package cloud_test
 
 import (
 	"errors"
-
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -49,8 +49,9 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		fakeAG = &cloud.AffinityGroup{
 			Name: "FakeAffinityGroup",
 			Type: cloud.AffinityGroupType}
-		cluster = &infrav1.CloudStackCluster{Spec: infrav1.CloudStackClusterSpec{
-			Zone: "Zone1", Network: "SharedGuestNet1"}}
+		cluster = &infrav1.CloudStackCluster{
+			Spec:       infrav1.CloudStackClusterSpec{Zone: "Zone1", Network: "SharedGuestNet1"},
+			ObjectMeta: metav1.ObjectMeta{UID: "0"}}
 		machine = &infrav1.CloudStackMachine{Spec: infrav1.CloudStackMachineSpec{
 			Offering: "Medium Instance", Template: "Ubuntu20"}}
 		machine.ObjectMeta.SetName("rejoshed-affinity-group-test-vm")

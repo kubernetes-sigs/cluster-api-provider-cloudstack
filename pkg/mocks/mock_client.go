@@ -37,6 +37,20 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// AddNetworkTags mocks base method.
+func (m *MockClient) AddNetworkTags(arg0 string, arg1 map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddNetworkTags", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddNetworkTags indicates an expected call of AddNetworkTags.
+func (mr *MockClientMockRecorder) AddNetworkTags(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddNetworkTags", reflect.TypeOf((*MockClient)(nil).AddNetworkTags), arg0, arg1)
+}
+
 // AssignVMToLoadBalancerRule mocks base method.
 func (m *MockClient) AssignVMToLoadBalancerRule(arg0 *v1beta1.CloudStackCluster, arg1 string) error {
 	m.ctrl.T.Helper()
@@ -79,6 +93,20 @@ func (mr *MockClientMockRecorder) DeleteAffinityGroup(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAffinityGroup", reflect.TypeOf((*MockClient)(nil).DeleteAffinityGroup), arg0)
 }
 
+// DeleteNetworkTags mocks base method.
+func (m *MockClient) DeleteNetworkTags(arg0 string, arg1 map[string]string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteNetworkTags", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteNetworkTags indicates an expected call of DeleteNetworkTags.
+func (mr *MockClientMockRecorder) DeleteNetworkTags(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNetworkTags", reflect.TypeOf((*MockClient)(nil).DeleteNetworkTags), arg0, arg1)
+}
+
 // DestroyVMInstance mocks base method.
 func (m *MockClient) DestroyVMInstance(arg0 *v1beta1.CloudStackMachine) error {
 	m.ctrl.T.Helper()
@@ -91,6 +119,20 @@ func (m *MockClient) DestroyVMInstance(arg0 *v1beta1.CloudStackMachine) error {
 func (mr *MockClientMockRecorder) DestroyVMInstance(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DestroyVMInstance", reflect.TypeOf((*MockClient)(nil).DestroyVMInstance), arg0)
+}
+
+// DisposeClusterResources mocks base method.
+func (m *MockClient) DisposeClusterResources(arg0 *v1beta1.CloudStackCluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DisposeClusterResources", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DisposeClusterResources indicates an expected call of DisposeClusterResources.
+func (mr *MockClientMockRecorder) DisposeClusterResources(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisposeClusterResources", reflect.TypeOf((*MockClient)(nil).DisposeClusterResources), arg0)
 }
 
 // DissassociateAffinityGroup mocks base method.
@@ -119,6 +161,21 @@ func (m *MockClient) FetchAffinityGroup(arg0 *cloud.AffinityGroup) error {
 func (mr *MockClientMockRecorder) FetchAffinityGroup(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchAffinityGroup", reflect.TypeOf((*MockClient)(nil).FetchAffinityGroup), arg0)
+}
+
+// GetNetworkTags mocks base method.
+func (m *MockClient) GetNetworkTags(arg0 string) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNetworkTags", arg0)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNetworkTags indicates an expected call of GetNetworkTags.
+func (mr *MockClientMockRecorder) GetNetworkTags(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNetworkTags", reflect.TypeOf((*MockClient)(nil).GetNetworkTags), arg0)
 }
 
 // GetOrCreateAffinityGroup mocks base method.
@@ -260,18 +317,4 @@ func (m *MockClient) ResolveVMInstanceDetails(arg0 *v1beta1.CloudStackMachine) e
 func (mr *MockClientMockRecorder) ResolveVMInstanceDetails(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveVMInstanceDetails", reflect.TypeOf((*MockClient)(nil).ResolveVMInstanceDetails), arg0)
-}
-
-// TagNetwork mocks base method.
-func (m *MockClient) TagNetwork(arg0 string, arg1 map[string]string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TagNetwork", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// TagNetwork indicates an expected call of TagNetwork.
-func (mr *MockClientMockRecorder) TagNetwork(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagNetwork", reflect.TypeOf((*MockClient)(nil).TagNetwork), arg0, arg1)
 }

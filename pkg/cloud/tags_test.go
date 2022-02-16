@@ -21,6 +21,7 @@ import (
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Tag Unit Tests", func() {
@@ -29,8 +30,14 @@ var _ = Describe("Tag Unit Tests", func() {
 	)
 
 	BeforeEach(func() {
-		cluster = &infrav1.CloudStackCluster{Spec: infrav1.CloudStackClusterSpec{
-			Zone: "Zone1", Network: "SharedGuestNet1"}}
+		cluster = &infrav1.CloudStackCluster{
+			Spec: infrav1.CloudStackClusterSpec{
+				Zone: "Zone1", Network: "SharedGuestNet1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				UID: "0",
+			},
+		}
 	})
 
 	Context("Tag Integ Tests", func() {

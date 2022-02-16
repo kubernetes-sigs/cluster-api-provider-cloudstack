@@ -58,15 +58,34 @@ func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster) (retErr er
 	return nil
 }
 
+func generateNetworkTagName(csCluster *infrav1.CloudStackCluster) string {
+	return clusterTagNamePrefix + string(csCluster.UID)
+}
+
 func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	// Tag the network so we can clean it up later
-	tagNetwork := func(csCluster *infrav1.CloudStackCluster, createdByCapc bool) error {
-		clusterTag := "CAPC_cluster_" + string(csCluster.UID)
-		tags := map[string]string{clusterTag: "1"}
-		if createdByCapc {
-			tags["created_by_CAPC"] = "1"
+	tagNetwork := func(csCluster *infrav1.CloudStackCluster, addCreatedByTag bool) error {
+		clusterTagName := generateNetworkTagName(csCluster)
+		newTags := map[string]string{}
+
+		existingTags, err := c.GetNetworkTags(csCluster.Status.NetworkID)
+		if err != nil {
+			return err
 		}
-		return c.AddNetworkTags(csCluster.Status.NetworkID, tags)
+
+		if existingTags[clusterTagName] == "" {
+			newTags[clusterTagName] = "1"
+		}
+
+		if addCreatedByTag {
+			newTags[createdByCapcTagName] = "1"
+		}
+
+		if len(newTags) > 0 {
+			return c.AddNetworkTags(csCluster.Status.NetworkID, newTags)
+		}
+
+		return nil
 	}
 
 	if retErr = c.ResolveNetwork(csCluster); retErr == nil { // Found network.
@@ -97,6 +116,32 @@ func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retEr
 	csCluster.Status.NetworkType = resp.Type
 
 	return tagNetwork(csCluster, true)
+}
+
+func (c *client) UntagAndDestroyNetwork(csCluster *infrav1.CloudStackCluster) (retError error) {
+	tags, err := c.GetNetworkTags(csCluster.Status.NetworkID)
+	if err != nil {
+		return err
+	}
+
+	var clusterTagCount int
+	clusterTagName := generateNetworkTagName(csCluster)
+	for tagName, tagValue := range tags {
+		if strings.HasPrefix(tagName, clusterTagNamePrefix) {
+			clusterTagCount++
+			if tagName == clusterTagName {
+				if err = c.DeleteNetworkTags(csCluster.Status.NetworkID, map[string]string{tagName: tagValue}); err != nil {
+					return err
+				}
+				clusterTagCount--
+			}
+		}
+	}
+
+	if clusterTagCount == 0 && tags[createdByCapcTagName] != "" {
+		return c.DestroyNetwork(csCluster)
+	}
+	return nil
 }
 
 func (c *client) ResolvePublicIPDetails(csCluster *infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error) {
