@@ -46,35 +46,34 @@ type client struct {
 	// csA *cloudstack.CloudStackClient
 }
 
+// cloud-config ini structure.
+type config struct {
+	ApiUrl    string `ini:"api-url"`
+	ApiKey    string `ini:"api-key"`
+	SecretKey string `ini:"secret-key"`
+	VerifySSL bool   `ini:"verify-ssl"`
+}
+
 func NewClient(cc_path string) (Client, error) {
 	c := &client{}
-	apiUrl, apiKey, secretKey, err := readAPIConfig(cc_path)
-	if err != nil {
+	cfg := &config{VerifySSL: true}
+	if rawCfg, err := ini.Load(cc_path); err != nil {
 		return nil, errors.Wrapf(err, "Error encountered while reading config at path: %s", cc_path)
+	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
+		return nil, errors.New("Section Global not found.")
+	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
+		return nil, errors.Wrapf(err, "Error encountered while parsing [Global] section from config at path: %s", cc_path)
 	}
 
 	// This is a placeholder for sending non-blocking requests.
 	// c.csA = cloudstack.NewClient(apiUrl, apiKey, secretKey, false)
 	// TODO: attempt a less clunky client liveliness check (not just listing zones).
-	c.cs = cloudstack.NewAsyncClient(apiUrl, apiKey, secretKey, false)
-	_, err = c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
+	c.cs = cloudstack.NewAsyncClient(cfg.ApiUrl, cfg.ApiKey, cfg.SecretKey, cfg.VerifySSL)
+	_, err := c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
 	if err != nil && strings.Contains(err.Error(), "i/o timeout") {
 		return c, errors.Wrap(err, "Timeout while checking CloudStack API Client connectivity.")
 	}
 	return c, errors.Wrap(err, "Error encountered while checking CloudStack API Client connectivity.")
-}
-
-// CloudStack API config reader.
-func readAPIConfig(cc_path string) (string, string, string, error) {
-	cfg, err := ini.Load(cc_path)
-	if err != nil {
-		return "", "", "", err
-	}
-	g := cfg.Section("Global")
-	if len(g.Keys()) == 0 {
-		return "", "", "", errors.New("section Global not found")
-	}
-	return g.Key("api-url").Value(), g.Key("api-key").Value(), g.Key("secret-key").Value(), err
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
