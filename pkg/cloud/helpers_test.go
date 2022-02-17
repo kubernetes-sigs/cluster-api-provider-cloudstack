@@ -45,7 +45,7 @@ var _ = Describe("Helpers", func() {
 			client, err := cloud.NewClient(filepath)
 
 			Ω(client).Should(BeNil())
-			Ω(err.Error()).Should(ContainSubstring("Section Global not found"))
+			Ω(err.Error()).Should(ContainSubstring("section Global not found"))
 		})
 	})
 

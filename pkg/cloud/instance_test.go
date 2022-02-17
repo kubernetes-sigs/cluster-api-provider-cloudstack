@@ -82,7 +82,7 @@ var _ = Describe("Instance", func() {
 		It("Handles finding more than one VM instance by ID", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, 2, nil)
 			Ω(client.ResolveVMInstanceDetails(csMachine)).
-				Should(MatchError("Found more than one VM Instance with ID instance-id."))
+				Should(MatchError("found more than one VM Instance with ID instance-id"))
 		})
 
 		It("sets csMachine spec and status values when VM instance found by ID", func() {
@@ -105,7 +105,7 @@ var _ = Describe("Instance", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, 2, nil)
 
 			Ω(client.ResolveVMInstanceDetails(csMachine)).Should(
-				MatchError("Found more than one VM Instance with name instance-name."))
+				MatchError("found more than one VM Instance with name instance-name"))
 		})
 
 		It("sets csMachine spec and status values when VM instance found by Name", func() {
