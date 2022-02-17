@@ -82,17 +82,17 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Setup patcher. This ensures modifications to the csMachine copy fetched above are patched into the origin.
-	if patchHelper, err := patch.NewHelper(csMachine, r.Client); err != nil {
+	patchHelper, err := patch.NewHelper(csMachine, r.Client)
+	if err != nil {
 		return ctrl.Result{}, err
-	} else {
-		defer func() { // If there was no error on return, but the patch fails, set the error accordingly.
-			if err = patchHelper.Patch(ctx, csMachine); err != nil {
-				msg := "error patching CloudStackMachine %s/%s"
-				err = errors.Wrapf(err, msg, csMachine.Namespace, csMachine.Name)
-				retErr = multierror.Append(retErr, err)
-			}
-		}()
 	}
+	defer func() { // If there was no error on return, but the patch fails, set the error accordingly.
+		if err = patchHelper.Patch(ctx, csMachine); err != nil {
+			msg := "error patching CloudStackMachine %s/%s"
+			err = errors.Wrapf(err, msg, csMachine.Namespace, csMachine.Name)
+			retErr = multierror.Append(retErr, err)
+		}
+	}()
 
 	// Fetch the CAPI Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, csMachine.ObjectMeta)
@@ -332,7 +332,7 @@ func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 	}
 	group := &cloud.AffinityGroup{Name: name}
 	_ = r.CS.FetchAffinityGroup(group)
-	if group.Id == "" { // Affinity group not found, must have been deleted.
+	if group.ID == "" { // Affinity group not found, must have been deleted.
 		return nil
 	}
 

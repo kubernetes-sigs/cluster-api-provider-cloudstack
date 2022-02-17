@@ -99,9 +99,9 @@ func (p paramMatcher) Matches(x interface{}) (retVal bool) {
 //
 //    Essentially it will generate a matcher that checks the value from p.Get<some field>() is Equal to an input String.
 //
-// 		DomainIdEquals = FieldMatcherGenerator("GetDomainid")
+// 		DomainIDEquals = FieldMatcherGenerator("GetDomainid")
 //      p := &CreateNewSomethingParams{Domainid: "FakeDomainId"}
-//      Ω(p).DomainIdEquals("FakeDomainId")
+//      Ω(p).DomainIDEquals("FakeDomainId")
 func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
 	return (func(expected string) types.GomegaMatcher {
 		return WithTransform(
@@ -114,6 +114,6 @@ func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
 }
 
 var (
-	DomainIdEquals = FieldMatcherGenerator("GetDomainid")
+	DomainIDEquals = FieldMatcherGenerator("GetDomainid")
 	AccountEquals  = FieldMatcherGenerator("GetAccount")
 )

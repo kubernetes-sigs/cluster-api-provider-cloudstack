@@ -67,13 +67,13 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		Ω(client.GetOrCreateAffinityGroup(cluster, fakeAG)).Should(Succeed())
 	})
 	It("creates an affinity group", func() {
-		fakeAG.Id = "FakeID"
+		fakeAG.ID = "FakeID"
 		cluster.Spec.Account = "FakeAccount"
 		cluster.Status.DomainID = "FakeDomainId"
-		ags.EXPECT().GetAffinityGroupByID(fakeAG.Id).Return(nil, -1, errors.New("FakeError"))
+		ags.EXPECT().GetAffinityGroupByID(fakeAG.ID).Return(nil, -1, errors.New("fakeError"))
 		ags.EXPECT().NewCreateAffinityGroupParams(fakeAG.Name, fakeAG.Type).
 			Return(&cloudstack.CreateAffinityGroupParams{})
-		ags.EXPECT().CreateAffinityGroup(ParamMatch(And(AccountEquals("FakeAccount"), DomainIdEquals("FakeDomainId")))).
+		ags.EXPECT().CreateAffinityGroup(ParamMatch(And(AccountEquals("FakeAccount"), DomainIDEquals("FakeDomainId")))).
 			Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
 		Ω(client.GetOrCreateAffinityGroup(cluster, fakeAG)).Should(Succeed())

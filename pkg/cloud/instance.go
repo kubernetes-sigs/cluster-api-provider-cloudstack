@@ -160,11 +160,11 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
-	if compressedAndEncodedUserData, err := CompressAndEncodeString(userData); err != nil {
+	compressedAndEncodedUserData, err := CompressAndEncodeString(userData)
+	if err != nil {
 		return err
-	} else {
-		setIfNotEmpty(compressedAndEncodedUserData, p.SetUserdata)
 	}
+	setIfNotEmpty(compressedAndEncodedUserData, p.SetUserdata)
 
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
@@ -181,7 +181,7 @@ func (c *client) GetOrCreateVMInstance(
 		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
 			return err
 		}
-		p.SetAffinitygroupids([]string{group.Id})
+		p.SetAffinitygroupids([]string{group.ID})
 	}
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)

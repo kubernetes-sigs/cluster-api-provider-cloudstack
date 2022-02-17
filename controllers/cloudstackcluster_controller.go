@@ -94,17 +94,17 @@ func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Setup patcher. This ensures modifications to the csCluster copy fetched above are patched into the origin.
-	if patchHelper, err := patch.NewHelper(csCluster, r.Client); err != nil {
+	patchHelper, err := patch.NewHelper(csCluster, r.Client)
+	if err != nil {
 		return ctrl.Result{}, err
-	} else {
-		defer func() {
-			if err = patchHelper.Patch(ctx, csCluster); err != nil {
-				msg := "error patching CloudStackCluster %s/%s"
-				err = errors.Wrapf(err, msg, csCluster.Namespace, csCluster.Name)
-				retErr = multierror.Append(retErr, err)
-			}
-		}()
 	}
+	defer func() {
+		if err = patchHelper.Patch(ctx, csCluster); err != nil {
+			msg := "error patching CloudStackCluster %s/%s"
+			err = errors.Wrapf(err, msg, csCluster.Namespace, csCluster.Name)
+			retErr = multierror.Append(retErr, err)
+		}
+	}()
 
 	// Delete Cluster Resources if deletion timestamp present.
 	if !csCluster.DeletionTimestamp.IsZero() {

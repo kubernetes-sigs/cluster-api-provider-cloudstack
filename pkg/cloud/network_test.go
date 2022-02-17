@@ -41,11 +41,11 @@ var _ = Describe("Network", func() {
 	)
 
 	const (
-		fakeNetId           = "fakeNetID"
+		fakeNetID           = "fakeNetID"
 		fakeNetName         = "fakeNetName"
 		isolatedNetworkType = "Isolated"
-		lbRuleId            = "lbRuleID"
-		netId               = "someNetID"
+		lbRuleID            = "lbRuleID"
+		netID               = "someNetID"
 		protocol            = "tcp"
 		publicPort          = "6443"
 	)
@@ -77,44 +77,44 @@ var _ = Describe("Network", func() {
 
 	Context("for an existing network", func() {
 		It("resolves network details in cluster status", func() {
-			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetId, 1, nil)
-			ns.EXPECT().GetNetworkByID(fakeNetId).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
+			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetID, 1, nil)
+			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
 			Ω(client.ResolveNetwork(csCluster)).Should(Succeed())
-			Ω(csCluster.Status.NetworkID).Should(Equal(fakeNetId))
+			Ω(csCluster.Status.NetworkID).Should(Equal(fakeNetID))
 			Ω(csCluster.Status.NetworkType).Should(Equal(isolatedNetworkType))
 		})
 
 		It("does not call to create a new network via GetOrCreateNetwork", func() {
-			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetId, 1, nil)
-			ns.EXPECT().GetNetworkByID(fakeNetId).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
+			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetID, 1, nil)
+			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
 
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
 
 		It("resolves network details with network ID instead of network name", func() {
-			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("No match found for blah."))
-			ns.EXPECT().GetNetworkByID(fakeNetId).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
+			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
+			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
 
-			csCluster.Spec.Network = fakeNetId
+			csCluster.Spec.Network = fakeNetID
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
 	})
 
 	Context("for a non-existent network", func() {
 		It("when GetOrCreateNetwork is called it calls CloudStack to create a network", func() {
-			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("No match found for blah."))
-			ns.EXPECT().GetNetworkByID(gomock.Any()).Return(nil, -1, errors.New("No match found for blah."))
+			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
+			ns.EXPECT().GetNetworkByID(gomock.Any()).Return(nil, -1, errors.New("no match found for blah"))
 			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&cloudstack.CreateNetworkParams{})
-			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: netId}, nil)
+			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: netID}, nil)
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
 	})
 
 	Context("for a closed firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall", func() {
-			netID := netId
+			netID := netID
 			csCluster.Status.NetworkID = netID
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(netID, protocol).
 				Return(&cloudstack.CreateEgressFirewallRuleParams{})
@@ -127,12 +127,12 @@ var _ = Describe("Network", func() {
 
 	Context("for an open firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
-			netID := netId
+			netID := netID
 			csCluster.Status.NetworkID = netID
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(netID, protocol).
 				Return(&cloudstack.CreateEgressFirewallRuleParams{})
 			fs.EXPECT().CreateEgressFirewallRule(&cloudstack.CreateEgressFirewallRuleParams{}).
-				Return(&cloudstack.CreateEgressFirewallRuleResponse{}, errors.New("There is already a rule like this."))
+				Return(&cloudstack.CreateEgressFirewallRuleResponse{}, errors.New("there is already a rule like this"))
 			Ω(client.OpenFirewallRules(csCluster)).Should(Succeed())
 		})
 	})
@@ -146,10 +146,10 @@ var _ = Describe("Network", func() {
 					Count:             1,
 					PublicIpAddresses: []*cloudstack.PublicIpAddress{{Id: "PublicIPID", Ipaddress: ipAddress}},
 				}, nil)
-			publicIpAddress, err := client.ResolvePublicIPDetails(csCluster)
+			publicIPAddress, err := client.ResolvePublicIPDetails(csCluster)
 			Ω(err).Should(Succeed())
-			Ω(publicIpAddress).ShouldNot(BeNil())
-			Ω(publicIpAddress.Ipaddress).Should(Equal(ipAddress))
+			Ω(publicIPAddress).ShouldNot(BeNil())
+			Ω(publicIPAddress.Ipaddress).Should(Equal(ipAddress))
 		})
 	})
 
@@ -158,18 +158,18 @@ var _ = Describe("Network", func() {
 			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).Return(
 				&cloudstack.ListLoadBalancerRulesResponse{
-					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: publicPort, Id: lbRuleId}}}, nil)
+					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: publicPort, Id: lbRuleID}}}, nil)
 			Ω(client.ResolveLoadBalancerRuleDetails(csCluster)).Should(Succeed())
-			Ω(csCluster.Status.LBRuleID).Should(Equal(lbRuleId))
+			Ω(csCluster.Status.LBRuleID).Should(Equal(lbRuleID))
 		})
 
 		It("doesn't create a new load blancer rule on create", func() {
 			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).
 				Return(&cloudstack.ListLoadBalancerRulesResponse{
-					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: publicPort, Id: lbRuleId}}}, nil)
+					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: publicPort, Id: lbRuleID}}}, nil)
 			Ω(client.GetOrCreateLoadBalancerRule(csCluster)).Should(Succeed())
-			Ω(csCluster.Status.LBRuleID).Should(Equal(lbRuleId))
+			Ω(csCluster.Status.LBRuleID).Should(Equal(lbRuleID))
 		})
 	})
 
@@ -177,14 +177,14 @@ var _ = Describe("Network", func() {
 		It("calls cloudstack to create a new load balancer rule.", func() {
 			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).Return(&cloudstack.ListLoadBalancerRulesResponse{
-				LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: "7443", Id: lbRuleId}}}, nil)
+				LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: "7443", Id: lbRuleID}}}, nil)
 			lbs.EXPECT().NewCreateLoadBalancerRuleParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&cloudstack.CreateLoadBalancerRuleParams{})
-			const randomId = "randomID"
+			const randomID = "randomID"
 			lbs.EXPECT().CreateLoadBalancerRule(gomock.Any()).
-				Return(&cloudstack.CreateLoadBalancerRuleResponse{Id: randomId}, nil)
+				Return(&cloudstack.CreateLoadBalancerRuleResponse{Id: randomID}, nil)
 			Ω(client.GetOrCreateLoadBalancerRule(csCluster)).Should(Succeed())
-			Ω(csCluster.Status.LBRuleID).Should(Equal(randomId))
+			Ω(csCluster.Status.LBRuleID).Should(Equal(randomID))
 		})
 	})
 })

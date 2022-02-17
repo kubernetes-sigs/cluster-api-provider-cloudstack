@@ -19,7 +19,7 @@ package v1beta1
 import (
 	"fmt"
 
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/webhook_utilities"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/webhookutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -67,10 +67,10 @@ func (r *CloudStackCluster) ValidateCreate() error {
 	}
 
 	// Zone and Network are required fields
-	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Zone, "Zone", errorList)
-	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Network, "Network", errorList)
+	errorList = webhookutil.EnsureFieldExists(r.Spec.Zone, "Zone", errorList)
+	errorList = webhookutil.EnsureFieldExists(r.Spec.Network, "Network", errorList)
 
-	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -94,20 +94,20 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// No spec fields may be changed
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Zone, oldSpec.Zone, "zone", errorList)
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Network, oldSpec.Network, "network", errorList)
+	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Zone, oldSpec.Zone, "zone", errorList)
+	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Network, oldSpec.Network, "network", errorList)
 	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
-		errorList = webhook_utilities.EnsureStringFieldsAreEqual(
+		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpointhost", errorList)
-		errorList = webhook_utilities.EnsureStringFieldsAreEqual(
+		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			string(spec.ControlPlaneEndpoint.Port), string(oldSpec.ControlPlaneEndpoint.Port), "controlplaneendpointport", errorList)
 	}
 	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
-		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
-		errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
+		errorList = webhookutil.EnsureStringFieldsAreEqual(spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
+		errorList = webhookutil.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
 	}
 
-	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type

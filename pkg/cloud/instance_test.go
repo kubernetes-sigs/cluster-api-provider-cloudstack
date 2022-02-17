@@ -203,7 +203,7 @@ var _ = Describe("Instance", func() {
 					Return(&cloudstack.VirtualMachinesMetric{}, 1, nil)
 				vms.EXPECT().NewDeployVirtualMachineParams(serviceOfferingID, templateID, csCluster.Status.ZoneID).
 					Return(&cloudstack.DeployVirtualMachineParams{})
-				vms.EXPECT().DeployVirtualMachine(ParamMatch(And(AccountEquals(account), DomainIdEquals(domainID)))).
+				vms.EXPECT().DeployVirtualMachine(ParamMatch(And(AccountEquals(account), DomainIDEquals(domainID)))).
 					Return(&cloudstack.DeployVirtualMachineResponse{Id: *csMachine.Spec.InstanceID}, nil)
 				vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, notFoundError)
 
