@@ -93,7 +93,7 @@ func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *c
 		// As such, need to check the deletion timestamp thereof.
 		if cp, err := getKubeadmControlPlaneFromCAPIMachine(ctx, client, capiMachine); cp != nil && cp.DeletionTimestamp == nil {
 			return false, nil
-		} else if err != nil && !strings.Contains(err.Error(), "not found") {
+		} else if err != nil && !strings.Contains(strings.ToLower(err.Error()), "not found") {
 			return false, err
 		}
 	} else {
@@ -101,7 +101,7 @@ func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *c
 		// It is sufficient to check for its existence.
 		if ms, err := getMachineSetFromCAPIMachine(ctx, client, capiMachine); ms != nil {
 			return false, nil
-		} else if err != nil && !strings.Contains(err.Error(), "not found") {
+		} else if err != nil && !strings.Contains(strings.ToLower(err.Error()), "not found") {
 			return false, err
 		}
 	}

@@ -61,7 +61,7 @@ func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster) (retErr er
 func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	if retErr = c.ResolveNetwork(csCluster); retErr == nil { // Found network.
 		return nil
-	} else if !strings.Contains(retErr.Error(), "no match found") { // Some other error.
+	} else if !strings.Contains(strings.ToLower(retErr.Error()), "no match found") { // Some other error.
 		return retErr
 	} // Network not found.
 
@@ -147,7 +147,7 @@ func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) 
 func (c *client) OpenFirewallRules(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, NetworkProtocolTCP)
 	_, retErr = c.cs.Firewall.CreateEgressFirewallRule(p)
-	if retErr != nil && strings.Contains(retErr.Error(), "there is already") { // Already a firewall rule here.
+	if retErr != nil && strings.Contains(strings.ToLower(retErr.Error()), "there is already") { // Already a firewall rule here.
 		retErr = nil
 	}
 	return retErr
@@ -175,7 +175,7 @@ func (c *client) ResolveLoadBalancerRuleDetails(csCluster *infrav1.CloudStackClu
 func (c *client) GetOrCreateLoadBalancerRule(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	// Check if rule exists.
 	if err := c.ResolveLoadBalancerRuleDetails(csCluster); err == nil ||
-		!strings.Contains(err.Error(), "no load balancer rule found") {
+		!strings.Contains(strings.ToLower(err.Error()), "no load balancer rule found") {
 		return err
 	}
 

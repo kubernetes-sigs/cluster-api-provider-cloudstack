@@ -69,7 +69,7 @@ func NewClient(ccPath string) (Client, error) {
 	// TODO: attempt a less clunky client liveliness check (not just listing zones).
 	c.cs = cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
 	_, err := c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
-	if err != nil && strings.Contains(err.Error(), "i/o timeout") {
+	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
 		return c, errors.Wrap(err, "Timeout while checking CloudStack API Client connectivity.")
 	}
 	return c, errors.Wrap(err, "Error encountered while checking CloudStack API Client connectivity.")
