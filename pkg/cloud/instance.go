@@ -216,7 +216,7 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
 	p.SetExpunge(true)
 	_, err := c.cs.VirtualMachine.DestroyVirtualMachine(p)
-	if err != nil && strings.Contains(err.Error(), "Unable to find UUID for id ") {
+	if err != nil && strings.Contains(err.Error(), "unable to find UUID for id ") {
 		// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
 		return nil
 	}
