@@ -30,7 +30,6 @@ const (
 
 // TagNetwork adds tags to a network by network id.
 func (c *client) AddNetworkTags(networkId string, tags map[string]string) error {
-	// https://cloudstack.apache.org/api/apidocs-4.16/apis/createTags.html
 	p := c.cs.Resourcetags.NewCreateTagsParams([]string{networkId}, resourceTypeNetwork, tags)
 	_, err := c.cs.Resourcetags.CreateTags(p)
 	return err
@@ -38,7 +37,6 @@ func (c *client) AddNetworkTags(networkId string, tags map[string]string) error 
 
 // GetNetworkTags gets tags by network id.
 func (c *client) GetNetworkTags(networkId string) (map[string]string, error) {
-	// https://cloudstack.apache.org/api/apidocs-4.16/apis/listTags.html
 	p := c.cs.Resourcetags.NewListTagsParams()
 	p.SetResourceid(networkId)
 	p.SetResourcetype(resourceTypeNetwork)
@@ -55,7 +53,6 @@ func (c *client) GetNetworkTags(networkId string) (map[string]string, error) {
 
 // DeleteNetworkTags deletes matching tags from a network
 func (c *client) DeleteNetworkTags(networkId string, tagsToDelete map[string]string) error {
-	// https://cloudstack.apache.org/api/apidocs-4.16/apis/deleteTags.html
 	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{networkId}, resourceTypeNetwork)
 	p.SetTags(tagsToDelete)
 	_, err := c.cs.Resourcetags.DeleteTags(p)
