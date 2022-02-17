@@ -66,16 +66,16 @@ func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retEr
 	} // Network not found.
 
 	// Create network since it wasn't found.
-	offeringId, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
+	offeringID, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
 	if retErr != nil {
 		return retErr
 	} else if count != 1 {
-		return errors.New("found more than one network offering.")
+		return errors.New("found more than one network offering")
 	}
 	p := c.cs.Network.NewCreateNetworkParams(
 		csCluster.Spec.Network,
 		csCluster.Spec.Network,
-		offeringId,
+		offeringID,
 		csCluster.Status.ZoneID)
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
@@ -117,8 +117,8 @@ func (c *client) ResolvePublicIPDetails(csCluster *infrav1.CloudStackCluster) (*
 	return nil, errors.Errorf(`no public addresses found in network: "%s"`, csCluster.Spec.Network)
 }
 
-// AssociatePublicIpAddress Gets a PublicIP and associates it.
-func (c *client) AssociatePublicIpAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
+// AssociatePublicIPAddress Gets a PublicIP and associates it.
+func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	publicAddress, err := c.ResolvePublicIPDetails(csCluster)
 	if err != nil {
 		return err

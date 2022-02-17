@@ -79,7 +79,7 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 			return retErr
 		}
 		if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
-			if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
+			if retErr = c.AssociatePublicIPAddress(csCluster); retErr != nil {
 				return retErr
 			}
 		}

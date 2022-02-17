@@ -36,7 +36,7 @@ type Client interface {
 	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
 	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
 	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
-	AffinityGroupIFace
+	AffinityGroupIface
 }
 
 type client struct {
@@ -47,27 +47,27 @@ type client struct {
 
 // cloud-config ini structure.
 type config struct {
-	ApiUrl    string `ini:"api-url"`
-	ApiKey    string `ini:"api-key"`
+	APIURL    string `ini:"api-url"`
+	APIKey    string `ini:"api-key"`
 	SecretKey string `ini:"secret-key"`
 	VerifySSL bool   `ini:"verify-ssl"`
 }
 
-func NewClient(cc_path string) (Client, error) {
+func NewClient(ccPath string) (Client, error) {
 	c := &client{}
 	cfg := &config{VerifySSL: true}
-	if rawCfg, err := ini.Load(cc_path); err != nil {
-		return nil, errors.Wrapf(err, "Error encountered while reading config at path: %s", cc_path)
+	if rawCfg, err := ini.Load(ccPath); err != nil {
+		return nil, errors.Wrapf(err, "error encountered while reading config at path: %s", ccPath)
 	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
-		return nil, errors.New("Section Global not found.")
+		return nil, errors.New("section Global not found")
 	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
-		return nil, errors.Wrapf(err, "Error encountered while parsing [Global] section from config at path: %s", cc_path)
+		return nil, errors.Wrapf(err, "error encountered while parsing [Global] section from config at path: %s", ccPath)
 	}
 
 	// This is a placeholder for sending non-blocking requests.
 	// c.csA = cloudstack.NewClient(apiUrl, apiKey, secretKey, false)
 	// TODO: attempt a less clunky client liveliness check (not just listing zones).
-	c.cs = cloudstack.NewAsyncClient(cfg.ApiUrl, cfg.ApiKey, cfg.SecretKey, cfg.VerifySSL)
+	c.cs = cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
 	_, err := c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
 	if err != nil && strings.Contains(err.Error(), "i/o timeout") {
 		return c, errors.Wrap(err, "Timeout while checking CloudStack API Client connectivity.")

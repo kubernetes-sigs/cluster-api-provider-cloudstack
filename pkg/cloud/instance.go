@@ -32,7 +32,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-const AntiAffinityValue = "anti"
+const antiAffinityValue = "anti"
 
 type VMIface interface {
 	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
@@ -58,7 +58,7 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			return err
 		} else if count > 1 {
-			return fmt.Errorf("Found more than one VM Instance with ID %s.", *csMachine.Spec.InstanceID)
+			return fmt.Errorf("found more than one VM Instance with ID %s", *csMachine.Spec.InstanceID)
 		} else if err == nil {
 			setMachineDataFromVMMetrics(vmResp, csMachine)
 			return nil
@@ -71,7 +71,7 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match") {
 			return err
 		} else if count > 1 {
-			return fmt.Errorf("Found more than one VM Instance with name %s.", csMachine.Name)
+			return fmt.Errorf("found more than one VM Instance with name %s", csMachine.Name)
 		} else if err == nil {
 			setMachineDataFromVMMetrics(vmResp, csMachine)
 			return nil
@@ -170,7 +170,7 @@ func (c *client) GetOrCreateVMInstance(
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
 	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
 		affinityType := AffinityGroupType
-		if strings.ToLower(csMachine.Spec.Affinity) == AntiAffinityValue {
+		if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
 			affinityType = AntiAffinityGroupType
 		}
 		name, err := csMachine.AffinityGroupName(capiMachine)
