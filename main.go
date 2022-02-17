@@ -119,7 +119,7 @@ func main() {
 	// Setup CloudStack api client.
 	client, err := cloud.NewClient(opts.CloudConfigFile)
 	if err != nil {
-		if !strings.Contains(err.Error(), "Timeout") {
+		if !strings.Contains(strings.ToLower(err.Error()), "timeout") {
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)
 		}
