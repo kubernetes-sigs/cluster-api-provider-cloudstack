@@ -86,6 +86,11 @@ cluster-templates-v1beta1: $(KUSTOMIZE)
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-insufficient-compute-resources > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-insufficient-compute-resources.yaml
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-node-drain > $(CLOUDSTACK_TEMPLATES)/v1beta1/cluster-template-node-drain.yaml
 
+.PHONY: docker-build-and-push
+docker-build-and-push:
+	IMG=$(IMG) $(MAKE) -C $(REPO_ROOT) docker-build
+	IMG=$(IMG) $(MAKE) -C $(REPO_ROOT) docker-push
+
 ## --------------------------------------
 ## End-to-End Tests
 ## --------------------------------------
@@ -99,7 +104,7 @@ run-e2e: $(GINKGO) kind-cluster manifests cluster-templates ## Run End-to-End Te
 	kind delete clusters capi-test
 
 .PHONY: run-e2e-pr-blocking
-run-e2e-pr-blocking: $(GINKGO) kind-cluster manifests cluster-templates ## Run Only End-to-End Tests containing PR-Blocking tag
+run-e2e-pr-blocking: $(GINKGO) kind-cluster manifests cluster-templates docker-build-and-push ## Run Only End-to-End Tests containing PR-Blocking tag
 	PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -focus=PR-Blocking -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
