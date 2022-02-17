@@ -80,6 +80,13 @@ bin/manager: $(MANAGER_BIN_INPUTS)
 	go vet ./...
 	go build -o bin/manager main.go
 
+.PHONY: build-for-docker
+build-for-docker: bin/manager-linux-amd64 ## Build manager binary for docker image building.
+bin/manager-linux-amd64: $(MANAGER_BIN_INPUTS)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    	go build -a -ldflags "${ldflags} -extldflags '-static'" \
+    	-o bin/manager-linux-amd64 main.go
+
 .PHONY: run
 run: generate-deepcopy fmt vet ## Run a controller from your host.
 	go fmt ./...
@@ -89,7 +96,7 @@ run: generate-deepcopy fmt vet ## Run a controller from your host.
 # Using a flag file here as docker build doesn't produce a target file.
 DOCKER_BUILD_INPUTS=$(MANAGER_BIN_INPUTS) Dockerfile
 .PHONY: docker-build
-docker-build: .dockerflag.mk ## Build docker image containing the controller manager.
+docker-build: .dockerflag.mk build-for-docker ## Build docker image containing the controller manager.
 .dockerflag.mk: $(DOCKER_BUILD_INPUTS)
 	docker build -t ${IMG} .
 	@touch .dockerflag.mk
