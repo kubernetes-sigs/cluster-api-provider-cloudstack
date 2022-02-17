@@ -16,7 +16,7 @@ limitations under the License.
 
 package cloud
 
-type TagIFace interface {
+type TagIface interface {
 	AddNetworkTags(string, map[string]string) error
 	GetNetworkTags(string) (map[string]string, error)
 	DeleteNetworkTags(string, map[string]string) error

@@ -37,7 +37,7 @@ type Client interface {
 	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
 	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
 	AffinityGroupIface
-	TagIFace
+	TagIface
 }
 
 type client struct {
