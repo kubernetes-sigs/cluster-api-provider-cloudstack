@@ -17,6 +17,7 @@ package cloud_test
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
@@ -58,7 +59,11 @@ var _ = Describe("Cluster", func() {
 		cluster := &infrav1.CloudStackCluster{
 			Spec: infrav1.CloudStackClusterSpec{
 				Zone:    zoneName,
-				Network: netName}}
+				Network: netName},
+			ObjectMeta: metav1.ObjectMeta{
+				UID: "0",
+			},
+		}
 
 		It("handles zone not found.", func() {
 			expectedErr := fmt.Errorf("Not found")
