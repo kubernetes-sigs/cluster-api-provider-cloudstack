@@ -81,6 +81,16 @@ var _ = Describe("Network", func() {
 		mockCtrl.Finish()
 	})
 
+	// Sets expectations network tag creation.  To be used by tests that get/create networks.
+	expectNetworkTags := func(networkId string) {
+		listTagsParams := &cloudstack.ListTagsParams{}
+		createTagsParams := &cloudstack.CreateTagsParams{}
+		rs.EXPECT().NewListTagsParams().Return(listTagsParams)
+		rs.EXPECT().ListTags(listTagsParams).Return(&cloudstack.ListTagsResponse{}, nil)
+		rs.EXPECT().NewCreateTagsParams([]string{networkId}, "network", gomock.Any()).Return(createTagsParams)
+		rs.EXPECT().CreateTags(createTagsParams).Return(&cloudstack.CreateTagsResponse{}, nil)
+	}
+
 	Context("for an existing network", func() {
 		It("resolves network details in cluster status", func() {
 			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetId, 1, nil)
@@ -93,10 +103,7 @@ var _ = Describe("Network", func() {
 		It("does not call to create a new network via GetOrCreateNetwork", func() {
 			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetId, 1, nil)
 			ns.EXPECT().GetNetworkByID(fakeNetId).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-			rs.EXPECT().NewListTagsParams().Return(&cloudstack.ListTagsParams{})
-			rs.EXPECT().ListTags(gomock.Any()).Return(&cloudstack.ListTagsResponse{}, nil)
-			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudstack.CreateTagsParams{})
-			rs.EXPECT().CreateTags(gomock.Any()).Return(&cloudstack.CreateTagsResponse{}, nil)
+			expectNetworkTags(fakeNetId)
 
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
@@ -104,10 +111,7 @@ var _ = Describe("Network", func() {
 		It("resolves network details with network ID instead of network name", func() {
 			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("No match found for blah."))
 			ns.EXPECT().GetNetworkByID(fakeNetId).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-			rs.EXPECT().NewListTagsParams().Return(&cloudstack.ListTagsParams{})
-			rs.EXPECT().ListTags(gomock.Any()).Return(&cloudstack.ListTagsResponse{}, nil)
-			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudstack.CreateTagsParams{})
-			rs.EXPECT().CreateTags(gomock.Any()).Return(&cloudstack.CreateTagsResponse{}, nil)
+			expectNetworkTags(fakeNetId)
 
 			csCluster.Spec.Network = fakeNetId
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
@@ -122,10 +126,8 @@ var _ = Describe("Network", func() {
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&cloudstack.CreateNetworkParams{})
 			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: netId}, nil)
-			rs.EXPECT().NewListTagsParams().Return(&cloudstack.ListTagsParams{})
-			rs.EXPECT().ListTags(gomock.Any()).Return(&cloudstack.ListTagsResponse{}, nil)
-			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).Return(&cloudstack.CreateTagsParams{})
-			rs.EXPECT().CreateTags(gomock.Any()).Return(&cloudstack.CreateTagsResponse{}, nil)
+			expectNetworkTags(netId)
+
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
 	})

@@ -95,5 +95,8 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 }
 
 func (c *client) DisposeClusterResources(csCluster *infrav1.CloudStackCluster) (retError error) {
-	return c.UntagAndDestroyNetwork(csCluster)
+	if err := c.RemoveClusterTagFromNetwork(csCluster); err != nil {
+		return err
+	}
+	return c.DeleteNetworkIfNotInUse(csCluster)
 }
