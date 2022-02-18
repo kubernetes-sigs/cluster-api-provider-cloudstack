@@ -56,6 +56,9 @@ func (c *client) resolveZones(csCluster *infrav1.CloudStackCluster) (retErr erro
 }
 
 func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retErr error) {
+	if csCluster.Status.Zones == nil {
+		csCluster.Status.Zones = make(map[string]infrav1.Zone)
+	}
 	if retErr = c.resolveZones(csCluster); retErr != nil {
 		return errors.Wrapf(retErr, "Error resolving Zone details for Cluster %s.", csCluster.Name)
 	}
