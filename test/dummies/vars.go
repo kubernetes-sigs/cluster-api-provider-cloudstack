@@ -1,4 +1,4 @@
-package test_dummies
+package dummies
 
 import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"

@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	dummies "github.com/aws/cluster-api-provider-cloudstack/pkg/cloud/test_dummies"
+	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
