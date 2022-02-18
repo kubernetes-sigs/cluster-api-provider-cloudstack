@@ -43,20 +43,15 @@ kind-cluster:
 	rm -f kind-install-for-capd.sh
 	wget https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/v1.0.0/hack/kind-install-for-capd.sh
 	chmod +x kind-install-for-capd.sh
-	./kind-install-for-capd.sh
+	# ./kind-install-for-capd.sh
 
 ## --------------------------------------
 ## Manifests
 ## --------------------------------------
 
-MANIFEST_GEN_INPUTS=$(shell find $(REPO_ROOT)/api -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
 .PHONY: manifests
-manifests: $(REPO_ROOT)/config/.flag.mk
-$(REPO_ROOT)/config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
-	cd $(REPO_ROOT)
-	sed -e 's@image: .*@image: '"$(IMG)"'@' $(REPO_ROOT)/config/default/manager_image_patch.yaml > $(REPO_ROOT)/config/default/manager_image_patch_edited.yaml
-	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(REPO_ROOT)/config/crd/bases
-	@touch $(REPO_ROOT)/config/.flag.mk
+manifests: 
+	make -C $(REPO_ROOT) manifests
 
 ## --------------------------------------
 ## Templates
