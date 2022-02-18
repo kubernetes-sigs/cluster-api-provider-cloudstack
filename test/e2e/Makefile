@@ -51,7 +51,7 @@ kind-cluster:
 
 .PHONY: manifests
 manifests: 
-	make -C $(REPO_ROOT) manifests
+	IMG=$(IMG) make -C $(REPO_ROOT) manifests
 
 ## --------------------------------------
 ## Templates
