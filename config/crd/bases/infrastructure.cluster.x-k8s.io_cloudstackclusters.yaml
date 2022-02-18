@@ -75,7 +75,7 @@ spec:
               zones:
                 items:
                   properties:
-                    iD:
+                    id:
                       description: The CS zone ID the cluster is built in.
                       type: string
                     name:
@@ -84,21 +84,19 @@ spec:
                     network:
                       description: The network within the Zone to use.
                       properties:
-                        name:
-                          description: Name of the infrastructure identity to be used.
-                          type: string
-                        networkID:
+                        id:
                           description: Cloudstack Network ID the cluster is built
                             in.
                           type: string
-                        networkType:
+                        name:
+                          description: Name of the infrastructure identity to be used.
+                          type: string
+                        type:
                           description: Cloudstack Network Type the cluster is built
                             in.
                           type: string
                       type: object
                   required:
-                  - iD
-                  - name
                   - network
                   type: object
                 type: array
@@ -118,9 +116,41 @@ spec:
               publicIPID:
                 description: The CS public IP ID to use for the k8s endpoint.
                 type: string
+              publicIPNetworkId:
+                description: The Id of the network the PublicIP is in.
+                type: string
               ready:
                 description: Reflects the readiness of the CS cluster.
                 type: boolean
+              zones:
+                additionalProperties:
+                  properties:
+                    id:
+                      description: The CS zone ID the cluster is built in.
+                      type: string
+                    name:
+                      description: The Zone name.
+                      type: string
+                    network:
+                      description: The network within the Zone to use.
+                      properties:
+                        id:
+                          description: Cloudstack Network ID the cluster is built
+                            in.
+                          type: string
+                        name:
+                          description: Name of the infrastructure identity to be used.
+                          type: string
+                        type:
+                          description: Cloudstack Network Type the cluster is built
+                            in.
+                          type: string
+                      type: object
+                  required:
+                  - network
+                  type: object
+                description: The status of the cluster's ACS Zones.
+                type: object
             required:
             - ready
             type: object
