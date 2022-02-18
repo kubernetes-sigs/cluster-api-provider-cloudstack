@@ -43,7 +43,7 @@ kind-cluster:
 	rm -f kind-install-for-capd.sh
 	wget https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/v1.0.0/hack/kind-install-for-capd.sh
 	chmod +x kind-install-for-capd.sh
-	# ./kind-install-for-capd.sh
+	./kind-install-for-capd.sh
 
 ## --------------------------------------
 ## Manifests
