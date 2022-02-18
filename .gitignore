@@ -6,6 +6,7 @@
 *.dylib
 bin
 testbin/*
+api/*/zz*generated.deepcopy.go
 
 pkg/mocks/*
 !pkg/mocks/.keep
