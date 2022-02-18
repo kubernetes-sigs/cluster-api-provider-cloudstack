@@ -19,50 +19,25 @@ package cloud_test
 import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("Tag Unit Tests", func() {
-	var (
-		cluster *infrav1.CloudStackCluster
-	)
-
 	BeforeEach(func() {
-		cluster = &infrav1.CloudStackCluster{
-			Spec: infrav1.CloudStackClusterSpec{
-				Zone: "Zone1", Network: "SharedGuestNet1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				UID: "0",
-			},
-		}
+		dummies.SetDummyVars()
 	})
 
 	Context("Tag Integ Tests", func() {
 		client, connectionErr := cloud.NewClient("../../cloud-config")
-
-		const (
-			tagKey           = "test_tag"
-			tagValue         = "arbitrary_value"
-			clusterID        = "123456"
-			createdByCAPCTag = "created_by_CAPC"
-			clusterTag       = "CAPC_cluster_" + clusterID
-		)
-
-		var (
-			networkID string
-			testTags  map[string]string
-			csCluster *infrav1.CloudStackCluster
-		)
 
 		BeforeEach(func() {
 			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
 				Skip("Could not connect to ACS instance.")
 			}
 
-			if err := client.GetOrCreateNetwork(cluster); err != nil {
+			if err := client.GetOrCreateNetworks(dummies.CSCluster); err != nil {
 				Skip("Could not find network.")
 			}
 
@@ -85,16 +60,25 @@ var _ = Describe("Tag Unit Tests", func() {
 		It("adds and gets a resource tag", func() {
 			Ω(client.AddTags(cloud.ResourceTypeNetwork, networkID, testTags)).Should(Succeed())
 			tags, err := client.GetTags(cloud.ResourceTypeNetwork, networkID)
-			Ω(err).Should(BeNil())
-			Ω(tags[tagKey]).Should(Equal(tagValue))
 		})
 
-		It("deletes a resource tag", func() {
-			_ = client.AddTags(cloud.ResourceTypeNetwork, networkID, testTags)
-			Ω(client.DeleteTags(cloud.ResourceTypeNetwork, networkID, testTags)).Should(Succeed())
-			remainingTags, err := client.GetTags(cloud.ResourceTypeNetwork, networkID)
+		It("Tags a network with an arbitrary tag.", func() {
+			// Delete the tag if it already exists from a prior test run, otherwise the test will fail.
+			_ = client.DeleteNetworkTags(dummies.Net1.Id, dummies.Tags)
+			Ω(client.AddNetworkTags(dummies.Net1.Id, dummies.Tags)).Should(Succeed())
+		})
+
+		It("Fetches said tag.", func() {
+			tags, err := client.GetNetworkTags(dummies.Net1.Id)
 			Ω(err).Should(BeNil())
-			Ω(remainingTags[tagKey]).Should(Equal(""))
+			Ω(tags[dummies.Tag1Key]).Should(Equal(dummies.Tag1Val))
+		})
+
+		It("Deletes said tag.", func() {
+			Ω(client.DeleteNetworkTags(dummies.Net1.Id, dummies.Tags)).Should(Succeed())
+			remainingTags, err := client.GetNetworkTags(dummies.Net1.Id)
+			Ω(err).Should(BeNil())
+			Ω(remainingTags[dummies.Tag1Key]).Should(Equal(""))
 		})
 
 		It("returns an error when you delete a tag that doesn't exist", func() {

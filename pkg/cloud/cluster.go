@@ -72,28 +72,28 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		}
 	}
 
-	if len(csCluster.Spec.Zones) > 1 { // Multizone network flow. No Isolated network use.
-	} else { // Single zone. May need to handle isolated network case.
-	}
-
 	// Get or create network and needed network constructs.
 	if retErr = c.GetOrCreateNetworks(csCluster); retErr != nil {
 		return retErr
 	}
 
-	// if csCluster.Status.NetworkType == NetworkTypeIsolated {
-	// 	if retErr = c.OpenFirewallRules(csCluster); retErr != nil {
-	// 		return retErr
-	// 	}
-	// 	if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
-	// 		if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
-	// 			return retErr
-	// 		}
-	// 	}
-	// 	if retErr = c.GetOrCreateLoadBalancerRule(csCluster); retErr != nil {
-	// 		return retErr
-	// 	}
-	// }
+	if len(csCluster.Spec.Zones) > 1 { // Ignore isolated network use case if spec indicates multiple zones.
+		for _, zone := range csCluster.Status.Zones { // Get the only zone from the status zone map.
+			if zone.Network.Type == NetworkTypeIsolated {
+				if retErr = c.OpenFirewallRules(csCluster); retErr != nil {
+					return retErr
+				}
+				if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
+					if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
+						return retErr
+					}
+				}
+				if retErr = c.GetOrCreateLoadBalancerRule(csCluster); retErr != nil {
+					return retErr
+				}
+			}
+		}
+	}
 
 	// Set cluster to ready to indicate readiness to CAPI.
 	csCluster.Status.Ready = true
@@ -101,18 +101,11 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 }
 
 func (c *client) DisposeClusterResources(csCluster *infrav1.CloudStackCluster) (retError error) {
-	if csCluster.Status.PublicIPID != "" {
-		if err := c.DeleteClusterTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID, csCluster); err != nil {
+	for _, zone := range csCluster.Spec.Zones {
+		if err := c.RemoveClusterTagFromNetwork(csCluster, zone.Network); err != nil {
 			return err
 		}
-		if err := c.DisassociatePublicIPAddressIfNotInUse(csCluster); err != nil {
-			return err
-		}
+		c.DeleteNetworkIfNotInUse(csCluster, zone.Network)
 	}
-
-	if err := c.DeleteClusterTag(ResourceTypeNetwork, csCluster.Status.NetworkID, csCluster); err != nil {
-		return err
-	}
-
-	return c.DeleteNetworkIfNotInUse(csCluster)
+	return nil
 }

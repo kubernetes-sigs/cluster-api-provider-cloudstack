@@ -19,12 +19,16 @@ var ( // Declare exported dummy vars.
 	Zone1         infrav1.Zone
 	Net1          infrav1.Network
 	DomainId      string
+	Tags          map[string]string
+	Tag1Key       string
+	Tag1Val       string
 )
 
 // SetDummyVars sets/resets all dummy vars.
 func SetDummyVars() {
 	SetDummyCAPCClusterVars()
 	SetDummyCAPIClusterVars()
+	SetDummyTagVars()
 }
 
 // SetDummyClusterSpecVars resets the values in each of the exported CloudStackCluster related dummy variables.
@@ -70,4 +74,11 @@ func SetDummyCAPIClusterVars() {
 			},
 		},
 	}
+}
+
+// SetDummyTagVars resets the values in each of the exported Tag related dummy variables.
+func SetDummyTagVars() {
+	Tag1Key = "test_tag"
+	Tag1Val = "arbitrary_value"
+	Tags = map[string]string{Tag1Key: Tag1Val}
 }
