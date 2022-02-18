@@ -129,7 +129,7 @@ intervals:
 
   default/wait-errors: ["5m", "10s"]
   default/wait-controllers: ["3m", "10s"]
-  default/wait-cluster: ["20m", "10s"]
+  default/wait-cluster: ["5m", "10s"]
   default/wait-control-plane: ["20m", "10s"]
   default/wait-worker-nodes: ["20m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]
