@@ -96,7 +96,7 @@ run: generate-deepcopy fmt vet ## Run a controller from your host.
 # Using a flag file here as docker build doesn't produce a target file.
 DOCKER_BUILD_INPUTS=$(MANAGER_BIN_INPUTS) Dockerfile
 .PHONY: docker-build
-docker-build: .dockerflag.mk build-for-docker ## Build docker image containing the controller manager.
+docker-build: build-for-docker .dockerflag.mk ## Build docker image containing the controller manager.
 .dockerflag.mk: $(DOCKER_BUILD_INPUTS)
 	docker build -t ${IMG} .
 	@touch .dockerflag.mk
