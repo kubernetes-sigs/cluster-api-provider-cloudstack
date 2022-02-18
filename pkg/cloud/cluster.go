@@ -27,26 +27,28 @@ type ClusterIface interface {
 	DisposeClusterResources(cluster *infrav1.CloudStackCluster) error
 }
 
-func (c *client) resolveZone(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	if zoneID, count, err := c.cs.Zone.GetZoneID(csCluster.Spec.Zone); err != nil {
-		retErr = multierror.Append(retErr, errors.Wrapf(
-			err, "Could not get Zone ID from %s.", csCluster.Spec.Zone))
-	} else if count != 1 {
-		retErr = multierror.Append(retErr, errors.Errorf(
-			"Expected 1 Zone with name %s, but got %d.", csCluster.Spec.Zone, count))
-	} else {
-		csCluster.Status.ZoneID = zoneID
-	}
-
-	if retErr != nil {
-		if _, count, err := c.cs.Zone.GetZoneByID(csCluster.Spec.Zone); err != nil {
-			return multierror.Append(retErr, errors.Wrapf(
-				err, "Could not get Zone by ID %s.", csCluster.Spec.Zone))
+func (c *client) resolveZones(csCluster *infrav1.CloudStackCluster) (retErr error) {
+	for _, specZone := range csCluster.Spec.Zones {
+		if zoneID, count, err := c.cs.Zone.GetZoneID(specZone.Name); err != nil {
+			retErr = multierror.Append(retErr, errors.Wrapf(err, "Could not get Zone ID from %s.", specZone))
 		} else if count != 1 {
-			return multierror.Append(retErr, errors.Errorf(
-				"Expected 1 Zone with UUID %s, but got %d.", csCluster.Spec.Zone, count))
+			retErr = multierror.Append(retErr, errors.Errorf(
+				"Expected 1 Zone with name %s, but got %d.", specZone.Name, count))
 		} else {
-			csCluster.Status.ZoneID = csCluster.Spec.Zone
+			csCluster.Status.Zones[specZone.Name] = infrav1.Zone{
+				Name: specZone.Name, Id: zoneID, Network: specZone.Network}
+		}
+
+		if retErr != nil {
+			if resp, count, err := c.cs.Zone.GetZoneByID(specZone.Id); err != nil {
+				return multierror.Append(retErr, errors.Wrapf(err, "Could not get Zone by ID %s.", specZone.Id))
+			} else if count != 1 {
+				return multierror.Append(retErr, errors.Errorf(
+					"Expected 1 Zone with UUID %s, but got %d.", specZone.Id, count))
+			} else {
+				csCluster.Status.Zones[resp.Name] = infrav1.Zone{
+					Name: resp.Name, Id: specZone.Id, Network: specZone.Network}
+			}
 		}
 	}
 
@@ -54,7 +56,7 @@ func (c *client) resolveZone(csCluster *infrav1.CloudStackCluster) (retErr error
 }
 
 func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	if retErr = c.resolveZone(csCluster); retErr != nil {
+	if retErr = c.resolveZones(csCluster); retErr != nil {
 		return errors.Wrapf(retErr, "Error resolving Zone details for Cluster %s.", csCluster.Name)
 	}
 
@@ -70,24 +72,28 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		}
 	}
 
+	if len(csCluster.Spec.Zones) > 1 { // Multizone network flow. No Isolated network use.
+	} else { // Single zone. May need to handle isolated network case.
+	}
+
 	// Get or create network and needed network constructs.
-	if retErr = c.GetOrCreateNetwork(csCluster); retErr != nil {
+	if retErr = c.GetOrCreateNetworks(csCluster); retErr != nil {
 		return retErr
 	}
 
-	if csCluster.Status.NetworkType == NetworkTypeIsolated {
-		if retErr = c.OpenFirewallRules(csCluster); retErr != nil {
-			return retErr
-		}
-		if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
-			if retErr = c.AssociatePublicIPAddress(csCluster); retErr != nil {
-				return retErr
-			}
-		}
-		if retErr = c.GetOrCreateLoadBalancerRule(csCluster); retErr != nil {
-			return retErr
-		}
-	}
+	// if csCluster.Status.NetworkType == NetworkTypeIsolated {
+	// 	if retErr = c.OpenFirewallRules(csCluster); retErr != nil {
+	// 		return retErr
+	// 	}
+	// 	if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
+	// 		if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
+	// 			return retErr
+	// 		}
+	// 	}
+	// 	if retErr = c.GetOrCreateLoadBalancerRule(csCluster); retErr != nil {
+	// 		return retErr
+	// 	}
+	// }
 
 	// Set cluster to ready to indicate readiness to CAPI.
 	csCluster.Status.Ready = true

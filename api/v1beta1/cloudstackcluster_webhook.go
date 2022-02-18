@@ -66,9 +66,12 @@ func (r *CloudStackCluster) ValidateCreate() error {
 		errorList = append(errorList, field.Required(field.NewPath("spec", "account"), "specifying account requires additionally specifying domain"))
 	}
 
+	// 	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Zones, "Zone", errorList)
+
 	// Zone and Network are required fields
-	errorList = webhookutil.EnsureFieldExists(r.Spec.Zone, "Zone", errorList)
-	errorList = webhookutil.EnsureFieldExists(r.Spec.Network, "Network", errorList)
+	if len(r.Spec.Zones) <= 0 {
+		errorList = append(errorList, field.Required(field.NewPath("spec", "Zones"), "asdfasdfasdf"))
+	}
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
@@ -94,8 +97,8 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// No spec fields may be changed
-	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Zone, oldSpec.Zone, "zone", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Network, oldSpec.Network, "network", errorList)
+	// errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Zone, oldSpec.Zone, "zone", errorList)
+	// errorList = webhook_utilities.EnsureStringFieldsAreEqual(spec.Network, oldSpec.Network, "network", errorList)
 	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpointhost", errorList)

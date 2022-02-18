@@ -105,8 +105,13 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (o
 	return offeringID, nil
 }
 
-func (c *client) ResolveTemplate(csCluster *infrav1.CloudStackCluster, csMachine *infrav1.CloudStackMachine) (templateID string, retErr error) {
-	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID)
+func (c *client) ResolveTemplate(
+	csCluster *infrav1.CloudStackCluster,
+	csMachine *infrav1.CloudStackMachine,
+	zone infrav1.Zone,
+) (templateID string, retErr error) {
+
+	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", zone.Id)
 	if err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(
 			err, "Could not get Template ID from %s.", csMachine.Spec.Template))
@@ -138,6 +143,16 @@ func (c *client) GetOrCreateVMInstance(
 	csCluster *infrav1.CloudStackCluster,
 	userData string) error {
 
+	// TODO get zone from capiMachine.
+	// For now, just get whatever is reliably the first zone.
+	// This will probably need to be kicked to the controller anyway.
+	zName := ""
+	for _, zone := range csCluster.Status.Zones {
+		zName = zone.Name
+		break
+	}
+	zone := csCluster.Status.Zones[zName]
+
 	// Check if VM instance already exists.
 	if err := c.ResolveVMInstanceDetails(csMachine); err == nil ||
 		!strings.Contains(strings.ToLower(err.Error()), "no match") {
@@ -148,14 +163,14 @@ func (c *client) GetOrCreateVMInstance(
 		return err
 	}
 
-	templateID, err := c.ResolveTemplate(csCluster, csMachine)
+	templateID, err := c.ResolveTemplate(csCluster, csMachine, zone)
 	if err != nil {
 		return err
 	}
 
 	// Create VM instance.
-	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csCluster.Status.ZoneID)
-	p.SetNetworkids([]string{csCluster.Status.NetworkID})
+	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, zone.Id)
+	p.SetNetworkids([]string{zone.Network.Id})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
@@ -188,7 +203,7 @@ func (c *client) GetOrCreateVMInstance(
 
 	// If this VM instance is a control plane, consider setting its IP.
 	_, isControlPlanceMachine := capiMachine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
-	if isControlPlanceMachine && csCluster.Status.NetworkType == NetworkTypeShared {
+	if isControlPlanceMachine && zone.Network.Type == NetworkTypeShared {
 		// If the specified control plane endpoint is an IP address, specify the IP address of this VM instance.
 		if net.ParseIP(csCluster.Spec.ControlPlaneEndpoint.Host) != nil {
 			p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)

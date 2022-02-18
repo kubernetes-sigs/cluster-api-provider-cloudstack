@@ -30,8 +30,7 @@ import (
 type Client interface {
 	ClusterIface
 	VMIface
-	ResolveNetwork(*infrav1.CloudStackCluster) error
-	GetOrCreateNetwork(*infrav1.CloudStackCluster) error
+	GetOrCreateNetworks(*infrav1.CloudStackCluster) error
 	OpenFirewallRules(*infrav1.CloudStackCluster) error
 	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
 	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error

@@ -41,11 +41,11 @@ type CloudStackIdentityReference struct {
 
 type Network struct {
 	// Cloudstack Network ID the cluster is built in.
-	Id string `json:"networkID,omitempty"`
+	Id string `json:"id,omitempty"`
 
 	// Cloudstack Network Type the cluster is built in.
 	// + optional
-	Type string `json:"networkType,omitempty"`
+	Type string `json:"type,omitempty"`
 
 	// Name of the infrastructure identity to be used.
 	// +optional
@@ -87,6 +87,11 @@ type CloudStackClusterSpec struct {
 
 // The status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
 type CloudStackClusterStatus struct {
+
+	// The status of the cluster's ACS Zones.
+	// +optional
+	Zones map[string]Zone `json:"zones,omitempty"`
+
 	// Reflects the readiness of the CS cluster.
 	Ready bool `json:"ready"`
 
@@ -95,6 +100,9 @@ type CloudStackClusterStatus struct {
 
 	// The CS public IP ID to use for the k8s endpoint.
 	PublicIPID string `json:"publicIPID,omitempty"`
+
+	// The Id of the network the PublicIP is in.
+	PublicIPNetworkId string `json:"publicIPNetworkId,omitempty"`
 
 	// The ID of the lb rule used to assign VMs to the lb.
 	LBRuleID string `json:"loadBalancerRuleID,omitempty"`

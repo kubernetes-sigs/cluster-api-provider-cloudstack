@@ -34,57 +34,91 @@ const (
 	NetworkProtocolTCP  = "tcp"
 )
 
-func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	networkID, count, err := c.cs.Network.GetNetworkID(csCluster.Spec.Network)
+// ResolveNetworks fetches networks' Id, Name, and Type.
+func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster, net *infrav1.Network) (retErr error) {
+	netName := net.Name
+	netId, count, err := c.cs.Network.GetNetworkID(netName)
 	if err != nil {
-		retErr = multierror.Append(retErr, errors.Wrapf(
-			err, "Could not get Network ID from %s.", csCluster.Spec.Network))
-		networkID = csCluster.Spec.Network
+		retErr = multierror.Append(retErr, errors.Wrapf(err, "Could not get Network ID from %s.", netName))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
-			"Expected 1 Network with name %s, but got %d.", csCluster.Spec.Network, count))
+			"Expected 1 Network with name %s, but got %d.", netName, count))
+	} else { // Got netId from the network's name.
+		netId = net.Id
 	}
 
-	if networkDetails, count, err := c.cs.Network.GetNetworkByID(networkID); err != nil {
+	// Now get network details.
+	netDetails, count, err := c.cs.Network.GetNetworkByID(netId)
+	if err != nil {
 		return multierror.Append(retErr, errors.Wrapf(
-			err, "Could not get Network by ID %s.", networkID))
+			err, "Could not get Network by ID %s.", netId))
 	} else if count != 1 {
 		return multierror.Append(retErr, errors.Errorf(
-			"Expected 1 Network with UUID %s, but got %d.", networkID, count))
-	} else {
-		csCluster.Status.NetworkID = networkID
-		csCluster.Status.NetworkType = networkDetails.Type
+			"Expected 1 Network with UUID %s, but got %d.", netId, count))
 	}
+	net.Name = netDetails.Name
+	net.Id = netDetails.Id
+	net.Type = netDetails.Type
 	return nil
 }
 
-func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	if retErr = c.ResolveNetwork(csCluster); retErr == nil { // Found network.
-		return c.AddClusterTag(ResourceTypeNetwork, csCluster.Status.NetworkID, csCluster, false)
-	} else if !strings.Contains(strings.ToLower(retErr.Error()), "no match found") { // Some other error.
-		return retErr
-	} // Network not found.
+func generateNetworkTagName(csCluster *infrav1.CloudStackCluster) string {
+	return clusterTagNamePrefix + string(csCluster.UID)
+}
 
-	// Create network since it wasn't found.
-	offeringID, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
+// getOfferingId fetches an offering id.
+func (c *client) getOfferingId() (string, error) {
+	offeringId, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
 	if retErr != nil {
-		return retErr
+		return "", retErr
 	} else if count != 1 {
-		return errors.New("found more than one network offering")
+		return "", errors.New("found more than one network offering.")
 	}
-	p := c.cs.Network.NewCreateNetworkParams(
-		csCluster.Spec.Network,
-		csCluster.Spec.Network,
-		offeringID,
-		csCluster.Status.ZoneID)
-	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
-	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
-	resp, err := c.cs.Network.CreateNetwork(p)
-	if err != nil {
-		return err
+	return offeringId, nil
+}
+
+// GetOrCreateNetworks fetches the details of or creates networks per specs.
+func (c *client) GetOrCreateNetworks(csCluster *infrav1.CloudStackCluster) (retErr error) {
+	// Copy network spec to status in preparation for network resolution or creation.
+	for _, specZone := range csCluster.Spec.Zones {
+		zone, ok := csCluster.Status.Zones[specZone.Name]
+		if !ok {
+			csCluster.Status.Zones[specZone.Name] = specZone
+			zone = specZone
+		}
+		zone.Network = specZone.Network
 	}
-	csCluster.Status.NetworkID = resp.Id
-	csCluster.Status.NetworkType = resp.Type
+
+	// At this point network status should have been populated (copied) from the spec.
+	for _, zoneStatus := range csCluster.Status.Zones {
+		netStatus := zoneStatus.Network
+		if retErr = c.ResolveNetwork(csCluster, &zoneStatus.Network); retErr == nil { // Found network
+			continue
+		} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
+			return retErr
+		} // Network not found, so create it.
+
+		// Fetch offering Id.
+		offeringId, err := c.getOfferingId()
+		if err != nil {
+			return err
+		}
+
+		// Do creation
+		p := c.cs.Network.NewCreateNetworkParams(netStatus.Name, netStatus.Name, offeringId, zoneStatus.Id)
+		setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+		setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
+		resp, err := c.cs.Network.CreateNetwork(p)
+		if err != nil {
+			return err
+		}
+
+		// Update Zone/Network status accordingly.
+		netStatus.Id = resp.Id
+		netStatus.Type = resp.Type
+		zoneStatus.Network = netStatus
+		csCluster.Status.Zones[zoneStatus.Name] = zoneStatus
+	}
 
 	return c.AddClusterTag(ResourceTypeNetwork, csCluster.Status.NetworkID, csCluster, true)
 }
@@ -145,9 +179,9 @@ func (c *client) ResolvePublicIPDetails(csCluster *infrav1.CloudStackCluster) (*
 				return v, nil
 			}
 		}
-		return nil, errors.New("all Public IP Address(es) found were already allocated")
+		return nil, errors.New("All Public IP Adresse(s) found were already allocated.")
 	}
-	return nil, errors.Errorf(`no public addresses found in network: "%s"`, csCluster.Spec.Network)
+	return nil, errors.New("No public addresses found in available networks.")
 }
 
 // AssociatePublicIPAddress Gets a PublicIP and associates it.
@@ -159,39 +193,27 @@ func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) 
 
 	csCluster.Spec.ControlPlaneEndpoint.Host = publicAddress.Ipaddress
 	csCluster.Status.PublicIPID = publicAddress.Id
-	alreadyAllocated := publicAddress.Allocated != ""
 
-	if alreadyAllocated && publicAddress.Associatednetworkid == csCluster.Status.NetworkID {
+	if publicAddress.Allocated != "" {
 		// Address already allocated to network. Allocated is a timestamp -- not a boolean.
 		return c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster, false)
 	} // Address not yet allocated. Allocate now.
 
 	// Public IP found, but not yet allocated to network.
 	p := c.cs.Address.NewAssociateIpAddressParams()
-	p.SetNetworkid(csCluster.Status.NetworkID)
 	p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
-	if _, err := c.cs.Address.AssociateIpAddress(p); err != nil {
+	resp, err := c.cs.Address.AssociateIpAddress(p)
+	if err != nil {
 		return err
 	}
-	return c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster, !alreadyAllocated)
-}
-
-func (c *client) DisassociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	// Remove the CAPC creation tag, so it won't be there the next time this address is associated.
-	retErr = c.DeleteCreatedByCAPCTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID)
-	if retErr != nil {
-		return retErr
-	}
-
-	p := c.cs.Address.NewDisassociateIpAddressParams(csCluster.Status.PublicIPID)
-	_, retErr = c.cs.Address.DisassociateIpAddress(p)
-	return retErr
+	csCluster.Status.PublicIPNetworkId = resp.Networkid
+	return nil
 }
 
 func (c *client) OpenFirewallRules(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, NetworkProtocolTCP)
+	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.PublicIPNetworkId, NetworkProtocolTCP)
 	_, retErr = c.cs.Firewall.CreateEgressFirewallRule(p)
 	if retErr != nil && strings.Contains(strings.ToLower(retErr.Error()), "there is already") { // Already a firewall rule here.
 		retErr = nil
@@ -227,7 +249,7 @@ func (c *client) GetOrCreateLoadBalancerRule(csCluster *infrav1.CloudStackCluste
 
 	p := c.cs.LoadBalancer.NewCreateLoadBalancerRuleParams(
 		"roundrobin", "Kubernetes_API_Server", K8sDefaultAPIPort, K8sDefaultAPIPort)
-	p.SetNetworkid(csCluster.Status.NetworkID)
+	p.SetNetworkid(csCluster.Status.PublicIPNetworkId)
 	if csCluster.Spec.ControlPlaneEndpoint.Port != 0 { // Override default public port if endpoint port specified.
 		p.SetPublicport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
 	}
@@ -243,8 +265,8 @@ func (c *client) GetOrCreateLoadBalancerRule(csCluster *infrav1.CloudStackCluste
 	return nil
 }
 
-func (c *client) DestroyNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	_, retErr = c.cs.Network.DeleteNetwork(c.cs.Network.NewDeleteNetworkParams(csCluster.Status.NetworkID))
+func (c *client) DestroyNetwork(net infrav1.Network) (retErr error) {
+	_, retErr = c.cs.Network.DeleteNetwork(c.cs.Network.NewDeleteNetworkParams(net.Id))
 	return retErr
 }
 

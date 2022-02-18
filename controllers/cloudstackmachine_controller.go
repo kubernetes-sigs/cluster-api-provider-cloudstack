@@ -134,8 +134,14 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			log.Info("CloudStackCluster not found.")
 			return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 		}
-		return ctrl.Result{}, err
-	} else if csCluster.Status.ZoneID == "" {
+	}
+
+	// TODO: get zone from capi machine.
+	var zone infrav1.Zone
+	for _, theZone := range csCluster.Status.Zones { // Ugly way to get the only Zone.
+		zone = theZone
+	}
+	if zone.Id == "" {
 		log.Info("CloudStackCluster ZoneId not initialized. Likely not ready.")
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
@@ -196,11 +202,15 @@ func (r *CloudStackMachineReconciler) reconcile(
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
-	if util.IsControlPlaneMachine(capiMachine) && csCluster.Status.NetworkType != cloud.NetworkTypeShared {
-		log.Info("Assigning VM to load balancer rule.")
-		err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
-		if err != nil {
-			return ctrl.Result{}, err
+	if len(csCluster.Spec.Zones) == 1 {
+		for _, zone := range csCluster.Status.Zones { // Ugly way to get the only Zone.
+			if util.IsControlPlaneMachine(capiMachine) && zone.Network.Type != cloud.NetworkTypeShared {
+				log.Info("Assigning VM to load balancer rule.")
+				err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+			}
 		}
 	}
 

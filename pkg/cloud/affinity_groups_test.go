@@ -18,25 +18,21 @@ package cloud_test
 
 import (
 	"errors"
+
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	dummies "github.com/aws/cluster-api-provider-cloudstack/pkg/cloud/test_dummies"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var _ = Describe("AffinityGroup Unit Tests", func() {
 	var ( // Declare shared vars.
-		mockCtrl    *gomock.Controller
-		mockClient  *cloudstack.CloudStackClient
-		ags         *cloudstack.MockAffinityGroupServiceIface
-		fakeAG      *cloud.AffinityGroup
-		cluster     *infrav1.CloudStackCluster
-		machine     *infrav1.CloudStackMachine
-		capiMachine *capiv1.Machine
-		client      cloud.Client
+		mockCtrl   *gomock.Controller
+		mockClient *cloudstack.CloudStackClient
+		ags        *cloudstack.MockAffinityGroupServiceIface
+		client     cloud.Client
 	)
 
 	BeforeEach(func() {
@@ -45,16 +41,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		mockClient = cloudstack.NewMockClient(mockCtrl)
 		ags = mockClient.AffinityGroup.(*cloudstack.MockAffinityGroupServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
-		fakeAG = &cloud.AffinityGroup{
-			Name: "FakeAffinityGroup",
-			Type: cloud.AffinityGroupType}
-		cluster = &infrav1.CloudStackCluster{Spec: infrav1.CloudStackClusterSpec{
-			Zone: "Zone1", Network: "SharedGuestNet1"}}
-		cluster.ObjectMeta.SetUID("0")
-		machine = &infrav1.CloudStackMachine{Spec: infrav1.CloudStackMachineSpec{
-			Offering: "Medium Instance", Template: "Ubuntu20"}}
-		machine.ObjectMeta.SetName("rejoshed-affinity-group-test-vm")
-		capiMachine = &capiv1.Machine{}
+		dummies.SetDummyClusterSpecVars()
 	})
 
 	AfterEach(func() {
@@ -62,21 +49,29 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 	})
 
 	It("fetches an affinity group", func() {
-		ags.EXPECT().GetAffinityGroupByName(fakeAG.Name).Return(&cloudstack.AffinityGroup{}, 1, nil)
+		ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name).Return(&cloudstack.AffinityGroup{}, 1, nil)
 
-		Ω(client.GetOrCreateAffinityGroup(cluster, fakeAG)).Should(Succeed())
+		Ω(client.GetOrCreateAffinityGroup(dummies.Cluster, dummies.AffinityGroup)).Should(Succeed())
 	})
 	It("creates an affinity group", func() {
+<<<<<<< HEAD
 		fakeAG.ID = "FakeID"
 		cluster.Spec.Account = "FakeAccount"
 		cluster.Status.DomainID = "FakeDomainId"
 		ags.EXPECT().GetAffinityGroupByID(fakeAG.ID).Return(nil, -1, errors.New("fakeError"))
 		ags.EXPECT().NewCreateAffinityGroupParams(fakeAG.Name, fakeAG.Type).
+=======
+		dummies.AffinityGroup.Id = "FakeID"
+		dummies.Cluster.Spec.Account = "FakeAccount"
+		dummies.Cluster.Status.DomainID = "FakeDomainId"
+		ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.Id).Return(nil, -1, errors.New("FakeError"))
+		ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
+>>>>>>> 36c0963 (Major moves toward multizone, but still broken.)
 			Return(&cloudstack.CreateAffinityGroupParams{})
 		ags.EXPECT().CreateAffinityGroup(ParamMatch(And(AccountEquals("FakeAccount"), DomainIDEquals("FakeDomainId")))).
 			Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
-		Ω(client.GetOrCreateAffinityGroup(cluster, fakeAG)).Should(Succeed())
+		Ω(client.GetOrCreateAffinityGroup(dummies.Cluster, dummies.AffinityGroup)).Should(Succeed())
 	})
 
 	Context("AffinityGroup Integ Tests", func() {
@@ -96,20 +91,20 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		})
 
 		It("Creates an affinity group.", func() {
-			Ω(client.GetOrCreateAffinityGroup(cluster, arbitraryAG)).Should(Succeed())
+			Ω(client.GetOrCreateAffinityGroup(dummies.Cluster, arbitraryAG)).Should(Succeed())
 			arbitraryAG2 := &cloud.AffinityGroup{Name: arbitraryAG.Name}
-			Ω(client.GetOrCreateAffinityGroup(cluster, arbitraryAG2)).Should(Succeed())
+			Ω(client.GetOrCreateAffinityGroup(dummies.Cluster, arbitraryAG2)).Should(Succeed())
 			Ω(arbitraryAG2).Should(Equal(arbitraryAG))
 		})
 		It("Associates an affinity group.", func() {
-			if err := client.GetOrCreateCluster(cluster); err != nil {
+			if err := client.GetOrCreateCluster(dummies.Cluster); err != nil {
 				Skip("Could not flesh out Cluster." + err.Error())
 			}
-			if err := client.GetOrCreateVMInstance(machine, capiMachine, cluster, ""); err != nil {
+			if err := client.GetOrCreateVMInstance(dummies.Machine, dummies.CapiMachine, dummies.Cluster, ""); err != nil {
 				Skip("Could not create VM." + err.Error())
 			}
-			Ω(client.GetOrCreateAffinityGroup(cluster, arbitraryAG)).Should(Succeed())
-			Ω(client.AssociateAffinityGroup(machine, *arbitraryAG)).Should(Succeed())
+			Ω(client.GetOrCreateAffinityGroup(dummies.Cluster, arbitraryAG)).Should(Succeed())
+			Ω(client.AssociateAffinityGroup(dummies.Machine, *arbitraryAG)).Should(Succeed())
 		})
 		It("Deletes an affinity group.", func() {
 			Ω(client.DeleteAffinityGroup(arbitraryAG)).Should(Succeed())

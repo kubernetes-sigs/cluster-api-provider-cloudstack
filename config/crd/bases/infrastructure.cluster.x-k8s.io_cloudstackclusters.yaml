@@ -72,15 +72,39 @@ spec:
                 - kind
                 - name
                 type: object
-              network:
-                description: CloudStack guest network name.
-                type: string
-              zone:
-                description: CloudStack Zone name.
-                type: string
+              zones:
+                items:
+                  properties:
+                    iD:
+                      description: The CS zone ID the cluster is built in.
+                      type: string
+                    name:
+                      description: The Zone name.
+                      type: string
+                    network:
+                      description: The network within the Zone to use.
+                      properties:
+                        name:
+                          description: Name of the infrastructure identity to be used.
+                          type: string
+                        networkID:
+                          description: Cloudstack Network ID the cluster is built
+                            in.
+                          type: string
+                        networkType:
+                          description: Cloudstack Network Type the cluster is built
+                            in.
+                          type: string
+                      type: object
+                  required:
+                  - iD
+                  - name
+                  - network
+                  type: object
+                type: array
             required:
             - controlPlaneEndpoint
-            - zone
+            - zones
             type: object
           status:
             description: The actual cluster state reported by CloudStack.
@@ -91,24 +115,14 @@ spec:
               loadBalancerRuleID:
                 description: The ID of the lb rule used to assign VMs to the lb.
                 type: string
-              networkID:
-                description: Cloudstack Network ID the cluster is built in.
-                type: string
-              networkType:
-                description: Cloudstack Network Type the cluster is built in.
-                type: string
               publicIPID:
                 description: The CS public IP ID to use for the k8s endpoint.
                 type: string
               ready:
                 description: Reflects the readiness of the CS cluster.
                 type: boolean
-              zoneID:
-                description: The CS zone ID the cluster is built in.
-                type: string
             required:
             - ready
-            - zoneID
             type: object
         type: object
     served: true
