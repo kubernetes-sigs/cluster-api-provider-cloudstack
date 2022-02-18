@@ -20,50 +20,18 @@ import (
 	"context"
 	"time"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	dummies "github.com/aws/cluster-api-provider-cloudstack/pkg/cloud/test_dummies"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getCloudStackCluster() *infrav1.CloudStackCluster {
-	return &infrav1.CloudStackCluster{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-			Kind:       "CloudStackCluster",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "cs-cluster-test1-",
-			Namespace:    "default",
-			UID:          "0",
-		},
-		Spec: infrav1.CloudStackClusterSpec{
-			Zone:    "zone",
-			Network: "network",
-		},
-	}
-}
-
 func getCapiCluster() *clusterv1.Cluster {
-	return &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "capi-cluster-test-",
-			Namespace:    "default",
-		},
-		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       "CloudStackCluster",
-				Name:       "somename",
-			},
-		},
-	}
-
+	return dummies.CAPICluster
 }
 
 const (
@@ -74,6 +42,7 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 	ctx := context.Background()
 
 	BeforeEach(func() {
+		dummies.SetDummyVars()
 	})
 
 	It("Should create a cluster", func() {
@@ -81,40 +50,38 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 		CS.EXPECT().GetOrCreateCluster(gomock.Any()).MinTimes(1)
 
 		// Create the CS Cluster object for the reconciler to fetch.
-		csCluster := getCloudStackCluster()
-		Ω(k8sClient.Create(ctx, csCluster)).Should(Succeed())
+		Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
 		// TODO: add deletion defer here.
 
 		By("Fetching the CAPI cluster object that owns this CS cluster object")
 		// Create the CAPI cluster (owner) object.
-		capiCluster := getCapiCluster()
-		capiCluster.Spec.InfrastructureRef.Name = csCluster.Name
-		Ω(k8sClient.Create(ctx, capiCluster)).Should(Succeed())
+		dummies.CAPICluster.Spec.InfrastructureRef.Name = dummies.CSCluster.Name
+		Ω(k8sClient.Create(ctx, dummies.CAPICluster)).Should(Succeed())
 		// TODO: add deletion defer here.
 
-		key := client.ObjectKey{Namespace: csCluster.Namespace, Name: csCluster.Name}
+		key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Name}
 		Eventually(func() error {
-			return k8sClient.Get(ctx, key, csCluster)
+			return k8sClient.Get(ctx, key, dummies.CSCluster)
 		}, timeout).Should(BeNil())
 
 		By("Setting the OwnerRef on the CloudStack cluster")
 		Eventually(func() error {
-			ph, err := patch.NewHelper(csCluster, k8sClient)
+			ph, err := patch.NewHelper(dummies.CSCluster, k8sClient)
 			Ω(err).ShouldNot(HaveOccurred())
-			csCluster.OwnerReferences = append(csCluster.OwnerReferences, metav1.OwnerReference{
+			dummies.CSCluster.OwnerReferences = append(dummies.CSCluster.OwnerReferences, metav1.OwnerReference{
 				Kind:       "Cluster",
 				APIVersion: clusterv1.GroupVersion.String(),
-				Name:       capiCluster.Name,
+				Name:       dummies.CAPICluster.Name,
 				UID:        "uniqueness",
 			})
-			return ph.Patch(ctx, csCluster, patch.WithStatusObservedGeneration{})
+			return ph.Patch(ctx, dummies.CSCluster, patch.WithStatusObservedGeneration{})
 		}, timeout).Should(Succeed())
 
 		Eventually(func() bool {
-			if err := k8sClient.Get(ctx, key, csCluster); err != nil {
+			if err := k8sClient.Get(ctx, key, dummies.CSCluster); err != nil {
 				return false
 			}
-			return len(csCluster.Finalizers) > 0
+			return len(dummies.CSCluster.Finalizers) > 0
 		}, timeout).Should(BeTrue())
 
 	})

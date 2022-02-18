@@ -17,11 +17,10 @@ package cloud_test
 
 import (
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	dummies "github.com/aws/cluster-api-provider-cloudstack/pkg/cloud/test_dummies"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -45,60 +44,45 @@ var _ = Describe("Cluster", func() {
 		ds = mockClient.Domain.(*cloudstack.MockDomainServiceIface)
 		ns = mockClient.Network.(*cloudstack.MockNetworkServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
+		dummies.SetDummyVars()
 	})
 
 	AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
-	Context("an existing abstract cluster", func() {
-		zoneName := "zoneName"
-		zoneID := "zoneID"
-		netName := "netName"
-
-		cluster := &infrav1.CloudStackCluster{
-			Spec: infrav1.CloudStackClusterSpec{
-				Zone:    zoneName,
-				Network: netName},
-			ObjectMeta: metav1.ObjectMeta{
-				UID: "0",
-			},
-		}
-
+	Context("an existing abstract dummies.CSCluster", func() {
 		It("handles zone not found.", func() {
 			expectedErr := fmt.Errorf("Not found")
-			zs.EXPECT().GetZoneID(zoneName).Return("", -1, expectedErr)
-			zs.EXPECT().GetZoneByID(zoneName).Return(nil, -1, expectedErr)
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return("", -1, expectedErr)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.Id).Return(nil, -1, expectedErr)
 
-			err := client.GetOrCreateCluster(cluster)
+			err := client.GetOrCreateCluster(dummies.CSCluster)
 			Expect(errors.Cause(err)).To(MatchError(expectedErr))
 		})
 
 		It("handles multiple zone IDs returned", func() {
-			zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 2, nil)
-			zs.EXPECT().GetZoneByID(zoneName).Return(nil, -1, fmt.Errorf("Not found"))
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.Id, 2, nil)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.Id).Return(nil, -1, fmt.Errorf("Not found"))
 
-			err := client.GetOrCreateCluster(cluster)
+			err := client.GetOrCreateCluster(dummies.CSCluster)
 			Expect(err.Error()).To(ContainSubstring("Expected 1 Zone with name zoneName, but got 2."))
 			Expect(err.Error()).To(ContainSubstring("Could not get Zone by ID zoneName.: Not found"))
 		})
 
 		It("translates Domain to DomainID when Domain is set", func() {
-			cluster.Spec.Domain = "FakeDomain"
-			cluster.Spec.Network = "FakeNetwork"
-			domainID := "FakeDomainID"
-			zs.EXPECT().GetZoneID(zoneName).Return(zoneID, 1, nil)
-			ds.EXPECT().GetDomainID(cluster.Spec.Domain).Return(domainID, 1, nil)
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.Id, 1, nil)
+			ds.EXPECT().GetDomainID(dummies.CSCluster.Spec.Domain).Return(dummies.DomainId, 1, nil)
 
 			// End the fetching with a fake network error here.
 			// Only trying to test domain functions.
 			// TODO: turn the pkg/cloud/client.go client into a composition of interfaces such that the
 			// individual services can be mocked.
-			ns.EXPECT().GetNetworkID(cluster.Spec.Network).Return("", -1, fmt.Errorf("FakeError"))
-			ns.EXPECT().GetNetworkByID(cluster.Spec.Network).Return(&cloudstack.Network{}, -1, fmt.Errorf("FakeError"))
+			ns.EXPECT().GetNetworkID(dummies.Net1.Name).Return("", -1, fmt.Errorf("FakeError"))
+			ns.EXPECT().GetNetworkByID(dummies.Net1.Id).Return(&cloudstack.Network{}, -1, fmt.Errorf("FakeError"))
 
-			Ω(client.GetOrCreateCluster(cluster)).ShouldNot(Succeed())
-			Ω(cluster.Status.DomainID).Should(Equal(domainID))
+			Ω(client.GetOrCreateCluster(dummies.CSCluster)).ShouldNot(Succeed())
+			Ω(dummies.CSCluster.Status.DomainID).Should(Equal(dummies.DomainId))
 		})
 	})
 })
