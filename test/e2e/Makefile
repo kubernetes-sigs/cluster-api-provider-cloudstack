@@ -39,16 +39,11 @@ $(CONTROLLER_GEN): ## Install controller-gen to bin.
 ## --------------------------------------
 
 .PHONY: kind-cluster
-kind-cluster: $(REPO_ROOT)/cluster-api $(REPO_ROOT)/cluster-api/hack/kind-install-for-capd.sh # Create a kind cluster with a local Docker repository.
-	-$(REPO_ROOT)/cluster-api/hack/kind-install-for-capd.sh
-
-$(REPO_ROOT)/cluster-api: # Clone cluster-api repository for tilt use.
-	git clone --branch v1.0.0 https://github.com/kubernetes-sigs/cluster-api.git $(REPO_ROOT)/cluster-api
-
-# Need script from CAPI v1.0+
-# Can delete this target after upgrading to newer CAPI.
-$(REPO_ROOT)/cluster-api/hack/kind-install-for-capd.sh: $(REPO_ROOT)/cluster-api
-	cd $(REPO_ROOT)/cluster-api && git checkout v1.0.0 -- hack/kind-install-for-capd.sh
+kind-cluster: 
+	rm -f kind-install-for-capd.sh
+	wget https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/v1.0.0/hack/kind-install-for-capd.sh
+	chmod +x kind-install-for-capd.sh
+	./kind-install-for-capd.sh
 
 ## --------------------------------------
 ## Manifests
