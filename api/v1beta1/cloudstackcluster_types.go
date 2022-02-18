@@ -41,6 +41,7 @@ type CloudStackIdentityReference struct {
 
 type Network struct {
 	// Cloudstack Network ID the cluster is built in.
+	// +optional
 	Id string `json:"id,omitempty"`
 
 	// Cloudstack Network Type the cluster is built in.
@@ -55,11 +56,11 @@ type Network struct {
 type Zone struct {
 	// The Zone name.
 	// + optional
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 
 	// The CS zone ID the cluster is built in.
 	// + optional
-	Id string `json:"iD"`
+	Id string `json:"id,omitempty"`
 
 	// The network within the Zone to use.
 	Network Network `json:"network"`
