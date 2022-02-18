@@ -103,7 +103,7 @@ var _ = Describe("Network", func() {
 		It("does not call to create a new network via GetOrCreateNetwork", func() {
 			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetID, 1, nil)
 			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-			expectNetworkTags(fakeNetId)
+			expectNetworkTags(fakeNetID)
 
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
@@ -111,7 +111,7 @@ var _ = Describe("Network", func() {
 		It("resolves network details with network ID instead of network name", func() {
 			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
 			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-			expectNetworkTags(fakeNetId)
+			expectNetworkTags(fakeNetID)
 
 			csCluster.Spec.Network = fakeNetID
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
@@ -126,7 +126,7 @@ var _ = Describe("Network", func() {
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&cloudstack.CreateNetworkParams{})
 			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: netID}, nil)
-			expectNetworkTags(netId)
+			expectNetworkTags(netID)
 
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})

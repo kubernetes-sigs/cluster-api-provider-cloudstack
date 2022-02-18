@@ -49,7 +49,7 @@ var _ = Describe("Tag Unit Tests", func() {
 		)
 
 		var (
-			networkId string
+			networkID string
 			testTags  map[string]string
 		)
 
@@ -62,25 +62,25 @@ var _ = Describe("Tag Unit Tests", func() {
 				Skip("Could not find network.")
 			}
 
-			networkId = cluster.Status.NetworkID
+			networkID = cluster.Status.NetworkID
 			testTags = map[string]string{tagKey: tagValue}
 		})
 
 		It("Tags a network with an arbitrary tag.", func() {
 			// Delete the tag if it already exists from a prior test run, otherwise the test will fail.
-			_ = client.DeleteNetworkTags(networkId, testTags)
-			Ω(client.AddNetworkTags(networkId, testTags)).Should(Succeed())
+			_ = client.DeleteNetworkTags(networkID, testTags)
+			Ω(client.AddNetworkTags(networkID, testTags)).Should(Succeed())
 		})
 
 		It("Fetches said tag.", func() {
-			tags, err := client.GetNetworkTags(networkId)
+			tags, err := client.GetNetworkTags(networkID)
 			Ω(err).Should(BeNil())
 			Ω(tags[tagKey]).Should(Equal(tagValue))
 		})
 
 		It("Deletes said tag.", func() {
-			Ω(client.DeleteNetworkTags(networkId, testTags)).Should(Succeed())
-			remainingTags, err := client.GetNetworkTags(networkId)
+			Ω(client.DeleteNetworkTags(networkID, testTags)).Should(Succeed())
+			remainingTags, err := client.GetNetworkTags(networkID)
 			Ω(err).Should(BeNil())
 			Ω(remainingTags[tagKey]).Should(Equal(""))
 		})

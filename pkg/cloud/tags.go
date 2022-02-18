@@ -29,31 +29,31 @@ const (
 )
 
 // TagNetwork adds tags to a network by network id.
-func (c *client) AddNetworkTags(networkId string, tags map[string]string) error {
-	p := c.cs.Resourcetags.NewCreateTagsParams([]string{networkId}, resourceTypeNetwork, tags)
+func (c *client) AddNetworkTags(networkID string, tags map[string]string) error {
+	p := c.cs.Resourcetags.NewCreateTagsParams([]string{networkID}, resourceTypeNetwork, tags)
 	_, err := c.cs.Resourcetags.CreateTags(p)
 	return err
 }
 
 // GetNetworkTags gets tags by network id.
-func (c *client) GetNetworkTags(networkId string) (map[string]string, error) {
+func (c *client) GetNetworkTags(networkID string) (map[string]string, error) {
 	p := c.cs.Resourcetags.NewListTagsParams()
-	p.SetResourceid(networkId)
+	p.SetResourceid(networkID)
 	p.SetResourcetype(resourceTypeNetwork)
-	if listTagResponse, err := c.cs.Resourcetags.ListTags(p); err != nil {
+	listTagResponse, err := c.cs.Resourcetags.ListTags(p)
+	if err != nil {
 		return nil, err
-	} else {
-		tags := make(map[string]string, listTagResponse.Count)
-		for _, t := range listTagResponse.Tags {
-			tags[t.Key] = t.Value
-		}
-		return tags, nil
 	}
+	tags := make(map[string]string, listTagResponse.Count)
+	for _, t := range listTagResponse.Tags {
+		tags[t.Key] = t.Value
+	}
+	return tags, nil
 }
 
 // DeleteNetworkTags deletes matching tags from a network
-func (c *client) DeleteNetworkTags(networkId string, tagsToDelete map[string]string) error {
-	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{networkId}, resourceTypeNetwork)
+func (c *client) DeleteNetworkTags(networkID string, tagsToDelete map[string]string) error {
+	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{networkID}, resourceTypeNetwork)
 	p.SetTags(tagsToDelete)
 	_, err := c.cs.Resourcetags.DeleteTags(p)
 	return err

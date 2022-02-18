@@ -31,7 +31,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 		clusterKind        = "CloudStackCluster"
 		clusterName        = "test-cluster"
 		clusterNamespace   = "default"
-		clusterId          = "0"
+		clusterID          = "0"
 		identitySecretName = "IdentitySecret"
 		zone               = "Zone"
 		network            = "Network"
@@ -48,7 +48,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterName,
 					Namespace: clusterNamespace,
-					UID:       clusterId,
+					UID:       clusterID,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
@@ -74,7 +74,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterName,
 					Namespace: clusterNamespace,
-					UID:       clusterId,
+					UID:       clusterID,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
@@ -99,7 +99,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterName,
 					Namespace: clusterNamespace,
-					UID:       clusterId,
+					UID:       clusterID,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
@@ -129,7 +129,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterName,
 					Namespace: clusterNamespace,
-					UID:       clusterId,
+					UID:       clusterID,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
