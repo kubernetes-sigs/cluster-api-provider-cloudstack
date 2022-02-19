@@ -10,23 +10,24 @@ import (
 )
 
 var ( // Declare exported dummy vars.
-	AffinityGroup     *cloud.AffinityGroup
-	CSCluster         *infrav1.CloudStackCluster
-	CAPIMachine       *capiv1.Machine
-	CSMachine1        *infrav1.CloudStackMachine
-	CAPICluster       *clusterv1.Cluster
-	Zone1             infrav1.Zone
-	Zone2             infrav1.Zone
-	Net1              infrav1.Network
-	Net2              infrav1.Network
-	DomainId          string
-	Tags              map[string]string
-	Tag1Key           string
-	Tag1Val           string
-	CSApiVersion      string
-	CSClusterKind     string
-	CSClusterName     string
-	CSlusterNamespace string
+	AffinityGroup      *cloud.AffinityGroup
+	CSCluster          *infrav1.CloudStackCluster
+	CAPIMachine        *capiv1.Machine
+	CSMachine1         *infrav1.CloudStackMachine
+	CAPICluster        *clusterv1.Cluster
+	CSMachineTemplate1 *infrav1.CloudStackMachineTemplate
+	Zone1              infrav1.Zone
+	Zone2              infrav1.Zone
+	Net1               infrav1.Network
+	Net2               infrav1.Network
+	DomainId           string
+	Tags               map[string]string
+	Tag1Key            string
+	Tag1Val            string
+	CSApiVersion       string
+	CSClusterKind      string
+	CSClusterName      string
+	CSlusterNamespace  string
 )
 
 // clusterId          = "0"
@@ -38,6 +39,39 @@ func SetDummyVars() {
 	SetDummyCSMachineVars()
 	SetDummyCAPIClusterVars()
 	SetDummyTagVars()
+}
+
+// SetDummyClusterSpecVars resets the values in each of the exported CloudStackMachines related dummy variables.
+func SetDummyCSMachineTemplateVars() {
+	CSMachineTemplate1 = &infrav1.CloudStackMachineTemplate{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiVersion,
+			Kind:       templateKind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-machinetemplate-2",
+			Namespace: namespace,
+		},
+		Spec: CloudStackMachineTemplateSpec{
+			Spec: CloudStackMachineTemplateResource{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      templateResourceName,
+					Namespace: namespace,
+				},
+				Spec: CloudStackMachineSpec{
+					IdentityRef: &CloudStackIdentityReference{
+						Kind: defaultIdentityRefKind,
+						Name: identityReferenceName,
+					},
+					Template: template,
+					Offering: offering,
+					Details: map[string]string{
+						"memoryOvercommitRatio": "1.2",
+					},
+				},
+			},
+		},
+	}
 }
 
 // SetDummyClusterSpecVars resets the values in each of the exported CloudStackMachines related dummy variables.

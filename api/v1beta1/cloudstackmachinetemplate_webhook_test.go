@@ -19,27 +19,22 @@ package v1beta1_test
 import (
 	"context"
 
+	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("CloudStackMachineTemplate webhook", func() {
-	const (
-		apiVersion            = "infrastructure.cluster.x-k8s.io/v1beta1"
-		identityReferenceKind = "ConfigMap"
-		identityReferenceName = "IdentitySecret"
-		namespace             = "default"
-		templateKind          = "CloudStackMachineTemplate"
-		templateName          = "test-machinetemplate"
-		templateResourceName  = "test-machinetemplateresource"
-		template              = "Template"
-		offering              = "Offering"
-	)
+	var ctx context.Context
+
+	BeforeEach(func() { // Reset test vars to initial state.
+		dummies.SetDummyVars()
+		ctx = context.Background()
+	})
 
 	Context("When creating a CloudStackMachineTemplate with all validated attributes", func() {
 		It("Should succeed", func() {
-			ctx := context.Background()
 			cloudStackMachineTemplate := &CloudStackMachineTemplate{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: apiVersion,
