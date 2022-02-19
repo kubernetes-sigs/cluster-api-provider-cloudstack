@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ func getCloudStackCluster() *infrav1.CloudStackCluster {
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "cs-cluster-test1-",
 			Namespace:    "default",
+			UID:          "0",
 		},
 		Spec: infrav1.CloudStackClusterSpec{
 			Zone:    "zone",

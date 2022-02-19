@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package cloud_test
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
@@ -58,7 +59,11 @@ var _ = Describe("Cluster", func() {
 		cluster := &infrav1.CloudStackCluster{
 			Spec: infrav1.CloudStackClusterSpec{
 				Zone:    zoneName,
-				Network: netName}}
+				Network: netName},
+			ObjectMeta: metav1.ObjectMeta{
+				UID: "0",
+			},
+		}
 
 		It("handles zone not found.", func() {
 			expectedErr := fmt.Errorf("Not found")

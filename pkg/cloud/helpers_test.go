@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,13 +38,14 @@ const (
 
 var _ = Describe("Helpers", func() {
 
-	It("Gets API configuration", func() {
-		Context("For a configuration with the 'Global' section missing", func() {
+	Context("For a configuration with the 'Global' section missing", func() {
+		It("Gets API configuration", func() {
 			filepath := getConfigPath("cloud-config-no-global")
 
 			client, err := cloud.NewClient(filepath)
+
 			Ω(client).Should(BeNil())
-			Ω(err.Error()).Should(ContainSubstring("section Global not found"))
+			Ω(err.Error()).Should(ContainSubstring("Section Global not found"))
 		})
 	})
 

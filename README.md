@@ -1,10 +1,12 @@
 ## CloudStack Cluster API Provider (CAPC)
 
-A Kubernetes Cluster API Provider implementation for Apache CloudStack, suitable for integration and use by AWS EKS-Anywhere.
+[![Go Report Card](https://goreportcard.com/badge/aws/cluster-api-provider-cloudstack)](https://goreportcard.com/report/aws/cluster-api-provider-cloudstack)
+
+A Kubernetes Cluster API Provider implementation for Apache CloudStack.
 
 ## Security
 
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+See [SECURITY_CONTACTS](SECURITY_CONTACTS) for more information.
 
 ## License
 

@@ -7,6 +7,9 @@
 bin
 testbin/*
 
+pkg/mocks/*
+!pkg/mocks/.keep
+
 # Various build/test artifacts.
 .tiltbuild
 *log

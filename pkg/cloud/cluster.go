@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import (
 
 type ClusterIface interface {
 	GetOrCreateCluster(*infrav1.CloudStackCluster) error
+	DisposeClusterResources(cluster *infrav1.CloudStackCluster) error
 }
 
 func (c *client) resolveZone(csCluster *infrav1.CloudStackCluster) (retErr error) {
@@ -91,4 +92,11 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 	// Set cluster to ready to indicate readiness to CAPI.
 	csCluster.Status.Ready = true
 	return nil
+}
+
+func (c *client) DisposeClusterResources(csCluster *infrav1.CloudStackCluster) (retError error) {
+	if err := c.RemoveClusterTagFromNetwork(csCluster); err != nil {
+		return err
+	}
+	return c.DeleteNetworkIfNotInUse(csCluster)
 }

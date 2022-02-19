@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 		clusterKind        = "CloudStackCluster"
 		clusterName        = "test-cluster"
 		clusterNamespace   = "default"
+		clusterId          = "0"
 		identitySecretName = "IdentitySecret"
 		zone               = "Zone"
 		network            = "Network"
@@ -47,6 +48,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterName,
 					Namespace: clusterNamespace,
+					UID:       clusterId,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
@@ -72,6 +74,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterName,
 					Namespace: clusterNamespace,
+					UID:       clusterId,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
@@ -96,6 +99,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterName,
 					Namespace: clusterNamespace,
+					UID:       clusterId,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{
@@ -125,6 +129,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      clusterName,
 					Namespace: clusterNamespace,
+					UID:       clusterId,
 				},
 				Spec: CloudStackClusterSpec{
 					IdentityRef: &CloudStackIdentityReference{

@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -58,9 +58,13 @@ func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster) (retErr er
 	return nil
 }
 
+func generateNetworkTagName(csCluster *infrav1.CloudStackCluster) string {
+	return clusterTagNamePrefix + string(csCluster.UID)
+}
+
 func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	if retErr = c.ResolveNetwork(csCluster); retErr == nil { // Found network.
-		return nil
+		return addClusterTags(c, csCluster, false)
 	} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
 		return retErr
 	} // Network not found.
@@ -85,6 +89,66 @@ func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retEr
 	}
 	csCluster.Status.NetworkID = resp.Id
 	csCluster.Status.NetworkType = resp.Type
+
+	return addClusterTags(c, csCluster, true)
+}
+
+func addClusterTags(c *client, csCluster *infrav1.CloudStackCluster, addCreatedByTag bool) error {
+	clusterTagName := generateNetworkTagName(csCluster)
+	newTags := map[string]string{}
+
+	existingTags, err := c.GetNetworkTags(csCluster.Status.NetworkID)
+	if err != nil {
+		return err
+	}
+
+	if existingTags[clusterTagName] == "" {
+		newTags[clusterTagName] = "1"
+	}
+
+	if addCreatedByTag && existingTags[createdByCapcTagName] == "" {
+		newTags[createdByCapcTagName] = "1"
+	}
+
+	if len(newTags) > 0 {
+		return c.AddNetworkTags(csCluster.Status.NetworkID, newTags)
+	}
+
+	return nil
+}
+
+func (c *client) RemoveClusterTagFromNetwork(csCluster *infrav1.CloudStackCluster) (retError error) {
+	tags, err := c.GetNetworkTags(csCluster.Status.NetworkID)
+	if err != nil {
+		return err
+	}
+
+	clusterTagName := generateNetworkTagName(csCluster)
+	if tagValue := tags[clusterTagName]; tagValue != "" {
+		if err = c.DeleteNetworkTags(csCluster.Status.NetworkID, map[string]string{clusterTagName: tagValue}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *client) DeleteNetworkIfNotInUse(csCluster *infrav1.CloudStackCluster) (retError error) {
+	tags, err := c.GetNetworkTags(csCluster.Status.NetworkID)
+	if err != nil {
+		return err
+	}
+
+	var clusterTagCount int
+	for tagName := range tags {
+		if strings.HasPrefix(tagName, clusterTagNamePrefix) {
+			clusterTagCount++
+		}
+	}
+
+	if clusterTagCount == 0 && tags[createdByCapcTagName] != "" {
+		return c.DestroyNetwork(csCluster)
+	}
 
 	return nil
 }
