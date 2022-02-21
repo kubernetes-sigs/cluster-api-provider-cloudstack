@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/webhook_utilities"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/webhookutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -63,10 +63,10 @@ func (r *CloudStackMachine) ValidateCreate() error {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
-	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Offering, "Offering", errorList)
-	errorList = webhook_utilities.EnsureFieldExists(r.Spec.Template, "Template", errorList)
+	errorList = webhookutil.EnsureFieldExists(r.Spec.Offering, "Offering", errorList)
+	errorList = webhookutil.EnsureFieldExists(r.Spec.Template, "Template", errorList)
 
-	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -81,23 +81,23 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	}
 	oldSpec := oldMachine.Spec
 
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.Offering, oldSpec.Offering, "offering", errorList)
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.Template, oldSpec.Template, "template", errorList)
-	errorList = webhook_utilities.EnsureStringStringMapFieldsAreEqual(&r.Spec.Details, &oldSpec.Details, "details", errorList)
+	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.Offering, oldSpec.Offering, "offering", errorList)
+	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
+	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.Template, oldSpec.Template, "template", errorList)
+	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&r.Spec.Details, &oldSpec.Details, "details", errorList)
 	if r.Spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
-		errorList = webhook_utilities.EnsureStringFieldsAreEqual(
+		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			r.Spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
-		errorList = webhook_utilities.EnsureStringFieldsAreEqual(
+		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			r.Spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
 	}
-	errorList = webhook_utilities.EnsureStringFieldsAreEqual(r.Spec.Affinity, oldSpec.Affinity, "affinity", errorList)
+	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.Affinity, oldSpec.Affinity, "affinity", errorList)
 
 	if !reflect.DeepEqual(r.Spec.AffinityGroupIds, oldSpec.AffinityGroupIds) { // Equivalent to other Ensure funcs.
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"), "AffinityGroupIds"))
 	}
 
-	return webhook_utilities.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type

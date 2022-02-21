@@ -54,7 +54,7 @@ type CloudStackMachineReconciler struct {
 	CS     cloud.Client
 }
 
-const RequeueTimeout = 5 * time.Second
+const requeueTimeout = 5 * time.Second
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
@@ -82,17 +82,17 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Setup patcher. This ensures modifications to the csMachine copy fetched above are patched into the origin.
-	if patchHelper, err := patch.NewHelper(csMachine, r.Client); err != nil {
+	patchHelper, err := patch.NewHelper(csMachine, r.Client)
+	if err != nil {
 		return ctrl.Result{}, err
-	} else {
-		defer func() { // If there was no error on return, but the patch fails, set the error accordingly.
-			if err = patchHelper.Patch(ctx, csMachine); err != nil {
-				msg := "error patching CloudStackMachine %s/%s"
-				err = errors.Wrapf(err, msg, csMachine.Namespace, csMachine.Name)
-				retErr = multierror.Append(retErr, err)
-			}
-		}()
 	}
+	defer func() { // If there was no error on return, but the patch fails, set the error accordingly.
+		if err = patchHelper.Patch(ctx, csMachine); err != nil {
+			msg := "error patching CloudStackMachine %s/%s"
+			err = errors.Wrapf(err, msg, csMachine.Namespace, csMachine.Name)
+			retErr = multierror.Append(retErr, err)
+		}
+	}()
 
 	// Fetch the CAPI Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, csMachine.ObjectMeta)
@@ -100,14 +100,14 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, err
 	} else if capiMachine == nil {
 		log.Info("Waiting for CAPI cluster controller to set owner reference on CloudStack machine.")
-		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
 	// Fetch the CAPI Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		log.Info("Machine is missing cluster label or cluster does not exist.")
-		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
 	// Check if the machine is paused.
@@ -131,13 +131,12 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		csCluster); err != nil {
 		if client.IgnoreNotFound(err) == nil {
 			log.Info("CloudStackCluster not found.")
-			return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
-		} else {
-			return ctrl.Result{}, err
+			return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 		}
+		return ctrl.Result{}, err
 	} else if csCluster.Status.ZoneID == "" {
 		log.Info("CloudStackCluster ZoneId not initialized. Likely not ready.")
-		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
 	// Reconcile a VM instance for creates/updates
@@ -169,7 +168,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 
 	value, ok := secret.Data["value"]
 	if !ok {
-		return ctrl.Result{}, errors.New("Bootstrap secret data not ok.")
+		return ctrl.Result{}, errors.New("bootstrap secret data not ok")
 	}
 
 	// Create VM (or Fetch if present). Will set ready to true.
@@ -190,10 +189,10 @@ func (r *CloudStackMachineReconciler) reconcile(
 		if err := r.Client.Delete(ctx, capiMachine); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	} else {
 		log.Info(fmt.Sprintf("Instance not ready, is %s.", csMachine.Status.InstanceState))
-		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
 	if util.IsControlPlaneMachine(capiMachine) && csCluster.Status.NetworkType != cloud.NetworkTypeShared {
@@ -333,7 +332,7 @@ func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 	}
 	group := &cloud.AffinityGroup{Name: name}
 	_ = r.CS.FetchAffinityGroup(group)
-	if group.Id == "" { // Affinity group not found, must have been deleted.
+	if group.ID == "" { // Affinity group not found, must have been deleted.
 		return nil
 	}
 

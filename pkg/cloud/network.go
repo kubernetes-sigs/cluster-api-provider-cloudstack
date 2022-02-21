@@ -65,21 +65,21 @@ func generateNetworkTagName(csCluster *infrav1.CloudStackCluster) string {
 func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	if retErr = c.ResolveNetwork(csCluster); retErr == nil { // Found network.
 		return addClusterTags(c, csCluster, false)
-	} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
+	} else if !strings.Contains(strings.ToLower(retErr.Error()), "no match found") { // Some other error.
 		return retErr
 	} // Network not found.
 
 	// Create network since it wasn't found.
-	offeringId, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
+	offeringID, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
 	if retErr != nil {
 		return retErr
 	} else if count != 1 {
-		return errors.New("found more than one network offering.")
+		return errors.New("found more than one network offering")
 	}
 	p := c.cs.Network.NewCreateNetworkParams(
 		csCluster.Spec.Network,
 		csCluster.Spec.Network,
-		offeringId,
+		offeringID,
 		csCluster.Status.ZoneID)
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
@@ -181,8 +181,8 @@ func (c *client) ResolvePublicIPDetails(csCluster *infrav1.CloudStackCluster) (*
 	return nil, errors.Errorf(`no public addresses found in network: "%s"`, csCluster.Spec.Network)
 }
 
-// AssociatePublicIpAddress Gets a PublicIP and associates it.
-func (c *client) AssociatePublicIpAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
+// AssociatePublicIPAddress Gets a PublicIP and associates it.
+func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	publicAddress, err := c.ResolvePublicIPDetails(csCluster)
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func (c *client) AssociatePublicIpAddress(csCluster *infrav1.CloudStackCluster) 
 func (c *client) OpenFirewallRules(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, NetworkProtocolTCP)
 	_, retErr = c.cs.Firewall.CreateEgressFirewallRule(p)
-	if retErr != nil && strings.Contains(retErr.Error(), "There is already") { // Already a firewall rule here.
+	if retErr != nil && strings.Contains(strings.ToLower(retErr.Error()), "there is already") { // Already a firewall rule here.
 		retErr = nil
 	}
 	return retErr
@@ -239,7 +239,7 @@ func (c *client) ResolveLoadBalancerRuleDetails(csCluster *infrav1.CloudStackClu
 func (c *client) GetOrCreateLoadBalancerRule(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	// Check if rule exists.
 	if err := c.ResolveLoadBalancerRuleDetails(csCluster); err == nil ||
-		!strings.Contains(err.Error(), "no load balancer rule found") {
+		!strings.Contains(strings.ToLower(err.Error()), "no load balancer rule found") {
 		return err
 	}
 
