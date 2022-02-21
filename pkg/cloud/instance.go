@@ -46,7 +46,7 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 	csMachine.Spec.ProviderID = pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
 	csMachine.Spec.InstanceID = pointer.StringPtr(vmResponse.Id)
 	csMachine.Status.Addresses = []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vmResponse.Ipaddress}}
-	csMachine.Status.InstanceState = infrav1.InstanceState(vmResponse.State)
+	csMachine.Status.InstanceState = vmResponse.State
 }
 
 // ResolveVMInstanceDetails Retrieves VM instance details by csMachine.Spec.InstanceID or csMachine.Name, and
@@ -165,26 +165,16 @@ func (c *client) GetOrCreateVMInstance(
 		return err
 	}
 	setIfNotEmpty(compressedAndEncodedUserData, p.SetUserdata)
-
-	if len(csMachine.Spec.AffinityGroupIds) > 0 {
-		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
-	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
-		affinityType := AffinityGroupType
-		if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
-			affinityType = AntiAffinityGroupType
-		}
-		name, err := csMachine.AffinityGroupName(capiMachine)
-		if err != nil {
-			return err
-		}
-		group := &AffinityGroup{Name: name, Type: affinityType}
-		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
-			return err
-		}
-		p.SetAffinitygroupids([]string{group.ID})
-	}
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
+
+	affinityGroups, err := c.getAffinityGroupIDs(csMachine, capiMachine, csCluster)
+	if err != nil {
+		return err
+	}
+	if affinityGroups != nil {
+		p.SetAffinitygroupids(affinityGroups)
+	}
 
 	// If this VM instance is a control plane, consider setting its IP.
 	_, isControlPlanceMachine := capiMachine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
@@ -208,6 +198,34 @@ func (c *client) GetOrCreateVMInstance(
 	// The deployment response is insufficient.
 	return c.ResolveVMInstanceDetails(csMachine)
 
+}
+
+func (c *client) getAffinityGroupIDs(
+	csMachine *infrav1.CloudStackMachine,
+	capiMachine *capiv1.Machine,
+	csCluster *infrav1.CloudStackCluster) ([]string, error) {
+
+	if len(csMachine.Spec.AffinityGroupIds) > 0 {
+		return csMachine.Spec.AffinityGroupIds, nil
+	}
+
+	affinity := strings.ToLower(csMachine.Spec.Affinity)
+	if affinity != "no" && affinity != "" {
+		affinityType := AffinityGroupType
+		if affinity == antiAffinityValue {
+			affinityType = AntiAffinityGroupType
+		}
+		name, err := csMachine.AffinityGroupName(capiMachine)
+		if err != nil {
+			return nil, err
+		}
+		group := &AffinityGroup{Name: name, Type: affinityType}
+		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
+			return nil, err
+		}
+		return []string{group.ID}, nil
+	}
+	return nil, nil
 }
 
 // DestroyVMInstance Destroy a VM instance. Assumes machine has been fetched prior and has an instance ID.

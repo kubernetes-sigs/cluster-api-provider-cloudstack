@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
+	// MachineFinalizer prevents CAPI from deleting the corresponding CAPI data.
 	MachineFinalizer = "cloudstackmachine.infrastructure.cluster.x-k8s.io"
 )
 
@@ -69,17 +69,14 @@ type CloudStackMachineSpec struct {
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
-// TODO: Review the use of this field/type.
-type InstanceState string
-
-// Type pulled mostly from the CloudStack API.
+// CloudStackMachineStatus type pulled mostly from the CloudStack API.
 type CloudStackMachineStatus struct {
 	// Addresses contains a CloudStack VM instance's IP addresses.
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
 	// InstanceState is the state of the CloudStack instance for this machine.
 	// +optional
-	InstanceState InstanceState `json:"instanceState,omitempty"`
+	InstanceState string `json:"instanceState,omitempty"`
 
 	// Ready indicates the readiness of the provider resource.
 	Ready bool `json:"ready"`
@@ -104,7 +101,7 @@ type CloudStackMachine struct {
 	Status CloudStackMachineStatus `json:"status,omitempty"`
 }
 
-// The computed affinity group name relevant to this machine.
+// AffinityGroupName generates the affinity group name relevant to this machine.
 func (csm CloudStackMachine) AffinityGroupName(
 	capiMachine *capiv1.Machine,
 ) (string, error) {

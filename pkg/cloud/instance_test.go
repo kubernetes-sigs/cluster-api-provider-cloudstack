@@ -18,6 +18,7 @@ package cloud_test
 
 import (
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -137,7 +138,7 @@ var _ = Describe("Instance", func() {
 			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(MatchError(unknownErrorMessage))
 		})
 
-		It("returns errors occuring while fetching sevice offering information", func() {
+		It("returns errors occurring while fetching service offering information", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, notFoundError)
 			sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return("", -1, unknownError)
@@ -145,7 +146,7 @@ var _ = Describe("Instance", func() {
 			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).ShouldNot(Succeed())
 		})
 
-		It("returns errors if more than one sevice offering found", func() {
+		It("returns errors if more than one service offering found", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(csMachine.Name).Return(nil, -1, notFoundError)
 			sos.EXPECT().GetServiceOfferingID(csMachine.Spec.Offering).Return("", 2, nil)

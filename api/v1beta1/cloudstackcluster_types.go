@@ -63,7 +63,7 @@ type CloudStackClusterSpec struct {
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
-// The status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
+// CloudStackClusterStatus is the status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
 type CloudStackClusterStatus struct {
 	// Reflects the readiness of the CS cluster.
 	Ready bool `json:"ready"`

@@ -89,7 +89,7 @@ func getKubeadmControlPlaneFromCAPIMachine(
 // IsOwnerDeleted returns a boolean if the owner of the CAPI machine has been deleted.
 func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *capiv1.Machine) (bool, error) {
 	if util.IsControlPlaneMachine(capiMachine) {
-		// The controlplane sticks around after deletion pending the deletion of its machiens.
+		// The controlplane sticks around after deletion pending the deletion of its machines.
 		// As such, need to check the deletion timestamp thereof.
 		if cp, err := getKubeadmControlPlaneFromCAPIMachine(ctx, client, capiMachine); cp != nil && cp.DeletionTimestamp == nil {
 			return false, nil
