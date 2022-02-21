@@ -80,7 +80,7 @@ Another container networking choice is to use [kindnet](https://github.com/aojea
     2. Run the following command to save the above cloudstack connection info into an environment variable, to be used by `./config/default/credentials.yaml` and ultimately the generated `infrastructure-components.yaml`, where it gets passed to CAPC:
 
         ```
-        export CLOUDSTACK_B64ENCODED_SECRET=$(base64 -i cloud-config)
+        export CLOUDSTACK_B64ENCODED_SECRET=$(base64 -w0 -i cloud-config 2>/dev/null || base64 -b 0 -i cloud-config)
         ```
 6. Set the IMG environment variable so that the Makefile knows where to push docker image (if building your own)
    1. `export IMG=localhost:5000/cluster-api-provider-capc`
@@ -144,7 +144,7 @@ Another container networking choice is to use [kindnet](https://github.com/aojea
 
 3. Generate the CAPC cluster spec yaml file
     ```
-    clusterctl generate cluster \
+    clusterctl generate cluster capc-cluster \
         --from ~/.cluster-api/overrides/infrastructure-cloudstack/<VERSION>/cluster-template.yaml \
         > capc-cluster-spec.yaml
     
@@ -173,7 +173,7 @@ Another container networking choice is to use [kindnet](https://github.com/aojea
     2. Run `KUBECONFIG=capc-cluster.kubeconfig cilium status` to confirm cilium status
 
 8. Verify the K8s cluster is fully up
-   1. Run `KUBECONFIG=capc-cluster.kubeconfig get nodes`, and observe the following output
+   1. Run `KUBECONFIG=capc-cluster.kubeconfig kubectl get nodes`, and observe the following output
    ```
    NAME                               STATUS   ROLES                  AGE     VERSION
    capc-cluster-control-plane-xsnxt   Ready    control-plane,master   2m56s   v1.20.10
