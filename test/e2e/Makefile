@@ -51,7 +51,9 @@ kind-cluster:
 
 .PHONY: manifests
 manifests: 
-	IMG=$(IMG) make -C $(REPO_ROOT) manifests
+	d=$$(date +%s) \
+	&& IMG=$(IMG) make -C $(REPO_ROOT) manifests \
+	&& echo "This step took $$(($$(date +%s)-d)) seconds"
 
 ## --------------------------------------
 ## Templates
@@ -82,41 +84,55 @@ cluster-templates-v1beta1: $(KUSTOMIZE)
 
 .PHONY: docker-build-and-push
 docker-build-and-push:
-	IMG=$(IMG) $(MAKE) -C $(REPO_ROOT) docker-build
-	IMG=$(IMG) $(MAKE) -C $(REPO_ROOT) docker-push
+	d=$$(date +%s) \
+	&& IMG=$(IMG) $(MAKE) -C $(REPO_ROOT) docker-build \
+	&& IMG=$(IMG) $(MAKE) -C $(REPO_ROOT) docker-push \
+	&& echo "This step took $$(($$(date +%s)-d)) seconds"
+
 
 ## --------------------------------------
 ## End-to-End Tests
 ## --------------------------------------
 
+.PHONY: e2e-essentials
+e2e-essentials: $(GINKGO) kind-cluster manifests cluster-templates docker-build-and-push
+
 .PHONY: run-e2e
-run-e2e: $(GINKGO) kind-cluster manifests cluster-templates ## Run End-to-End Tests
-	PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -skip=Conformance -nodes=1 --noColor=false ./... -- \
+run-e2e: e2e-essentials ## Run End-to-End Tests
+	d=$$(date +%s) \
+	&& PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
-	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true \
+	&& echo "This step took $$(($$(date +%s)-d)) seconds"
 	kind delete clusters capi-test
 
 .PHONY: run-e2e-pr-blocking
-run-e2e-pr-blocking: $(GINKGO) kind-cluster manifests cluster-templates docker-build-and-push ## Run Only End-to-End Tests containing PR-Blocking tag
-	PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -focus=PR-Blocking -skip=Conformance -nodes=1 --noColor=false ./... -- \
+run-e2e-pr-blocking: e2e-essentials ## Run Only End-to-End Tests containing PR-Blocking tag
+	d=$$(date +%s) \
+	&& PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -focus=scale -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
-	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true \
+	&& echo "This step took $$(($$(date +%s)-d)) seconds"
 	kind delete clusters capi-test
 
 .PHONY: run-conformance
-run-conformance: $(GINKGO) kind-cluster manifests cluster-templates ## Run K8S Conformance Tests
-	PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -focus=Conformance -nodes=1 --noColor=false ./... -- \
+run-conformance: e2e-essentials ## Run K8S Conformance Tests
+	d=$$(date +%s) \
+	&& PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -focus=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
-	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true \
+	&& echo "This step took $$(($$(date +%s)-d)) seconds"
 	kind delete clusters capi-test
 
 .PHONY: run-all
-run-all: $(GINKGO) kind-cluster manifests cluster-templates ## Run K8S Conformance Tests
-	PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -nodes=1 --noColor=false ./... -- \
+run-all: e2e-essentials ## Run K8S Conformance Tests
+	d=$$(date +%s) \
+	&& PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
-	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true \
+	&& echo "This step took $$(($$(date +%s)-d)) seconds"
 	kind delete clusters capi-test
