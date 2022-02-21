@@ -26,7 +26,7 @@ import (
 
 // Example cloud-config ini structure.
 type Global struct {
-	ApiUrl    string `ini:"api-url"`
+	APIURL    string `ini:"api-url"`
 	VerifySSL bool   `ini:"verify-ssl"`
 }
 
@@ -53,7 +53,7 @@ var _ = Describe("Instance", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(rawCfg.Section("Global").MapTo(cfg)).Should(Succeed())
 			Ω(cfg.VerifySSL).Should(BeFalse())
-			Ω(cfg.ApiUrl).ShouldNot(BeEmpty())
+			Ω(cfg.APIURL).ShouldNot(BeEmpty())
 		})
 	})
 })

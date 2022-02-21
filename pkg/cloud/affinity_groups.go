@@ -29,10 +29,10 @@ const (
 type AffinityGroup struct {
 	Type string
 	Name string
-	Id   string
+	ID   string
 }
 
-type AffinityGroupIFace interface {
+type AffinityGroupIface interface {
 	FetchAffinityGroup(*AffinityGroup) error
 	GetOrCreateAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error
 	DeleteAffinityGroup(*AffinityGroup) error
@@ -41,14 +41,14 @@ type AffinityGroupIFace interface {
 }
 
 func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
-	if group.Id != "" {
-		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByID(group.Id)
+	if group.ID != "" {
+		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByID(group.ID)
 		if err != nil {
 			// handle via multierr
 			return err
 		} else if count > 1 {
 			// handle via creating a new error.
-			return errors.New("Count bad")
+			return errors.New("count bad")
 		} else {
 			group.Name = affinityGroup.Name
 			group.Type = affinityGroup.Type
@@ -62,14 +62,14 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 			return err
 		} else if count > 1 {
 			// handle via creating a new error.
-			return errors.New("Count bad")
+			return errors.New("count bad")
 		} else {
-			group.Id = affinityGroup.Id
+			group.ID = affinityGroup.Id
 			group.Type = affinityGroup.Type
 			return nil
 		}
 	}
-	return errors.Errorf(`could not fetch AffinityGroup by name "%s" or id "%s"`, group.Name, group.Id)
+	return errors.Errorf(`could not fetch AffinityGroup by name "%s" or id "%s"`, group.Name, group.ID)
 }
 
 func (c *client) GetOrCreateAffinityGroup(csCluster *infrav1.CloudStackCluster, group *AffinityGroup) (retErr error) {
@@ -77,26 +77,26 @@ func (c *client) GetOrCreateAffinityGroup(csCluster *infrav1.CloudStackCluster, 
 		p := c.cs.AffinityGroup.NewCreateAffinityGroupParams(group.Name, group.Type)
 		setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 		setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
-		if resp, err := c.cs.AffinityGroup.CreateAffinityGroup(p); err != nil {
+		resp, err := c.cs.AffinityGroup.CreateAffinityGroup(p)
+		if err != nil {
 			return err
-		} else {
-			group.Id = resp.Id
 		}
+		group.ID = resp.Id
 	}
 	return nil
 }
 
 func (c *client) DeleteAffinityGroup(group *AffinityGroup) (retErr error) {
 	p := c.cs.AffinityGroup.NewDeleteAffinityGroupParams()
-	setIfNotEmpty(group.Id, p.SetId)
+	setIfNotEmpty(group.ID, p.SetId)
 	setIfNotEmpty(group.Name, p.SetName)
 	_, retErr = c.cs.AffinityGroup.DeleteAffinityGroup(p)
 	return retErr
 }
 
-type AffinityGroups []AffinityGroup
+type affinityGroups []AffinityGroup
 
-func (c *client) GetCurrentAffinityGroups(csMachine *infrav1.CloudStackMachine) (AffinityGroups, error) {
+func (c *client) getCurrentAffinityGroups(csMachine *infrav1.CloudStackMachine) (affinityGroups, error) {
 	// Start by fetching VM details which includes an array of currently associated affinity groups.
 	if virtM, count, err := c.cs.VirtualMachine.GetVirtualMachineByID(*csMachine.Spec.InstanceID); err != nil {
 		return nil, err
@@ -105,25 +105,25 @@ func (c *client) GetCurrentAffinityGroups(csMachine *infrav1.CloudStackMachine) 
 	} else {
 		groups := make([]AffinityGroup, 0, len(virtM.Affinitygroup))
 		for _, v := range virtM.Affinitygroup {
-			groups = append(groups, AffinityGroup{Name: v.Name, Type: v.Type, Id: v.Id})
+			groups = append(groups, AffinityGroup{Name: v.Name, Type: v.Type, ID: v.Id})
 		}
 		return groups, nil
 	}
 }
 
-func (ags *AffinityGroups) ToArrayOfIDs() []string {
+func (ags *affinityGroups) toArrayOfIDs() []string {
 	groupIds := make([]string, 0, len(*ags))
 	for _, group := range *ags {
-		groupIds = append(groupIds, group.Id)
+		groupIds = append(groupIds, group.ID)
 	}
 	return groupIds
 }
 
-func (ags *AffinityGroups) AddGroup(addGroup AffinityGroup) {
+func (ags *affinityGroups) addGroup(addGroup AffinityGroup) {
 	// This is essentially adding to a set followed by array conversion.
-	groupSet := map[string]AffinityGroup{addGroup.Id: addGroup}
+	groupSet := map[string]AffinityGroup{addGroup.ID: addGroup}
 	for _, group := range *ags {
-		groupSet[group.Id] = group
+		groupSet[group.ID] = group
 	}
 	*ags = make([]AffinityGroup, 0, len(groupSet))
 	for _, group := range groupSet {
@@ -131,22 +131,22 @@ func (ags *AffinityGroups) AddGroup(addGroup AffinityGroup) {
 	}
 }
 
-func (ags *AffinityGroups) RemoveGroup(removeGroup AffinityGroup) {
+func (ags *affinityGroups) removeGroup(removeGroup AffinityGroup) {
 	// This is essentially subtracting from a set followed by array conversion.
 	groupSet := map[string]AffinityGroup{}
 	for _, group := range *ags {
-		groupSet[group.Id] = group
+		groupSet[group.ID] = group
 	}
-	delete(groupSet, removeGroup.Id)
+	delete(groupSet, removeGroup.ID)
 	*ags = make([]AffinityGroup, 0, len(groupSet))
 	for _, group := range groupSet {
 		*ags = append(*ags, group)
 	}
 }
 
-func (c *client) StopAndModifyAffinityGroups(csMachine *infrav1.CloudStackMachine, groups AffinityGroups) (retErr error) {
+func (c *client) stopAndModifyAffinityGroups(csMachine *infrav1.CloudStackMachine, groups affinityGroups) (retErr error) {
 	agp := c.cs.AffinityGroup.NewUpdateVMAffinityGroupParams(*csMachine.Spec.InstanceID)
-	agp.SetAffinitygroupids(groups.ToArrayOfIDs())
+	agp.SetAffinitygroupids(groups.toArrayOfIDs())
 
 	p1 := c.cs.VirtualMachine.NewStopVirtualMachineParams(string(*csMachine.Spec.InstanceID))
 	if _, err := c.cs.VirtualMachine.StopVirtualMachine(p1); err != nil {
@@ -163,19 +163,19 @@ func (c *client) StopAndModifyAffinityGroups(csMachine *infrav1.CloudStackMachin
 }
 
 func (c *client) AssociateAffinityGroup(csMachine *infrav1.CloudStackMachine, group AffinityGroup) (retErr error) {
-	if groups, err := c.GetCurrentAffinityGroups(csMachine); err != nil {
+	groups, err := c.getCurrentAffinityGroups(csMachine)
+	if err != nil {
 		return err
-	} else {
-		groups.AddGroup(group)
-		return c.StopAndModifyAffinityGroups(csMachine, groups)
 	}
+	groups.addGroup(group)
+	return c.stopAndModifyAffinityGroups(csMachine, groups)
 }
 
 func (c *client) DissassociateAffinityGroup(csMachine *infrav1.CloudStackMachine, group AffinityGroup) (retErr error) {
-	if groups, err := c.GetCurrentAffinityGroups(csMachine); err != nil {
+	groups, err := c.getCurrentAffinityGroups(csMachine)
+	if err != nil {
 		return err
-	} else {
-		groups.RemoveGroup(group)
-		return c.StopAndModifyAffinityGroups(csMachine, groups)
 	}
+	groups.removeGroup(group)
+	return c.stopAndModifyAffinityGroups(csMachine, groups)
 }
