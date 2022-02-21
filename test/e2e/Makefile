@@ -110,7 +110,7 @@ run-e2e: e2e-essentials ## Run End-to-End Tests
 .PHONY: run-e2e-pr-blocking
 run-e2e-pr-blocking: e2e-essentials ## Run Only End-to-End Tests containing PR-Blocking tag
 	d=$$(date +%s) \
-	&& PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -focus=scale -skip=Conformance -nodes=1 --noColor=false ./... -- \
+	&& PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -focus=PR-Blocking -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true \
