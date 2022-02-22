@@ -109,7 +109,7 @@ vet: ## Run go vet on the whole project.
 	go vet ./...
 
 .PHONY: lint
-lint: bin/golangci-lint ## Run linting for the project.
+lint: bin/golangci-lint generate-mocks ## Run linting for the project.
 	go fmt ./...
 	go vet ./...
 	golangci-lint run -v --timeout 360s ./...
@@ -178,7 +178,7 @@ pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -p
 
 .PHONY: tilt-up 
 tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests cloud-config # Setup and run tilt for development.
-	export CLOUDSTACK_B64ENCODED_SECRET=$$(base64 -i cloud-config) && cd cluster-api && tilt up
+	export CLOUDSTACK_B64ENCODED_SECRET=$(base64 -w0 -i cloud-config 2>/dev/null || base64 -b 0 -i cloud-config) && cd cluster-api && tilt up
 
 .PHONY: kind-cluster
 kind-cluster: cluster-api # Create a kind cluster with a local Docker repository.

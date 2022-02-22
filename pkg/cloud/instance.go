@@ -32,7 +32,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-const AntiAffinityValue = "anti"
+const antiAffinityValue = "anti"
 
 type VMIface interface {
 	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
@@ -58,7 +58,7 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			return err
 		} else if count > 1 {
-			return fmt.Errorf("Found more than one VM Instance with ID %s.", *csMachine.Spec.InstanceID)
+			return fmt.Errorf("found more than one VM Instance with ID %s", *csMachine.Spec.InstanceID)
 		} else if err == nil {
 			setMachineDataFromVMMetrics(vmResp, csMachine)
 			return nil
@@ -71,7 +71,7 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match") {
 			return err
 		} else if count > 1 {
-			return fmt.Errorf("Found more than one VM Instance with name %s.", csMachine.Name)
+			return fmt.Errorf("found more than one VM Instance with name %s", csMachine.Name)
 		} else if err == nil {
 			setMachineDataFromVMMetrics(vmResp, csMachine)
 			return nil
@@ -160,17 +160,17 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
-	if compressedAndEncodedUserData, err := CompressAndEncodeString(userData); err != nil {
+	compressedAndEncodedUserData, err := CompressAndEncodeString(userData)
+	if err != nil {
 		return err
-	} else {
-		setIfNotEmpty(compressedAndEncodedUserData, p.SetUserdata)
 	}
+	setIfNotEmpty(compressedAndEncodedUserData, p.SetUserdata)
 
 	if len(csMachine.Spec.AffinityGroupIds) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
 	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
 		affinityType := AffinityGroupType
-		if strings.ToLower(csMachine.Spec.Affinity) == AntiAffinityValue {
+		if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
 			affinityType = AntiAffinityGroupType
 		}
 		name, err := csMachine.AffinityGroupName(capiMachine)
@@ -181,7 +181,7 @@ func (c *client) GetOrCreateVMInstance(
 		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
 			return err
 		}
-		p.SetAffinitygroupids([]string{group.Id})
+		p.SetAffinitygroupids([]string{group.ID})
 	}
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
@@ -216,7 +216,7 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
 	p.SetExpunge(true)
 	_, err := c.cs.VirtualMachine.DestroyVirtualMachine(p)
-	if err != nil && strings.Contains(err.Error(), "Unable to find UUID for id ") {
+	if err != nil && strings.Contains(strings.ToLower(err.Error()), "unable to find UUID for id ") {
 		// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
 		return nil
 	}

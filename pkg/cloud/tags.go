@@ -21,7 +21,7 @@ import (
 	"strings"
 )
 
-type TagIFace interface {
+type TagIface interface {
 	AddClusterTag(resourceType ResourceType, resourceId string, csCluster *infrav1.CloudStackCluster, addCreatedByCapcTag bool) error
 	DeleteClusterTag(resourceType ResourceType, resourceId string, csCluster *infrav1.CloudStackCluster) error
 	DoClusterTagsAllowDisposal(resourceType ResourceType, resourceId string) (bool, error)
@@ -103,15 +103,15 @@ func (c *client) GetTags(resourceType ResourceType, resourceId string) (map[stri
 	p := c.cs.Resourcetags.NewListTagsParams()
 	p.SetResourceid(resourceId)
 	p.SetResourcetype(string(resourceType))
-	if listTagResponse, err := c.cs.Resourcetags.ListTags(p); err != nil {
+	listTagResponse, err := c.cs.Resourcetags.ListTags(p)
+	if err != nil {
 		return nil, err
-	} else {
-		tags := make(map[string]string, listTagResponse.Count)
-		for _, t := range listTagResponse.Tags {
-			tags[t.Key] = t.Value
-		}
-		return tags, nil
 	}
+	tags := make(map[string]string, listTagResponse.Count)
+	for _, t := range listTagResponse.Tags {
+		tags[t.Key] = t.Value
+	}
+	return tags, nil
 }
 
 func (c *client) DeleteTags(resourceType ResourceType, resourceId string, tagsToDelete map[string]string) error {

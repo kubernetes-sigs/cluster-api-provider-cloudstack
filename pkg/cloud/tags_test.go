@@ -49,7 +49,7 @@ var _ = Describe("Tag Unit Tests", func() {
 		)
 
 		var (
-			networkId string
+			networkID string
 			testTags  map[string]string
 		)
 
@@ -62,7 +62,7 @@ var _ = Describe("Tag Unit Tests", func() {
 				Skip("Could not find network.")
 			}
 
-			networkId = cluster.Status.NetworkID
+			networkID = cluster.Status.NetworkID
 			testTags = map[string]string{tagKey: tagValue}
 		})
 

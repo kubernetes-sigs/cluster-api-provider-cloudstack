@@ -30,8 +30,8 @@ import (
 	clientPkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// GetMachineSet attempts to fetch a MachineSet from CAPI machine owner reference.
-func GetMachineSetFromCAPIMachine(
+// getMachineSetFromCAPIMachine attempts to fetch a MachineSet from CAPI machine owner reference.
+func getMachineSetFromCAPIMachine(
 	ctx context.Context,
 	client clientPkg.Client,
 	capiMachine *capiv1.Machine,
@@ -58,8 +58,8 @@ func GetMachineSetFromCAPIMachine(
 	return nil, nil
 }
 
-// GetKubeadmControlPlaneFromCAPIMachine attempts to fetch a KubeadmControlPlane from a CAPI machine owner reference.
-func GetKubeadmControlPlaneFromCAPIMachine(
+// getKubeadmControlPlaneFromCAPIMachine attempts to fetch a KubeadmControlPlane from a CAPI machine owner reference.
+func getKubeadmControlPlaneFromCAPIMachine(
 	ctx context.Context,
 	client clientPkg.Client,
 	capiMachine *capiv1.Machine,
@@ -91,17 +91,17 @@ func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *c
 	if util.IsControlPlaneMachine(capiMachine) {
 		// The controlplane sticks around after deletion pending the deletion of its machiens.
 		// As such, need to check the deletion timestamp thereof.
-		if cp, err := GetKubeadmControlPlaneFromCAPIMachine(ctx, client, capiMachine); cp != nil && cp.DeletionTimestamp == nil {
+		if cp, err := getKubeadmControlPlaneFromCAPIMachine(ctx, client, capiMachine); cp != nil && cp.DeletionTimestamp == nil {
 			return false, nil
-		} else if err != nil && !strings.Contains(err.Error(), "not found") {
+		} else if err != nil && !strings.Contains(strings.ToLower(err.Error()), "not found") {
 			return false, err
 		}
 	} else {
 		// The machineset is deleted immediately, regardless of machine ownership.
 		// It is sufficient to check for its existence.
-		if ms, err := GetMachineSetFromCAPIMachine(ctx, client, capiMachine); ms != nil {
+		if ms, err := getMachineSetFromCAPIMachine(ctx, client, capiMachine); ms != nil {
 			return false, nil
-		} else if err != nil && !strings.Contains(err.Error(), "not found") {
+		} else if err != nil && !strings.Contains(strings.ToLower(err.Error()), "not found") {
 			return false, err
 		}
 	}
@@ -122,7 +122,6 @@ func fetchOwnerRef(refList []meta.OwnerReference, kind string) *meta.OwnerRefere
 func GetManagementOwnerRef(capiMachine *capiv1.Machine) *meta.OwnerReference {
 	if util.IsControlPlaneMachine(capiMachine) {
 		return fetchOwnerRef(capiMachine.OwnerReferences, "KubeadmControlPlane")
-	} else {
-		return fetchOwnerRef(capiMachine.OwnerReferences, "MachineSet")
 	}
+	return fetchOwnerRef(capiMachine.OwnerReferences, "MachineSet")
 }
