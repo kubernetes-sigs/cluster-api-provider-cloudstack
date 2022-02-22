@@ -55,6 +55,7 @@ type CloudStackMachineReconciler struct {
 }
 
 const requeueTimeout = 5 * time.Second
+const destoryVMRequeueInterval = 10 * time.Second
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
@@ -225,6 +226,10 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 
 	log.Info("Deleting instance", "instance-id", *csMachine.Spec.InstanceID)
 	if err := r.CS.DestroyVMInstance(csMachine); err != nil {
+		if err.Error() == "VM deletion in progress" {
+			log.Info(err.Error())
+			return ctrl.Result{RequeueAfter: destoryVMRequeueInterval}, nil
+		}
 		return ctrl.Result{}, err
 	}
 	controllerutil.RemoveFinalizer(csMachine, infrav1.MachineFinalizer)

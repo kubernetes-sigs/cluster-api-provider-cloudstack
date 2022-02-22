@@ -213,12 +213,26 @@ func (c *client) GetOrCreateVMInstance(
 // DestroyVMInstance Destroy a VM instance. Assumes machine has been fetched prior and has an instance ID.
 func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 
-	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
-	p.SetExpunge(true)
-	_, err := c.cs.VirtualMachine.DestroyVirtualMachine(p)
-	if err != nil && strings.Contains(strings.ToLower(err.Error()), "unable to find UUID for id ") {
+	if err := c.ResolveVMInstanceDetails(csMachine); err == nil && csMachine.Status.InstanceState != "Running" {
+		if csMachine.Status.InstanceState == "Stopping" ||
+			csMachine.Status.InstanceState == "Stopped" {
+			return errors.New("VM deletion in progress")
+		} else if csMachine.Status.InstanceState == "Expunging" ||
+			csMachine.Status.InstanceState == "Expunged" {
+			// VM is stopped and getting expunged.  So the desired state is getting satisfied.  Let's move on.
+			return nil
+		}
+	} else if err != nil && strings.Contains(strings.ToLower(err.Error()), "no match found") {
 		// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
 		return nil
 	}
-	return err
+
+	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
+	p.SetExpunge(true)
+	_, err := c.csAsync.VirtualMachine.DestroyVirtualMachine(p)
+	if err != nil && strings.Contains(err.Error(), "Unable to find UUID for id") {
+		// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
+		return nil
+	}
+	return errors.New("VM deletion in progress")
 }
