@@ -95,8 +95,18 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 }
 
 func (c *client) DisposeClusterResources(csCluster *infrav1.CloudStackCluster) (retError error) {
-	if err := c.RemoveClusterTagFromNetwork(csCluster); err != nil {
+	if csCluster.Status.PublicIPID != "" {
+		if err := c.DeleteClusterTag(ResourceTypeIpAddress, csCluster.Status.PublicIPID, csCluster); err != nil {
+			return err
+		}
+		if err := c.DisassociatePublicIpAddressIfNotInUse(csCluster); err != nil {
+			return err
+		}
+	}
+
+	if err := c.DeleteClusterTag(ResourceTypeNetwork, csCluster.Status.NetworkID, csCluster); err != nil {
 		return err
 	}
+
 	return c.DeleteNetworkIfNotInUse(csCluster)
 }

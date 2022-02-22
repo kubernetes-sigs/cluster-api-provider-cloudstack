@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -68,19 +68,19 @@ var _ = Describe("Tag Unit Tests", func() {
 
 		It("Tags a network with an arbitrary tag.", func() {
 			// Delete the tag if it already exists from a prior test run, otherwise the test will fail.
-			_ = client.DeleteNetworkTags(networkId, testTags)
-			Ω(client.AddNetworkTags(networkId, testTags)).Should(Succeed())
+			_ = client.DeleteTags(cloud.ResourceTypeNetwork, networkId, testTags)
+			Ω(client.AddTags(cloud.ResourceTypeNetwork, networkId, testTags)).Should(Succeed())
 		})
 
 		It("Fetches said tag.", func() {
-			tags, err := client.GetNetworkTags(networkId)
+			tags, err := client.GetTags(cloud.ResourceTypeNetwork, networkId)
 			Ω(err).Should(BeNil())
 			Ω(tags[tagKey]).Should(Equal(tagValue))
 		})
 
 		It("Deletes said tag.", func() {
-			Ω(client.DeleteNetworkTags(networkId, testTags)).Should(Succeed())
-			remainingTags, err := client.GetNetworkTags(networkId)
+			Ω(client.DeleteTags(cloud.ResourceTypeNetwork, networkId, testTags)).Should(Succeed())
+			remainingTags, err := client.GetTags(cloud.ResourceTypeNetwork, networkId)
 			Ω(err).Should(BeNil())
 			Ω(remainingTags[tagKey]).Should(Equal(""))
 		})

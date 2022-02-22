@@ -37,7 +37,7 @@ type AffinityGroupIFace interface {
 	GetOrCreateAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error
 	DeleteAffinityGroup(*AffinityGroup) error
 	AssociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
-	DissassociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
+	DisassociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
 }
 
 func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
@@ -171,7 +171,7 @@ func (c *client) AssociateAffinityGroup(csMachine *infrav1.CloudStackMachine, gr
 	}
 }
 
-func (c *client) DissassociateAffinityGroup(csMachine *infrav1.CloudStackMachine, group AffinityGroup) (retErr error) {
+func (c *client) DisassociateAffinityGroup(csMachine *infrav1.CloudStackMachine, group AffinityGroup) (retErr error) {
 	if groups, err := c.GetCurrentAffinityGroups(csMachine); err != nil {
 		return err
 	} else {

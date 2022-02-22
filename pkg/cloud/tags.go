@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,30 +16,93 @@ limitations under the License.
 
 package cloud
 
-type TagIFace interface {
-	AddNetworkTags(string, map[string]string) error
-	GetNetworkTags(string) (map[string]string, error)
-	DeleteNetworkTags(string, map[string]string) error
-}
-
-const (
-	clusterTagNamePrefix = "CAPC_cluster_"
-	createdByCapcTagName = "created_by_CAPC"
-	resourceTypeNetwork  = "network"
+import (
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	"strings"
 )
 
-// TagNetwork adds tags to a network by network id.
-func (c *client) AddNetworkTags(networkId string, tags map[string]string) error {
-	p := c.cs.Resourcetags.NewCreateTagsParams([]string{networkId}, resourceTypeNetwork, tags)
+type TagIFace interface {
+	AddClusterTag(resourceType ResourceType, resourceId string, csCluster *infrav1.CloudStackCluster, addCreatedByCapcTag bool) error
+	DeleteClusterTag(resourceType ResourceType, resourceId string, csCluster *infrav1.CloudStackCluster) error
+	DoClusterTagsAllowDisposal(resourceType ResourceType, resourceId string) (bool, error)
+	AddTags(resourceType ResourceType, resourceId string, tags map[string]string) error
+	GetTags(resourceType ResourceType, resourceId string) (map[string]string, error)
+	DeleteTags(resourceType ResourceType, resourceId string, tagsToDelete map[string]string) error
+}
+
+type ResourceType string
+
+const (
+	clusterTagNamePrefix               = "CAPC_cluster_"
+	createdByCapcTagName               = "created_by_CAPC"
+	ResourceTypeNetwork   ResourceType = "network"
+	ResourceTypeIpAddress ResourceType = "ipaddress"
+)
+
+func (c *client) AddClusterTag(resourceType ResourceType, resourceId string, csCluster *infrav1.CloudStackCluster, addCreatedByCapcTag bool) error {
+	clusterTagName := generateClusterTagName(csCluster)
+	newTags := map[string]string{}
+
+	existingTags, err := c.GetTags(resourceType, resourceId)
+	if err != nil {
+		return err
+	}
+
+	if existingTags[clusterTagName] == "" {
+		newTags[clusterTagName] = "1"
+	}
+
+	if addCreatedByCapcTag && existingTags[createdByCapcTagName] == "" {
+		newTags[createdByCapcTagName] = "1"
+	}
+
+	if len(newTags) > 0 {
+		return c.AddTags(resourceType, resourceId, newTags)
+	}
+
+	return nil
+}
+
+func (c *client) DeleteClusterTag(resourceType ResourceType, resourceId string, csCluster *infrav1.CloudStackCluster) error {
+	tags, err := c.GetTags(resourceType, csCluster.Status.NetworkID)
+	if err != nil {
+		return err
+	}
+
+	clusterTagName := generateClusterTagName(csCluster)
+	if tagValue := tags[clusterTagName]; tagValue != "" {
+		return c.DeleteTags(resourceType, csCluster.Status.NetworkID, map[string]string{clusterTagName: tagValue})
+	}
+
+	return nil
+}
+
+func (c *client) DoClusterTagsAllowDisposal(resourceType ResourceType, resourceId string) (bool, error) {
+	tags, err := c.GetTags(resourceType, resourceId)
+	if err != nil {
+		return false, err
+	}
+
+	var clusterTagCount int
+	for tagName := range tags {
+		if strings.HasPrefix(tagName, clusterTagNamePrefix) {
+			clusterTagCount++
+		}
+	}
+
+	return clusterTagCount == 0 && tags[createdByCapcTagName] != "", nil
+}
+
+func (c *client) AddTags(resourceType ResourceType, resourceId string, tags map[string]string) error {
+	p := c.cs.Resourcetags.NewCreateTagsParams([]string{resourceId}, string(resourceType), tags)
 	_, err := c.cs.Resourcetags.CreateTags(p)
 	return err
 }
 
-// GetNetworkTags gets tags by network id.
-func (c *client) GetNetworkTags(networkId string) (map[string]string, error) {
+func (c *client) GetTags(resourceType ResourceType, resourceId string) (map[string]string, error) {
 	p := c.cs.Resourcetags.NewListTagsParams()
-	p.SetResourceid(networkId)
-	p.SetResourcetype(resourceTypeNetwork)
+	p.SetResourceid(resourceId)
+	p.SetResourcetype(string(resourceType))
 	if listTagResponse, err := c.cs.Resourcetags.ListTags(p); err != nil {
 		return nil, err
 	} else {
@@ -51,10 +114,13 @@ func (c *client) GetNetworkTags(networkId string) (map[string]string, error) {
 	}
 }
 
-// DeleteNetworkTags deletes matching tags from a network
-func (c *client) DeleteNetworkTags(networkId string, tagsToDelete map[string]string) error {
-	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{networkId}, resourceTypeNetwork)
+func (c *client) DeleteTags(resourceType ResourceType, resourceId string, tagsToDelete map[string]string) error {
+	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{resourceId}, string(resourceType))
 	p.SetTags(tagsToDelete)
 	_, err := c.cs.Resourcetags.DeleteTags(p)
 	return err
+}
+
+func generateClusterTagName(csCluster *infrav1.CloudStackCluster) string {
+	return clusterTagNamePrefix + string(csCluster.UID)
 }
