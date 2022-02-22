@@ -41,9 +41,8 @@ type Client interface {
 }
 
 type client struct {
-	cs *cloudstack.CloudStackClient
-	// This is a placeholder for sending non-blocking requests.
-	// csA *cloudstack.CloudStackClient
+	cs      *cloudstack.CloudStackClient
+	csAsync *cloudstack.CloudStackClient
 }
 
 // cloud-config ini structure.
@@ -65,11 +64,9 @@ func NewClient(ccPath string) (Client, error) {
 		return nil, errors.Wrapf(err, "error encountered while parsing [Global] section from config at path: %s", ccPath)
 	}
 
-	// This is a placeholder for sending non-blocking requests.
-	// c.csA = cloudstack.NewClient(apiUrl, apiKey, secretKey, false)
-	// TODO: attempt a less clunky client liveliness check (not just listing zones).
 	c.cs = cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
-	_, err := c.cs.Zone.ListZones(c.cs.Zone.NewListZonesParams())
+	c.csAsync = cloudstack.NewClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+	_, err := c.cs.APIDiscovery.ListApis(c.cs.APIDiscovery.NewListApisParams())
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
 		return c, errors.Wrap(err, "Timeout while checking CloudStack API Client connectivity.")
 	}
