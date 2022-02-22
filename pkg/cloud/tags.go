@@ -22,28 +22,28 @@ import (
 )
 
 type TagIface interface {
-	AddClusterTag(resourceType ResourceType, string, csCluster *infrav1.CloudStackCluster, addCreatedByCapcTag bool) error
-	DeleteClusterTag(resourceType ResourceType, string, csCluster *infrav1.CloudStackCluster) error
-	DoClusterTagsAllowDisposal(resourceType ResourceType, string) (bool, error)
-	AddTags(resourceType ResourceType, string, tags map[string]string) error
-	GetTags(resourceType ResourceType, string) (map[string]string, error)
-	DeleteTags(resourceType ResourceType, string, tagsToDelete map[string]string) error
+	AddClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster, addCreatedByCapcTag bool) error
+	DeleteClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster) error
+	DoClusterTagsAllowDisposal(resourceType ResourceType, resourceID string) (bool, error)
+	AddTags(resourceType ResourceType, resourceID string, tags map[string]string) error
+	GetTags(resourceType ResourceType, resourceID string) (map[string]string, error)
+	DeleteTags(resourceType ResourceType, resourceID string, tagsToDelete map[string]string) error
 }
 
 type ResourceType string
 
 const (
 	clusterTagNamePrefix               = "CAPC_cluster_"
-	createdByCapcTagName               = "created_by_CAPC"
+	createdByCAPCTagName               = "created_by_CAPC"
 	ResourceTypeNetwork   ResourceType = "network"
-	ResourceTypeIpAddress ResourceType = "ipaddress"
+	ResourceTypeIPAddress ResourceType = "ipaddress"
 )
 
-func (c *client) AddClusterTag(resourceType ResourceType, string, csCluster *infrav1.CloudStackCluster, addCreatedByCapcTag bool) error {
+func (c *client) AddClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster, addCreatedByCapcTag bool) error {
 	clusterTagName := generateClusterTagName(csCluster)
 	newTags := map[string]string{}
 
-	existingTags, err := c.GetTags(resourceType, )
+	existingTags, err := c.GetTags(resourceType, resourceID)
 	if err != nil {
 		return err
 	}
@@ -52,19 +52,19 @@ func (c *client) AddClusterTag(resourceType ResourceType, string, csCluster *inf
 		newTags[clusterTagName] = "1"
 	}
 
-	if addCreatedByCapcTag && existingTags[createdByCapcTagName] == "" {
-		newTags[createdByCapcTagName] = "1"
+	if addCreatedByCapcTag && existingTags[createdByCAPCTagName] == "" {
+		newTags[createdByCAPCTagName] = "1"
 	}
 
 	if len(newTags) > 0 {
-		return c.AddTags(resourceType,, newTags)
+		return c.AddTags(resourceType, resourceID, newTags)
 	}
 
 	return nil
 }
 
-func (c *client) DeleteClusterTag(resourceType ResourceType, string, csCluster *infrav1.CloudStackCluster) error {
-	tags, err := c.GetTags(resourceType, csCluster.Status.NetworkID)
+func (c *client) DeleteClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster) error {
+	tags, err := c.GetTags(resourceType, resourceID)
 	if err != nil {
 		return err
 	}
@@ -77,8 +77,8 @@ func (c *client) DeleteClusterTag(resourceType ResourceType, string, csCluster *
 	return nil
 }
 
-func (c *client) DoClusterTagsAllowDisposal(resourceType ResourceType, string) (bool, error) {
-	tags, err := c.GetTags(resourceType, )
+func (c *client) DoClusterTagsAllowDisposal(resourceType ResourceType, resourceID string) (bool, error) {
+	tags, err := c.GetTags(resourceType, resourceID)
 	if err != nil {
 		return false, err
 	}
@@ -90,18 +90,18 @@ func (c *client) DoClusterTagsAllowDisposal(resourceType ResourceType, string) (
 		}
 	}
 
-	return clusterTagCount == 0 && tags[createdByCapcTagName] != "", nil
+	return clusterTagCount == 0 && tags[createdByCAPCTagName] != "", nil
 }
 
-func (c *client) AddTags(resourceType ResourceType, string, tags map[string]string) error {
-	p := c.cs.Resourcetags.NewCreateTagsParams([]string{}, string(resourceType), tags)
+func (c *client) AddTags(resourceType ResourceType, resourceID string, tags map[string]string) error {
+	p := c.cs.Resourcetags.NewCreateTagsParams([]string{resourceID}, string(resourceType), tags)
 	_, err := c.cs.Resourcetags.CreateTags(p)
 	return err
 }
 
-func (c *client) GetTags(resourceType ResourceType, string) (map[string]string, error) {
+func (c *client) GetTags(resourceType ResourceType, resourceID string) (map[string]string, error) {
 	p := c.cs.Resourcetags.NewListTagsParams()
-	p.SetResourceid()
+	p.SetResourceid(resourceID)
 	p.SetResourcetype(string(resourceType))
 	listTagResponse, err := c.cs.Resourcetags.ListTags(p)
 	if err != nil {
@@ -114,8 +114,8 @@ func (c *client) GetTags(resourceType ResourceType, string) (map[string]string, 
 	return tags, nil
 }
 
-func (c *client) DeleteTags(resourceType ResourceType, string, tagsToDelete map[string]string) error {
-	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{}, string(resourceType))
+func (c *client) DeleteTags(resourceType ResourceType, resourceID string, tagsToDelete map[string]string) error {
+	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{resourceID}, string(resourceType))
 	p.SetTags(tagsToDelete)
 	_, err := c.cs.Resourcetags.DeleteTags(p)
 	return err

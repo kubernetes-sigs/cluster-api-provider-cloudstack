@@ -89,14 +89,14 @@ func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retEr
 	return c.AddClusterTag(ResourceTypeNetwork, csCluster.Status.NetworkID, csCluster, true)
 }
 
-func (c *client) DisassociatePublicIpAddressIfNotInUse(csCluster *infrav1.CloudStackCluster) (retError error) {
-	okayToDelete, err := c.DoClusterTagsAllowDisposal(ResourceTypeIpAddress, csCluster.Status.PublicIPID)
+func (c *client) DisassociatePublicIPAddressIfNotInUse(csCluster *infrav1.CloudStackCluster) (retError error) {
+	okayToDelete, err := c.DoClusterTagsAllowDisposal(ResourceTypeIPAddress, csCluster.Status.PublicIPID)
 	if err != nil {
 		return err
 	}
 
 	if okayToDelete {
-		return c.DisassociatePublicIpAddress(csCluster)
+		return c.DisassociatePublicIPAddress(csCluster)
 	}
 
 	return nil
@@ -156,7 +156,7 @@ func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) 
 
 	if publicAddress.Allocated != "" && publicAddress.Associatednetworkid == csCluster.Status.NetworkID {
 		// Address already allocated to network. Allocated is a timestamp -- not a boolean.
-		return c.AddClusterTag(ResourceTypeIpAddress, publicAddress.Id, csCluster, allocatedByCapc)
+		return c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster, allocatedByCapc)
 	} // Address not yet allocated. Allocate now.
 
 	// Public IP found, but not yet allocated to network.
@@ -168,10 +168,10 @@ func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) 
 	if _, err := c.cs.Address.AssociateIpAddress(p); err != nil {
 		return err
 	}
-	return c.AddClusterTag(ResourceTypeIpAddress, publicAddress.Id, csCluster, allocatedByCapc)
+	return c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster, allocatedByCapc)
 }
 
-func (c *client) DisassociatePublicIpAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
+func (c *client) DisassociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	p := c.cs.Address.NewDisassociateIpAddressParams(csCluster.Status.PublicIPID)
 	_, retErr = c.cs.Address.DisassociateIpAddress(p)
 	return retErr
