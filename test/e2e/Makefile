@@ -84,7 +84,7 @@ cluster-templates-v1beta1: $(KUSTOMIZE)
 
 .PHONY: docker-build-and-push
 docker-build-and-push:
-	d=$$(date +%s) \
+	-d=$$(date +%s) \
 	&& IMG=$(IMG) $(MAKE) -C $(REPO_ROOT) docker-build \
 	&& IMG=$(IMG) $(MAKE) -C $(REPO_ROOT) docker-push \
 	&& echo "This step took $$(($$(date +%s)-d)) seconds"
@@ -99,7 +99,7 @@ e2e-essentials: $(GINKGO) kind-cluster manifests cluster-templates docker-build-
 
 .PHONY: run-e2e
 run-e2e: e2e-essentials ## Run End-to-End Tests
-	d=$$(date +%s) \
+	-d=$$(date +%s) \
 	&& PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
@@ -109,7 +109,7 @@ run-e2e: e2e-essentials ## Run End-to-End Tests
 
 .PHONY: run-e2e-pr-blocking
 run-e2e-pr-blocking: e2e-essentials ## Run Only End-to-End Tests containing PR-Blocking tag
-	d=$$(date +%s) \
+	-d=$$(date +%s) \
 	&& PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -focus=PR-Blocking -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
@@ -119,7 +119,7 @@ run-e2e-pr-blocking: e2e-essentials ## Run Only End-to-End Tests containing PR-B
 
 .PHONY: run-conformance
 run-conformance: e2e-essentials ## Run K8S Conformance Tests
-	d=$$(date +%s) \
+	-d=$$(date +%s) \
 	&& PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -focus=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
@@ -129,7 +129,7 @@ run-conformance: e2e-essentials ## Run K8S Conformance Tests
 
 .PHONY: run-all
 run-all: e2e-essentials ## Run K8S Conformance Tests
-	d=$$(date +%s) \
+	-d=$$(date +%s) \
 	&& PATH=$(BIN_DIR):${PATH} $(GINKGO) -v -trace -tags=e2e -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
