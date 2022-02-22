@@ -68,19 +68,19 @@ var _ = Describe("Tag Unit Tests", func() {
 
 		It("Tags a network with an arbitrary tag.", func() {
 			// Delete the tag if it already exists from a prior test run, otherwise the test will fail.
-			_ = client.DeleteTags(cloud.ResourceTypeNetwork, networkId, testTags)
-			Ω(client.AddTags(cloud.ResourceTypeNetwork, networkId, testTags)).Should(Succeed())
+			_ = client.DeleteTags(cloud.ResourceTypeNetwork, networkID, testTags)
+			Ω(client.AddTags(cloud.ResourceTypeNetwork, networkID, testTags)).Should(Succeed())
 		})
 
 		It("Fetches said tag.", func() {
-			tags, err := client.GetTags(cloud.ResourceTypeNetwork, networkId)
+			tags, err := client.GetTags(cloud.ResourceTypeNetwork, networkID)
 			Ω(err).Should(BeNil())
 			Ω(tags[tagKey]).Should(Equal(tagValue))
 		})
 
 		It("Deletes said tag.", func() {
-			Ω(client.DeleteTags(cloud.ResourceTypeNetwork, networkId, testTags)).Should(Succeed())
-			remainingTags, err := client.GetTags(cloud.ResourceTypeNetwork, networkId)
+			Ω(client.DeleteTags(cloud.ResourceTypeNetwork, networkID, testTags)).Should(Succeed())
+			remainingTags, err := client.GetTags(cloud.ResourceTypeNetwork, networkID)
 			Ω(err).Should(BeNil())
 			Ω(remainingTags[tagKey]).Should(Equal(""))
 		})
