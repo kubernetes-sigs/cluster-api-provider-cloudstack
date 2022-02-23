@@ -22,7 +22,7 @@ import (
 )
 
 type TagIface interface {
-	AddClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster, addCreatedByCapcTag bool) error
+	AddClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster, addCreatedByCAPCTag bool) error
 	DeleteClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster) error
 	DoClusterTagsAllowDisposal(resourceType ResourceType, resourceID string) (bool, error)
 	AddTags(resourceType ResourceType, resourceID string, tags map[string]string) error
@@ -35,11 +35,11 @@ type ResourceType string
 const (
 	clusterTagNamePrefix               = "CAPC_cluster_"
 	createdByCAPCTagName               = "created_by_CAPC"
-	ResourceTypeNetwork   ResourceType = "network"
-	ResourceTypeIPAddress ResourceType = "ipaddress"
+	ResourceTypeNetwork   ResourceType = "Network"
+	ResourceTypeIPAddress ResourceType = "PublicIpAddress"
 )
 
-func (c *client) AddClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster, addCreatedByCapcTag bool) error {
+func (c *client) AddClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster, addCreatedByCAPCTag bool) error {
 	clusterTagName := generateClusterTagName(csCluster)
 	newTags := map[string]string{}
 
@@ -52,7 +52,7 @@ func (c *client) AddClusterTag(resourceType ResourceType, resourceID string, csC
 		newTags[clusterTagName] = "1"
 	}
 
-	if addCreatedByCapcTag && existingTags[createdByCAPCTagName] == "" {
+	if addCreatedByCAPCTag && existingTags[createdByCAPCTagName] == "" {
 		newTags[createdByCAPCTagName] = "1"
 	}
 
