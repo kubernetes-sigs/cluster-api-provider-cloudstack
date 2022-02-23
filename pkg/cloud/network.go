@@ -90,12 +90,19 @@ func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retEr
 }
 
 func (c *client) DisassociatePublicIPAddressIfNotInUse(csCluster *infrav1.CloudStackCluster) (retError error) {
-	okayToDelete, err := c.DoClusterTagsAllowDisposal(ResourceTypeIPAddress, csCluster.Status.PublicIPID)
+	tagsAllowDisposal, err := c.DoClusterTagsAllowDisposal(ResourceTypeIPAddress, csCluster.Status.PublicIPID)
 	if err != nil {
 		return err
 	}
 
-	if okayToDelete {
+	// Can't disassociate an address if it's the source NAT address.
+	publicIP, _, err := c.cs.Address.GetPublicIpAddressByID(csCluster.Status.PublicIPID)
+	if err != nil {
+		return err
+	}
+	sourceNAT := publicIP != nil && publicIP.Issourcenat
+
+	if tagsAllowDisposal && !sourceNAT {
 		return c.DisassociatePublicIPAddress(csCluster)
 	}
 
@@ -152,11 +159,11 @@ func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) 
 
 	csCluster.Spec.ControlPlaneEndpoint.Host = publicAddress.Ipaddress
 	csCluster.Status.PublicIPID = publicAddress.Id
-	allocatedByCapc := publicAddress.Allocated == ""
+	alreadyAllocated := publicAddress.Allocated != ""
 
-	if publicAddress.Allocated != "" && publicAddress.Associatednetworkid == csCluster.Status.NetworkID {
+	if alreadyAllocated && publicAddress.Associatednetworkid == csCluster.Status.NetworkID {
 		// Address already allocated to network. Allocated is a timestamp -- not a boolean.
-		return c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster, allocatedByCapc)
+		return c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster, false)
 	} // Address not yet allocated. Allocate now.
 
 	// Public IP found, but not yet allocated to network.
@@ -168,10 +175,13 @@ func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) 
 	if _, err := c.cs.Address.AssociateIpAddress(p); err != nil {
 		return err
 	}
-	return c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster, allocatedByCapc)
+	return c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster, !alreadyAllocated)
 }
 
 func (c *client) DisassociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
+	// Remove the CAPC creation tag, so it won't be there the next time this address is associated.
+	c.DeleteCreatedByCAPCTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID)
+
 	p := c.cs.Address.NewDisassociateIpAddressParams(csCluster.Status.PublicIPID)
 	_, retErr = c.cs.Address.DisassociateIpAddress(p)
 	return retErr
