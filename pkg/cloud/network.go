@@ -180,7 +180,10 @@ func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) 
 
 func (c *client) DisassociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	// Remove the CAPC creation tag, so it won't be there the next time this address is associated.
-	c.DeleteCreatedByCAPCTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID)
+	retErr = c.DeleteCreatedByCAPCTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID)
+	if retErr != nil {
+		return retErr
+	}
 
 	p := c.cs.Address.NewDisassociateIpAddressParams(csCluster.Status.PublicIPID)
 	_, retErr = c.cs.Address.DisassociateIpAddress(p)
