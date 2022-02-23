@@ -26,6 +26,15 @@ import (
 	"github.com/pkg/errors"
 )
 
+type NetworkIface interface {
+	ResolveNetworkStatuses(*infrav1.CloudStackCluster) error
+	CreateIsolatedNewtork(*infrav1.CloudStackCluster) error
+	OpenFirewallRules(*infrav1.CloudStackCluster) error
+	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
+	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
+	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
+}
+
 const (
 	NetOffering          = "DefaultIsolatedNetworkOfferingWithSourceNatService"
 	K8sDefaultAPIPort    = 6443
@@ -35,6 +44,29 @@ const (
 	addCreatedByTag      = true
 	doNotAddCreatedByTag = false
 )
+
+// usesIsolatedNetwork returns true if this cluster is specs an isolated network.
+// Assumes that the a fetch has been done on network statuses prior.
+func usesIsolatedNetwork(csCluster *infrav1.CloudStackCluster) bool {
+	firstNetStatus := csCluster.Status.Zones[csCluster.Spec.Zones[0].Network.Name].Network
+	// Check for Isolated network use case.
+	if len(csCluster.Spec.Zones) == 1 { // Where the only specced network
+		if firstNetStatus.Type == "" || // doesn't exist or
+			firstNetStatus.Type == NetworkTypeIsolated { // exists and is an isolated network.
+			return true
+		}
+	}
+	return false
+}
+
+// networkExists checks that the network already exists based on the presence of all fields.
+// Assumes that the a fetch has been done on network statuses prior.
+func networkExists(net infrav1.Network) bool {
+	if net.Name != "" && net.Type != "" && net.Id != "" {
+		return true
+	}
+	return false
+}
 
 // ResolveNetworks fetches networks' Id, Name, and Type.
 func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster, net *infrav1.Network) (retErr error) {
@@ -79,8 +111,39 @@ func (c *client) getOfferingId() (string, error) {
 	return offeringId, nil
 }
 
-// GetOrCreateNetworks fetches the details of or creates networks per specs.
-func (c *client) GetOrCreateNetworks(csCluster *infrav1.CloudStackCluster) (retErr error) {
+// CreateIsolatedNewtork creates an isolated network in the relevant Zone.
+// Assumes that there is only the one zone in the cluster.
+func (c *client) CreateIsolatedNewtork(csCluster *infrav1.CloudStackCluster) (retErr error) {
+	zoneStatus := csCluster.Status.Zones[csCluster.Spec.Zones[0].Network.Name]
+	netStatus := zoneStatus.Network
+
+	// Fetch offering Id.
+	offeringId, err := c.getOfferingId()
+	if err != nil {
+		return err
+	}
+
+	// Do creation.
+	p := c.cs.Network.NewCreateNetworkParams(netStatus.Name, netStatus.Name, offeringId, zoneStatus.Id)
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
+	resp, err := c.cs.Network.CreateNetwork(p)
+	if err != nil {
+		return err
+	}
+	c.addClusterTags(csCluster, zoneStatus.Network, addCreatedByTag)
+
+	// Update Zone/Network status accordingly.
+	netStatus.Id = resp.Id
+	netStatus.Type = resp.Type
+	zoneStatus.Network = netStatus
+	csCluster.Status.Zones[zoneStatus.Name] = zoneStatus
+
+	return nil
+}
+
+// ResolveNetworkStatuses fetches details on all networks specced, but will not modify ACS settings.
+func (c *client) ResolveNetworkStatuses(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	// Copy network spec to status in preparation for network resolution or creation.
 	for _, specZone := range csCluster.Spec.Zones {
 		zone, ok := csCluster.Status.Zones[specZone.Name]
@@ -93,35 +156,12 @@ func (c *client) GetOrCreateNetworks(csCluster *infrav1.CloudStackCluster) (retE
 
 	// At this point network status should have been populated (copied) from the spec.
 	for _, zoneStatus := range csCluster.Status.Zones {
-		netStatus := zoneStatus.Network
 		if retErr = c.ResolveNetwork(csCluster, &zoneStatus.Network); retErr == nil { // Found network
 			c.addClusterTags(csCluster, zoneStatus.Network, doNotAddCreatedByTag)
 			continue
 		} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
 			return retErr
 		} // Network not found, so create it.
-
-		// Fetch offering Id.
-		offeringId, err := c.getOfferingId()
-		if err != nil {
-			return err
-		}
-
-		// Do creation
-		p := c.cs.Network.NewCreateNetworkParams(netStatus.Name, netStatus.Name, offeringId, zoneStatus.Id)
-		setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
-		setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
-		resp, err := c.cs.Network.CreateNetwork(p)
-		if err != nil {
-			return err
-		}
-		c.addClusterTags(csCluster, zoneStatus.Network, addCreatedByTag)
-
-		// Update Zone/Network status accordingly.
-		netStatus.Id = resp.Id
-		netStatus.Type = resp.Type
-		zoneStatus.Network = netStatus
-		csCluster.Status.Zones[zoneStatus.Name] = zoneStatus
 	}
 
 	return nil

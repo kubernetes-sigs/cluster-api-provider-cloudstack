@@ -75,31 +75,27 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		}
 	}
 
-	// Get or create network and needed network constructs.
-	if retErr = c.GetOrCreateNetworks(csCluster); retErr != nil {
+	// Get current network statuses.
+	// CAPC only modifies networks in the single isolated network case.
+	if retErr = c.ResolveNetworkStatuses(csCluster); retErr != nil {
 		return retErr
 	}
 
-	if len(csCluster.Spec.Zones) > 1 { // Ignore isolated network use case if spec indicates multiple zones.
-		for _, zone := range csCluster.Status.Zones { // Get the only zone from the status zone map.
-			if zone.Network.Type == NetworkTypeIsolated {
-				if retErr = c.OpenFirewallRules(csCluster); retErr != nil {
-					return retErr
-				}
-				if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
-					if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
-						return retErr
-					}
-				}
-				if retErr = c.GetOrCreateLoadBalancerRule(csCluster); retErr != nil {
-					return retErr
-				}
+	if usesIsolatedNetwork(csCluster) {
+		onlyNetStatus := csCluster.Status.Zones[csCluster.Spec.Zones[0].Network.Name].Network
+		if !networkExists(onlyNetStatus) { // create isolated network.
+
+		}
+
+		if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
+			if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
+				return retErr
 			}
 		}
+		if retErr = c.GetOrCreateLoadBalancerRule(csCluster); retErr != nil {
+			return retErr
+		}
 	}
-
-	// Set cluster to ready to indicate readiness to CAPI.
-	csCluster.Status.Ready = true
 	return nil
 }
 

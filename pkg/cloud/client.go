@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
 )
@@ -30,13 +29,9 @@ import (
 type Client interface {
 	ClusterIface
 	VMIface
-	GetOrCreateNetworks(*infrav1.CloudStackCluster) error
-	OpenFirewallRules(*infrav1.CloudStackCluster) error
-	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
-	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
-	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
-	AffinityGroupIface
-	TagIface
+	NetworkIface
+	AffinityGroupIFace
+	TagIFace
 }
 
 type client struct {

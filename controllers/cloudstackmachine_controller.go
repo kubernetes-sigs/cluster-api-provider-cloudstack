@@ -204,7 +204,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 
 	if len(csCluster.Spec.Zones) == 1 {
 		for _, zone := range csCluster.Status.Zones { // Ugly way to get the only Zone.
-			if util.IsControlPlaneMachine(capiMachine) && zone.Network.Type != cloud.NetworkTypeShared {
+			if util.IsControlPlaneMachine(capiMachine) && zone.Network.Type == cloud.NetworkTypeIsolated {
 				log.Info("Assigning VM to load balancer rule.")
 				err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
 				if err != nil {
