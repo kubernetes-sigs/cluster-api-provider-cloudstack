@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ClusterIface contains the collection of functions for get/create/delete a cluster
 type ClusterIface interface {
 	GetOrCreateCluster(*infrav1.CloudStackCluster) error
 	DisposeClusterResources(cluster *infrav1.CloudStackCluster) error

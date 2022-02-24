@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud_test
+package cloud
 
 import (
 	"bytes"
@@ -25,7 +25,6 @@ import (
 	"path"
 	"reflect"
 
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,7 +32,7 @@ import (
 )
 
 const (
-	FixturePath = "test/fixtures/cloud-config-files"
+	fixturePath = "test/fixtures/cloud-config-files"
 )
 
 var _ = Describe("Helpers", func() {
@@ -42,7 +41,7 @@ var _ = Describe("Helpers", func() {
 		It("Gets API configuration", func() {
 			filepath := getConfigPath("cloud-config-no-global")
 
-			client, err := cloud.NewClient(filepath)
+			client, err := NewClient(filepath)
 
 			Ω(client).Should(BeNil())
 			Ω(err.Error()).Should(ContainSubstring("section Global not found"))
@@ -52,7 +51,7 @@ var _ = Describe("Helpers", func() {
 	It("should compress and encode string", func() {
 		str := "Hello World"
 
-		compressedAndEncodedData, err := cloud.CompressAndEncodeString(str)
+		compressedAndEncodedData, err := compressAndEncodeString(str)
 
 		compressedData, _ := base64.StdEncoding.DecodeString(compressedAndEncodedData)
 		reader, _ := gzip.NewReader(bytes.NewReader(compressedData))
@@ -65,7 +64,7 @@ var _ = Describe("Helpers", func() {
 
 func getConfigPath(filename string) string {
 	dir, _ := os.Getwd()
-	return path.Join(dir, FixturePath, filename)
+	return path.Join(dir, fixturePath, filename)
 }
 
 // This matcher is used to make gomega matching compatible with gomock parameter matching.

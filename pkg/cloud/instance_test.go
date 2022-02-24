@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud_test
+package cloud
 
 import (
 	"fmt"
@@ -25,7 +25,6 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -48,7 +47,7 @@ var _ = Describe("Instance", func() {
 		sos        *cloudstack.MockServiceOfferingServiceIface
 		ts         *cloudstack.MockTemplateServiceIface
 		machine    *capiv1.Machine
-		client     cloud.Client
+		client     Client
 	)
 
 	BeforeEach(func() {
@@ -57,7 +56,7 @@ var _ = Describe("Instance", func() {
 		vms = mockClient.VirtualMachine.(*cloudstack.MockVirtualMachineServiceIface)
 		sos = mockClient.ServiceOffering.(*cloudstack.MockServiceOfferingServiceIface)
 		ts = mockClient.Template.(*cloudstack.MockTemplateServiceIface)
-		client = cloud.NewClientFromCSAPIClient(mockClient)
+		client = NewClientFromCSAPIClient(mockClient)
 
 		csMachine = &infrav1.CloudStackMachine{
 			Spec: infrav1.CloudStackMachineSpec{

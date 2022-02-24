@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
+// EnsureFieldExists checks if a certain value exists
 func EnsureFieldExists(value string, name string, allErrs field.ErrorList) field.ErrorList {
 	if value == "" {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec", name), name))
@@ -31,6 +32,7 @@ func EnsureFieldExists(value string, name string, allErrs field.ErrorList) field
 	return allErrs
 }
 
+// EnsureStringFieldsAreEqual checks if a certain value hasn't changed
 func EnsureStringFieldsAreEqual(new string, old string, name string, allErrs field.ErrorList) field.ErrorList {
 	if new != old {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))
@@ -38,6 +40,7 @@ func EnsureStringFieldsAreEqual(new string, old string, name string, allErrs fie
 	return allErrs
 }
 
+// EnsureStringStringMapFieldsAreEqual checks if a certain string map hasn't changed
 func EnsureStringStringMapFieldsAreEqual(new *map[string]string, old *map[string]string, name string, allErrs field.ErrorList) field.ErrorList {
 	if old == nil && new == nil {
 		return allErrs
@@ -51,6 +54,7 @@ func EnsureStringStringMapFieldsAreEqual(new *map[string]string, old *map[string
 	return allErrs
 }
 
+// AggregateObjErrors aggregates all errors into a new invalid error
 func AggregateObjErrors(gk schema.GroupKind, name string, allErrs field.ErrorList) error {
 	if len(allErrs) == 0 {
 		return nil

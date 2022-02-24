@@ -21,17 +21,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	AntiAffinityGroupType = "host anti-affinity"
-	AffinityGroupType     = "host affinity"
-)
-
+// AffinityGroup type
 type AffinityGroup struct {
 	Type string
 	Name string
 	ID   string
 }
 
+// AffinityGroupIface contains the collection of functions for AffinityGroup
 type AffinityGroupIface interface {
 	FetchAffinityGroup(*AffinityGroup) error
 	GetOrCreateAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error

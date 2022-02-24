@@ -16,6 +16,7 @@ limitations under the License.
 
 package cloud
 
+// TagIface contains the collection of functions for add/get/delete tags to a network
 type TagIface interface {
 	AddNetworkTags(string, map[string]string) error
 	GetNetworkTags(string) (map[string]string, error)

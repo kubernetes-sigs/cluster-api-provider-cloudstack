@@ -31,6 +31,7 @@ import (
 // log is for logging in this package.
 var cloudstackclusterlog = logf.Log.WithName("cloudstackcluster-resource")
 
+// SetupWebhookWithManager creates a new webhook managed by passed manager
 func (r *CloudStackCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).

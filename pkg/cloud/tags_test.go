@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud_test
+package cloud
 
 import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +40,7 @@ var _ = Describe("Tag Unit Tests", func() {
 	})
 
 	Context("Tag Integ Tests", func() {
-		client, connectionErr := cloud.NewClient("../../cloud-config")
+		client, connectionErr := NewClient("../../cloud-config")
 
 		const (
 			tagKey   = "test_tag"

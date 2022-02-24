@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud_test
+package cloud
 
 import (
 	"errors"
+
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -32,11 +32,11 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		mockCtrl    *gomock.Controller
 		mockClient  *cloudstack.CloudStackClient
 		ags         *cloudstack.MockAffinityGroupServiceIface
-		fakeAG      *cloud.AffinityGroup
+		fakeAG      *AffinityGroup
 		cluster     *infrav1.CloudStackCluster
 		machine     *infrav1.CloudStackMachine
 		capiMachine *capiv1.Machine
-		client      cloud.Client
+		client      Client
 	)
 
 	BeforeEach(func() {
@@ -44,10 +44,10 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = cloudstack.NewMockClient(mockCtrl)
 		ags = mockClient.AffinityGroup.(*cloudstack.MockAffinityGroupServiceIface)
-		client = cloud.NewClientFromCSAPIClient(mockClient)
-		fakeAG = &cloud.AffinityGroup{
+		client = NewClientFromCSAPIClient(mockClient)
+		fakeAG = &AffinityGroup{
 			Name: "FakeAffinityGroup",
-			Type: cloud.AffinityGroupType}
+			Type: "host affinity"}
 		cluster = &infrav1.CloudStackCluster{Spec: infrav1.CloudStackClusterSpec{
 			Zone: "Zone1", Network: "SharedGuestNet1"}}
 		cluster.ObjectMeta.SetUID("0")
@@ -80,16 +80,16 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 	})
 
 	Context("AffinityGroup Integ Tests", func() {
-		client, connectionErr := cloud.NewClient("../../cloud-config")
+		client, connectionErr := NewClient("../../cloud-config")
 
 		var ( // Declare shared vars.
-			arbitraryAG *cloud.AffinityGroup
+			arbitraryAG *AffinityGroup
 		)
 		BeforeEach(func() {
 			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
 				Skip("Could not connect to ACS instance.")
 			}
-			arbitraryAG = &cloud.AffinityGroup{Name: "ArbitraryAffinityGroup", Type: cloud.AffinityGroupType}
+			arbitraryAG = &AffinityGroup{Name: "ArbitraryAffinityGroup", Type: "host affinity"}
 		})
 		AfterEach(func() {
 			mockCtrl.Finish()
@@ -97,7 +97,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 
 		It("Creates an affinity group.", func() {
 			Ω(client.GetOrCreateAffinityGroup(cluster, arbitraryAG)).Should(Succeed())
-			arbitraryAG2 := &cloud.AffinityGroup{Name: arbitraryAG.Name}
+			arbitraryAG2 := &AffinityGroup{Name: arbitraryAG.Name}
 			Ω(client.GetOrCreateAffinityGroup(cluster, arbitraryAG2)).Should(Succeed())
 			Ω(arbitraryAG2).Should(Equal(arbitraryAG))
 		})

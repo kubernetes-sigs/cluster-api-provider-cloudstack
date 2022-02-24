@@ -20,22 +20,17 @@ import (
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
 )
 
 //go:generate mockgen -destination=../mocks/mock_client.go -package=mocks github.com/aws/cluster-api-provider-cloudstack/pkg/cloud Client
 
+// Client contains the collection of interfaces for CloudStack API
 type Client interface {
 	ClusterIface
 	VMIface
-	ResolveNetwork(*infrav1.CloudStackCluster) error
-	GetOrCreateNetwork(*infrav1.CloudStackCluster) error
-	OpenFirewallRules(*infrav1.CloudStackCluster) error
-	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
-	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
-	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
+	NetworkIface
 	AffinityGroupIface
 	TagIface
 }

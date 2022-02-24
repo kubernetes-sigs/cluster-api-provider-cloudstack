@@ -27,12 +27,27 @@ import (
 )
 
 const (
-	NetOffering         = "DefaultIsolatedNetworkOfferingWithSourceNatService"
-	K8sDefaultAPIPort   = 6443
-	NetworkTypeIsolated = "Isolated"
-	NetworkTypeShared   = "Shared"
-	NetworkProtocolTCP  = "tcp"
+	netOffering        = "DefaultIsolatedNetworkOfferingWithSourceNatService"
+	k8sDefaultAPIPort  = 6443
+	networkProtocolTCP = "tcp"
 )
+
+const (
+	// NetworkTypeIsolated defines isolated network type
+	NetworkTypeIsolated = "Isolated"
+	// NetworkTypeShared defines shared network type
+	NetworkTypeShared = "Shared"
+)
+
+// NetworkIface contains the collection of functions for network
+type NetworkIface interface {
+	ResolveNetwork(*infrav1.CloudStackCluster) error
+	GetOrCreateNetwork(*infrav1.CloudStackCluster) error
+	OpenFirewallRules(*infrav1.CloudStackCluster) error
+	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
+	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
+	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
+}
 
 func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	networkID, count, err := c.cs.Network.GetNetworkID(csCluster.Spec.Network)
@@ -70,7 +85,7 @@ func (c *client) GetOrCreateNetwork(csCluster *infrav1.CloudStackCluster) (retEr
 	} // Network not found.
 
 	// Create network since it wasn't found.
-	offeringID, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
+	offeringID, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(netOffering)
 	if retErr != nil {
 		return retErr
 	} else if count != 1 {
@@ -209,7 +224,7 @@ func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) 
 }
 
 func (c *client) OpenFirewallRules(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, NetworkProtocolTCP)
+	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.NetworkID, networkProtocolTCP)
 	_, retErr = c.cs.Firewall.CreateEgressFirewallRule(p)
 	if retErr != nil && strings.Contains(strings.ToLower(retErr.Error()), "there is already") { // Already a firewall rule here.
 		retErr = nil
@@ -244,13 +259,13 @@ func (c *client) GetOrCreateLoadBalancerRule(csCluster *infrav1.CloudStackCluste
 	}
 
 	p := c.cs.LoadBalancer.NewCreateLoadBalancerRuleParams(
-		"roundrobin", "Kubernetes_API_Server", K8sDefaultAPIPort, K8sDefaultAPIPort)
+		"roundrobin", "Kubernetes_API_Server", k8sDefaultAPIPort, k8sDefaultAPIPort)
 	p.SetNetworkid(csCluster.Status.NetworkID)
 	if csCluster.Spec.ControlPlaneEndpoint.Port != 0 { // Override default public port if endpoint port specified.
 		p.SetPublicport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
 	}
 	p.SetPublicipid(csCluster.Status.PublicIPID)
-	p.SetProtocol(NetworkProtocolTCP)
+	p.SetProtocol(networkProtocolTCP)
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	resp, err := c.cs.LoadBalancer.CreateLoadBalancerRule(p)

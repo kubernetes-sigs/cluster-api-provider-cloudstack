@@ -32,8 +32,13 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-const antiAffinityValue = "anti"
+const (
+	antiAffinityGroupType = "host anti-affinity"
+	affinityGroupType     = "host affinity"
+	antiAffinityValue     = "anti"
+)
 
+// VMIface contains the collection of functions for get/create/delete a VM instance
 type VMIface interface {
 	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
@@ -160,7 +165,7 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
-	compressedAndEncodedUserData, err := CompressAndEncodeString(userData)
+	compressedAndEncodedUserData, err := compressAndEncodeString(userData)
 	if err != nil {
 		return err
 	}
@@ -211,9 +216,9 @@ func (c *client) getAffinityGroupIDs(
 
 	affinity := strings.ToLower(csMachine.Spec.Affinity)
 	if affinity != "no" && affinity != "" {
-		affinityType := AffinityGroupType
+		affinityType := affinityGroupType
 		if affinity == antiAffinityValue {
-			affinityType = AntiAffinityGroupType
+			affinityType = antiAffinityGroupType
 		}
 		name, err := csMachine.AffinityGroupName(capiMachine)
 		if err != nil {
