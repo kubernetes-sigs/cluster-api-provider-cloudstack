@@ -87,7 +87,7 @@ var _ = Describe("Network", func() {
 		createTagsParams := &cloudstack.CreateTagsParams{}
 		rs.EXPECT().NewListTagsParams().Return(listTagsParams)
 		rs.EXPECT().ListTags(listTagsParams).Return(&cloudstack.ListTagsResponse{}, nil)
-		rs.EXPECT().NewCreateTagsParams([]string{networkID}, cloud.ResourceTypeNetwork, gomock.Any()).Return(createTagsParams)
+		rs.EXPECT().NewCreateTagsParams([]string{networkID}, string(cloud.ResourceTypeNetwork), gomock.Any()).Return(createTagsParams)
 		rs.EXPECT().CreateTags(createTagsParams).Return(&cloudstack.CreateTagsResponse{}, nil)
 	}
 
@@ -183,7 +183,7 @@ var _ = Describe("Network", func() {
 			Ω(csCluster.Status.LBRuleID).Should(Equal(lbRuleID))
 		})
 
-		It("doesn't create a new load blancer rule on create", func() {
+		It("doesn't create a new load balancer rule on create", func() {
 			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).
 				Return(&cloudstack.ListLoadBalancerRulesResponse{
