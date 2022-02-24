@@ -89,7 +89,7 @@ run: generate-deepcopy fmt vet ## Run a controller from your host.
 # Using a flag file here as docker build doesn't produce a target file.
 DOCKER_BUILD_INPUTS=$(MANAGER_BIN_INPUTS) Dockerfile
 .PHONY: docker-build
-docker-build: .dockerflag.mk ## Build docker image containing the controller manager.
+docker-build: build-for-docker .dockerflag.mk ## Build docker image containing the controller manager.
 .dockerflag.mk: $(DOCKER_BUILD_INPUTS)
 	docker build -t ${IMG} .
 	@touch .dockerflag.mk
@@ -109,9 +109,10 @@ vet: ## Run go vet on the whole project.
 	go vet ./...
 
 .PHONY: lint
-lint: bin/golangci-lint generate-mocks ## Run linting for the project.
+lint: bin/golangci-lint bin/golint generate-mocks ## Run linting for the project.
 	go fmt ./...
 	go vet ./...
+	golint ./...
 	golangci-lint run -v --timeout 360s ./...
 	@ # The below string of commands checks that ginkgo isn't present in the controllers.
 	@(grep ginkgo ${PROJECT_DIR}/controllers/cloudstack*_controller.go && \
@@ -141,6 +142,8 @@ bin/ginkgo: ## Install ginkgo to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/ginkgo@v1.16.5
 bin/mockgen:
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golang/mock/mockgen@v1.6.0
+bin/golint:
+	GOBIN=$(PROJECT_DIR)/bin go install golang.org/x/lint/golint
 bin/kustomize: ## Install kustomize to bin.
 	@mkdir -p bin
 	cd bin && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
