@@ -1,5 +1,6 @@
 # Image URL to use all building/pushing image targets
 IMG ?= public.ecr.aws/a4z9h2b1/cluster-api-provider-capc:latest
+IMG_LOCAL ?= localhost:5000/cluster-api-provider-cloudstack:latest
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -43,6 +44,11 @@ all: build
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
+ MANIFEST_GEN_INPUTS=$(shell find ./api ./controllers -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
+ 
+# Using a flag file here as config output is too complicated to be a target.
+# The following triggers manifest building if $(IMG) differs from that found in config/default/manager_image_patch.yaml.
+$(shell	grep -qs "$(IMG)" config/default/manager_image_patch_edited.yaml || rm -f config/.flag.mk)
 .PHONY: manifests
 manifests: config/.flag.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
 config/.flag.mk: bin/controller-gen $(MANIFEST_GEN_INPUTS)
@@ -180,15 +186,36 @@ pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -p
 ##@ Tilt
 
 .PHONY: tilt-up 
-tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests cloud-config # Setup and run tilt for development.
+tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests cloud-config ## Setup and run tilt for development.
 	export CLOUDSTACK_B64ENCODED_SECRET=$$(base64 -w0 -i cloud-config 2>/dev/null || base64 -b 0 -i cloud-config) && cd cluster-api && tilt up
 
 .PHONY: kind-cluster
-kind-cluster: cluster-api # Create a kind cluster with a local Docker repository.
+kind-cluster: cluster-api ## Create a kind cluster with a local Docker repository.
 	-./cluster-api/hack/kind-install-for-capd.sh
 
-cluster-api: # Clone cluster-api repository for tilt use.
+cluster-api: ## Clone cluster-api repository for tilt use.
 	git clone --branch v1.0.0 https://github.com/kubernetes-sigs/cluster-api.git
 
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
+
+##@ End-to-End Testing
+
+CLOUDSTACK_TEMPLATES := $(PROJECT_DIR)/test/e2e/data/infrastructure-cloudstack/v1beta1/
+CLUSTER_TEMPLATES_INPUTS=$(shell find $(CLOUDSTACK_TEMPLATES) -type d -name "cluster*")
+e2e-cluster-templates: bin/kustomize $(CLOUDSTACK_TEMPLATES)/.templateflag.mk ## Generate cluster template files for e2e testing.
+$(CLOUDSTACK_TEMPLATES)/.templateflag.mk: $(CLUSTER_TEMPLATES_INPUTS)
+	$(shell find $(CLOUDSTACK_TEMPLATES) -type d -name "cluster*" -exec bash -c "bin/kustomize build --load-restrictor LoadRestrictionsNone {} > {}.yaml" \;)
+	@touch $(CLOUDSTACK_TEMPLATES)/.templateflag.mk
+
+e2e-essentials: bin/ginkgo manifests e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
+	IMG=$(IMG_LOCAL) make docker-build docker-push
+
+JOB ?= .*
+run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
+	cd test/e2e && \
+	ginkgo -v -trace -tags=e2e -focus=$(JOB) -nodes=1 --noColor=false ./... -- \
+	    -e2e.artifacts-folder=${PROJECT_DIR}/_artifacts \
+	    -e2e.config=${PROJECT_DIR}/test/e2e/config/cloudstack.yaml \
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	kind delete clusters capi-test
