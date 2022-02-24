@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cloud
+package cloud_test
 
 import (
 	"fmt"
@@ -22,6 +22,7 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,7 +31,7 @@ import (
 
 var _ = Describe("Cluster", func() {
 	var (
-		client     Client
+		client     cloud.Client
 		mockCtrl   *gomock.Controller
 		mockClient *cloudstack.CloudStackClient
 		zs         *cloudstack.MockZoneServiceIface
@@ -44,7 +45,7 @@ var _ = Describe("Cluster", func() {
 		zs = mockClient.Zone.(*cloudstack.MockZoneServiceIface)
 		ds = mockClient.Domain.(*cloudstack.MockDomainServiceIface)
 		ns = mockClient.Network.(*cloudstack.MockNetworkServiceIface)
-		client = NewClientFromCSAPIClient(mockClient)
+		client = cloud.NewClientFromCSAPIClient(mockClient)
 	})
 
 	AfterEach(func() {

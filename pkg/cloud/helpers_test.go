@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud
+package cloud_test
 
 import (
 	"bytes"
@@ -25,6 +25,7 @@ import (
 	"path"
 	"reflect"
 
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -41,7 +42,7 @@ var _ = Describe("Helpers", func() {
 		It("Gets API configuration", func() {
 			filepath := getConfigPath("cloud-config-no-global")
 
-			client, err := NewClient(filepath)
+			client, err := cloud.NewClient(filepath)
 
 			Ω(client).Should(BeNil())
 			Ω(err.Error()).Should(ContainSubstring("section Global not found"))
@@ -51,7 +52,7 @@ var _ = Describe("Helpers", func() {
 	It("should compress and encode string", func() {
 		str := "Hello World"
 
-		compressedAndEncodedData, err := compressAndEncodeString(str)
+		compressedAndEncodedData, err := cloud.CompressAndEncodeString(str)
 
 		compressedData, _ := base64.StdEncoding.DecodeString(compressedAndEncodedData)
 		reader, _ := gzip.NewReader(bytes.NewReader(compressedData))

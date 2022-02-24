@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cloud
+package cloud_test
 
 import (
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,7 +39,7 @@ var _ = Describe("Network", func() {
 		lbs        *cloudstack.MockLoadBalancerServiceIface
 		rs         *cloudstack.MockResourcetagsServiceIface
 		csCluster  *infrav1.CloudStackCluster
-		client     Client
+		client     cloud.Client
 	)
 
 	const (
@@ -61,7 +62,7 @@ var _ = Describe("Network", func() {
 		as = mockClient.Address.(*cloudstack.MockAddressServiceIface)
 		lbs = mockClient.LoadBalancer.(*cloudstack.MockLoadBalancerServiceIface)
 		rs = mockClient.Resourcetags.(*cloudstack.MockResourcetagsServiceIface)
-		client = NewClientFromCSAPIClient(mockClient)
+		client = cloud.NewClientFromCSAPIClient(mockClient)
 
 		// Reset csCluster.
 		csCluster = &infrav1.CloudStackCluster{

@@ -165,7 +165,7 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
-	compressedAndEncodedUserData, err := compressAndEncodeString(userData)
+	compressedAndEncodedUserData, err := CompressAndEncodeString(userData)
 	if err != nil {
 		return err
 	}
