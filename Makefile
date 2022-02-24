@@ -208,8 +208,8 @@ $(CLOUDSTACK_TEMPLATES)/.templateflag.mk: $(CLUSTER_TEMPLATES_INPUTS)
 	$(shell find $(CLOUDSTACK_TEMPLATES) -type d -name "cluster*" -exec bash -c "bin/kustomize build --load-restrictor LoadRestrictionsNone {} > {}.yaml" \;)
 	@touch $(CLOUDSTACK_TEMPLATES)/.templateflag.mk
 
-e2e-essentials: bin/ginkgo manifests e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
-	IMG=$(IMG_LOCAL) make docker-build docker-push
+e2e-essentials: bin/ginkgo e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
+	IMG=$(IMG_LOCAL) make manifests docker-build docker-push
 
 JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
