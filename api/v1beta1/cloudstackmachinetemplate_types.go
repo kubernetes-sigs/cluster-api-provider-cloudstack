@@ -20,16 +20,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CloudStackMachineTemplateResource defines the desired spec of CloudStackMachine
+// CloudStackMachineTemplateResource defines the desired spec of CloudStackMachine.
 type CloudStackMachineTemplateResource struct {
 	// Standard object's metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata.
 	// +optional
 	ObjectMeta metav1.ObjectMeta     `json:"metadata,omitempty"`
 	Spec       CloudStackMachineSpec `json:"spec"`
 }
 
-// CloudStackMachineTemplateSpec defines the desired state of CloudStackMachineTemplate
+// CloudStackMachineTemplateSpec defines the desired state of CloudStackMachineTemplate.
 type CloudStackMachineTemplateSpec struct {
 	Spec CloudStackMachineTemplateResource `json:"template"`
 }
@@ -37,7 +37,7 @@ type CloudStackMachineTemplateSpec struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// CloudStackMachineTemplate is the Schema for the cloudstackmachinetemplates API
+// CloudStackMachineTemplate is the Schema for the cloudstackmachinetemplates API.
 type CloudStackMachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -47,7 +47,7 @@ type CloudStackMachineTemplate struct {
 
 //+kubebuilder:object:root=true
 
-// CloudStackMachineTemplateList contains a list of CloudStackMachineTemplate
+// CloudStackMachineTemplateList contains a list of CloudStackMachineTemplate.
 type CloudStackMachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

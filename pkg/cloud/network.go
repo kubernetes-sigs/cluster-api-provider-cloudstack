@@ -33,13 +33,13 @@ const (
 )
 
 const (
-	// NetworkTypeIsolated defines isolated network type
+	// NetworkTypeIsolated defines isolated network type.
 	NetworkTypeIsolated = "Isolated"
-	// NetworkTypeShared defines shared network type
+	// NetworkTypeShared defines shared network type.
 	NetworkTypeShared = "Shared"
 )
 
-// NetworkIface contains the collection of functions for network
+// NetworkIface contains the collection of functions for network.
 type NetworkIface interface {
 	ResolveNetwork(*infrav1.CloudStackCluster) error
 	GetOrCreateNetwork(*infrav1.CloudStackCluster) error

@@ -30,7 +30,7 @@ func setIfNotEmpty(str string, setFn set) {
 	}
 }
 
-// CompressAndEncodeString compresses and encodes a string
+// CompressAndEncodeString compresses and encodes a string.
 func CompressAndEncodeString(str string) (string, error) {
 	buf := &bytes.Buffer{}
 	gzipWriter := gzip.NewWriter(buf)

@@ -38,7 +38,7 @@ const (
 	antiAffinityValue     = "anti"
 )
 
-// VMIface contains the collection of functions for get/create/delete a VM instance
+// VMIface contains the collection of functions for get/create/delete a VM instance.
 type VMIface interface {
 	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
@@ -72,7 +72,7 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 
 	// Attempt fetch by name.
 	if csMachine.Name != "" {
-		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name) // add opts usage
+		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name) // add opts usage.
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match") {
 			return err
 		} else if count > 1 {

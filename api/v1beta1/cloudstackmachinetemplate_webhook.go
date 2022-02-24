@@ -33,7 +33,7 @@ import (
 // log is for logging in this package.
 var cloudstackmachinetemplatelog = logf.Log.WithName("cloudstackmachinetemplate-resource")
 
-// SetupWebhookWithManager creates a new webhook managed by passed manager
+// SetupWebhookWithManager creates a new webhook managed by passed manager.
 func (r *CloudStackMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -43,7 +43,7 @@ func (r *CloudStackMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) er
 //+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackmachinetemplate,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta1,name=mcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta1
 var _ webhook.Defaulter = &CloudStackMachineTemplate{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (r *CloudStackMachineTemplate) Default() {
 	cloudstackmachinetemplatelog.Info("default", "name", r.Name)
 	// No defaulted values supported yet.
@@ -53,13 +53,13 @@ func (r *CloudStackMachineTemplate) Default() {
 
 var _ webhook.Validator = &CloudStackMachineTemplate{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *CloudStackMachineTemplate) ValidateCreate() error {
 	cloudstackmachinetemplatelog.Info("validate create", "name", r.Name)
 
 	var (
 		errorList field.ErrorList
-		spec      = r.Spec.Spec.Spec // CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
+		spec      = r.Spec.Spec.Spec // CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec.
 	)
 
 	// IdentityRefs must be Secrets.
@@ -83,13 +83,13 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	cloudstackmachinetemplatelog.Info("validate update", "name", r.Name)
 
 	var (
 		errorList field.ErrorList
-		spec      = r.Spec.Spec.Spec // CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
+		spec      = r.Spec.Spec.Spec // CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec.
 	)
 
 	oldMachineTemplate, ok := old.(*CloudStackMachineTemplate)
@@ -119,7 +119,7 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *CloudStackMachineTemplate) ValidateDelete() error {
 	cloudstackmachinetemplatelog.Info("validate delete", "name", r.Name)
 	// No deletion validations.  Deletion webhook not enabled.

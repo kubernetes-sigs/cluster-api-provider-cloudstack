@@ -27,10 +27,10 @@ const (
 	defaultIdentityRefKind = "Secret"
 )
 
-// CloudStackIdentityReference is a reference to an infrastructure
+// CloudStackIdentityReference is a reference to an infrastructure.
 // provider identity to be used to provision cluster resources.
 type CloudStackIdentityReference struct {
-	// Kind of the identity. Must be supported by the infrastructure provider
+	// Kind of the identity. Must be supported by the infrastructure provider.
 	// and may be either cluster or namespace-scoped.
 	// +kubebuilder:validation:MinLength=1
 	Kind string `json:"kind"`
@@ -90,7 +90,7 @@ type CloudStackClusterStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// CloudStackCluster is the Schema for the cloudstackclusters API
+// CloudStackCluster is the Schema for the cloudstackclusters API.
 type CloudStackCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -103,7 +103,7 @@ type CloudStackCluster struct {
 
 //+kubebuilder:object:root=true
 
-// CloudStackClusterList contains a list of CloudStackCluster
+// CloudStackClusterList contains a list of CloudStackCluster.
 type CloudStackClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

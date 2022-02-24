@@ -32,7 +32,7 @@ import (
 // log is for logging in this package.
 var cloudstackmachinelog = logf.Log.WithName("cloudstackmachine-resource")
 
-// SetupWebhookWithManager creates a new webhook managed by passed manager
+// SetupWebhookWithManager creates a new webhook managed by passed manager.
 func (r *CloudStackMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -43,7 +43,7 @@ func (r *CloudStackMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 var _ webhook.Defaulter = &CloudStackMachine{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (r *CloudStackMachine) Default() {
 	cloudstackmachinelog.Info("default", "name", r.Name)
 	// No defaulted values supported yet.
@@ -53,7 +53,7 @@ func (r *CloudStackMachine) Default() {
 
 var _ webhook.Validator = &CloudStackMachine{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *CloudStackMachine) ValidateCreate() error {
 	cloudstackmachinelog.Info("validate create", "name", r.Name)
 
@@ -70,7 +70,7 @@ func (r *CloudStackMachine) ValidateCreate() error {
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	cloudstackmachinelog.Info("validate update", "name", r.Name)
 
@@ -101,7 +101,7 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *CloudStackMachine) ValidateDelete() error {
 	cloudstackmachinelog.Info("validate delete", "name", r.Name)
 	// No deletion validations.  Deletion webhook not enabled.

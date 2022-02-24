@@ -162,16 +162,16 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				UpdateFunc: func(e event.UpdateEvent) bool {
 					oldCluster := e.ObjectOld.(*infrav1.CloudStackCluster).DeepCopy()
 					newCluster := e.ObjectNew.(*infrav1.CloudStackCluster).DeepCopy()
-					// Ignore resource version because they are unique
+					// Ignore resource version because they are unique.
 					oldCluster.ObjectMeta.ResourceVersion = ""
 					newCluster.ObjectMeta.ResourceVersion = ""
-					// Ignore finalizers updates
+					// Ignore finalizers updates.
 					oldCluster.ObjectMeta.Finalizers = nil
 					newCluster.ObjectMeta.Finalizers = nil
-					// Ignore ManagedFields because they are mirror of ObjectMeta
+					// Ignore ManagedFields because they are mirror of ObjectMeta.
 					oldCluster.ManagedFields = nil
 					newCluster.ManagedFields = nil
-					// Ignore incremental status updates
+					// Ignore incremental status updates.
 					oldCluster.Status = infrav1.CloudStackClusterStatus{}
 					newCluster.Status = infrav1.CloudStackClusterStatus{}
 

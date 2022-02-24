@@ -21,14 +21,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-// AffinityGroup type
+// AffinityGroup type.
 type AffinityGroup struct {
 	Type string
 	Name string
 	ID   string
 }
 
-// AffinityGroupIface contains the collection of functions for AffinityGroup
+// AffinityGroupIface contains the collection of functions for AffinityGroup.
 type AffinityGroupIface interface {
 	FetchAffinityGroup(*AffinityGroup) error
 	GetOrCreateAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error
@@ -41,7 +41,7 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 	if group.ID != "" {
 		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByID(group.ID)
 		if err != nil {
-			// handle via multierr
+			// handle via multierr.
 			return err
 		} else if count > 1 {
 			// handle via creating a new error.
@@ -55,7 +55,7 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 	if group.Name != "" {
 		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByName(group.Name)
 		if err != nil {
-			// handle via multierr
+			// handle via multierr.
 			return err
 		} else if count > 1 {
 			// handle via creating a new error.

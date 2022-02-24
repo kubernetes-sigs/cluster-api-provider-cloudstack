@@ -130,7 +130,7 @@ var _ = BeforeSuite(func() {
 		filepath.Join(root, "config", "crd", "bases"),
 	}
 
-	// Append CAPI CRDs path
+	// Append CAPI CRDs path.
 	if capiPath := getFilePathToCAPICRDs(root); capiPath != "" {
 		crdPaths = append(crdPaths, capiPath)
 	}

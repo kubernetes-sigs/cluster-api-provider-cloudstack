@@ -88,7 +88,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	// start webhook server using Manager
+	// start webhook server using Manager.
 	webhookInstallOptions := &testEnv.WebhookInstallOptions
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:             scheme,
@@ -117,7 +117,7 @@ var _ = BeforeSuite(func() {
 		Expect(err).NotTo(HaveOccurred())
 	}()
 
-	// wait for the webhook server to get ready
+	// wait for the webhook server to get ready.
 	dialer := &net.Dialer{Timeout: time.Second}
 	addrPort := fmt.Sprintf("%s:%d", webhookInstallOptions.LocalServingHost, webhookInstallOptions.LocalServingPort)
 	Eventually(func() error {

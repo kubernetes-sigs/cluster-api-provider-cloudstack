@@ -26,7 +26,7 @@ import (
 
 //go:generate mockgen -destination=../mocks/mock_client.go -package=mocks github.com/aws/cluster-api-provider-cloudstack/pkg/cloud Client
 
-// Client contains the collection of interfaces for CloudStack API
+// Client contains the collection of interfaces for CloudStack API.
 type Client interface {
 	ClusterIface
 	VMIface
@@ -48,7 +48,7 @@ type config struct {
 	VerifySSL bool   `ini:"verify-ssl"`
 }
 
-// NewClient creates the CloudStack client interface using the cloud-config file
+// NewClient creates the CloudStack client interface using the cloud-config file.
 func NewClient(ccPath string) (Client, error) {
 	c := &client{}
 	cfg := &config{VerifySSL: true}
@@ -69,7 +69,7 @@ func NewClient(ccPath string) (Client, error) {
 	return c, errors.Wrap(err, "Error encountered while checking CloudStack API Client connectivity.")
 }
 
-// NewClientFromCSAPIClient is used to test with a mock client
+// NewClientFromCSAPIClient is used to test with a mock client.
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
 	c := &client{cs: cs}
 	return c

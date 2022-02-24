@@ -31,7 +31,7 @@ import (
 // log is for logging in this package.
 var cloudstackclusterlog = logf.Log.WithName("cloudstackcluster-resource")
 
-// SetupWebhookWithManager creates a new webhook managed by passed manager
+// SetupWebhookWithManager creates a new webhook managed by passed manager.
 func (r *CloudStackCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
@@ -42,7 +42,7 @@ func (r *CloudStackCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 var _ webhook.Defaulter = &CloudStackCluster{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (r *CloudStackCluster) Default() {
 	cloudstackclusterlog.Info("default", "name", r.Name)
 	// No defaulted values supported yet.
@@ -52,7 +52,7 @@ func (r *CloudStackCluster) Default() {
 
 var _ webhook.Validator = &CloudStackCluster{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *CloudStackCluster) ValidateCreate() error {
 	cloudstackclusterlog.Info("validate create", "name", r.Name)
 
@@ -67,14 +67,14 @@ func (r *CloudStackCluster) ValidateCreate() error {
 		errorList = append(errorList, field.Required(field.NewPath("spec", "account"), "specifying account requires additionally specifying domain"))
 	}
 
-	// Zone and Network are required fields
+	// Zone and Network are required fields.
 	errorList = webhookutil.EnsureFieldExists(r.Spec.Zone, "Zone", errorList)
 	errorList = webhookutil.EnsureFieldExists(r.Spec.Network, "Network", errorList)
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	cloudstackclusterlog.Info("validate update", "name", r.Name)
 
@@ -94,7 +94,7 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
-	// No spec fields may be changed
+	// No spec fields may be changed.
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Zone, oldSpec.Zone, "zone", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Network, oldSpec.Network, "network", errorList)
 	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
@@ -111,7 +111,7 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *CloudStackCluster) ValidateDelete() error {
 	cloudstackclusterlog.Info("validate delete", "name", r.Name)
 	// No deletion validations.  Deletion webhook not enabled.

@@ -32,7 +32,7 @@ const (
 	MachineFinalizer = "cloudstackmachine.infrastructure.cluster.x-k8s.io"
 )
 
-// CloudStackMachineSpec defines the desired state of CloudStackMachine
+// CloudStackMachineSpec defines the desired state of CloudStackMachine.
 type CloudStackMachineSpec struct {
 	// Instance ID. Should only be useful to modify an existing instance.
 	InstanceID *string `json:"instanceID,omitempty"`
@@ -47,10 +47,10 @@ type CloudStackMachineSpec struct {
 	// +optional
 	SSHKey string `json:"sshKey"`
 
-	// Optional details map for deployVirtualMachine
+	// Optional details map for deployVirtualMachine.
 	Details map[string]string `json:"details,omitempty"`
 
-	// Optional affinitygroupids for deployVirtualMachine
+	// Optional affinitygroupids for deployVirtualMachine.
 	// +optional
 	AffinityGroupIds []string `json:"affinitygroupids,omitempty"`
 
@@ -59,11 +59,11 @@ type CloudStackMachineSpec struct {
 	// +optional
 	Affinity string `json:"affinity,omitempty"`
 
-	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine Id)
+	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine Id).
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
-	// IdentityRef is a reference to a identity to be used when reconciling this cluster
+	// IdentityRef is a reference to a identity to be used when reconciling this cluster.
 	// +optional
 	// +k8s:conversion-gen=false
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
@@ -92,7 +92,7 @@ type CloudStackMachineStatus struct {
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="CloudStack instance ID"
 // +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this CloudStackMachine"
 
-// CloudStackMachine is the Schema for the cloudstackmachines API
+// CloudStackMachine is the Schema for the cloudstackmachines API.
 type CloudStackMachine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -115,7 +115,7 @@ func (csm CloudStackMachine) AffinityGroupName(
 
 //+kubebuilder:object:root=true
 
-// CloudStackMachineList contains a list of CloudStackMachine
+// CloudStackMachineList contains a list of CloudStackMachine.
 type CloudStackMachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

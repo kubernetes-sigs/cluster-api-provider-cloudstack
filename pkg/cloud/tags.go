@@ -16,7 +16,7 @@ limitations under the License.
 
 package cloud
 
-// TagIface contains the collection of functions for add/get/delete tags to a network
+// TagIface contains the collection of functions for add/get/delete tags to a network.
 type TagIface interface {
 	AddNetworkTags(string, map[string]string) error
 	GetNetworkTags(string) (map[string]string, error)
@@ -52,7 +52,7 @@ func (c *client) GetNetworkTags(networkID string) (map[string]string, error) {
 	return tags, nil
 }
 
-// DeleteNetworkTags deletes matching tags from a network
+// DeleteNetworkTags deletes matching tags from a network.
 func (c *client) DeleteNetworkTags(networkID string, tagsToDelete map[string]string) error {
 	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{networkID}, resourceTypeNetwork)
 	p.SetTags(tagsToDelete)

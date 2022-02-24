@@ -46,7 +46,7 @@ import (
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// CloudStackMachineReconciler reconciles a CloudStackMachine object
+// CloudStackMachineReconciler reconciles a CloudStackMachine object.
 type CloudStackMachineReconciler struct {
 	client.Client
 	Log    logr.Logger
@@ -140,7 +140,7 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
-	// Reconcile a VM instance for creates/updates
+	// Reconcile a VM instance for creates/updates.
 	return r.reconcile(ctx, log, csMachine, capiMachine, csCluster)
 }
 
@@ -246,25 +246,25 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				UpdateFunc: func(e event.UpdateEvent) bool {
 					oldMachine := e.ObjectOld.(*infrav1.CloudStackMachine).DeepCopy()
 					newMachine := e.ObjectNew.(*infrav1.CloudStackMachine).DeepCopy()
-					// Ignore resource version because they are unique
+					// Ignore resource version because they are unique.
 					oldMachine.ObjectMeta.ResourceVersion = ""
 					newMachine.ObjectMeta.ResourceVersion = ""
-					// Ignore generation because it's not used in reconcile
+					// Ignore generation because it's not used in reconcile.
 					oldMachine.ObjectMeta.Generation = 0
 					newMachine.ObjectMeta.Generation = 0
-					// Ignore finalizers updates
+					// Ignore finalizers updates.
 					oldMachine.ObjectMeta.Finalizers = nil
 					newMachine.ObjectMeta.Finalizers = nil
-					// Ignore ManagedFields because they are mirror of ObjectMeta
+					// Ignore ManagedFields because they are mirror of ObjectMeta.
 					oldMachine.ManagedFields = nil
 					newMachine.ManagedFields = nil
-					// Ignore incremental status updates
+					// Ignore incremental status updates.
 					oldMachine.Status = infrav1.CloudStackMachineStatus{}
 					newMachine.Status = infrav1.CloudStackMachineStatus{}
-					// Ignore provide ID
+					// Ignore provide ID.
 					oldMachine.Spec.ProviderID = nil
 					newMachine.Spec.ProviderID = nil
-					// Ignore instance ID
+					// Ignore instance ID.
 					oldMachine.Spec.InstanceID = nil
 					newMachine.Spec.InstanceID = nil
 
@@ -295,7 +295,7 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	// Used below, this maps CAPI clusters to CAPC machines
+	// Used below, this maps CAPI clusters to CAPC machines.
 	csMachineMapper, err := util.ClusterToObjectsMapper(r.Client, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -319,7 +319,7 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	)
 }
 
-// RemoveManagedAffinity considers a machine's affinity management strategy and removes the created affinity group
+// RemoveManagedAffinity considers a machine's affinity management strategy and removes the created affinity group.
 // if it exists.
 func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 	log logr.Logger,
