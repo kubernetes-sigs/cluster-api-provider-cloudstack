@@ -22,13 +22,13 @@ import (
 )
 
 type TagIface interface {
-	AddClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster, addCreatedByCAPCTag bool) error
-	DeleteClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster) error
-	DeleteCreatedByCAPCTag(resourceType ResourceType, resourceID string) error
-	DoClusterTagsAllowDisposal(resourceType ResourceType, resourceID string) (bool, error)
-	AddTags(resourceType ResourceType, resourceID string, tags map[string]string) error
-	GetTags(resourceType ResourceType, resourceID string) (map[string]string, error)
-	DeleteTags(resourceType ResourceType, resourceID string, tagsToDelete map[string]string) error
+	AddClusterTag(ResourceType, string, *infrav1.CloudStackCluster, bool) error
+	DeleteClusterTag(ResourceType, string, *infrav1.CloudStackCluster) error
+	DeleteCreatedByCAPCTag(ResourceType, string) error
+	DoClusterTagsAllowDisposal(ResourceType, string) (bool, error)
+	AddTags(ResourceType, string, map[string]string) error
+	GetTags(ResourceType, string) (map[string]string, error)
+	DeleteTags(ResourceType, string, map[string]string) error
 }
 
 type ResourceType string
@@ -40,6 +40,8 @@ const (
 	ResourceTypeIPAddress ResourceType = "PublicIpAddress"
 )
 
+// AddClusterTag adds cluster-related tags to a resource.  One tag indicates that the resource is used by a given
+// cluster. The other tag, if applied, indicates that CAPC created the resource and may dispose of it later.
 func (c *client) AddClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster, addCreatedByCAPCTag bool) error {
 	clusterTagName := generateClusterTagName(csCluster)
 	newTags := map[string]string{}
@@ -64,6 +66,7 @@ func (c *client) AddClusterTag(resourceType ResourceType, resourceID string, csC
 	return nil
 }
 
+// DeleteClusterTag deletes the tag that associates the resource with a given cluster.
 func (c *client) DeleteClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster) error {
 	tags, err := c.GetTags(resourceType, resourceID)
 	if err != nil {
@@ -78,6 +81,8 @@ func (c *client) DeleteClusterTag(resourceType ResourceType, resourceID string, 
 	return nil
 }
 
+// DeleteCreatedByCAPCTag deletes the tag that indicates that the resource was created by CAPC.  This is useful when a
+// resource is disassociated instead of deleted.  That way the tag won't cause confusion if the resource is reused later.
 func (c *client) DeleteCreatedByCAPCTag(resourceType ResourceType, resourceID string) error {
 	tags, err := c.GetTags(resourceType, resourceID)
 	if err != nil {
@@ -91,6 +96,8 @@ func (c *client) DeleteCreatedByCAPCTag(resourceType ResourceType, resourceID st
 	return nil
 }
 
+// DoClusterTagsAllowDisposal checks to see if the resource is in a state that makes it eligible for disposal.  CAPC can
+// dispose of a resource if the tags show it was created by CAPC and isn't being used by any clusters.
 func (c *client) DoClusterTagsAllowDisposal(resourceType ResourceType, resourceID string) (bool, error) {
 	tags, err := c.GetTags(resourceType, resourceID)
 	if err != nil {
@@ -107,12 +114,14 @@ func (c *client) DoClusterTagsAllowDisposal(resourceType ResourceType, resourceI
 	return clusterTagCount == 0 && tags[createdByCAPCTagName] != "", nil
 }
 
+// AddTags adds arbitrary tags to a resource.
 func (c *client) AddTags(resourceType ResourceType, resourceID string, tags map[string]string) error {
 	p := c.cs.Resourcetags.NewCreateTagsParams([]string{resourceID}, string(resourceType), tags)
 	_, err := c.cs.Resourcetags.CreateTags(p)
 	return err
 }
 
+// GetTags gets all of a resource's tags.
 func (c *client) GetTags(resourceType ResourceType, resourceID string) (map[string]string, error) {
 	p := c.cs.Resourcetags.NewListTagsParams()
 	p.SetResourceid(resourceID)
@@ -128,6 +137,8 @@ func (c *client) GetTags(resourceType ResourceType, resourceID string) (map[stri
 	return tags, nil
 }
 
+// DeleteTags deletes the given tags from a resource.   If the tags don't exist, or if the values don't match, it will
+// result in an error.
 func (c *client) DeleteTags(resourceType ResourceType, resourceID string, tagsToDelete map[string]string) error {
 	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{resourceID}, string(resourceType))
 	p.SetTags(tagsToDelete)

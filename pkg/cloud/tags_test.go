@@ -82,7 +82,7 @@ var _ = Describe("Tag Unit Tests", func() {
 			}
 		})
 
-		It("Adds and gets a resource tag", func() {
+		It("adds and gets a resource tag", func() {
 			Ω(client.AddTags(cloud.ResourceTypeNetwork, networkID, testTags)).Should(Succeed())
 			tags, err := client.GetTags(cloud.ResourceTypeNetwork, networkID)
 			Ω(err).Should(BeNil())
@@ -95,6 +95,10 @@ var _ = Describe("Tag Unit Tests", func() {
 			remainingTags, err := client.GetTags(cloud.ResourceTypeNetwork, networkID)
 			Ω(err).Should(BeNil())
 			Ω(remainingTags[tagKey]).Should(Equal(""))
+		})
+
+		It("returns an error when you delete a tag that doesn't exist", func() {
+			Ω(client.DeleteTags(cloud.ResourceTypeNetwork, networkID, testTags)).ShouldNot(Succeed())
 		})
 
 		It("adds the tags for a cluster (resource created by CAPC)", func() {
