@@ -201,12 +201,12 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 
 ##@ End-to-End Testing
 
-CLOUDSTACK_TEMPLATES := $(PROJECT_DIR)/test/e2e/data/infrastructure-cloudstack/v1beta1/
-CLUSTER_TEMPLATES_INPUTS=$(shell find $(CLOUDSTACK_TEMPLATES) -type d -name "cluster*")
-e2e-cluster-templates: bin/kustomize $(CLOUDSTACK_TEMPLATES)/.templateflag.mk ## Generate cluster template files for e2e testing.
-$(CLOUDSTACK_TEMPLATES)/.templateflag.mk: $(CLUSTER_TEMPLATES_INPUTS)
-	$(shell find $(CLOUDSTACK_TEMPLATES) -type d -name "cluster*" -exec bash -c "bin/kustomize build --load-restrictor LoadRestrictionsNone {} > {}.yaml" \;)
-	@touch $(CLOUDSTACK_TEMPLATES)/.templateflag.mk
+CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/*/cluster-template*/* -type f)
+CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)
+.PHONY: cluster-templates
+cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster template files for e2e testing.
+cluster-template%yaml: bin/kustomize $(CLUSTER_TEMPLATES_INPUT_FILES)
+	kustomize build --load-restrictor LoadRestrictionsNone $(basename $@) > $@
 
 e2e-essentials: bin/ginkgo e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
 	IMG=$(IMG_LOCAL) make manifests docker-build docker-push
