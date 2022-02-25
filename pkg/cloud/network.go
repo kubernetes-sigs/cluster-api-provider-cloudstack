@@ -33,6 +33,7 @@ type NetworkIface interface {
 	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
 	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
 	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
+	GetOrCreateIsolatedNetwork(*infrav1.CloudStackCluster) error
 }
 
 const (
@@ -48,11 +49,13 @@ const (
 // usesIsolatedNetwork returns true if this cluster is specs an isolated network.
 // Assumes that the a fetch has been done on network statuses prior.
 func usesIsolatedNetwork(csCluster *infrav1.CloudStackCluster) bool {
-	firstNetStatus := csCluster.Status.Zones[csCluster.Spec.Zones[0].Network.Name].Network
 	// Check for Isolated network use case.
 	if len(csCluster.Spec.Zones) == 1 { // Where the only specced network
-		if firstNetStatus.Type == "" || // doesn't exist or
-			firstNetStatus.Type == NetworkTypeIsolated { // exists and is an isolated network.
+		zoneStatus := infrav1.Zone{}
+		for _, zoneStatus = range csCluster.Status.Zones {
+		}
+		if zoneStatus.Network.Type == "" || // doesn't exist or
+			zoneStatus.Network.Type == NetworkTypeIsolated { // exists and is an isolated network.
 			return true
 		}
 	}
@@ -71,24 +74,26 @@ func networkExists(net infrav1.Network) bool {
 // ResolveNetworks fetches networks' Id, Name, and Type.
 func (c *client) ResolveNetwork(csCluster *infrav1.CloudStackCluster, net *infrav1.Network) (retErr error) {
 	netName := net.Name
-	netId, count, err := c.cs.Network.GetNetworkID(netName)
+	netDetails, count, err := c.cs.Network.GetNetworkByName(netName)
 	if err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "Could not get Network ID from %s.", netName))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
 			"Expected 1 Network with name %s, but got %d.", netName, count))
 	} else { // Got netId from the network's name.
-		netId = net.Id
+		net.Id = netDetails.Id
+		net.Type = netDetails.Type
+		return nil
 	}
 
 	// Now get network details.
-	netDetails, count, err := c.cs.Network.GetNetworkByID(netId)
+	netDetails, count, err = c.cs.Network.GetNetworkByID(net.Id)
 	if err != nil {
 		return multierror.Append(retErr, errors.Wrapf(
-			err, "Could not get Network by ID %s.", netId))
+			err, "Could not get Network by ID %s.", net.Id))
 	} else if count != 1 {
 		return multierror.Append(retErr, errors.Errorf(
-			"Expected 1 Network with UUID %s, but got %d.", netId, count))
+			"Expected 1 Network with UUID %s, but got %d.", net.Id, count))
 	}
 	net.Name = netDetails.Name
 	net.Id = netDetails.Id
@@ -155,10 +160,11 @@ func (c *client) ResolveNetworkStatuses(csCluster *infrav1.CloudStackCluster) (r
 	}
 
 	// At this point network status should have been populated (copied) from the spec.
-	for _, zoneStatus := range csCluster.Status.Zones {
+	for zoneName, zoneStatus := range csCluster.Status.Zones {
 		if retErr = c.ResolveNetwork(csCluster, &zoneStatus.Network); retErr == nil { // Found network
+			csCluster.Status.Zones[zoneName] = zoneStatus
+			//zone.Network = zoneStatus.DeepCopy().Network
 			c.addClusterTags(csCluster, zoneStatus.Network, doNotAddCreatedByTag)
-			continue
 		} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
 			return retErr
 		} // Network not found, so create it.
@@ -361,4 +367,22 @@ func (c *client) AssignVMToLoadBalancerRule(csCluster *infrav1.CloudStackCluster
 	p.SetVirtualmachineids([]string{instanceID})
 	_, retErr = c.cs.LoadBalancer.AssignToLoadBalancerRule(p)
 	return retErr
+}
+
+// GetOrCreateIsolatedNetwork fetches or builds out the necessary structures for isolated network use.
+func (c *client) GetOrCreateIsolatedNetwork(csCluster *infrav1.CloudStackCluster) error {
+	onlyNetStatus := csCluster.Status.Zones[csCluster.Spec.Zones[0].Network.Name].Network
+	if !networkExists(onlyNetStatus) { // create isolated network.
+
+	}
+
+	if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
+		if err := c.AssociatePublicIpAddress(csCluster); err != nil {
+			return err
+		}
+	}
+	if err := c.GetOrCreateLoadBalancerRule(csCluster); err != nil {
+		return err
+	}
+	return nil
 }

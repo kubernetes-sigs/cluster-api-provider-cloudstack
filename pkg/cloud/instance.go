@@ -203,7 +203,7 @@ func (c *client) GetOrCreateVMInstance(
 
 	// If this VM instance is a control plane, consider setting its IP.
 	_, isControlPlanceMachine := capiMachine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
-	if isControlPlanceMachine && zone.Network.Type == NetworkTypeShared {
+	if isControlPlanceMachine && zone.Network.Type == NetworkTypeIsolated {
 		// If the specified control plane endpoint is an IP address, specify the IP address of this VM instance.
 		if net.ParseIP(csCluster.Spec.ControlPlaneEndpoint.Host) != nil {
 			p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)

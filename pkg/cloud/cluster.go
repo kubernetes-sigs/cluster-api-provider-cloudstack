@@ -20,6 +20,7 @@ import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 type ClusterIface interface {
@@ -63,6 +64,11 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		return errors.Wrapf(retErr, "Error resolving Zone details for Cluster %s.", csCluster.Name)
 	}
 
+	csCluster.Status.FailureDomains = capiv1.FailureDomains{}
+	for _, zone := range csCluster.Status.Zones {
+		csCluster.Status.FailureDomains[zone.Id] = capiv1.FailureDomainSpec{ControlPlane: true}
+	}
+
 	// If provided, translate Domain name to Domain ID.
 	if csCluster.Spec.Domain != "" {
 		domainID, count, retErr := c.cs.Domain.GetDomainID(csCluster.Spec.Domain)
@@ -82,20 +88,9 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 	}
 
 	if usesIsolatedNetwork(csCluster) {
-		onlyNetStatus := csCluster.Status.Zones[csCluster.Spec.Zones[0].Network.Name].Network
-		if !networkExists(onlyNetStatus) { // create isolated network.
-
-		}
-
-		if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
-			if retErr = c.AssociatePublicIpAddress(csCluster); retErr != nil {
-				return retErr
-			}
-		}
-		if retErr = c.GetOrCreateLoadBalancerRule(csCluster); retErr != nil {
-			return retErr
-		}
+		c.GetOrCreateIsolatedNetwork(csCluster)
 	}
+
 	return nil
 }
 
