@@ -136,12 +136,7 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 	}
 
-	// TODO: get zone from capi machine.
-	var zone infrav1.Zone
-	for _, theZone := range csCluster.Status.Zones { // Ugly way to get the only Zone.
-		zone = theZone
-	}
-	if zone.Id == "" {
+	if capiMachine.Spec.FailureDomain != nil && *capiMachine.Spec.FailureDomain == "" {
 		log.Info("CloudStackCluster ZoneId not initialized. Likely not ready.")
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
@@ -159,6 +154,15 @@ func (r *CloudStackMachineReconciler) reconcile(
 	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
 
 	log.V(1).Info("reconcile CloudStackMachine")
+
+	zoneId := capiMachine.Spec.FailureDomain
+	zone := infrav1.Zone{}
+	for _, zoneStatus := range csCluster.Status.Zones {
+		if zoneId == &zoneStatus.Id {
+			zone = zoneStatus
+			break
+		}
+	}
 
 	// Make sure bootstrap data is available in CAPI machine.
 	if capiMachine.Spec.Bootstrap.DataSecretName == nil {
@@ -193,7 +197,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 		csMachine.Status.Ready = true
 	} else if csMachine.Status.InstanceState == "Error" {
 		log.Info("CloudStackMachine VM in error state.  Deleting associated Machine.", "csMachine", csMachine)
-		if err := r.Client.Delete(ctx, capiMachine); err != nil {
+		if err := r.Client.Delete(ctx, csMachine); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
@@ -202,15 +206,11 @@ func (r *CloudStackMachineReconciler) reconcile(
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
-	if len(csCluster.Spec.Zones) == 1 {
-		for _, zone := range csCluster.Status.Zones { // Ugly way to get the only Zone.
-			if util.IsControlPlaneMachine(capiMachine) && zone.Network.Type == cloud.NetworkTypeIsolated {
-				log.Info("Assigning VM to load balancer rule.")
-				err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-			}
+	if util.IsControlPlaneMachine(capiMachine) && zone.Network.Type == cloud.NetworkTypeIsolated {
+		log.Info("Assigning VM to load balancer rule.")
+		err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
