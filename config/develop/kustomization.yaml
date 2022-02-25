@@ -1,0 +1,12 @@
+namespace: capc-system
+bases:
+- ../default
+patchesStrategicMerge:
+- insecure_manager.yaml
+
+patches:
+- path: manager_open_debug_port.yaml
+  target:
+    kind: Deployment
+    name: controller-manager
+    namespace: system
