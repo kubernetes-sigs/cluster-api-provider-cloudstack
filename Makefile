@@ -203,8 +203,8 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 
 CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/*/cluster-template*/* -type f)
 CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)
-.PHONY: cluster-templates
-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster template files for e2e testing.
+.PHONY: e2e-cluster-templates
+e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster template files for e2e testing.
 cluster-template%yaml: bin/kustomize $(CLUSTER_TEMPLATES_INPUT_FILES)
 	kustomize build --load-restrictor LoadRestrictionsNone $(basename $@) > $@
 
