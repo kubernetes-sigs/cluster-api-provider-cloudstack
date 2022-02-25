@@ -40,9 +40,10 @@ You also have to export `CLOUDSTACK_B64ENCODED_SECRET` environment variable usin
 api-key    = XXXXX
 secret-key = XXXXX
 api-url    = http://192.168.1.96:8080/client/api
+verify-ssl = true or false
 ```
 
-The api-key and secret-key can be found or generated at Home > Accounts > admin > Users > admin of the ACS management UI. 
+The api-key and secret-key can be found or generated at Home > Accounts > admin > Users > admin of the ACS management UI. `verify-ssl` is an optional flag and its default value is true. CAPC skips verifying the host SSL certificates when the flag is set to false.
 
 ### Running the e2e tests
 
@@ -51,14 +52,12 @@ Run the following command to execute the CAPC e2e tests:
 ```shell
 make run-e2e
 ```
-This command runs all e2e test cases except k8s conformance testing
+This command runs all e2e test cases.
+
+You can specify JOB environment variable which value is a regular expression to select test cases to execute. 
+For example, 
 
 ```shell
-make run-e2e-pr-blocking
+JOB=PR-Blocking make run
 ```
-This command runs the quick e2e tests for the sanity checks
-
-```shell
-make run-conformance
-```
-This command runs the k8s conformance testing
+This command runs the e2e tests that contains `PR-Blocking` in their spec names. 
