@@ -18,14 +18,20 @@ package e2e
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/gomega/types"
+	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 
+	. "github.com/onsi/gomega"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -173,4 +179,81 @@ func DownloadFromAppInWorkloadCluster(ctx context.Context, workloadKubeconfigPat
 		"-i", "--restart=Never", "dummy", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", fmt.Sprintf("%s:%d%s", appName, port, path),
 	}
 	return KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
+}
+
+type cloudConfig struct {
+	APIURL    string `ini:"api-url"`
+	APIKey    string `ini:"api-key"`
+	SecretKey string `ini:"secret-key"`
+	VerifySSL bool   `ini:"verify-ssl"`
+}
+
+func DestroyOneMachineAndWaitForReplacement(clusterName string, machineType string, intervals []interface{}) {
+	encodedSecret := os.Getenv("CLOUDSTACK_B64ENCODED_SECRET")
+	secret, err := base64.StdEncoding.DecodeString(encodedSecret)
+	if err != nil {
+		Fail("Failed ")
+	}
+	cfg := &cloudConfig{VerifySSL: true}
+	if rawCfg, err := ini.Load(secret); err != nil {
+		Fail("Failed to load INI file")
+	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
+		Fail("Global section not found")
+	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
+		Fail("Error encountered while parsing Global section")
+	}
+
+	By("Creating a CloudStack client")
+	client := cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+
+	matcher := clusterName + "-" + machineType
+
+	Byf("Listing machines with %q", matcher)
+	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+	if err != nil {
+		Fail("Failed to list machines")
+	}
+	var vmToDestroy *cloudstack.VirtualMachine
+	originalCount := 0
+	for _, vm := range listResp.VirtualMachines {
+		if strings.Contains(vm.Name, matcher) {
+			originalCount++
+			if vmToDestroy == nil {
+				vmToDestroy = vm
+			}
+		}
+	}
+	Byf("Original number of machines: %d ", originalCount)
+
+	Byf("Destroying machine %s", vmToDestroy.Name)
+	stopParams := client.VirtualMachine.NewStopVirtualMachineParams(vmToDestroy.Id)
+	stopParams.SetForced(true)
+	_, err = client.VirtualMachine.StopVirtualMachine(stopParams)
+	if err != nil {
+		Fail("Failed to stop machine")
+	}
+	destroyParams := client.VirtualMachine.NewDestroyVirtualMachineParams(vmToDestroy.Id)
+	destroyParams.SetExpunge(true)
+	_, err = client.VirtualMachine.DestroyVirtualMachine(destroyParams)
+	if err != nil {
+		Fail("Failed to destroy machine")
+	}
+	Byf("Destroyed machine %s", vmToDestroy.Name)
+
+	By("Waiting for a replacement machine")
+	Eventually(func() (int, error) {
+		By("Counting machines")
+		listResp, err = client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+		if err != nil {
+			return -1, err
+		}
+		count := 0
+		for _, vm := range listResp.VirtualMachines {
+			if strings.Contains(vm.Name, matcher) {
+				count++
+			}
+		}
+		Byf("Current number of machines: %d", count)
+		return count, nil
+	}, intervals...).Should(Equal(originalCount))
 }
