@@ -43,7 +43,13 @@ const (
 
 // AddClusterTag adds cluster-related tags to a resource.  One tag indicates that the resource is used by a given
 // cluster. The other tag, if applied, indicates that CAPC created the resource and may dispose of it later.
-func (c *client) AddClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster, addCreatedByCAPCTag bool) error {
+func (c *client) AddClusterTag(
+	resourceType ResourceType,
+	resourceID string,
+	csCluster *infrav1.CloudStackCluster,
+	addCreatedByCAPCTag bool,
+) error {
+
 	clusterTagName := generateClusterTagName(csCluster)
 	newTags := map[string]string{}
 

@@ -34,6 +34,7 @@ type NetworkIface interface {
 	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
 	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
 	GetOrCreateIsolatedNetwork(*infrav1.CloudStackCluster) error
+	AssociatePublicIPAddress(*infrav1.CloudStackCluster) error
 }
 
 const (
@@ -136,7 +137,7 @@ func (c *client) CreateIsolatedNewtork(csCluster *infrav1.CloudStackCluster) (re
 	if err != nil {
 		return err
 	}
-	c.addClusterTags(csCluster, zoneStatus.Network, addCreatedByTag)
+	c.AddClusterTag(ResourceTypeNetwork, zoneStatus.Network.Id, csCluster, addCreatedByTag)
 
 	// Update Zone/Network status accordingly.
 	netStatus.Id = resp.Id
@@ -163,8 +164,7 @@ func (c *client) ResolveNetworkStatuses(csCluster *infrav1.CloudStackCluster) (r
 	for zoneName, zoneStatus := range csCluster.Status.Zones {
 		if retErr = c.ResolveNetwork(csCluster, &zoneStatus.Network); retErr == nil { // Found network
 			csCluster.Status.Zones[zoneName] = zoneStatus
-			//zone.Network = zoneStatus.DeepCopy().Network
-			c.addClusterTags(csCluster, zoneStatus.Network, doNotAddCreatedByTag)
+			c.AddClusterTag(ResourceTypeNetwork, zoneStatus.Network.Id, csCluster, doNotAddCreatedByTag)
 		} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
 			return retErr
 		} // Network not found, so create it.
@@ -173,40 +173,17 @@ func (c *client) ResolveNetworkStatuses(csCluster *infrav1.CloudStackCluster) (r
 	return nil
 }
 
-func (c *client) addClusterTags(csCluster *infrav1.CloudStackCluster, net infrav1.Network, addCreatedBy bool) error {
-	clusterTagName := generateNetworkTagName(csCluster)
-	newTags := map[string]string{}
-
-	existingTags, err := c.GetNetworkTags(net.Id)
-	if err != nil {
-		return err
-	}
-
-	if existingTags[clusterTagName] == "" {
-		newTags[clusterTagName] = "1"
-	}
-
-	if addCreatedBy && existingTags[createdByCapcTagName] == "" {
-		newTags[createdByCapcTagName] = "1"
-	}
-
-	if len(newTags) > 0 {
-		return c.AddNetworkTags(net.Id, newTags)
-	}
-
-	return nil
-}
-
 func (c *client) RemoveClusterTagFromNetwork(csCluster *infrav1.CloudStackCluster, net infrav1.Network) (retError error) {
-	tags, err := c.GetNetworkTags(net.Id)
+
+	tags, err := c.GetTags(ResourceTypeNetwork, net.Id)
 	if err != nil {
 		return err
 	}
-	sourceNAT := publicIP != nil && publicIP.Issourcenat
+	// sourceNAT := publicIP != nil && publicIP.Issourcenat
 
 	clusterTagName := generateNetworkTagName(csCluster)
 	if tagValue := tags[clusterTagName]; tagValue != "" {
-		if err = c.DeleteNetworkTags(net.Id, map[string]string{clusterTagName: tagValue}); err != nil {
+		if err = c.DeleteTags(ResourceTypeNetwork, net.Id, map[string]string{clusterTagName: tagValue}); err != nil {
 			return err
 		}
 	}
@@ -215,7 +192,7 @@ func (c *client) RemoveClusterTagFromNetwork(csCluster *infrav1.CloudStackCluste
 }
 
 func (c *client) DeleteNetworkIfNotInUse(csCluster *infrav1.CloudStackCluster, net infrav1.Network) (retError error) {
-	tags, err := c.GetNetworkTags(net.Id)
+	tags, err := c.GetTags(ResourceTypeNetwork, net.Id)
 	if err != nil {
 		return err
 	}
@@ -227,7 +204,7 @@ func (c *client) DeleteNetworkIfNotInUse(csCluster *infrav1.CloudStackCluster, n
 		}
 	}
 
-	if clusterTagCount == 0 && tags[createdByCapcTagName] != "" {
+	if clusterTagCount == 0 && tags[createdByCAPCTagName] != "" {
 		return c.DestroyNetwork(net)
 	}
 
@@ -297,6 +274,38 @@ func (c *client) OpenFirewallRules(csCluster *infrav1.CloudStackCluster) (retErr
 		retErr = nil
 	}
 	return retErr
+}
+
+func (c *client) DisassociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) (retErr error) {
+	// Remove the CAPC creation tag, so it won't be there the next time this address is associated.
+	retErr = c.DeleteCreatedByCAPCTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID)
+	if retErr != nil {
+		return retErr
+	}
+
+	p := c.cs.Address.NewDisassociateIpAddressParams(csCluster.Status.PublicIPID)
+	_, retErr = c.cs.Address.DisassociateIpAddress(p)
+	return retErr
+}
+
+func (c *client) DisassociatePublicIPAddressIfNotInUse(csCluster *infrav1.CloudStackCluster) (retError error) {
+	tagsAllowDisposal, err := c.DoClusterTagsAllowDisposal(ResourceTypeIPAddress, csCluster.Status.PublicIPID)
+	if err != nil {
+		return err
+	}
+
+	// Can't disassociate an address if it's the source NAT address.
+	publicIP, _, err := c.cs.Address.GetPublicIpAddressByID(csCluster.Status.PublicIPID)
+	if err != nil {
+		return err
+	}
+	sourceNAT := publicIP != nil && publicIP.Issourcenat
+
+	if tagsAllowDisposal && !sourceNAT {
+		return c.DisassociatePublicIPAddress(csCluster)
+	}
+
+	return nil
 }
 
 func (c *client) ResolveLoadBalancerRuleDetails(csCluster *infrav1.CloudStackCluster) (retErr error) {
@@ -377,7 +386,7 @@ func (c *client) GetOrCreateIsolatedNetwork(csCluster *infrav1.CloudStackCluster
 	}
 
 	if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
-		if err := c.AssociatePublicIpAddress(csCluster); err != nil {
+		if err := c.AssociatePublicIPAddress(csCluster); err != nil {
 			return err
 		}
 	}
