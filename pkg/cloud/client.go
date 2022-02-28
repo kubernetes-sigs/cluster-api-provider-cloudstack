@@ -30,8 +30,8 @@ type Client interface {
 	ClusterIface
 	VMIface
 	NetworkIface
-	AffinityGroupIFace
-	TagIFace
+	AffinityGroupIface
+	TagIface
 }
 
 type client struct {
