@@ -50,6 +50,7 @@ func SetTestTags() {
 func SetDummyVars() {
 	// These need to be in order as they build upon eachother.
 	SetDummyCAPCClusterVars()
+	SetDummyCSMachineTemplateVars()
 	SetDummyCSMachineVars()
 	SetDummyCAPIClusterVars()
 	SetDummyTagVars()

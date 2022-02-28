@@ -65,41 +65,41 @@ var _ = Describe("CloudStackMachine webhook", func() {
 	})
 
 	// Need the `-- not template` here to make the context unique. Apparently ginkgo uses startswith.
-	Context("When updating a CloudStackMachine -- not CloudStackMachineTemplate", func() {
+	Context("When updating a CloudStackMachine", func() {
 		forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
 
 		BeforeEach(func() { // Reset test vars to initial state.
 			Ω(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 		})
 
-		It("should reject VM offering updates.", func() {
+		It("should reject VM offering updates to the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.Offering = "ArbitraryUpdateOffering"
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(forbiddenRegex, "offering"))
 		})
 
-		It("should reject VM template updates.", func() {
+		It("should reject VM template updates to the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.Template = "ArbitraryUpdateTemplate"
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(forbiddenRegex, "template"))
 		})
 
-		It("should reject updates to VM details.", func() {
+		It("should reject updates to VM details of the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.Details = map[string]string{"memoryOvercommitRatio": "1.5"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(forbiddenRegex, "details"))
 		})
 
-		It("should reject identity reference kind udpates.", func() {
+		It("should reject identity reference kind udpates to the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).
 				Should(MatchRegexp(forbiddenRegex, "identityRef\\.Kind"))
 		})
 
-		It("should reject identity reference name udpates.", func() {
+		It("should reject identity reference name udpates to the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Name = "IdentityConfigMap"
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).
 				Should(MatchRegexp(forbiddenRegex, "identityRef\\.Name"))
 		})
 
-		It("should reject udpates to the list of affinty groups.", func() {
+		It("should reject udpates to the list of affinty groups of the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.AffinityGroupIDs = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2af"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).
 				Should(MatchRegexp(forbiddenRegex, "AffinityGroupIDs"))
