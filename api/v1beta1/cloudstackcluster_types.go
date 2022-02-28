@@ -53,6 +53,28 @@ type Network struct {
 	Name string `json:"name"`
 }
 
+type ZoneStatusMap map[string]Zone
+
+// GetOne just returns a Zone from the map of zone statuses
+// Needed as there's no short way to do this.
+func (zones ZoneStatusMap) GetOne() *Zone {
+	for _, zone := range zones {
+		return &zone
+	}
+	return nil
+}
+
+// GetByName fetches a zone by name if present in the map of zone statuses.
+// Needed as there's no short way to do this.
+func (zones ZoneStatusMap) GetByName(name string) *Zone {
+	for zoneName, zone := range zones {
+		if zoneName == name {
+			return &zone
+		}
+	}
+	return nil
+}
+
 type Zone struct {
 	// The Zone name.
 	// + optional
@@ -91,7 +113,7 @@ type CloudStackClusterStatus struct {
 
 	// The status of the cluster's ACS Zones.
 	// +optional
-	Zones map[string]Zone `json:"zones,omitempty"`
+	Zones ZoneStatusMap `json:"zones,omitempty"`
 
 	// CAPI recognizes failure domains as a method to spread machines.
 	// CAPC sets failure domains per to indicate functionin Zones.

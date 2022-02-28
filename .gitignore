@@ -8,6 +8,8 @@ bin
 testbin/*
 api/*/zz*generated.deepcopy.go
 
+nginx.conf
+
 pkg/mocks/*
 !pkg/mocks/.keep
 

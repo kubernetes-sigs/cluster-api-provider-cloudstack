@@ -45,26 +45,26 @@ func SetDummyVars() {
 func SetDummyCSMachineTemplateVars() {
 	CSMachineTemplate1 = &infrav1.CloudStackMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: apiVersion,
-			Kind:       templateKind,
+			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+			Kind:       "CloudStackMachineTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-machinetemplate-2",
-			Namespace: namespace,
+			Namespace: "default",
 		},
-		Spec: CloudStackMachineTemplateSpec{
-			Spec: CloudStackMachineTemplateResource{
+		Spec: infrav1.CloudStackMachineTemplateSpec{
+			Spec: infrav1.CloudStackMachineTemplateResource{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      templateResourceName,
-					Namespace: namespace,
+					Name:      "test-machinetemplateresource",
+					Namespace: "default",
 				},
-				Spec: CloudStackMachineSpec{
-					IdentityRef: &CloudStackIdentityReference{
-						Kind: defaultIdentityRefKind,
-						Name: identityReferenceName,
+				Spec: infrav1.CloudStackMachineSpec{
+					IdentityRef: &infrav1.CloudStackIdentityReference{
+						Kind: "secret",
+						Name: "IdentitySecret",
 					},
-					Template: template,
-					Offering: offering,
+					Template: "Template",
+					Offering: "Offering",
 					Details: map[string]string{
 						"memoryOvercommitRatio": "1.2",
 					},

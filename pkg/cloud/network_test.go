@@ -93,15 +93,17 @@ var _ = Describe("Network", func() {
 			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
 			expectNetworkTags(fakeNetID)
 
-			Ω(client.GetOrCreateNetworks(dummies.CSCluster)).Should(Succeed())
+			Ω(client.CreateIsolatedNewtork(dummies.CSCluster)).Should(Succeed())
 		})
 
 		It("resolves network details with network ID instead of network name", func() {
-			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
-			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-			expectNetworkTags(fakeNetID)
+			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("No match found for blah."))
+			ns.EXPECT().GetNetworkByID(dummies.Net1.Id).
+				Return(&cloudstack.Network{Name: "TestName", Type: isolatedNetworkType}, 1, nil)
+			expectNetworkTags(dummies.Net1.Id)
 
-			Ω(client.GetOrCreateNetworks(dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
+			Ω(dummies.CSCluster.Status.Zones.GetByName("TestName").Network.Type).Should(Equal(isolatedNetworkType))
 		})
 	})
 
@@ -112,17 +114,16 @@ var _ = Describe("Network", func() {
 			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&cloudstack.CreateNetworkParams{})
-			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: netId}, nil)
+			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: dummies.Net1.Id}, nil)
 
-			expectNetworkTags(netId)
+			expectNetworkTags(dummies.Net1.Id)
 
-			Ω(client.GetOrCreateNetworks(dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
 		})
 	})
 
 	Context("for a closed firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall", func() {
-			netID := netId
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(netID, protocol).
 				Return(&cloudstack.CreateEgressFirewallRuleParams{})
 			fs.EXPECT().CreateEgressFirewallRule(&cloudstack.CreateEgressFirewallRuleParams{}).
@@ -134,7 +135,6 @@ var _ = Describe("Network", func() {
 
 	Context("for an open firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
-			netID := netId
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(netID, protocol).
 				Return(&cloudstack.CreateEgressFirewallRuleParams{})
 			fs.EXPECT().CreateEgressFirewallRule(&cloudstack.CreateEgressFirewallRuleParams{}).

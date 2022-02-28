@@ -100,11 +100,11 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 			if err := client.GetOrCreateCluster(dummies.CSCluster); err != nil {
 				Skip("Could not flesh out Cluster." + err.Error())
 			}
-			if err := client.GetOrCreateVMInstance(dummies.CSMachine, dummies.CAPIMachine, dummies.CSCluster, ""); err != nil {
+			if err := client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, ""); err != nil {
 				Skip("Could not create VM." + err.Error())
 			}
 			Ω(client.GetOrCreateAffinityGroup(dummies.CSCluster, arbitraryAG)).Should(Succeed())
-			Ω(client.AssociateAffinityGroup(dummies.CSMachine, *arbitraryAG)).Should(Succeed())
+			Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *arbitraryAG)).Should(Succeed())
 		})
 		It("Deletes an affinity group.", func() {
 			Ω(client.DeleteAffinityGroup(arbitraryAG)).Should(Succeed())
