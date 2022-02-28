@@ -63,7 +63,7 @@ func SetDummyCSMachineTemplateVars() {
 			Kind:       "CloudStackMachineTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-machinetemplate-2",
+			Name:      "test-machinetemplate-1",
 			Namespace: "default",
 		},
 		Spec: infrav1.CloudStackMachineTemplateSpec{
@@ -74,7 +74,7 @@ func SetDummyCSMachineTemplateVars() {
 				},
 				Spec: infrav1.CloudStackMachineSpec{
 					IdentityRef: &infrav1.CloudStackIdentityReference{
-						Kind: "secret",
+						Kind: "Secret",
 						Name: "IdentitySecret",
 					},
 					Template: "Template",
@@ -101,7 +101,7 @@ func SetDummyCSMachineVars() {
 		},
 		Spec: infrav1.CloudStackMachineSpec{
 			IdentityRef: &infrav1.CloudStackIdentityReference{
-				Kind: "secret",
+				Kind: "Secret",
 				Name: "IdentitySecret",
 			},
 			Template:         "Template",
@@ -131,8 +131,8 @@ func SetDummyCAPCClusterVars() {
 	CSCluster = &infrav1.CloudStackCluster{
 		Spec: infrav1.CloudStackClusterSpec{
 			IdentityRef: &infrav1.CloudStackIdentityReference{
-				Kind: "someName",
-				Name: "someKind",
+				Kind: "Secret",
+				Name: "IdentitySecret",
 			},
 			Zones: []infrav1.Zone{Zone1, Zone2}},
 		ObjectMeta: metav1.ObjectMeta{

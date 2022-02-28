@@ -63,8 +63,8 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 		})
 	})
 
-	Context("When updating a CloudStackMachine", func() {
-		It("Should be rejected by the validating webhooks", func() {
+	Context("When updating a CloudStackMachineTemplate", func() {
+		It("Should be rejected by the machine template validating webhooks", func() {
 			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).Should(Succeed())
 
 			forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
