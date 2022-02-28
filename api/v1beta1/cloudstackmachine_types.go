@@ -52,14 +52,14 @@ type CloudStackMachineSpec struct {
 
 	// Optional affinitygroupids for deployVirtualMachine
 	// +optional
-	AffinityGroupIds []string `json:"affinitygroupids,omitempty"`
+	AffinityGroupIDs []string `json:"affinitygroupids,omitempty"`
 
-	// Mutually exclusive parameter with AffinityGroupIds.
+	// Mutually exclusive parameter with AffinityGroupIDs.
 	// Defaults to `no`. Can be `pro` or `anti`. Will create an affinity group per machine set.
 	// +optional
 	Affinity string `json:"affinity,omitempty"`
 
-	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine Id)
+	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine ID)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
@@ -111,7 +111,7 @@ func (csm CloudStackMachine) AffinityGroupName(
 
 	managerOwnerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
 	if managerOwnerRef == nil {
-		return "", errors.Errorf("Could not find owner UID for %s/%s.", csm.Namespace, csm.Name)
+		return "", errors.Errorf("could not find owner UID for %s/%s", csm.Namespace, csm.Name)
 	}
 	return fmt.Sprintf("%sAffinity-%s-%s", strings.Title(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID), nil
 }

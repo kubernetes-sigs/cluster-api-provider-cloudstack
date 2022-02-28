@@ -31,24 +31,24 @@ type ClusterIface interface {
 func (c *client) resolveZones(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	for _, specZone := range csCluster.Spec.Zones {
 		if zoneID, count, err := c.cs.Zone.GetZoneID(specZone.Name); err != nil {
-			retErr = multierror.Append(retErr, errors.Wrapf(err, "Could not get Zone ID from %s.", specZone))
+			retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %s", specZone))
 		} else if count != 1 {
 			retErr = multierror.Append(retErr, errors.Errorf(
-				"Expected 1 Zone with name %s, but got %d.", specZone.Name, count))
+				"expected 1 Zone with name %s, but got %d", specZone.Name, count))
 		} else {
 			csCluster.Status.Zones[specZone.Name] = infrav1.Zone{
-				Name: specZone.Name, Id: zoneID, Network: specZone.Network}
+				Name: specZone.Name, ID: zoneID, Network: specZone.Network}
 		}
 
 		if retErr != nil {
-			if resp, count, err := c.cs.Zone.GetZoneByID(specZone.Id); err != nil {
-				return multierror.Append(retErr, errors.Wrapf(err, "Could not get Zone by ID %s.", specZone.Id))
+			if resp, count, err := c.cs.Zone.GetZoneByID(specZone.ID); err != nil {
+				return multierror.Append(retErr, errors.Wrapf(err, "could not get Zone by ID %s", specZone.ID))
 			} else if count != 1 {
 				return multierror.Append(retErr, errors.Errorf(
-					"Expected 1 Zone with UUID %s, but got %d.", specZone.Id, count))
+					"expected 1 Zone with UUID %s, but got %d", specZone.ID, count))
 			} else {
 				csCluster.Status.Zones[resp.Name] = infrav1.Zone{
-					Name: resp.Name, Id: specZone.Id, Network: specZone.Network}
+					Name: resp.Name, ID: specZone.ID, Network: specZone.Network}
 			}
 		}
 	}
@@ -61,12 +61,12 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		csCluster.Status.Zones = make(map[string]infrav1.Zone)
 	}
 	if retErr = c.resolveZones(csCluster); retErr != nil {
-		return errors.Wrapf(retErr, "Error resolving Zone details for Cluster %s.", csCluster.Name)
+		return errors.Wrapf(retErr, "error resolving Zone details for Cluster %s", csCluster.Name)
 	}
 
 	csCluster.Status.FailureDomains = capiv1.FailureDomains{}
 	for _, zone := range csCluster.Status.Zones {
-		csCluster.Status.FailureDomains[zone.Id] = capiv1.FailureDomainSpec{ControlPlane: true}
+		csCluster.Status.FailureDomains[zone.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
 	}
 
 	// If provided, translate Domain name to Domain ID.
@@ -75,7 +75,7 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		if retErr != nil {
 			return retErr
 		} else if count != 1 {
-			return errors.Errorf("Expected 1 Domain with name %s, but got %d.", csCluster.Spec.Domain, count)
+			return errors.Errorf("expected 1 Domain with name %s, but got %d", csCluster.Spec.Domain, count)
 		} else {
 			csCluster.Status.DomainID = domainID
 		}
@@ -88,7 +88,7 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 	}
 
 	if usesIsolatedNetwork(csCluster) {
-		c.GetOrCreateIsolatedNetwork(csCluster)
+		return c.GetOrCreateIsolatedNetwork(csCluster)
 	}
 
 	return nil
@@ -99,7 +99,9 @@ func (c *client) DisposeClusterResources(csCluster *infrav1.CloudStackCluster) (
 		if err := c.RemoveClusterTagFromNetwork(csCluster, zone.Network); err != nil {
 			return err
 		}
-		c.DeleteNetworkIfNotInUse(csCluster, zone.Network)
+		if err := c.DeleteNetworkIfNotInUse(csCluster, zone.Network); err != nil {
+			return err
+		}
 	}
 	return nil
 }

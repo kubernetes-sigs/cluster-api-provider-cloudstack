@@ -91,12 +91,12 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 				Should(MatchRegexp(forbiddenRegex, "identityRef\\.Kind"))
 
 			dummies.CSMachineTemplate1.DeepCopyInto(cloudStackMachineTemplateUpdate)
-			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.IdentityRef.Name = "IdentityConfigMap"
+			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.IdentityRef.Name = "IDentityConfigMap"
 			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate).Error()).
 				Should(MatchRegexp(forbiddenRegex, "identityRef\\.Name"))
 
 			dummies.CSMachineTemplate1.DeepCopyInto(cloudStackMachineTemplateUpdate)
-			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.AffinityGroupIds = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2ag"}
+			cloudStackMachineTemplateUpdate.Spec.Spec.Spec.AffinityGroupIDs = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2ag"}
 			Expect(k8sClient.Update(ctx, cloudStackMachineTemplateUpdate)).
 				ShouldNot(Succeed())
 		})

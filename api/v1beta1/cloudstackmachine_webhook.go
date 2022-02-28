@@ -93,8 +93,8 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	}
 	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.Affinity, oldSpec.Affinity, "affinity", errorList)
 
-	if !reflect.DeepEqual(r.Spec.AffinityGroupIds, oldSpec.AffinityGroupIds) { // Equivalent to other Ensure funcs.
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"), "AffinityGroupIds"))
+	if !reflect.DeepEqual(r.Spec.AffinityGroupIDs, oldSpec.AffinityGroupIDs) { // Equivalent to other Ensure funcs.
+		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"), "AffinityGroupIDs"))
 	}
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)

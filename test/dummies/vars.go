@@ -20,7 +20,7 @@ var ( // Declare exported dummy vars.
 	Zone2              infrav1.Zone
 	Net1               infrav1.Network
 	Net2               infrav1.Network
-	DomainId           string
+	DomainID           string
 	Tags               map[string]string
 	Tag1Key            string
 	Tag1Val            string
@@ -28,13 +28,27 @@ var ( // Declare exported dummy vars.
 	CSClusterKind      string
 	CSClusterName      string
 	CSlusterNamespace  string
+	TestTags           map[string]string
+	CSClusterTagKey    string
+	CSClusterTagVal    string
+	CSClusterTag       map[string]string
+	CreatedByCapcKey   string
+	CreatedByCapcVal   string
 )
 
-// clusterId          = "0"
-// identitySecretName = "IdentitySecret"
+// SetDummyVars sets/resets tag related dummy vars.
+func SetTestTags() {
+	TestTags = map[string]string{"TestTagKey": "TestTagValue"}
+	CSClusterTagKey = "CAPC_cluster_" + string(CSCluster.ObjectMeta.UID)
+	CSClusterTagVal = "1"
+	CSClusterTag = map[string]string{CSClusterTagVal: CSClusterTagVal}
+	CreatedByCapcKey = "create_by_CAPC"
+	CreatedByCapcVal = ""
+}
 
 // SetDummyVars sets/resets all dummy vars.
 func SetDummyVars() {
+	// These need to be in order as they build upon eachother.
 	SetDummyCAPCClusterVars()
 	SetDummyCSMachineVars()
 	SetDummyCAPIClusterVars()
@@ -92,7 +106,7 @@ func SetDummyCSMachineVars() {
 			},
 			Template:         "Template",
 			Offering:         "Offering",
-			AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
+			AffinityGroupIDs: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
 			Details: map[string]string{
 				"memoryOvercommitRatio": "1.2",
 			},
@@ -129,7 +143,7 @@ func SetDummyCAPCClusterVars() {
 			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 			Kind:       "CloudStackCluster"}}
 	CAPIMachine = &capiv1.Machine{}
-	DomainId = "FakeDomainId"
+	DomainID = "FakeDomainId"
 }
 
 // SetDummyCapiCluster resets the values in each of the exported CAPICluster related dummy variables.

@@ -137,7 +137,7 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	if capiMachine.Spec.FailureDomain != nil && *capiMachine.Spec.FailureDomain == "" {
-		log.Info("CloudStackCluster ZoneId not initialized. Likely not ready.")
+		log.Info("CloudStackCluster ZoneID not initialized. Likely not ready.")
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
@@ -155,10 +155,10 @@ func (r *CloudStackMachineReconciler) reconcile(
 
 	log.V(1).Info("reconcile CloudStackMachine")
 
-	zoneId := capiMachine.Spec.FailureDomain
+	zoneID := capiMachine.Spec.FailureDomain
 	zone := infrav1.Zone{}
 	for _, zoneStatus := range csCluster.Status.Zones {
-		if zoneId == &zoneStatus.Id {
+		if zoneID == &zoneStatus.ID {
 			zone = zoneStatus
 			break
 		}
@@ -230,7 +230,7 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 		return ctrl.Result{}, err
 	} else if deleted {
 		if err := r.RemoveManagedAffinity(log, capiMachine, csMachine); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Error encountered when removing affinity group.")
+			return ctrl.Result{}, errors.Wrap(err, "error encountered when removing affinity group")
 		}
 	}
 

@@ -71,9 +71,9 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 		errorList = append(errorList, field.Invalid(field.NewPath("spec", "Affinity"), spec.Affinity,
 			`Affinity must be "no", "pro", "anti", or unspecified.`))
 	}
-	if affinity != "no" && affinity != "" && len(spec.AffinityGroupIds) > 0 {
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"),
-			"AffinityGroupIds cannot be specified when Affinity is specified as anything but `no`"))
+	if affinity != "no" && affinity != "" && len(spec.AffinityGroupIDs) > 0 {
+		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"),
+			"AffinityGroupIDs cannot be specified when Affinity is specified as anything but `no`"))
 	}
 
 	errorList = webhookutil.EnsureFieldExists(spec.Offering, "Offering", errorList)
@@ -104,8 +104,8 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Affinity, oldSpec.Affinity, "affinity", errorList)
 
-	if !reflect.DeepEqual(spec.AffinityGroupIds, oldSpec.AffinityGroupIds) { // Equivalent to other Ensure funcs.
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"), "AffinityGroupIds"))
+	if !reflect.DeepEqual(spec.AffinityGroupIDs, oldSpec.AffinityGroupIDs) { // Equivalent to other Ensure funcs.
+		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"), "AffinityGroupIDs"))
 	}
 
 	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {

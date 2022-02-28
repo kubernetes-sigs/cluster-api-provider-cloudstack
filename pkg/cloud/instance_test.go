@@ -176,7 +176,7 @@ var _ = Describe("Instance", func() {
 			Ω(client.GetOrCreateVMInstance(csMachine, machine, csCluster, "")).Should(MatchError(unknownErrorMessage))
 		})
 
-		// The folloing test checks that DomainId and Account are set (or not) in the DeployVirtualMachineParams
+		// The folloing test checks that DomainID and Account are set (or not) in the DeployVirtualMachineParams
 		// interface passed to DeployVirtualMachine.
 		describeDomainAccountTest := func(desc string) func(string, string) string {
 			return func(account string, domainID string) string {

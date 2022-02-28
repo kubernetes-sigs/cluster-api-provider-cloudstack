@@ -30,10 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getCapiCluster() *clusterv1.Cluster {
-	return dummies.CAPICluster
-}
-
 const (
 	timeout = time.Second * 120
 )

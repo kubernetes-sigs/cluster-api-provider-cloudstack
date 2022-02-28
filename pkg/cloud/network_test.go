@@ -81,10 +81,10 @@ var _ = Describe("Network", func() {
 
 	Context("for an existing network", func() {
 		// It("resolves network details in cluster status", func() {
-		// 	ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetId, 1, nil)
-		// 	ns.EXPECT().GetNetworkByID(fakeNetId).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
+		// 	ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetID, 1, nil)
+		// 	ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
 		// 	Ω(client.ResolveNetwork(csCluster)).Should(Succeed())
-		// 	Ω(csCluster.Status.NetworkID).Should(Equal(fakeNetId))
+		// 	Ω(csCluster.Status.NetworkID).Should(Equal(fakeNetID))
 		// 	Ω(csCluster.Status.NetworkType).Should(Equal(isolatedNetworkType))
 		// })
 
@@ -97,10 +97,10 @@ var _ = Describe("Network", func() {
 		})
 
 		It("resolves network details with network ID instead of network name", func() {
-			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("No match found for blah."))
-			ns.EXPECT().GetNetworkByID(dummies.Net1.Id).
+			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
+			ns.EXPECT().GetNetworkByID(dummies.Net1.ID).
 				Return(&cloudstack.Network{Name: "TestName", Type: isolatedNetworkType}, 1, nil)
-			expectNetworkTags(dummies.Net1.Id)
+			expectNetworkTags(dummies.Net1.ID)
 
 			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSCluster.Status.Zones.GetByName("TestName").Network.Type).Should(Equal(isolatedNetworkType))
@@ -114,9 +114,9 @@ var _ = Describe("Network", func() {
 			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&cloudstack.CreateNetworkParams{})
-			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: dummies.Net1.Id}, nil)
+			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: dummies.Net1.ID}, nil)
 
-			expectNetworkTags(dummies.Net1.Id)
+			expectNetworkTags(dummies.Net1.ID)
 
 			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
 		})

@@ -54,21 +54,13 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		Ω(client.GetOrCreateAffinityGroup(dummies.CSCluster, dummies.AffinityGroup)).Should(Succeed())
 	})
 	It("creates an affinity group", func() {
-<<<<<<< HEAD
-		fakeAG.ID = "FakeID"
-		cluster.Spec.Account = "FakeAccount"
-		cluster.Status.DomainID = "FakeDomainId"
-		ags.EXPECT().GetAffinityGroupByID(fakeAG.ID).Return(nil, -1, errors.New("fakeError"))
-		ags.EXPECT().NewCreateAffinityGroupParams(fakeAG.Name, fakeAG.Type).
-=======
-		dummies.AffinityGroup.Id = "FakeID"
+		dummies.AffinityGroup.ID = "FakeID"
 		dummies.CSCluster.Spec.Account = "FakeAccount"
-		dummies.CSCluster.Status.DomainID = "FakeDomainId"
-		ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.Id).Return(nil, -1, errors.New("FakeError"))
+		dummies.CSCluster.Status.DomainID = "FakeDomainID"
+		ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(nil, -1, errors.New("FakeError"))
 		ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
->>>>>>> 36c0963 (Major moves toward multizone, but still broken.)
 			Return(&cloudstack.CreateAffinityGroupParams{})
-		ags.EXPECT().CreateAffinityGroup(ParamMatch(And(AccountEquals("FakeAccount"), DomainIDEquals("FakeDomainId")))).
+		ags.EXPECT().CreateAffinityGroup(ParamMatch(And(AccountEquals("FakeAccount"), DomainIDEquals("FakeDomainID")))).
 			Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
 		Ω(client.GetOrCreateAffinityGroup(dummies.CSCluster, dummies.AffinityGroup)).Should(Succeed())

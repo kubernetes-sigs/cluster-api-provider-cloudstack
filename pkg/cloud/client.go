@@ -62,9 +62,9 @@ func NewClient(ccPath string) (Client, error) {
 	c.csAsync = cloudstack.NewClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
 	_, err := c.cs.APIDiscovery.ListApis(c.cs.APIDiscovery.NewListApisParams())
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
-		return c, errors.Wrap(err, "Timeout while checking CloudStack API Client connectivity.")
+		return c, errors.Wrap(err, "timeout while checking CloudStack API Client connectivity")
 	}
-	return c, errors.Wrap(err, "Error encountered while checking CloudStack API Client connectivity.")
+	return c, errors.Wrap(err, "error encountered while checking CloudStack API Client connectivity")
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {

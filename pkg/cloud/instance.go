@@ -84,19 +84,19 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (o
 	offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering)
 	if err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(
-			err, "Could not get Service Offering ID from %s.", csMachine.Spec.Offering))
+			err, "could not get Service Offering ID from %s", csMachine.Spec.Offering))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
-			"Expected 1 Service Offering with name %s, but got %d.", csMachine.Spec.Offering, count))
+			"expected 1 Service Offering with name %s, but got %d", csMachine.Spec.Offering, count))
 	}
 
 	if retErr != nil {
 		if _, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering); err != nil {
 			return "", multierror.Append(retErr, errors.Wrapf(
-				err, "Could not get Service Offering by ID %s.", csMachine.Spec.Offering))
+				err, "could not get Service Offering by ID %s", csMachine.Spec.Offering))
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"Expected 1 Service Offering with UUID %s, but got %d.", csMachine.Spec.Offering, count))
+				"expected 1 Service Offering with UUID %s, but got %d", csMachine.Spec.Offering, count))
 		} else {
 			offeringID = csMachine.Spec.Offering
 		}
@@ -111,22 +111,22 @@ func (c *client) ResolveTemplate(
 	zone infrav1.Zone,
 ) (templateID string, retErr error) {
 
-	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", zone.Id)
+	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", zone.ID)
 	if err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(
-			err, "Could not get Template ID from %s.", csMachine.Spec.Template))
+			err, "could not get Template ID from %s", csMachine.Spec.Template))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
-			"Expected 1 Template with name %s, but got %d.", csMachine.Spec.Template, count))
+			"expected 1 Template with name %s, but got %d", csMachine.Spec.Template, count))
 	}
 
 	if retErr != nil {
 		if _, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template, "all"); err != nil {
 			return "", multierror.Append(retErr, errors.Wrapf(
-				err, "Could not get Template by ID %s.", csMachine.Spec.Template))
+				err, "could not get Template by ID %s", csMachine.Spec.Template))
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"Expected 1 Template with UUID %s, but got %d.", csMachine.Spec.Template, count))
+				"expected 1 Template with UUID %s, but got %d", csMachine.Spec.Template, count))
 		} else {
 			templateID = csMachine.Spec.Template
 		}
@@ -169,8 +169,8 @@ func (c *client) GetOrCreateVMInstance(
 	}
 
 	// Create VM instance.
-	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, zone.Id)
-	p.SetNetworkids([]string{zone.Network.Id})
+	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, zone.ID)
+	p.SetNetworkids([]string{zone.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
@@ -181,8 +181,8 @@ func (c *client) GetOrCreateVMInstance(
 	}
 	setIfNotEmpty(compressedAndEncodedUserData, p.SetUserdata)
 
-	if len(csMachine.Spec.AffinityGroupIds) > 0 {
-		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
+	if len(csMachine.Spec.AffinityGroupIDs) > 0 {
+		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIDs)
 	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
 		affinityType := AffinityGroupType
 		if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
@@ -245,7 +245,7 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
 	p.SetExpunge(true)
 	_, err := c.csAsync.VirtualMachine.DestroyVirtualMachine(p)
-	if err != nil && strings.Contains(err.Error(), "Unable to find UUID for id") {
+	if err != nil && strings.Contains(err.Error(), "unable to find UUID for id") {
 		// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
 		return nil
 	}

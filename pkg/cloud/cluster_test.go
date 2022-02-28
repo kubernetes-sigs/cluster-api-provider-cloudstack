@@ -55,15 +55,15 @@ var _ = Describe("Cluster", func() {
 		It("handles zone not found.", func() {
 			expectedErr := fmt.Errorf("Not found")
 			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return("", -1, expectedErr)
-			zs.EXPECT().GetZoneByID(dummies.Zone1.Id).Return(nil, -1, expectedErr)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(nil, -1, expectedErr)
 
 			err := client.GetOrCreateCluster(dummies.CSCluster)
 			Expect(errors.Cause(err)).To(MatchError(expectedErr))
 		})
 
 		It("handles multiple zone IDs returned", func() {
-			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.Id, 2, nil)
-			zs.EXPECT().GetZoneByID(dummies.Zone1.Id).Return(nil, -1, fmt.Errorf("Not found"))
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 2, nil)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(nil, -1, fmt.Errorf("Not found"))
 
 			err := client.GetOrCreateCluster(dummies.CSCluster)
 			Expect(err.Error()).To(ContainSubstring("Expected 1 Zone with name zoneName, but got 2."))
@@ -71,18 +71,18 @@ var _ = Describe("Cluster", func() {
 		})
 
 		It("translates Domain to DomainID when Domain is set", func() {
-			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.Id, 1, nil)
-			ds.EXPECT().GetDomainID(dummies.CSCluster.Spec.Domain).Return(dummies.DomainId, 1, nil)
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
+			ds.EXPECT().GetDomainID(dummies.CSCluster.Spec.Domain).Return(dummies.DomainID, 1, nil)
 
 			// End the fetching with a fake network error here.
 			// Only trying to test domain functions.
 			// TODO: turn the pkg/cloud/client.go client into a composition of interfaces such that the
 			// individual services can be mocked.
 			ns.EXPECT().GetNetworkID(dummies.Net1.Name).Return("", -1, fmt.Errorf("FakeError"))
-			ns.EXPECT().GetNetworkByID(dummies.Net1.Id).Return(&cloudstack.Network{}, -1, fmt.Errorf("FakeError"))
+			ns.EXPECT().GetNetworkByID(dummies.Net1.ID).Return(&cloudstack.Network{}, -1, fmt.Errorf("FakeError"))
 
 			Ω(client.GetOrCreateCluster(dummies.CSCluster)).ShouldNot(Succeed())
-			Ω(dummies.CSCluster.Status.DomainID).Should(Equal(dummies.DomainId))
+			Ω(dummies.CSCluster.Status.DomainID).Should(Equal(dummies.DomainID))
 		})
 	})
 })
