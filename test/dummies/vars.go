@@ -1,6 +1,7 @@
 package dummies
 
 import (
+	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	corev1 "k8s.io/api/core/v1"
@@ -21,6 +22,7 @@ var ( // Declare exported dummy vars.
 	Zone2              capcv1.Zone
 	Net1               capcv1.Network
 	Net2               capcv1.Network
+	ISONet1            capcv1.Network
 	DomainID           string
 	Tags               map[string]string
 	Tag1Key            string
@@ -45,6 +47,14 @@ func SetTestTags() {
 	CSClusterTag = map[string]string{CSClusterTagVal: CSClusterTagVal}
 	CreatedByCapcKey = "create_by_CAPC"
 	CreatedByCapcVal = ""
+}
+
+func CAPCNetToCSAPINet(net *capcv1.Network) *csapi.Network {
+	return &csapi.Network{
+		Name: net.Name,
+		Id:   net.ID,
+		Type: net.Type,
+	}
 }
 
 // SetDummyVars sets/resets all dummy vars.
@@ -131,10 +141,11 @@ func SetDummyCAPCClusterVars() {
 	AffinityGroup = &cloud.AffinityGroup{
 		Name: "FakeAffinityGroup",
 		Type: cloud.AffinityGroupType}
-	Net1 = capcv1.Network{Name: "SharedGuestNet1"}
-	Net2 = capcv1.Network{Name: "SharedGuestNet2"}
-	Zone1 = capcv1.Zone{Name: "Zone1", Network: Net1}
-	Zone2 = capcv1.Zone{Name: "Zone2", Network: Net2}
+	Net1 = capcv1.Network{Name: "SharedGuestNet1", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID1"}
+	Net2 = capcv1.Network{Name: "SharedGuestNet2", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID2"}
+	ISONet1 = capcv1.Network{Name: "IsolatedGuestNet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
+	Zone1 = capcv1.Zone{Name: "Zone1", ID: "FakeZone1ID", Network: Net1}
+	Zone2 = capcv1.Zone{Name: "Zone2", ID: "FakeZone2ID", Network: Net2}
 
 	CSCluster = &capcv1.CloudStackCluster{
 		TypeMeta: metav1.TypeMeta{

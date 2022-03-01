@@ -91,6 +91,10 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		return c.GetOrCreateIsolatedNetwork(csCluster)
 	}
 
+	// TODO: Make this tag all networks as in use. Didn't make sense in resolveNetworks.
+	// if err := c.AddClusterTag(ResourceTypeNetwork, zoneStatus.Network.ID, csCluster, doNotAddCreatedByTag); err != nil {
+	// }
+
 	return nil
 }
 

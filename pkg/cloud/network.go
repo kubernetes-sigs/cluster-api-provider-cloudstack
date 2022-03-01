@@ -29,7 +29,7 @@ import (
 type NetworkIface interface {
 	ResolveNetworkStatuses(*infrav1.CloudStackCluster) error
 	ResolveNetwork(*infrav1.CloudStackCluster, *infrav1.Network) error
-	CreateIsolatedNewtork(*infrav1.CloudStackCluster) error
+	CreateIsolatedNetwork(*infrav1.CloudStackCluster) error
 	OpenFirewallRules(*infrav1.CloudStackCluster) error
 	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
 	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
@@ -118,9 +118,9 @@ func (c *client) getOfferingID() (string, error) {
 	return offeringID, nil
 }
 
-// CreateIsolatedNewtork creates an isolated network in the relevant Zone.
+// CreateIsolatedNetwork creates an isolated network in the relevant Zone.
 // Assumes that there is only the one zone in the cluster.
-func (c *client) CreateIsolatedNewtork(csCluster *infrav1.CloudStackCluster) (retErr error) {
+func (c *client) CreateIsolatedNetwork(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	zoneStatus := csCluster.Status.Zones[csCluster.Spec.Zones[0].Network.Name]
 	netStatus := zoneStatus.Network
 
@@ -155,25 +155,16 @@ func (c *client) CreateIsolatedNewtork(csCluster *infrav1.CloudStackCluster) (re
 func (c *client) ResolveNetworkStatuses(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	// Copy network spec to status in preparation for network resolution or creation.
 	for _, specZone := range csCluster.Spec.Zones {
-		zone, ok := csCluster.Status.Zones[specZone.Name]
-		if !ok {
-			csCluster.Status.Zones[specZone.Name] = specZone
-			zone = specZone
-		}
-		zone.Network = specZone.Network
+		csCluster.Status.Zones[specZone.ID] = specZone
 	}
 
 	// At this point network status should have been populated (copied) from the spec.
-	for zoneName, zoneStatus := range csCluster.Status.Zones {
+	for _, zoneStatus := range csCluster.Status.Zones {
 		if retErr = c.ResolveNetwork(csCluster, &zoneStatus.Network); retErr == nil { // Found network
-			csCluster.Status.Zones[zoneName] = zoneStatus
-			err := c.AddClusterTag(ResourceTypeNetwork, zoneStatus.Network.ID, csCluster, doNotAddCreatedByTag)
-			if err != nil {
-				return err
-			}
+			csCluster.Status.Zones[zoneStatus.ID] = zoneStatus
 		} else if !strings.Contains(retErr.Error(), "No match found") { // Some other error.
 			return retErr
-		} // Network not found, so create it.
+		}
 	}
 
 	return nil
@@ -388,7 +379,7 @@ func (c *client) AssignVMToLoadBalancerRule(csCluster *infrav1.CloudStackCluster
 func (c *client) GetOrCreateIsolatedNetwork(csCluster *infrav1.CloudStackCluster) error {
 	onlyNetStatus := csCluster.Status.Zones[csCluster.Spec.Zones[0].Network.Name].Network
 	if !networkExists(onlyNetStatus) { // create isolated network.
-		if err := c.CreateIsolatedNewtork(csCluster); err != nil {
+		if err := c.CreateIsolatedNetwork(csCluster); err != nil {
 			return err
 		}
 	}

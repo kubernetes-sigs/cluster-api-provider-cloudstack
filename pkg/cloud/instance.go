@@ -145,7 +145,7 @@ func (c *client) GetOrCreateVMInstance(
 
 	zone, ok := csCluster.Status.Zones[*capiMachine.Spec.FailureDomain]
 	if !ok {
-		return errors.New("FailureDomain zone not found.")
+		return errors.New("failureDomain zone not found")
 	}
 
 	// Check if VM instance already exists.
