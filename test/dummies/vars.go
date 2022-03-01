@@ -25,8 +25,12 @@ var ( // Declare exported dummy vars.
 	ISONet1            capcv1.Network
 	DomainID           string
 	Tags               map[string]string
+	Tag1               map[string]string
+	Tag2               map[string]string
 	Tag1Key            string
 	Tag1Val            string
+	Tag2Key            string
+	Tag2Val            string
 	CSApiVersion       string
 	CSClusterKind      string
 	CSClusterName      string
@@ -39,14 +43,15 @@ var ( // Declare exported dummy vars.
 	CreatedByCapcVal   string
 )
 
-// SetDummyVars sets/resets tag related dummy vars.
-func SetTestTags() {
-	TestTags = map[string]string{"TestTagKey": "TestTagValue"}
-	CSClusterTagKey = "CAPC_cluster_" + string(CSCluster.ObjectMeta.UID)
-	CSClusterTagVal = "1"
-	CSClusterTag = map[string]string{CSClusterTagVal: CSClusterTagVal}
-	CreatedByCapcKey = "create_by_CAPC"
-	CreatedByCapcVal = ""
+// SetDummyVars sets/resets all dummy vars.
+func SetDummyVars() {
+	// These need to be in order as they build upon eachother.
+	SetDummyCAPCClusterVars()
+	SetDummyCAPIClusterVars()
+	SetDummyCAPIMachineVars()
+	SetDummyCSMachineTemplateVars()
+	SetDummyCSMachineVars()
+	SetDummyTagVars()
 }
 
 func CAPCNetToCSAPINet(net *capcv1.Network) *csapi.Network {
@@ -57,15 +62,20 @@ func CAPCNetToCSAPINet(net *capcv1.Network) *csapi.Network {
 	}
 }
 
-// SetDummyVars sets/resets all dummy vars.
-func SetDummyVars() {
-	// These need to be in order as they build upon eachother.
-	SetDummyCAPCClusterVars()
-	SetDummyCAPIClusterVars()
-	SetDummyCAPIMachineVars()
-	SetDummyCSMachineTemplateVars()
-	SetDummyCSMachineVars()
-	SetDummyTagVars()
+// SetDummyVars sets/resets tag related dummy vars.
+func SetDummyTagVars() {
+	CSClusterTagKey = "CAPC_cluster_" + string(CSCluster.ObjectMeta.UID)
+	CSClusterTagVal = "1"
+	CSClusterTag = map[string]string{CSClusterTagVal: CSClusterTagVal}
+	CreatedByCapcKey = "create_by_CAPC"
+	CreatedByCapcVal = ""
+	Tag1Key = "test_tag1"
+	Tag1Val = "arbitrary_value1"
+	Tag2Key = "test_tag2"
+	Tag2Val = "arbitrary_value2"
+	Tag1 = map[string]string{Tag2Key: Tag2Val}
+	Tag2 = map[string]string{Tag2Key: Tag2Val}
+	Tags = map[string]string{Tag1Key: Tag1Val, Tag2Key: Tag2Val}
 }
 
 // SetDummyClusterSpecVars resets the values in each of the exported CloudStackMachines related dummy variables.
@@ -190,11 +200,4 @@ func SetDummyCAPIMachineVars() {
 	CAPIMachine = &capiv1.Machine{
 		Spec: capiv1.MachineSpec{FailureDomain: pointer.String(Zone1.ID)},
 	}
-}
-
-// SetDummyTagVars resets the values in each of the exported Tag related dummy variables.
-func SetDummyTagVars() {
-	Tag1Key = "test_tag"
-	Tag1Val = "arbitrary_value"
-	Tags = map[string]string{Tag1Key: Tag1Val}
 }

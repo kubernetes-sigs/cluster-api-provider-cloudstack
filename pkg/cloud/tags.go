@@ -41,7 +41,7 @@ const (
 	ResourceTypeIPAddress ResourceType = "PublicIpAddress"
 )
 
-// AddClusterTag adds cluster-related tags to a resource.  One tag indicates that the resource is used by a given
+// AddClusterTag adds cluster-related tags to a resource. One tag indicates that the resource is used by a given
 // cluster. The other tag, if applied, indicates that CAPC created the resource and may dispose of it later.
 func (c *client) AddClusterTag(
 	resourceType ResourceType,
@@ -60,10 +60,6 @@ func (c *client) AddClusterTag(
 
 	if existingTags[clusterTagName] == "" {
 		newTags[clusterTagName] = "1"
-	}
-
-	if addCreatedByCAPCTag && existingTags[createdByCAPCTagName] == "" {
-		newTags[createdByCAPCTagName] = "1"
 	}
 
 	if len(newTags) > 0 {
@@ -133,6 +129,7 @@ func (c *client) GetTags(resourceType ResourceType, resourceID string) (map[stri
 	p := c.cs.Resourcetags.NewListTagsParams()
 	p.SetResourceid(resourceID)
 	p.SetResourcetype(string(resourceType))
+	p.SetListall(true)
 	listTagResponse, err := c.cs.Resourcetags.ListTags(p)
 	if err != nil {
 		return nil, err

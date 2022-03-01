@@ -39,13 +39,14 @@ type NetworkIface interface {
 }
 
 const (
-	NetOffering          = "DefaultIsolatedNetworkOfferingWithSourceNatService"
-	K8sDefaultAPIPort    = 6443
-	NetworkTypeIsolated  = "Isolated"
-	NetworkTypeShared    = "Shared"
-	NetworkProtocolTCP   = "tcp"
-	addCreatedByTag      = true
-	doNotAddCreatedByTag = false
+	NetOffering         = "DefaultIsolatedNetworkOfferingWithSourceNatService"
+	K8sDefaultAPIPort   = 6443
+	NetworkTypeIsolated = "Isolated"
+	NetworkTypeShared   = "Shared"
+	NetworkProtocolTCP  = "tcp"
+	addCreatedByTag     = true
+
+//	doNotAddCreatedByTag = false
 )
 
 // usesIsolatedNetwork returns true if this cluster is specs an isolated network.
