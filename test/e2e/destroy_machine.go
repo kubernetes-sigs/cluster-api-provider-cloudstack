@@ -56,7 +56,7 @@ func DestroyMachineSpec(ctx context.Context, inputGetter func() CommonSpecInput)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should replace a KCP machine when it is destroyed", func() {
+	It("Should replace a machine when it is destroyed", func() {
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:    input.BootstrapClusterProxy,
 			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
@@ -65,37 +65,11 @@ func DestroyMachineSpec(ctx context.Context, inputGetter func() CommonSpecInput)
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   "destroy-kcp-machine",
+				Flavor:                   "destroy-machine",
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64Ptr(3),
-				WorkerMachineCount:       pointer.Int64Ptr(1),
-			},
-			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
-			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-		}, clusterResources)
-
-		DestroyOneMachineAndWaitForReplacement(clusterResources.Cluster.Name, "control-plane", input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"))
-
-		By("PASSED!")
-	})
-
-	It("Should replace a machine deployment when it is destroyed", func() {
-		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy:    input.BootstrapClusterProxy,
-			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
-			ConfigCluster: clusterctl.ConfigClusterInput{
-				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
-				ClusterctlConfigPath:     input.ClusterctlConfigPath,
-				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
-				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   "destroy-md-machine",
-				Namespace:                namespace.Name,
-				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(3),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
@@ -103,6 +77,10 @@ func DestroyMachineSpec(ctx context.Context, inputGetter func() CommonSpecInput)
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
+		By("Testing control plane remediation")
+		DestroyOneMachineAndWaitForReplacement(clusterResources.Cluster.Name, "control-plane", input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"))
+
+		By("Testing machine deployment remediation")
 		DestroyOneMachineAndWaitForReplacement(clusterResources.Cluster.Name, "md", input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"))
 
 		By("PASSED!")

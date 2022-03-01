@@ -84,8 +84,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-insufficient-compute-resources.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-worker-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-node-drain.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-destroy-kcp-machine.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-destroy-md-machine.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-destroy-machine.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
       - name: v1.0.0
