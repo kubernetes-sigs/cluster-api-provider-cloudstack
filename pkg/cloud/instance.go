@@ -143,15 +143,10 @@ func (c *client) GetOrCreateVMInstance(
 	csCluster *infrav1.CloudStackCluster,
 	userData string) error {
 
-	// TODO get zone from capiMachine.
-	// For now, just get whatever is reliably the first zone.
-	// This will probably need to be kicked to the controller anyway.
-	zName := ""
-	for _, zone := range csCluster.Status.Zones {
-		zName = zone.Name
-		break
+	zone, ok := csCluster.Status.Zones[*capiMachine.Spec.FailureDomain]
+	if !ok {
+		return errors.New("FailureDomain zone not found.")
 	}
-	zone := csCluster.Status.Zones[zName]
 
 	// Check if VM instance already exists.
 	if err := c.ResolveVMInstanceDetails(csMachine); err == nil ||
