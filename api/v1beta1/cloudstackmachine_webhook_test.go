@@ -26,49 +26,39 @@ import (
 
 var _ = Describe("CloudStackMachine webhook", func() {
 	var ctx context.Context
+	forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
+	requiredRegex := "admission webhook.*denied the request.*Required value\\: %s"
 
 	BeforeEach(func() { // Reset test vars to initial state.
 		dummies.SetDummyVars()
 		ctx = context.Background()
-		// Clear out any remaining machines. Ignore errors.
-		_ = k8sClient.Delete(ctx, dummies.CSMachine1)
+		_ = k8sClient.Delete(ctx, dummies.CSMachine1) // Clear out any remaining machines. Ignore errors.
 	})
 
-	Context("When creating a CloudStackMachine with all attributes", func() {
-		It("Should succeed", func() {
+	Context("When creating a CloudStackMachine", func() {
+		It("Should accept CloudStackMachine with all attributes", func() {
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 		})
-	})
 
-	Context("When creating a CloudStackMachine with missing Offering attribute", func() {
-		It("Should be rejected by the validating webhooks", func() {
+		It("Should reject a CloudStackMachine with missing Offering attribute", func() {
 			dummies.CSMachine1.Spec.Offering = ""
-			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).
-				Should(MatchRegexp("admission webhook.*denied the request.*Required value\\: Offering"))
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(requiredRegex, "Offering"))
 		})
-	})
 
-	Context("When creating a CloudStackMachine with missing Template attribute", func() {
-		It("Should be rejected by the validating webhooks", func() {
+		It("Should be reject a CloudStackMachine with missint Template attribute", func() {
 			dummies.CSMachine1.Spec.Template = ""
-			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).
-				Should(MatchRegexp("admission webhook.*denied the request.*Required value\\: Template"))
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(requiredRegex, "Template"))
 		})
-	})
 
-	Context("When creating a CloudStackMachine with the wrong kind of IdentityReference", func() {
-		It("Should be rejected by the validating webhooks", func() {
+		It("Should be reject a CloudStackMachine with IdentityRef not of kind 'Secret'", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).
-				Should(MatchRegexp("admission webhook.*denied the request.*Forbidden\\: must be a Secret"))
+				Should(MatchRegexp(forbiddenRegex, "must be a Secret"))
 		})
 	})
 
-	// Need the `-- not template` here to make the context unique. Apparently ginkgo uses startswith.
 	Context("When updating a CloudStackMachine", func() {
-		forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
-
-		BeforeEach(func() { // Reset test vars to initial state.
+		BeforeEach(func() {
 			Ω(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 		})
 

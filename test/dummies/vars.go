@@ -50,14 +50,15 @@ func SetTestTags() {
 func SetDummyVars() {
 	// These need to be in order as they build upon eachother.
 	SetDummyCAPCClusterVars()
+	SetDummyCAPIClusterVars()
 	SetDummyCSMachineTemplateVars()
 	SetDummyCSMachineVars()
-	SetDummyCAPIClusterVars()
 	SetDummyTagVars()
 }
 
 // SetDummyClusterSpecVars resets the values in each of the exported CloudStackMachines related dummy variables.
 func SetDummyCSMachineTemplateVars() {
+	DomainID = "FakeDomainId"
 	CSMachineTemplate1 = &infrav1.CloudStackMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -91,6 +92,7 @@ func SetDummyCSMachineTemplateVars() {
 
 // SetDummyClusterSpecVars resets the values in each of the exported CloudStackMachines related dummy variables.
 func SetDummyCSMachineVars() {
+	DomainID = "FakeDomainId"
 	CSMachine1 = &infrav1.CloudStackMachine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,
@@ -127,24 +129,29 @@ func SetDummyCAPCClusterVars() {
 		Name: "FakeAffinityGroup",
 		Type: cloud.AffinityGroupType}
 	Net1 = infrav1.Network{Name: "SharedGuestNet1"}
+	Net2 = infrav1.Network{Name: "SharedGuestNet2"}
 	Zone1 = infrav1.Zone{Name: "Zone1", Network: Net1}
 	Zone2 = infrav1.Zone{Name: "Zone2", Network: Net2}
+
 	CSCluster = &infrav1.CloudStackCluster{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: CSApiVersion,
+			Kind:       CSClusterKind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      CSClusterName,
+			Namespace: "default",
+			UID:       "0",
+		},
 		Spec: infrav1.CloudStackClusterSpec{
 			IdentityRef: &infrav1.CloudStackIdentityReference{
 				Kind: "Secret",
 				Name: "IdentitySecret",
 			},
-			Zones: []infrav1.Zone{Zone1, Zone2}},
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "cs-cluster-test1-",
-			UID:          "0",
-			Namespace:    "default"},
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-			Kind:       "CloudStackCluster"}}
-	CAPIMachine = &capiv1.Machine{}
-	DomainID = "FakeDomainId"
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "EndpointHost", Port: int32(8675309)},
+			Zones:                []infrav1.Zone{Zone1, Zone2},
+		},
+	}
 }
 
 // SetDummyCapiCluster resets the values in each of the exported CAPICluster related dummy variables.
