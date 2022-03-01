@@ -36,21 +36,21 @@ var _ = Describe("CloudStackMachine webhook", func() {
 	})
 
 	Context("When creating a CloudStackMachine", func() {
-		It("Should accept CloudStackMachine with all attributes", func() {
+		It("should accept CloudStackMachine with all attributes", func() {
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 		})
 
-		It("Should reject a CloudStackMachine with missing Offering attribute", func() {
+		It("should reject a CloudStackMachine with missing Offering attribute", func() {
 			dummies.CSMachine1.Spec.Offering = ""
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(requiredRegex, "Offering"))
 		})
 
-		It("Should be reject a CloudStackMachine with missint Template attribute", func() {
+		It("should be reject a CloudStackMachine with missing Template attribute", func() {
 			dummies.CSMachine1.Spec.Template = ""
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(requiredRegex, "Template"))
 		})
 
-		It("Should be reject a CloudStackMachine with IdentityRef not of kind 'Secret'", func() {
+		It("should reject a CloudStackMachine with IdentityRef not of kind 'Secret'", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).
 				Should(MatchRegexp(forbiddenRegex, "must be a Secret"))

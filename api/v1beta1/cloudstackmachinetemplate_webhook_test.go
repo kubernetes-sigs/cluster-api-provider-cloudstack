@@ -52,7 +52,7 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 				Should(MatchRegexp(requiredRegex, "Template"))
 		})
 
-		It("Should be reject a CloudStackMachineTemplate with IdentityRef not of kind 'Secret'", func() {
+		It("should reject a CloudStackMachineTemplate with IdentityRef not of kind 'Secret'", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).
 				Should(MatchRegexp(forbiddenRegex, "must be a Secret"))
