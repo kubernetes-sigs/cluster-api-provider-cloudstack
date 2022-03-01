@@ -45,7 +45,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(requiredRegex, "Offering"))
 		})
 
-		It("should be reject a CloudStackMachine with missing Template attribute", func() {
+		It("should reject a CloudStackMachine with missing Template attribute", func() {
 			dummies.CSMachine1.Spec.Template = ""
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(requiredRegex, "Template"))
 		})
