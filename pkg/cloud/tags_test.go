@@ -64,11 +64,11 @@ var _ = Describe("Tag Unit Tests", func() {
 		})
 
 		It("returns an error when you delete a tag that doesn't exist", func() {
-			Ω(client.DeleteTags(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.Tags)).ShouldNot(Succeed())
+			Ω(client.DeleteTags(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.Tags)).Should(Succeed())
 		})
 
 		It("adds the tags for a cluster (resource created by CAPC)", func() {
-			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster, true)).
+			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).
 				Should(Succeed())
 
 			// Verify tags
@@ -79,12 +79,12 @@ var _ = Describe("Tag Unit Tests", func() {
 		})
 
 		It("does not fail when the cluster tags are added twice", func() {
-			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster, true)).Should(Succeed())
-			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster, true)).Should(Succeed())
+			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
+			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
 		})
 
 		It("adds the tags for a cluster (resource NOT created by CAPC)", func() {
-			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster, false)).Should(Succeed())
+			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
 
 			// Verify tags
 			tags, err := client.GetTags(cloud.ResourceTypeNetwork, dummies.Net1.ID)
@@ -94,29 +94,19 @@ var _ = Describe("Tag Unit Tests", func() {
 		})
 
 		It("deletes a cluster tag", func() {
-			_ = client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster, true)
+			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
 			Ω(client.DeleteClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
 
-			// Verify tags
-			tags, err := client.GetTags(cloud.ResourceTypeNetwork, dummies.Net1.ID)
-			Ω(err).Should(BeNil())
-			Ω(tags[dummies.CSClusterTagKey]).Should(Equal(""))
+			Ω(client.GetTags(cloud.ResourceTypeNetwork, dummies.Net1.ID)).ShouldNot(HaveKey(dummies.CSClusterTagKey))
 		})
 
-		// TODO add back in w/created by tag implementation.
-		// It("deletes a CAPC created tag", func() {
-		// 	_ = client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster, true)
-		// 	Ω(client.DeleteCreatedByCAPCTag(cloud.ResourceTypeNetwork, dummies.Net1.ID)).Should(Succeed())
-
-		// 	// Verify tags
-		// 	tags, err := client.GetTags(cloud.ResourceTypeNetwork, dummies.Net1.ID)
-		// 	Ω(err).Should(BeNil())
-		// 	Ω(tags[dummies.CreatedByCapcKey]).Should(Equal(""))
-		// 	Ω(tags[dummies.CSClusterTagKey]).Should(Equal("1"))
-		// })
+		It("adds and deletes a created by capc tag", func() {
+			Ω(client.AddCreatedByCAPCTag(cloud.ResourceTypeNetwork, dummies.Net1.ID)).Should(Succeed())
+			Ω(client.DeleteCreatedByCAPCTag(cloud.ResourceTypeNetwork, dummies.Net1.ID)).Should(Succeed())
+		})
 
 		It("does not fail when cluster and CAPC created tags are deleted twice", func() {
-			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster, true)).Should(Succeed())
+			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
 			Ω(client.DeleteClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
 			Ω(client.DeleteClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
 			Ω(client.DeleteCreatedByCAPCTag(cloud.ResourceTypeNetwork, dummies.Net1.ID)).Should(Succeed())
@@ -130,19 +120,20 @@ var _ = Describe("Tag Unit Tests", func() {
 		})
 
 		It("does not allow a resource to be deleted when there is a cluster tag", func() {
-			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster, true)).Should(Succeed())
+			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
 			tagsAllowDisposal, err := client.DoClusterTagsAllowDisposal(cloud.ResourceTypeNetwork, dummies.Net1.ID)
 			Ω(err).Should(BeNil())
 			Ω(tagsAllowDisposal).Should(BeFalse())
 		})
 
-		// TODO add back in w/created by tag implementation.
-		// It("does allow a resource to be deleted when there are no cluster tags and there is a CAPC created tag", func() {
-		// 	_ = client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster, true)
-		// 	_ = client.DeleteClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)
-		// 	tagsAllowDisposal, err := client.DoClusterTagsAllowDisposal(cloud.ResourceTypeNetwork, dummies.Net1.ID)
-		// 	Ω(err).Should(BeNil())
-		// 	Ω(tagsAllowDisposal).Should(BeTrue())
-		// })
+		It("does allow a resource to be deleted when there are no cluster tags and there is a CAPC created tag", func() {
+			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
+			Ω(client.AddCreatedByCAPCTag(cloud.ResourceTypeNetwork, dummies.Net1.ID)).Should(Succeed())
+			Ω(client.DeleteClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
+
+			tagsAllowDisposal, err := client.DoClusterTagsAllowDisposal(cloud.ResourceTypeNetwork, dummies.Net1.ID)
+			Ω(err).Should(BeNil())
+			Ω(tagsAllowDisposal).Should(BeTrue())
+		})
 	})
 })

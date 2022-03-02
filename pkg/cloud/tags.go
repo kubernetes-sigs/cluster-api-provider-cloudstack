@@ -19,12 +19,16 @@ package cloud
 import (
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
+
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/pkg/errors"
 )
 
 type TagIface interface {
-	AddClusterTag(ResourceType, string, *infrav1.CloudStackCluster, bool) error
+	AddClusterTag(ResourceType, string, *infrav1.CloudStackCluster) error
 	DeleteClusterTag(ResourceType, string, *infrav1.CloudStackCluster) error
+	AddCreatedByCAPCTag(ResourceType, string) error
 	DeleteCreatedByCAPCTag(ResourceType, string) error
 	DoClusterTagsAllowDisposal(ResourceType, string) (bool, error)
 	AddTags(ResourceType, string, map[string]string) error
@@ -41,62 +45,37 @@ const (
 	ResourceTypeIPAddress ResourceType = "PublicIpAddress"
 )
 
-// AddClusterTag adds cluster-related tags to a resource. One tag indicates that the resource is used by a given
-// cluster. The other tag, if applied, indicates that CAPC created the resource and may dispose of it later.
-func (c *client) AddClusterTag(
-	resourceType ResourceType,
-	resourceID string,
-	csCluster *infrav1.CloudStackCluster,
-	addCreatedByCAPCTag bool,
-) error {
-
-	clusterTagName := generateClusterTagName(csCluster)
-	newTags := map[string]string{}
-
-	existingTags, err := c.GetTags(resourceType, resourceID)
-	if err != nil {
+// ignoreAlreadyPresentErrors returns nil if the error is an already present tag error.
+func ignoreAlreadyPresentErrors(err error, rType ResourceType, rID string) error {
+	matchSubString := strings.ToLower("already on " + string(rType) + " with id " + rID)
+	if err != nil && !strings.Contains(strings.ToLower(err.Error()), matchSubString) {
 		return err
 	}
-
-	if existingTags[clusterTagName] == "" {
-		newTags[clusterTagName] = "1"
-	}
-
-	if len(newTags) > 0 {
-		return c.AddTags(resourceType, resourceID, newTags)
-	}
-
 	return nil
 }
 
-// DeleteClusterTag deletes the tag that associates the resource with a given cluster.
-func (c *client) DeleteClusterTag(resourceType ResourceType, resourceID string, csCluster *infrav1.CloudStackCluster) error {
-	tags, err := c.GetTags(resourceType, resourceID)
-	if err != nil {
-		return err
-	}
-
+// AddClusterTag adds cluster tag to a resource. This tag indicates the resource is used by a given the cluster.
+func (c *client) AddClusterTag(rType ResourceType, rID string, csCluster *infrav1.CloudStackCluster) error {
 	clusterTagName := generateClusterTagName(csCluster)
-	if tagValue := tags[clusterTagName]; tagValue != "" {
-		return c.DeleteTags(resourceType, resourceID, map[string]string{clusterTagName: tagValue})
-	}
+	return c.AddTags(rType, rID, map[string]string{clusterTagName: "1"})
+}
 
-	return nil
+// DeleteClusterTag deletes the tag that associates the resource with a given cluster.
+func (c *client) DeleteClusterTag(rType ResourceType, rID string, csCluster *infrav1.CloudStackCluster) error {
+	clusterTagName := generateClusterTagName(csCluster)
+	return c.DeleteTags(rType, rID, map[string]string{clusterTagName: "1"})
+}
+
+// AddCreatedByCAPCTag deletes the tag that indicates that the resource was created by CAPC.  This is useful when a
+// resource is disassociated instead of deleted.  That way the tag won't cause confusion if the resource is reused later.
+func (c *client) AddCreatedByCAPCTag(rType ResourceType, rID string) error {
+	return c.AddTags(rType, rID, map[string]string{createdByCAPCTagName: "1"})
 }
 
 // DeleteCreatedByCAPCTag deletes the tag that indicates that the resource was created by CAPC.  This is useful when a
 // resource is disassociated instead of deleted.  That way the tag won't cause confusion if the resource is reused later.
-func (c *client) DeleteCreatedByCAPCTag(resourceType ResourceType, resourceID string) error {
-	tags, err := c.GetTags(resourceType, resourceID)
-	if err != nil {
-		return err
-	}
-
-	if tagValue := tags[createdByCAPCTagName]; tagValue != "" {
-		return c.DeleteTags(resourceType, resourceID, map[string]string{createdByCAPCTagName: tagValue})
-	}
-
-	return nil
+func (c *client) DeleteCreatedByCAPCTag(rType ResourceType, rID string) error {
+	return c.DeleteTags(rType, rID, map[string]string{createdByCAPCTagName: "1"})
 }
 
 // DoClusterTagsAllowDisposal checks to see if the resource is in a state that makes it eligible for disposal.  CAPC can
@@ -121,7 +100,7 @@ func (c *client) DoClusterTagsAllowDisposal(resourceType ResourceType, resourceI
 func (c *client) AddTags(resourceType ResourceType, resourceID string, tags map[string]string) error {
 	p := c.cs.Resourcetags.NewCreateTagsParams([]string{resourceID}, string(resourceType), tags)
 	_, err := c.cs.Resourcetags.CreateTags(p)
-	return err
+	return ignoreAlreadyPresentErrors(err, resourceType, resourceID)
 }
 
 // GetTags gets all of a resource's tags.
@@ -141,13 +120,23 @@ func (c *client) GetTags(resourceType ResourceType, resourceID string) (map[stri
 	return tags, nil
 }
 
-// DeleteTags deletes the given tags from a resource.   If the tags don't exist, or if the values don't match, it will
-// result in an error.
+// DeleteTags deletes the given tags from a resource.
+// Ignores errors if the tag is not present.
 func (c *client) DeleteTags(resourceType ResourceType, resourceID string, tagsToDelete map[string]string) error {
-	p := c.cs.Resourcetags.NewDeleteTagsParams([]string{resourceID}, string(resourceType))
-	p.SetTags(tagsToDelete)
-	_, err := c.cs.Resourcetags.DeleteTags(p)
-	return err
+	for tagkey, tagval := range tagsToDelete {
+		p := c.cs.Resourcetags.NewDeleteTagsParams([]string{resourceID}, string(resourceType))
+		p.SetTags(tagsToDelete)
+		if _, err1 := c.cs.Resourcetags.DeleteTags(p); err1 != nil { // Error in deletion attempt. Check for tag.
+			currTag := map[string]string{tagkey: tagval}
+			if tags, err2 := c.GetTags(resourceType, resourceID); len(tags) != 0 {
+				if _, foundTag := tags[tagkey]; foundTag {
+					return errors.Wrapf(multierror.Append(err1, err2),
+						"could not remove tag %s from %s with ID %s", currTag, resourceType, resourceID)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func generateClusterTagName(csCluster *infrav1.CloudStackCluster) string {

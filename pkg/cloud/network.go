@@ -139,7 +139,10 @@ func (c *client) CreateIsolatedNetwork(csCluster *infrav1.CloudStackCluster) (re
 	if err != nil {
 		return err
 	}
-	if err := c.AddClusterTag(ResourceTypeNetwork, zoneStatus.Network.ID, csCluster, addCreatedByTag); err != nil {
+	if err := c.AddClusterTag(ResourceTypeNetwork, zoneStatus.Network.ID, csCluster); err != nil {
+		return err
+	}
+	if err := c.AddCreatedByCAPCTag(ResourceTypeNetwork, zoneStatus.Network.ID); err != nil {
 		return err
 	}
 
@@ -247,9 +250,8 @@ func (c *client) AssociatePublicIPAddress(csCluster *infrav1.CloudStackCluster) 
 	csCluster.Spec.ControlPlaneEndpoint.Host = publicAddress.Ipaddress
 	csCluster.Status.PublicIPID = publicAddress.Id
 
-	if publicAddress.Allocated != "" {
-		// Address already allocated to network. Allocated is a timestamp -- not a boolean.
-		return c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster, false)
+	if publicAddress.Allocated != "" { // Address already allocated. Allocated is a timestamp -- not a boolean.
+		return c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster)
 	} // Address not yet allocated. Allocate now.
 
 	// Public IP found, but not yet allocated to network.
