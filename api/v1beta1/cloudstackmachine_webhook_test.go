@@ -42,18 +42,20 @@ var _ = Describe("CloudStackMachine webhook", func() {
 
 		It("should reject a CloudStackMachine with missing Offering attribute", func() {
 			dummies.CSMachine1.Spec.Offering = ""
-			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(requiredRegex, "Offering"))
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(requiredRegex, "Offering")))
 		})
 
 		It("should reject a CloudStackMachine with missing Template attribute", func() {
 			dummies.CSMachine1.Spec.Template = ""
-			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(requiredRegex, "Template"))
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(requiredRegex, "Template")))
 		})
 
 		It("should reject a CloudStackMachine with IdentityRef not of kind 'Secret'", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
-			Expect(k8sClient.Create(ctx, dummies.CSMachine1).Error()).
-				Should(MatchRegexp(forbiddenRegex, "must be a Secret"))
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "must be a Secret")))
 		})
 	})
 
@@ -64,35 +66,38 @@ var _ = Describe("CloudStackMachine webhook", func() {
 
 		It("should reject VM offering updates to the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.Offering = "ArbitraryUpdateOffering"
-			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(forbiddenRegex, "offering"))
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "offering")))
 		})
 
 		It("should reject VM template updates to the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.Template = "ArbitraryUpdateTemplate"
-			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(forbiddenRegex, "template"))
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "template")))
 		})
 
 		It("should reject updates to VM details of the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.Details = map[string]string{"memoryOvercommitRatio": "1.5"}
-			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).Should(MatchRegexp(forbiddenRegex, "details"))
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "details")))
 		})
 
 		It("should reject identity reference kind udpates to the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
-			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).
-				Should(MatchRegexp(forbiddenRegex, "identityRef\\.Kind"))
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Kind")))
 		})
 
 		It("should reject identity reference name udpates to the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Name = "IdentityConfigMap"
-			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).
-				Should(MatchRegexp(forbiddenRegex, "identityRef\\.Name"))
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Name")))
 		})
 
 		It("should reject udpates to the list of affinty groups of the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.AffinityGroupIDs = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2af"}
-			Ω(k8sClient.Update(ctx, dummies.CSMachine1).Error()).
-				Should(MatchRegexp(forbiddenRegex, "AffinityGroupIDs"))
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "AffinityGroupIDs")))
 		})
 	})
 })

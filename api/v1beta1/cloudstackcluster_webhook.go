@@ -105,14 +105,16 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	}
 	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpointhost", errorList)
+			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpoint.host", errorList)
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			string(spec.ControlPlaneEndpoint.Port), string(oldSpec.ControlPlaneEndpoint.Port), "controlplaneendpointport", errorList)
+			string(spec.ControlPlaneEndpoint.Port), string(oldSpec.ControlPlaneEndpoint.Port),
+			"controlplaneendpoint.port", errorList)
 	}
 	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
-		errorList = webhookutil.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
+			spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityref.kind", errorList)
+		errorList = webhookutil.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name,
+			"identityref.name", errorList)
 	}
 
 	// IdentityRefs must be Secrets.

@@ -44,9 +44,6 @@ const (
 	NetworkTypeIsolated = "Isolated"
 	NetworkTypeShared   = "Shared"
 	NetworkProtocolTCP  = "tcp"
-	addCreatedByTag     = true
-
-//	doNotAddCreatedByTag = false
 )
 
 // usesIsolatedNetwork returns true if this cluster is specs an isolated network.

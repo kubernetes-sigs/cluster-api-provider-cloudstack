@@ -23,14 +23,7 @@ import (
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/types"
 )
-
-var errString = func(err error) string { return err.Error() }
-
-func BeErrorAndMatchRegexp(regexp string, args ...interface{}) types.GomegaMatcher {
-	return SatisfyAll(HaveOccurred(), WithTransform(errString, MatchRegexp(regexp, args)))
-}
 
 var _ = Describe("CloudStackCluster webhooks", func() {
 	var ctx context.Context
@@ -51,18 +44,19 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 
 		It("Should reject a CloudStackCluster with missing Zones.Network attribute", func() {
 			dummies.CSCluster.Spec.Zones = []infrav1.Zone{{Name: "ZoneWNoNetwork"}}
-			Ω(k8sClient.Create(ctx, dummies.CSCluster).Error()).Should(
-				MatchRegexp(requiredRegex, "each Zone requires a Network specification"))
+			Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(
+				MatchError(MatchRegexp(requiredRegex, "each Zone requires a Network specification")))
 		})
 
 		It("Should reject a CloudStackCluster with missing Zones attribute", func() {
 			dummies.CSCluster.Spec.Zones = []infrav1.Zone{}
-			Ω(k8sClient.Create(ctx, dummies.CSCluster).Error()).Should(MatchRegexp(requiredRegex, "Zones"))
+			Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(requiredRegex, "Zones")))
 		})
 
 		It("Should reject a CloudStackCluster with IdentityRef not of kind 'Secret'", func() {
 			dummies.CSCluster.Spec.IdentityRef.Kind = "ConfigMap"
-			Ω(k8sClient.Create(ctx, dummies.CSCluster).Error()).Should(MatchRegexp(forbiddenRegex, "must be a Secret"))
+			Ω(k8sClient.Create(ctx, dummies.CSCluster)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "must be a Secret")))
 		})
 	})
 
@@ -73,32 +67,32 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 
 		It("Should reject updates to CloudStackCluster Zones", func() {
 			dummies.CSCluster.Spec.Zones = []infrav1.Zone{dummies.Zone1}
-			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(BeErrorAndMatchRegexp(forbiddenRegex, "Zones and sub"))
+			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(forbiddenRegex, "Zones and sub")))
 		})
 		It("Should reject updates to CloudStackCluster Zones", func() {
 			dummies.CSCluster.Spec.Zones[0].Network.Name = "ArbitraryUpdateNetworkName"
-			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(BeErrorAndMatchRegexp(forbiddenRegex, "Zones and sub"))
+			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(forbiddenRegex, "Zones and sub")))
 		})
 		It("Should reject updates to CloudStackCluster controlplaneendpoint.host", func() {
 			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = "1.1.1.1"
 			Ω(k8sClient.Update(ctx, dummies.CSCluster)).
-				Should(BeErrorAndMatchRegexp(forbiddenRegex, "controlplaneendpoint\\.host"))
+				Should(MatchError(MatchRegexp(forbiddenRegex, "controlplaneendpoint\\.host")))
 		})
 
 		It("Should reject updates to CloudStackCluster controlplaneendpoint.port", func() {
 			dummies.CSCluster.Spec.ControlPlaneEndpoint.Port = int32(1234)
 			Ω(k8sClient.Update(ctx, dummies.CSCluster)).
-				Should(BeErrorAndMatchRegexp(forbiddenRegex, "controlplaneendpoint\\.port"))
+				Should(MatchError(MatchRegexp(forbiddenRegex, "controlplaneendpoint\\.port")))
 		})
 		It("Should reject updates to the CloudStackCluster identity reference kind", func() {
 			dummies.CSCluster.Spec.IdentityRef.Kind = "ConfigMap"
 			Ω(k8sClient.Update(ctx, dummies.CSCluster)).
-				Should(BeErrorAndMatchRegexp(forbiddenRegex, "identityRef\\.Kind"))
+				Should(MatchError(MatchRegexp(forbiddenRegex, "identityref\\.kind")))
 		})
 		It("Should reject updates to the CloudStackCluster identity reference name", func() {
 			dummies.CSCluster.Spec.IdentityRef.Name = "ConfigMap"
 			Ω(k8sClient.Update(ctx, dummies.CSCluster)).
-				Should(BeErrorAndMatchRegexp(forbiddenRegex, "identityRef\\.name"))
+				Should(MatchError(MatchRegexp(forbiddenRegex, "identityref\\.name")))
 		})
 	})
 })
