@@ -36,20 +36,17 @@ func (c *client) resolveZones(csCluster *infrav1.CloudStackCluster) (retErr erro
 			retErr = multierror.Append(retErr, errors.Errorf(
 				"expected 1 Zone with name %s, but got %d", specZone.Name, count))
 		} else {
-			csCluster.Status.Zones[specZone.Name] = infrav1.Zone{
-				Name: specZone.Name, ID: zoneID, Network: specZone.Network}
+			specZone.ID = zoneID
 		}
 
-		if retErr != nil {
-			if resp, count, err := c.cs.Zone.GetZoneByID(specZone.ID); err != nil {
-				return multierror.Append(retErr, errors.Wrapf(err, "could not get Zone by ID %s", specZone.ID))
-			} else if count != 1 {
-				return multierror.Append(retErr, errors.Errorf(
-					"expected 1 Zone with UUID %s, but got %d", specZone.ID, count))
-			} else {
-				csCluster.Status.Zones[resp.Name] = infrav1.Zone{
-					Name: resp.Name, ID: specZone.ID, Network: specZone.Network}
-			}
+		if resp, count, err := c.cs.Zone.GetZoneByID(specZone.ID); err != nil {
+			return multierror.Append(retErr, errors.Wrapf(err, "could not get Zone by ID %s", specZone.ID))
+		} else if count != 1 {
+			return multierror.Append(retErr, errors.Errorf(
+				"expected 1 Zone with UUID %s, but got %d", specZone.ID, count))
+		} else {
+			csCluster.Status.Zones[resp.Id] = infrav1.Zone{
+				Name: resp.Name, ID: specZone.ID, Network: specZone.Network}
 		}
 	}
 

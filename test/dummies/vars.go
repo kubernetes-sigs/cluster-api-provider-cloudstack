@@ -23,7 +23,9 @@ var ( // Declare exported dummy vars.
 	Net1               capcv1.Network
 	Net2               capcv1.Network
 	ISONet1            capcv1.Network
+	Domain             string
 	DomainID           string
+	Account            string
 	Tags               map[string]string
 	Tag1               map[string]string
 	Tag2               map[string]string
@@ -62,6 +64,13 @@ func CAPCNetToCSAPINet(net *capcv1.Network) *csapi.Network {
 	}
 }
 
+func CAPCZoneToCSAPIZone(net *capcv1.Zone) *csapi.Zone {
+	return &csapi.Zone{
+		Name: net.Name,
+		Id:   net.ID,
+	}
+}
+
 // SetDummyVars sets/resets tag related dummy vars.
 func SetDummyTagVars() {
 	CSClusterTagKey = "CAPC_cluster_" + string(CSCluster.ObjectMeta.UID)
@@ -80,7 +89,6 @@ func SetDummyTagVars() {
 
 // SetDummyClusterSpecVars resets the values in each of the exported CloudStackMachines related dummy variables.
 func SetDummyCSMachineTemplateVars() {
-	DomainID = "FakeDomainId"
 	CSMachineTemplate1 = &capcv1.CloudStackMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -114,7 +122,6 @@ func SetDummyCSMachineTemplateVars() {
 
 // SetDummyClusterSpecVars resets the values in each of the exported CloudStackMachines related dummy variables.
 func SetDummyCSMachineVars() {
-	DomainID = "FakeDomainId"
 	CSMachine1 = &capcv1.CloudStackMachine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,
@@ -144,13 +151,18 @@ func SetDummyCSMachineVars() {
 // SetDummyClusterSpecVars resets the values in each of the exported CloudStackCluster related dummy variables.
 // It is intended to be called in BeforeEach( functions.
 func SetDummyCAPCClusterVars() {
+	DomainID = "FakeDomainID"
+	Domain = "FakeDomainName"
+	Account = "FakeAccountName"
 	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta1"
 	CSClusterKind = "CloudStackCluster"
 	CSClusterName = "test-cluster"
+
 	CSlusterNamespace = "default"
 	AffinityGroup = &cloud.AffinityGroup{
 		Name: "FakeAffinityGroup",
-		Type: cloud.AffinityGroupType}
+		Type: cloud.AffinityGroupType,
+		ID:   "FakeAffinityGroupID"}
 	Net1 = capcv1.Network{Name: "SharedGuestNet1", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID1"}
 	Net2 = capcv1.Network{Name: "SharedGuestNet2", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID2"}
 	ISONet1 = capcv1.Network{Name: "IsolatedGuestNet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
@@ -177,6 +189,15 @@ func SetDummyCAPCClusterVars() {
 		},
 		Status: capcv1.CloudStackClusterStatus{Zones: map[string]capcv1.Zone{Zone1.ID: Zone1}},
 	}
+}
+
+func SetDummyDomainAndAccount() {
+	CSCluster.Spec.Account = Account
+	CSCluster.Spec.Domain = Domain
+}
+
+func SetDummyDomainID() {
+	CSCluster.Status.DomainID = "FakeDomainID"
 }
 
 // SetDummyCapiCluster resets the values in each of the exported CAPICluster related dummy variables.
