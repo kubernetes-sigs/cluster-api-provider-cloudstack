@@ -24,7 +24,7 @@ See [configuring envtest for integration tests](https://book.kubebuilder.io/refe
 However, the makefile is setup to install kubebuilder tools in `$PROJECT_DIR/bin`. So, running `make binaries`, and setting 
 env var KUBEBUILDER_ASSETS should be enough for envtest to work.
 
-- export PROJECT_DIR=`pwd`
+- export PROJECT_DIR=$(pwd)
 
 - copy cloud-config to project dir.
 
