@@ -24,9 +24,9 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing destroying machine", func() {
+var _ = Describe("When testing machine remediation", func() {
 
-	DestroyMachineSpec(context.TODO(), func() CommonSpecInput {
+	MachineRemediationSpec(context.TODO(), func() CommonSpecInput {
 		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,

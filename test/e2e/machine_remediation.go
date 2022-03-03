@@ -31,10 +31,10 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// DestroyMachineSpec implements a test that verifies that an app deployed to the workload cluster works.
-func DestroyMachineSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
+// MachineRemediationSpec implements a test that verifies that an app deployed to the workload cluster works.
+func MachineRemediationSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
-		specName         = "destroy-machine"
+		specName         = "machine-remediation"
 		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
@@ -71,7 +71,7 @@ func DestroyMachineSpec(ctx context.Context, inputGetter func() CommonSpecInput)
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   "destroy-machine",
+				Flavor:                   "machine-remediation",
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
