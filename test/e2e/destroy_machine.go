@@ -57,8 +57,14 @@ func DestroyMachineSpec(ctx context.Context, inputGetter func() CommonSpecInput)
 	})
 
 	It("Should replace a machine when it is destroyed", func() {
+		cpMatcher := "control-plane"
+		cpCount := 3
+		mdMatcher := "md"
+		mdCount := 3
+		proxy := input.BootstrapClusterProxy
+
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy:    input.BootstrapClusterProxy,
+			ClusterProxy:    proxy,
 			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
@@ -76,12 +82,10 @@ func DestroyMachineSpec(ctx context.Context, inputGetter func() CommonSpecInput)
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
+		cluster := clusterResources.Cluster
 
-		By("Testing control plane remediation")
-		DestroyOneMachineAndWaitForReplacement(clusterResources.Cluster.Name, "control-plane", input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"))
-
-		By("Testing machine deployment remediation")
-		DestroyOneMachineAndWaitForReplacement(clusterResources.Cluster.Name, "md", input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"))
+		WaitForMachineRemediationAfterDestroy(ctx, proxy, cluster, cpMatcher, cpCount, input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"))
+		WaitForMachineRemediationAfterDestroy(ctx, proxy, cluster, mdMatcher, mdCount, input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"))
 
 		By("PASSED!")
 	})

@@ -27,16 +27,18 @@ import (
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/gomega/types"
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Test suite constants for e2e config variables.
@@ -188,7 +190,7 @@ type cloudConfig struct {
 	VerifySSL bool   `ini:"verify-ssl"`
 }
 
-func DestroyOneMachineAndWaitForReplacement(clusterName string, machineType string, intervals []interface{}) {
+func DestroyOneMachine(clusterName string, machineType string) {
 	encodedSecret := os.Getenv("CLOUDSTACK_B64ENCODED_SECRET")
 	secret, err := base64.StdEncoding.DecodeString(encodedSecret)
 	if err != nil {
@@ -223,7 +225,6 @@ func DestroyOneMachineAndWaitForReplacement(clusterName string, machineType stri
 			}
 		}
 	}
-	Byf("Original number of machines: %d ", originalCount)
 
 	Byf("Destroying machine %s", vmToDestroy.Name)
 	stopParams := client.VirtualMachine.NewStopVirtualMachineParams(vmToDestroy.Id)
@@ -238,22 +239,72 @@ func DestroyOneMachineAndWaitForReplacement(clusterName string, machineType stri
 	if err != nil {
 		Fail("Failed to destroy machine")
 	}
-	Byf("Destroyed machine %s", vmToDestroy.Name)
+}
 
-	By("Waiting for a replacement machine")
-	Eventually(func() (int, error) {
-		By("Counting machines")
-		listResp, err = client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
-		if err != nil {
-			return -1, err
+func WaitForMachineRemediationAfterDestroy(ctx context.Context, proxy framework.ClusterProxy, cluster *clusterv1.Cluster, machineMatcher string, healthyMachineCount int, intervals []interface{}) {
+	mgmtClusterClient := proxy.GetClient()
+	workloadClusterClient := proxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name).GetClient()
+
+	WaitForHealthyMachineCount(ctx, mgmtClusterClient, workloadClusterClient, cluster, machineMatcher, healthyMachineCount, intervals)
+	Byf("Current number of healthy %s is %d", machineMatcher, healthyMachineCount)
+
+	Byf("Destroying one %s", machineMatcher)
+	DestroyOneMachine(cluster.Name, machineMatcher)
+
+	Byf("Waiting for the destroyed %s to be unhealthy", machineMatcher)
+	WaitForHealthyMachineCount(ctx, mgmtClusterClient, workloadClusterClient, cluster, machineMatcher, healthyMachineCount-1, intervals)
+
+	Byf("Waiting for remediation of %s", machineMatcher)
+	WaitForHealthyMachineCount(ctx, mgmtClusterClient, workloadClusterClient, cluster, machineMatcher, healthyMachineCount, intervals)
+	Byf("%s machine remediated successfully", machineMatcher)
+}
+
+func WaitForHealthyMachineCount(ctx context.Context, mgmtClient client.Client, workloadClient client.Client, cluster *clusterv1.Cluster, mhcMatcher string, healthyMachineCount int, intervals []interface{}) {
+	machineHealthChecks := framework.GetMachineHealthChecksForCluster(ctx, framework.GetMachineHealthChecksForClusterInput{
+		Lister:      mgmtClient,
+		ClusterName: cluster.Name,
+		Namespace:   cluster.Namespace,
+	})
+
+	for _, mhc := range machineHealthChecks {
+		Expect(mhc.Spec.UnhealthyConditions).NotTo(BeEmpty())
+		if !strings.Contains(mhc.Name, mhcMatcher) {
+			continue
 		}
-		count := 0
-		for _, vm := range listResp.VirtualMachines {
-			if strings.Contains(vm.Name, matcher) {
-				count++
+
+		Eventually(func() (bool, error) {
+			machines := framework.GetMachinesByMachineHealthCheck(ctx, framework.GetMachinesByMachineHealthCheckInput{
+				Lister:             mgmtClient,
+				ClusterName:        cluster.Name,
+				MachineHealthCheck: mhc,
+			})
+
+			count := 0
+			for _, machine := range machines {
+				if machine.Status.NodeRef == nil {
+					continue
+				}
+				node := &corev1.Node{}
+				err := workloadClient.Get(ctx, k8stypes.NamespacedName{Name: machine.Status.NodeRef.Name, Namespace: machine.Status.NodeRef.Namespace}, node)
+				if err != nil {
+					continue
+				}
+				if !HasMatchingUnhealthyConditions(mhc, node.Status.Conditions) {
+					count++
+				}
+			}
+			return count == healthyMachineCount, nil
+		}, intervals...).Should(BeTrue())
+	}
+}
+
+func HasMatchingUnhealthyConditions(machineHealthCheck *clusterv1.MachineHealthCheck, nodeConditions []corev1.NodeCondition) bool {
+	for _, unhealthyCondition := range machineHealthCheck.Spec.UnhealthyConditions {
+		for _, nodeCondition := range nodeConditions {
+			if nodeCondition.Type == unhealthyCondition.Type && nodeCondition.Status == unhealthyCondition.Status {
+				return true
 			}
 		}
-		Byf("Current number of machines: %d", count)
-		return count, nil
-	}, intervals...).Should(Equal(originalCount))
+	}
+	return false
 }

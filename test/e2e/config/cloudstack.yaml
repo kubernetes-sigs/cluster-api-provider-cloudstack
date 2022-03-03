@@ -74,8 +74,6 @@ providers:
     type: InfrastructureProvider
     files:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-kcp-remediation.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-md-remediation.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-zone.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-account.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-domain.yaml"

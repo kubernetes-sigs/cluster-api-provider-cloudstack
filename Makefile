@@ -214,7 +214,7 @@ e2e-essentials: bin/ginkgo e2e-cluster-templates kind-cluster ## Fulfill essenti
 JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
 	cd test/e2e && \
-	ginkgo -v -trace -tags=e2e -focus=$(JOB) -nodes=1 --noColor=false ./... -- \
+	ginkgo -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 --noColor=false ./... -- \
 	    -e2e.artifacts-folder=${PROJECT_DIR}/_artifacts \
 	    -e2e.config=${PROJECT_DIR}/test/e2e/config/cloudstack.yaml \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true

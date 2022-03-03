@@ -1,7 +1,0 @@
-bases:
-  - ../bases/cluster-with-kcp.yaml
-  - ../bases/md.yaml
-  # The following error occurs if crs.yaml is added in this test manifest file. 
-  # Error from server (InternalError): error when creating "STDIN": Internal error occurred: failed calling webhook "default.clusterresourceset.addons.cluster.x-k8s.io": the server could not find the requested resource
-  # - ../bases/crs.yaml
-  - mhc.yaml
