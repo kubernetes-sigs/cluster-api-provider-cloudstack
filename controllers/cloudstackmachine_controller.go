@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"time"
 
@@ -172,6 +173,9 @@ func (r *CloudStackMachineReconciler) reconcile(
 			zones[zidx] = zoneID
 			zidx++
 		}
+		rand.Seed(time.Now().Unix())
+		randNum := (rand.Int() % len(csCluster.Spec.Zones))
+		csMachine.Status.ZoneID = zones[randNum]
 	}
 
 	secret := &corev1.Secret{}
