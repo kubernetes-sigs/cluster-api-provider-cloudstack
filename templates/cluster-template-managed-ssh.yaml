@@ -26,8 +26,10 @@ spec:
   controlPlaneEndpoint:
     host: ${CLUSTER_ENDPOINT_IP}
     port: ${CLUSTER_ENDPOINT_PORT}
-  network: ${CLOUDSTACK_NETWORK_NAME}
-  zone: ${CLOUDSTACK_ZONE_NAME}
+  zones:
+  - name : ${CLOUDSTACK_ZONE_NAME}
+    network: 
+      name: ${CLOUDSTACK_NETWORK_NAME}
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
