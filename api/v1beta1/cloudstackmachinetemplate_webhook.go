@@ -44,7 +44,7 @@ var _ webhook.Defaulter = &CloudStackMachineTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) Default() {
-	cloudstackmachinetemplatelog.Info("default", "name", r.Name)
+	cloudstackmachinetemplatelog.V(1).Info("entered default setting webhook", "api resource name", r.Name)
 	// No defaulted values supported yet.
 }
 
@@ -54,7 +54,7 @@ var _ webhook.Validator = &CloudStackMachineTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) ValidateCreate() error {
-	cloudstackmachinetemplatelog.V(1).Info("validate create", "name", r.Name)
+	cloudstackmachinetemplatelog.V(1).Info("entered validate create webhook", "api resource name", r.Name)
 
 	var (
 		errorList field.ErrorList
@@ -84,7 +84,7 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
-	cloudstackmachinetemplatelog.V(1).Info("validate update", "name", r.Name)
+	cloudstackmachinetemplatelog.V(1).Info("entered validate update webhook", "api resource name", r.Name)
 
 	oldMachineTemplate, ok := old.(*CloudStackMachineTemplate)
 	if !ok {
@@ -118,7 +118,7 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) ValidateDelete() error {
-	cloudstackmachinetemplatelog.Info("validate delete", "name", r.Name)
+	cloudstackmachinetemplatelog.V(1).Info("entered validate delete webhook", "api resource name", r.Name)
 	// No deletion validations.  Deletion webhook not enabled.
 	return nil
 }
