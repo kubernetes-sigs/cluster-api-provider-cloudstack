@@ -46,7 +46,7 @@ func (c *client) resolveZones(csCluster *infrav1.CloudStackCluster) (retErr erro
 				"expected 1 Zone with UUID %s, but got %d", specZone.ID, count))
 		} else {
 			csCluster.Status.Zones[resp.Id] = infrav1.Zone{
-				Name: resp.Name, ID: specZone.ID, Network: specZone.Network}
+				Name: resp.Name, ID: resp.Id, Network: specZone.Network}
 		}
 	}
 
@@ -64,6 +64,7 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 	csCluster.Status.FailureDomains = capiv1.FailureDomains{}
 	for _, zone := range csCluster.Status.Zones {
 		csCluster.Status.FailureDomains[zone.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
+		csCluster.Status.FailureDomains[zone.ID+"_workers"] = capiv1.FailureDomainSpec{ControlPlane: false}
 	}
 
 	// If provided, translate Domain name to Domain ID.

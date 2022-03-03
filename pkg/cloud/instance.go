@@ -108,10 +108,9 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (o
 func (c *client) ResolveTemplate(
 	csCluster *infrav1.CloudStackCluster,
 	csMachine *infrav1.CloudStackMachine,
-	zone infrav1.Zone,
+	zoneID string,
 ) (templateID string, retErr error) {
-
-	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", zone.ID)
+	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", zoneID)
 	if err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(
 			err, "could not get Template ID from %s", csMachine.Spec.Template))
@@ -143,11 +142,6 @@ func (c *client) GetOrCreateVMInstance(
 	csCluster *infrav1.CloudStackCluster,
 	userData string) error {
 
-	zone, ok := csCluster.Status.Zones[*capiMachine.Spec.FailureDomain]
-	if !ok {
-		return errors.New("failureDomain zone not found")
-	}
-
 	// Check if VM instance already exists.
 	if err := c.ResolveVMInstanceDetails(csMachine); err == nil ||
 		!strings.Contains(strings.ToLower(err.Error()), "no match") {
@@ -157,14 +151,14 @@ func (c *client) GetOrCreateVMInstance(
 	if err != nil {
 		return err
 	}
-
-	templateID, err := c.ResolveTemplate(csCluster, csMachine, zone)
+	templateID, err := c.ResolveTemplate(csCluster, csMachine, csMachine.Status.ZoneID)
 	if err != nil {
 		return err
 	}
 
 	// Create VM instance.
-	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, zone.ID)
+	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csMachine.Status.ZoneID)
+	zone := csCluster.Status.Zones[csMachine.Status.ZoneID]
 	p.SetNetworkids([]string{zone.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)

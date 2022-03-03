@@ -136,8 +136,8 @@ spec:
               publicIPID:
                 description: The CS public IP ID to use for the k8s endpoint.
                 type: string
-              publicIPNetworkId:
-                description: The Id of the network the PublicIP is in.
+              publicIPNetworkID:
+                description: The ID of the network the PublicIP is in.
                 type: string
               ready:
                 description: Reflects the readiness of the CS cluster.

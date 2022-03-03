@@ -74,6 +74,10 @@ type InstanceState string
 
 // Type pulled mostly from the CloudStack API.
 type CloudStackMachineStatus struct {
+	// Zone ID is used so that the zone can be computed once per reconcile and then propagate.
+	// +optional
+	ZoneID string `json:"zoneID,omitempty"`
+
 	// Addresses contains a CloudStack VM instance's IP addresses.
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 

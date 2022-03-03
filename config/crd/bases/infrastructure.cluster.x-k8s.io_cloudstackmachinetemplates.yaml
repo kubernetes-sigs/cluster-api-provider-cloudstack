@@ -48,7 +48,7 @@ spec:
                       CloudStackMachine
                     properties:
                       affinity:
-                        description: Mutually exclusive parameter with AffinityGroupIds.
+                        description: Mutually exclusive parameter with AffinityGroupIDs.
                           Defaults to `no`. Can be `pro` or `anti`. Will create an
                           affinity group per machine set.
                         type: string
@@ -89,7 +89,7 @@ spec:
                         type: string
                       providerID:
                         description: 'The CS specific unique identifier. Of the form:
-                          fmt.Sprintf("cloudstack:///%s", CS Machine Id)'
+                          fmt.Sprintf("cloudstack:///%s", CS Machine ID)'
                         type: string
                       sshKey:
                         description: CloudStack ssh key to use.
