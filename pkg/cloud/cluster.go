@@ -26,9 +26,10 @@ import (
 type ClusterIface interface {
 	GetOrCreateCluster(*infrav1.CloudStackCluster) error
 	DisposeClusterResources(cluster *infrav1.CloudStackCluster) error
+	ResolveZones(*infrav1.CloudStackCluster) error
 }
 
-func (c *client) resolveZones(csCluster *infrav1.CloudStackCluster) (retErr error) {
+func (c *client) ResolveZones(csCluster *infrav1.CloudStackCluster) (retErr error) {
 	for _, specZone := range csCluster.Spec.Zones {
 		if zoneID, count, err := c.cs.Zone.GetZoneID(specZone.Name); err != nil {
 			retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %s", specZone))
@@ -57,14 +58,13 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 	if csCluster.Status.Zones == nil {
 		csCluster.Status.Zones = make(map[string]infrav1.Zone)
 	}
-	if retErr = c.resolveZones(csCluster); retErr != nil {
+	if retErr = c.ResolveZones(csCluster); retErr != nil {
 		return errors.Wrapf(retErr, "error resolving Zone details for Cluster %s", csCluster.Name)
 	}
 
 	csCluster.Status.FailureDomains = capiv1.FailureDomains{}
 	for _, zone := range csCluster.Status.Zones {
 		csCluster.Status.FailureDomains[zone.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
-		csCluster.Status.FailureDomains[zone.ID+"_workers"] = capiv1.FailureDomainSpec{ControlPlane: false}
 	}
 
 	// If provided, translate Domain name to Domain ID.
@@ -85,13 +85,9 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		return retErr
 	}
 
-	if usesIsolatedNetwork(csCluster) {
+	if UsesIsolatedNetwork(csCluster) {
 		return c.GetOrCreateIsolatedNetwork(csCluster)
 	}
-
-	// TODO: Make this tag all networks as in use. Didn't make sense in resolveNetworks.
-	// if err := c.AddClusterTag(ResourceTypeNetwork, zoneStatus.Network.ID, csCluster, doNotAddCreatedByTag); err != nil {
-	// }
 
 	return nil
 }

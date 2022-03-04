@@ -199,6 +199,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 	}
 
 	// Check status of machine.
+	csMachine.Status.Ready = false
 	if csMachine.Status.InstanceState == "Running" {
 		log.Info("Machine instance is Running...")
 		csMachine.Status.Ready = true

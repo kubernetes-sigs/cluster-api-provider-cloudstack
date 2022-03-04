@@ -100,8 +100,7 @@ func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	defer func() {
 		if err = patchHelper.Patch(ctx, csCluster); err != nil {
-			msg := "error patching CloudStackCluster %s/%s"
-			err = errors.Wrapf(err, msg, csCluster.Namespace, csCluster.Name)
+			err = errors.Wrapf(err, "error patching CloudStackCluster %s/%s", csCluster.Namespace, csCluster.Name)
 			retErr = multierror.Append(retErr, err)
 		}
 	}()
@@ -126,6 +125,9 @@ func (r *CloudStackClusterReconciler) reconcile(
 
 	// Prevent premature deletion of the csCluster construct from CAPI.
 	controllerutil.AddFinalizer(csCluster, infrav1.ClusterFinalizer)
+	// Set ready status so that a partial reconcile can be patched.
+	// Ready is required, and patching will fail otherwise.
+	csCluster.Status.Ready = false
 
 	// Create and or fetch cluster components.
 	err := r.CS.GetOrCreateCluster(csCluster)

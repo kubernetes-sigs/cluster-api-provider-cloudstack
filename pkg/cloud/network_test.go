@@ -17,9 +17,8 @@ limitations under the License.
 package cloud_test
 
 import (
-	"fmt"
-
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
+	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
@@ -91,18 +90,31 @@ var _ = Describe("Network", func() {
 
 			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
 		})
+
 		It("resolves network details in cluster status", func() {
+			dummies.SetDummyZoneStatus()
 			// Gets Net1 by Name.
 			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
 
 			// Trys to get Net2 by name and doesn't find it. Then finds Net2 via ID.
 			ns.EXPECT().GetNetworkByName(dummies.Net2.Name).Return(nil, 0, nil)
 			ns.EXPECT().GetNetworkByID(dummies.Net2.ID).Return(dummies.CAPCNetToCSAPINet(&dummies.Net2), 1, nil)
-			fmt.Println(dummies.CSCluster.Spec.Zones)
 
 			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSCluster.Status.Zones[dummies.Zone1.ID].Network).Should(Equal(dummies.Net1))
 			Ω(dummies.CSCluster.Status.Zones[dummies.Zone2.ID].Network).Should(Equal(dummies.Net2))
+		})
+
+		It("correctly identifies the shared network use case", func() {
+			Ω(cloud.UsesIsolatedNetwork(dummies.CSCluster)).Should(BeFalse())
+		})
+		It("correctly identifies the isolated network use case", func() {
+			dummies.Zone1.Network = dummies.ISONet1
+			dummies.CSCluster.Status.Zones = map[string]capcv1.Zone{dummies.Zone1.ID: dummies.Zone1}
+			Ω(cloud.UsesIsolatedNetwork(dummies.CSCluster)).Should(BeTrue())
+		})
+		It("correctly identifies an existing network from a network status", func() {
+			Ω(cloud.NetworkExists(dummies.CSCluster.Status.Zones.GetOne().Network)).Should(BeTrue())
 		})
 	})
 
@@ -193,4 +205,46 @@ var _ = Describe("Network", func() {
 	// 			Ω(csCluster.Status.LBRuleID).Should(Equal(randomID))
 	// 		})
 	// 	})
+	Context("Networking Integ Tests", func() {
+		client, connectionErr := cloud.NewClient("../../cloud-config")
+
+		BeforeEach(func() {
+			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
+				Skip("Could not connect to ACS instance.")
+			}
+			if err := client.ResolveNetwork(dummies.CSCluster, &dummies.Net1); err != nil {
+				Skip("Could not find network.")
+			}
+
+			// Delete any existing tags
+			existingTags, err := client.GetTags(cloud.ResourceTypeNetwork, dummies.Net1.ID)
+			if err != nil {
+				Fail("Failed to get existing tags. Error: " + err.Error())
+			}
+			if len(existingTags) != 0 {
+				err = client.DeleteTags(cloud.ResourceTypeNetwork, dummies.Net1.ID, existingTags)
+				if err != nil {
+					Fail("Failed to delete existing tags. Error: " + err.Error())
+				}
+			}
+		})
+
+		It("fetches an isolated network", func() {
+			dummies.SetDummyIsoNetToNameOnly()
+			dummies.SetClusterSpecToNet(&dummies.ISONet1)
+
+			client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)
+			Ω(dummies.ISONet1.ID).ShouldNot(BeEmpty())
+			Ω(dummies.ISONet1.Type).Should(Equal(cloud.NetworkTypeIsolated))
+		})
+
+		It("fetches a public IP", func() {
+			dummies.Zone1.ID = ""
+			dummies.SetDummyIsoNetToNameOnly()
+			dummies.SetClusterSpecToNet(&dummies.ISONet1)
+			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""
+			Ω(client.ResolveZones(dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
+		})
+	})
 })
