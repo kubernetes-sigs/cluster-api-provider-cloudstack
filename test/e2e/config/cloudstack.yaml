@@ -83,6 +83,8 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-worker-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-node-drain.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-machine-remediation.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-affinity-group-pro.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-affinity-group-anti.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
       - name: v1.0.0

@@ -241,6 +241,51 @@ func DestroyOneMachine(clusterName string, machineType string) {
 	}
 }
 
+func CheckAffinityGroup(clusterName string, affinityType string) {
+	encodedSecret := os.Getenv("CLOUDSTACK_B64ENCODED_SECRET")
+	secret, err := base64.StdEncoding.DecodeString(encodedSecret)
+	if err != nil {
+		Fail("Failed ")
+	}
+	cfg := &cloudConfig{VerifySSL: true}
+	if rawCfg, err := ini.Load(secret); err != nil {
+		Fail("Failed to load INI file")
+	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
+		Fail("Global section not found")
+	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
+		Fail("Error encountered while parsing Global section")
+	}
+
+	By("Creating a CloudStack client")
+	client := cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+
+	By("Listing all machines")
+	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+	if err != nil {
+		Fail("Failed to list machines")
+	}
+	affinityTypeString := strings.Title(fmt.Sprintf("%sAffinity", affinityType))
+	for _, vm := range listResp.VirtualMachines {
+		if strings.Contains(vm.Name, clusterName) {
+			for _, affinity := range vm.Affinitygroup {
+				affinity, _, _ := client.AffinityGroup.GetAffinityGroupByID(affinity.Id)
+				if err != nil {
+					Fail("Failed to get affinity group for " + affinity.Id)
+				}
+				if !strings.Contains(affinity.Name, affinityTypeString) {
+					Fail(affinity.Name + " does not contain " + affinityTypeString)
+				}
+				if affinityType == "pro" && affinity.Type != "host affinity" {
+					Fail(affinity.Type + " does not match " + affinityType)
+				}
+				if affinityType == "anti" && affinity.Type != "host anti-affinity" {
+					Fail(affinity.Type + " does not match " + affinityType)
+				}
+			}
+		}
+	}
+}
+
 func WaitForMachineRemediationAfterDestroy(ctx context.Context, proxy framework.ClusterProxy, cluster *clusterv1.Cluster, machineMatcher string, healthyMachineCount int, intervals []interface{}) {
 	mgmtClusterClient := proxy.GetClient()
 	workloadClusterClient := proxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name).GetClient()
