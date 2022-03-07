@@ -83,6 +83,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-worker-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-node-drain.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-machine-remediation.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-second-cluster.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
       - name: v1.0.0
@@ -109,6 +110,7 @@ variables:
   CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
   CLUSTER_ENDPOINT_IP: 172.16.2.199
   CLUSTER_ENDPOINT_PORT: 6443
+  CLUSTER_ENDPOINT_PORT_2: 6444
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
   CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING: "Extremely Large Instance"
