@@ -19,6 +19,7 @@ package e2e
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -56,6 +57,11 @@ const (
 	InvalidCPOfferingName        = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
 	ExtremelyLargeCPOfferingName = "CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING"
 	InvalidWorkerOfferingName    = "CLOUDSTACK_INVALID_WORKER_MACHINE_OFFERING"
+)
+
+const (
+	ControlPlaneIndicator      = "control-plane"
+	MachineDeploymentIndicator = "md"
 )
 
 type CommonSpecInput struct {
@@ -191,23 +197,7 @@ type cloudConfig struct {
 }
 
 func DestroyOneMachine(clusterName string, machineType string) {
-	encodedSecret := os.Getenv("CLOUDSTACK_B64ENCODED_SECRET")
-	secret, err := base64.StdEncoding.DecodeString(encodedSecret)
-	if err != nil {
-		Fail("Failed ")
-	}
-	cfg := &cloudConfig{VerifySSL: true}
-	if rawCfg, err := ini.Load(secret); err != nil {
-		Fail("Failed to load INI file")
-	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
-		Fail("Global section not found")
-	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
-		Fail("Error encountered while parsing Global section")
-	}
-
-	By("Creating a CloudStack client")
-	client := cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
-
+	client := createCloudStackClient()
 	matcher := clusterName + "-" + machineType
 
 	Byf("Listing machines with %q", matcher)
@@ -241,23 +231,20 @@ func DestroyOneMachine(clusterName string, machineType string) {
 	}
 }
 
-func CheckAffinityGroup(clusterName string, affinityType string) {
-	encodedSecret := os.Getenv("CLOUDSTACK_B64ENCODED_SECRET")
-	secret, err := base64.StdEncoding.DecodeString(encodedSecret)
-	if err != nil {
-		Fail("Failed ")
-	}
-	cfg := &cloudConfig{VerifySSL: true}
-	if rawCfg, err := ini.Load(secret); err != nil {
-		Fail("Failed to load INI file")
-	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
-		Fail("Global section not found")
-	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
-		Fail("Error encountered while parsing Global section")
-	}
+func CheckAffinityGroupsDeleted(affinityIds []string) error {
+	client := createCloudStackClient()
 
-	By("Creating a CloudStack client")
-	client := cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+	for _, affinityId := range affinityIds {
+		affinity, count, _ := client.AffinityGroup.GetAffinityGroupByID(affinityId)
+		if count > 0 {
+			return errors.New("Affinity group " + affinity.Name + " still exists")
+		}
+	}
+	return nil
+}
+
+func CheckAffinityGroup(clusterName string, affinityType string) []string {
+	client := createCloudStackClient()
 
 	By("Listing all machines")
 	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
@@ -265,9 +252,20 @@ func CheckAffinityGroup(clusterName string, affinityType string) {
 		Fail("Failed to list machines")
 	}
 	affinityTypeString := strings.Title(fmt.Sprintf("%sAffinity", affinityType))
+	cpHostIdSet := make(map[string]bool)
+	mdHostIdSet := make(map[string]bool)
+	affinityIds := []string{}
+
 	for _, vm := range listResp.VirtualMachines {
 		if strings.Contains(vm.Name, clusterName) {
+			By(vm.Name + " is in host " + vm.Hostname + " (" + vm.Hostid + ")")
+			err := checkVMHostAssignments(vm, cpHostIdSet, mdHostIdSet, affinityType)
+			if err != nil {
+				Fail(err.Error())
+			}
+
 			for _, affinity := range vm.Affinitygroup {
+				affinityIds = append(affinityIds, affinity.Id)
 				affinity, _, _ := client.AffinityGroup.GetAffinityGroupByID(affinity.Id)
 				if err != nil {
 					Fail("Failed to get affinity group for " + affinity.Id)
@@ -284,6 +282,55 @@ func CheckAffinityGroup(clusterName string, affinityType string) {
 			}
 		}
 	}
+	return affinityIds
+}
+
+func createCloudStackClient() *cloudstack.CloudStackClient {
+	encodedSecret := os.Getenv("CLOUDSTACK_B64ENCODED_SECRET")
+	secret, err := base64.StdEncoding.DecodeString(encodedSecret)
+	if err != nil {
+		Fail("Failed ")
+	}
+	cfg := &cloudConfig{VerifySSL: true}
+	if rawCfg, err := ini.Load(secret); err != nil {
+		Fail("Failed to load INI file")
+	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
+		Fail("Global section not found")
+	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
+		Fail("Error encountered while parsing Global section")
+	}
+
+	By("Creating a CloudStack client")
+	client := cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+	return client
+}
+
+func checkVMHostAssignments(vm *cloudstack.VirtualMachine, cpHostIdSet map[string]bool, mdHostIdSet map[string]bool, affinityType string) error {
+	if strings.Contains(vm.Name, ControlPlaneIndicator) {
+		if len(cpHostIdSet) > 0 {
+			_, ok := cpHostIdSet[vm.Hostid]
+			if affinityType == "pro" && !ok {
+				return errors.New(vm.Name + " is deployed in a different host: " + vm.Hostname + " when affinity type is " + affinityType)
+			}
+			if affinityType == "anti" && ok {
+				return errors.New(vm.Name + " is deployed in the same host: " + vm.Hostname + " when affinity type is " + affinityType)
+			}
+		}
+		cpHostIdSet[vm.Hostid] = true
+	}
+	if strings.Contains(vm.Name, MachineDeploymentIndicator) {
+		if len(mdHostIdSet) > 0 {
+			_, ok := mdHostIdSet[vm.Hostid]
+			if affinityType == "pro" && !ok {
+				return errors.New(vm.Name + " is deployed in a different host: " + vm.Hostname + " when affinity type is " + affinityType)
+			}
+			if affinityType == "anti" && ok {
+				return errors.New(vm.Name + " is deployed in the same host: " + vm.Hostname + " when affinity type is " + affinityType)
+			}
+		}
+		mdHostIdSet[vm.Hostid] = true
+	}
+	return nil
 }
 
 func WaitForMachineRemediationAfterDestroy(ctx context.Context, proxy framework.ClusterProxy, cluster *clusterv1.Cluster, machineMatcher string, healthyMachineCount int, intervals []interface{}) {

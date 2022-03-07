@@ -57,9 +57,9 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() CommonSpecIn
 	})
 
 	It("Should replace a machine when it is destroyed", func() {
-		cpMatcher := "control-plane"
+		cpMatcher := ControlPlaneIndicator
 		cpCount := 3
-		mdMatcher := "md"
+		mdMatcher := MachineDeploymentIndicator
 		mdCount := 3
 		proxy := input.BootstrapClusterProxy
 
