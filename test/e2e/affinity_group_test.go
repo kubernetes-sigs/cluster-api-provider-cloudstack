@@ -25,8 +25,6 @@ import (
 )
 
 var _ = Describe("When testing affinity group", func() {
-	Skip("The ACS used by Prow doesn't have multiple hosts in the target zone")
-
 	AffinityGroupSpec(context.TODO(), func() CommonSpecInput {
 		return CommonSpecInput{
 			E2EConfig:             e2eConfig,

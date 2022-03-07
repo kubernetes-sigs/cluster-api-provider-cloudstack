@@ -62,6 +62,7 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 	})
 
 	It("Should have host affinity group when affinity is anti", func() {
+		Skip("The ACS used by Prow doesn't have multiple hosts in the target zone")
 		executeTest(ctx, input, namespace, specName, clusterResources, "anti")
 	})
 
