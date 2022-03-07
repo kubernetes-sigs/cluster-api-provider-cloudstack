@@ -74,16 +74,12 @@ api/%/zz_generated.deepcopy.go: bin/controller-gen $(DEEPCOPY_GEN_INPUTS)
 
 MANAGER_BIN_INPUTS=$(shell find ./controllers ./api ./pkg -name "*mock*" -prune -o -name "*test*" -prune -o -type f -print) main.go go.mod go.sum
 .PHONY: build
-build: binaries generate-mocks generate-deepcopy manifests release-manifests ## Build manager binary.
+build: binaries generate-deepcopy lint manifests release-manifests ## Build manager binary.
 bin/manager: $(MANAGER_BIN_INPUTS)
-	go fmt ./...
-	go vet ./...
 	go build -o bin/manager main.go
 
 .PHONY: run
-run: generate-deepcopy fmt vet ## Run a controller from your host.
-	go fmt ./...
-	go vet ./...
+run: generate-deepcopy ## Run a controller from your host.
 	go run ./main.go
 
 # Using a flag file here as docker build doesn't produce a target file.
@@ -163,14 +159,14 @@ clean: ## Clean.
 export KUBEBUILDER_ASSETS=$(PROJECT_DIR)/bin
 
 .PHONY: test
-test: generate-mocks lint generate-deepcopy bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
+test: generate-mocks lint bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@ginkgo -v ./api/... ./controllers/... ./pkg/... -coverprofile cover.out; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 	
 .PHONY: generate-mocks
-generate-mocks: bin/mockgen pkg/mocks/mock_client.go $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
+generate-mocks: bin/mockgen generagte-deepcopy pkg/mocks/mock_client.go $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
 pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
 	go generate ./...
 
