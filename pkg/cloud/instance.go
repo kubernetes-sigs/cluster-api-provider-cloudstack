@@ -81,28 +81,27 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 }
 
 func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (offeringID string, retErr error) {
-	offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering)
-	if err != nil {
-		retErr = multierror.Append(retErr, errors.Wrapf(
-			err, "could not get Service Offering ID from %s", csMachine.Spec.Offering))
-	} else if count != 1 {
-		retErr = multierror.Append(retErr, errors.Errorf(
-			"expected 1 Service Offering with name %s, but got %d", csMachine.Spec.Offering, count))
-	}
-
-	if retErr != nil {
-		if _, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering); err != nil {
+	if len(csMachine.Spec.Offering.ID) > 0 {
+		_, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering.ID)
+		if err != nil {
 			return "", multierror.Append(retErr, errors.Wrapf(
-				err, "could not get Service Offering by ID %s", csMachine.Spec.Offering))
+				err, "could not get Service Offering by ID %s", csMachine.Spec.Offering.ID))
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"expected 1 Service Offering with UUID %s, but got %d", csMachine.Spec.Offering, count))
-		} else {
-			offeringID = csMachine.Spec.Offering
+				"expected 1 Service Offering with UUID %s, but got %d", csMachine.Spec.Offering.ID, count))
 		}
+		return csMachine.Spec.Offering.ID, nil
+	} else {
+		offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering.Name)
+		if err != nil {
+			retErr = multierror.Append(retErr, errors.Wrapf(
+				err, "could not get Service Offering ID from %s", csMachine.Spec.Offering.Name))
+		} else if count != 1 {
+			retErr = multierror.Append(retErr, errors.Errorf(
+				"expected 1 Service Offering with name %s, but got %d", csMachine.Spec.Offering.Name, count))
+		}
+		return offeringID, nil
 	}
-
-	return offeringID, nil
 }
 
 func (c *client) ResolveTemplate(
@@ -110,28 +109,27 @@ func (c *client) ResolveTemplate(
 	csMachine *infrav1.CloudStackMachine,
 	zoneID string,
 ) (templateID string, retErr error) {
-	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", zoneID)
-	if err != nil {
-		retErr = multierror.Append(retErr, errors.Wrapf(
-			err, "could not get Template ID from %s", csMachine.Spec.Template))
-	} else if count != 1 {
-		retErr = multierror.Append(retErr, errors.Errorf(
-			"expected 1 Template with name %s, but got %d", csMachine.Spec.Template, count))
-	}
-
-	if retErr != nil {
-		if _, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template, "all"); err != nil {
+	if len(csMachine.Spec.Template.ID) > 0 {
+		_, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template.ID, "all")
+		if err != nil {
 			return "", multierror.Append(retErr, errors.Wrapf(
-				err, "could not get Template by ID %s", csMachine.Spec.Template))
+				err, "could not get Template by ID %s", csMachine.Spec.Template.ID))
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"expected 1 Template with UUID %s, but got %d", csMachine.Spec.Template, count))
-		} else {
-			templateID = csMachine.Spec.Template
+				"expected 1 Template with UUID %s, but got %d", csMachine.Spec.Template.ID, count))
 		}
+		return csMachine.Spec.Template.ID, nil
+	} else {
+		templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template.Name, "all", zoneID)
+		if err != nil {
+			retErr = multierror.Append(retErr, errors.Wrapf(
+				err, "could not get Template ID from %s", csMachine.Spec.Template.Name))
+		} else if count != 1 {
+			retErr = multierror.Append(retErr, errors.Errorf(
+				"expected 1 Template with name %s, but got %d", csMachine.Spec.Template.Name, count))
+		}
+		return templateID, nil
 	}
-
-	return templateID, nil
 }
 
 // GetOrCreateVMInstance CreateVMInstance will fetch or create a VM instance, and
