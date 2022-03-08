@@ -147,6 +147,7 @@ func (c *client) GetOrCreateVMInstance(
 		!strings.Contains(strings.ToLower(err.Error()), "no match") {
 		return err
 	}
+
 	offeringID, err := c.ResolveServiceOffering(csMachine)
 	if err != nil {
 		return err
