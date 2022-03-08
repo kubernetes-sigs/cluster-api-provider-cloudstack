@@ -76,9 +76,11 @@ var _ = Describe("Tag Unit Tests", func() {
 			if err != nil {
 				Fail("Failed to get existing tags. Error: " + err.Error())
 			}
-			err = client.DeleteTags(cloud.ResourceTypeNetwork, networkID, existingTags)
-			if err != nil {
-				Fail("Failed to delete existing tags. Error: " + err.Error())
+			if len(existingTags) > 0 {
+				err = client.DeleteTags(cloud.ResourceTypeNetwork, networkID, existingTags)
+				if err != nil {
+					Fail("Failed to delete existing tags. Error: " + err.Error())
+				}
 			}
 		})
 
@@ -116,14 +118,14 @@ var _ = Describe("Tag Unit Tests", func() {
 			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, networkID, csCluster, true)).Should(Succeed())
 		})
 
-		It("adds the tags for a cluster (resource NOT created by CAPC)", func() {
+		It("doesn't add the tags for a cluster (resource NOT created by CAPC)", func() {
 			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, networkID, csCluster, false)).Should(Succeed())
 
 			// Verify tags
 			tags, err := client.GetTags(cloud.ResourceTypeNetwork, networkID)
 			Ω(err).Should(BeNil())
 			Ω(tags[createdByCAPCTag]).Should(Equal(""))
-			Ω(tags[clusterTag]).Should(Equal("1"))
+			Ω(tags[clusterTag]).Should(Equal(""))
 		})
 
 		It("deletes a cluster tag", func() {
