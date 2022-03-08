@@ -163,6 +163,7 @@ func (c *client) GetOrCreateVMInstance(
 	p.SetNetworkids([]string{zone.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
+
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
 	compressedAndEncodedUserData, err := CompressAndEncodeString(userData)
