@@ -174,7 +174,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 			zidx++
 		}
 		rand.Seed(time.Now().Unix())
-		randNum := (rand.Int() % len(csCluster.Spec.Zones))
+		randNum := (rand.Int() % len(csCluster.Spec.Zones)) // #nosec G404 -- weack crypt rand doesn't matter here.
 		csMachine.Status.ZoneID = zones[randNum]
 	}
 
