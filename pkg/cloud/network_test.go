@@ -99,6 +99,15 @@ var _ = Describe("Network", func() {
 		It("correctly identifies an existing network from a network status", func() {
 			Ω(cloud.NetworkExists(dummies.CSCluster.Status.Zones.GetOne().Network)).Should(BeTrue())
 		})
+
+		// It("resolves network details with network ID instead of network name", func() {
+		// 	ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
+		// 	ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
+		// 	expectNetworkTags(fakeNetID, false)
+
+		// 	csCluster.Spec.Network = fakeNetID
+		// 	Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
+		// })
 	})
 
 	Context("for a non-existent network", func() {
@@ -128,9 +137,18 @@ var _ = Describe("Network", func() {
 		as.EXPECT().NewAssociateIpAddressParams().Return(&csapi.AssociateIpAddressParams{})
 		as.EXPECT().AssociateIpAddress(gomock.Any())
 
-		createTagsParams := &csapi.CreateTagsParams{}
-		rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).Return(createTagsParams).Times(4)
-		rs.EXPECT().CreateTags(createTagsParams).Return(&csapi.CreateTagsResponse{}, nil).Times(4)
+		// Will add cluster tag once to Network and once to PublicIP.
+		createdByResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: cloud.CreatedByCAPCTagName, Value: "1"}}}
+		gomock.InOrder(
+			rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}),
+			rs.EXPECT().ListTags(gomock.Any()).Return(createdByResponse, nil),
+			rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}),
+			rs.EXPECT().ListTags(gomock.Any()).Return(createdByResponse, nil))
+
+		// Will add creation and cluster tags to network and PublicIP.
+		rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&csapi.CreateTagsParams{}).Times(4)
+		rs.EXPECT().CreateTags(gomock.Any()).Return(&csapi.CreateTagsResponse{}, nil).Times(4)
 
 		lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&csapi.ListLoadBalancerRulesParams{})
 		lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).Return(

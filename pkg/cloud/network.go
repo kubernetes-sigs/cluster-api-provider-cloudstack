@@ -100,7 +100,7 @@ func (c *client) ResolveNetwork(csCluster *capcv1.CloudStackCluster, net *capcv1
 }
 
 func generateNetworkTagName(csCluster *capcv1.CloudStackCluster) string {
-	return clusterTagNamePrefix + string(csCluster.UID)
+	return ClusterTagNamePrefix + string(csCluster.UID)
 }
 
 // getOfferingID fetches an offering id.
@@ -169,9 +169,9 @@ func (c *client) RemoveClusterTagFromNetwork(csCluster *capcv1.CloudStackCluster
 		return err
 	}
 
-	clusterTagName := generateNetworkTagName(csCluster)
-	if tagValue := tags[clusterTagName]; tagValue != "" {
-		if err = c.DeleteTags(ResourceTypeNetwork, net.ID, map[string]string{clusterTagName: tagValue}); err != nil {
+	ClusterTagName := generateNetworkTagName(csCluster)
+	if tagValue := tags[ClusterTagName]; tagValue != "" {
+		if err = c.DeleteTags(ResourceTypeNetwork, net.ID, map[string]string{ClusterTagName: tagValue}); err != nil {
 			return err
 		}
 	}
@@ -187,12 +187,12 @@ func (c *client) DeleteNetworkIfNotInUse(csCluster *capcv1.CloudStackCluster, ne
 
 	var clusterTagCount int
 	for tagName := range tags {
-		if strings.HasPrefix(tagName, clusterTagNamePrefix) {
+		if strings.HasPrefix(tagName, ClusterTagNamePrefix) {
 			clusterTagCount++
 		}
 	}
 
-	if clusterTagCount == 0 && tags[createdByCAPCTagName] != "" {
+	if clusterTagCount == 0 && tags[CreatedByCAPCTagName] != "" {
 		return c.DestroyNetwork(net)
 	}
 

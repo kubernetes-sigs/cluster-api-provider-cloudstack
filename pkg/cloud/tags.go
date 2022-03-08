@@ -39,8 +39,8 @@ type TagIface interface {
 type ResourceType string
 
 const (
-	clusterTagNamePrefix               = "CAPC_cluster_"
-	createdByCAPCTagName               = "created_by_CAPC"
+	ClusterTagNamePrefix               = "CAPC_cluster_"
+	CreatedByCAPCTagName               = "created_by_CAPC"
 	ResourceTypeNetwork   ResourceType = "Network"
 	ResourceTypeIPAddress ResourceType = "PublicIpAddress"
 )
@@ -54,28 +54,47 @@ func ignoreAlreadyPresentErrors(err error, rType ResourceType, rID string) error
 	return nil
 }
 
+func (c *client) IsCapcManaged(resourceType ResourceType, resourceID string) (bool, error) {
+	tags, err := c.GetTags(resourceType, resourceID)
+	if err != nil {
+		return false, errors.Wrapf(err,
+			"error encountered while checking if %s with ID: %s is tagged as CAPC managed", resourceType, resourceID)
+	}
+	_, CreatedByCAPC := tags[CreatedByCAPCTagName]
+	return CreatedByCAPC, nil
+}
+
 // AddClusterTag adds cluster tag to a resource. This tag indicates the resource is used by a given the cluster.
 func (c *client) AddClusterTag(rType ResourceType, rID string, csCluster *infrav1.CloudStackCluster) error {
-	clusterTagName := generateClusterTagName(csCluster)
-	return c.AddTags(rType, rID, map[string]string{clusterTagName: "1"})
+	if managedByCAPC, err := c.IsCapcManaged(rType, rID); err != nil {
+		return err
+	} else if managedByCAPC {
+		ClusterTagName := generateClusterTagName(csCluster)
+		return c.AddTags(rType, rID, map[string]string{ClusterTagName: "1"})
+	}
+	return nil
 }
 
 // DeleteClusterTag deletes the tag that associates the resource with a given cluster.
 func (c *client) DeleteClusterTag(rType ResourceType, rID string, csCluster *infrav1.CloudStackCluster) error {
-	clusterTagName := generateClusterTagName(csCluster)
-	return c.DeleteTags(rType, rID, map[string]string{clusterTagName: "1"})
+	if managedByCAPC, err := c.IsCapcManaged(rType, rID); err != nil {
+		return err
+	} else if managedByCAPC {
+		ClusterTagName := generateClusterTagName(csCluster)
+		return c.DeleteTags(rType, rID, map[string]string{ClusterTagName: "1"})
+	}
+	return nil
 }
 
-// AddCreatedByCAPCTag deletes the tag that indicates that the resource was created by CAPC.  This is useful when a
-// resource is disassociated instead of deleted.  That way the tag won't cause confusion if the resource is reused later.
+// AddCreatedByCAPCTag adds the tag that indicates that the resource was created by CAPC.
+// This is useful when a resource is disassociated but not deleted.
 func (c *client) AddCreatedByCAPCTag(rType ResourceType, rID string) error {
-	return c.AddTags(rType, rID, map[string]string{createdByCAPCTagName: "1"})
+	return c.AddTags(rType, rID, map[string]string{CreatedByCAPCTagName: "1"})
 }
 
-// DeleteCreatedByCAPCTag deletes the tag that indicates that the resource was created by CAPC.  This is useful when a
-// resource is disassociated instead of deleted.  That way the tag won't cause confusion if the resource is reused later.
+// DeleteCreatedByCAPCTag deletes the tag that indicates that the resource was created by CAPC.
 func (c *client) DeleteCreatedByCAPCTag(rType ResourceType, rID string) error {
-	return c.DeleteTags(rType, rID, map[string]string{createdByCAPCTagName: "1"})
+	return c.DeleteTags(rType, rID, map[string]string{CreatedByCAPCTagName: "1"})
 }
 
 // DoClusterTagsAllowDisposal checks to see if the resource is in a state that makes it eligible for disposal.  CAPC can
@@ -88,12 +107,12 @@ func (c *client) DoClusterTagsAllowDisposal(resourceType ResourceType, resourceI
 
 	var clusterTagCount int
 	for tagName := range tags {
-		if strings.HasPrefix(tagName, clusterTagNamePrefix) {
+		if strings.HasPrefix(tagName, ClusterTagNamePrefix) {
 			clusterTagCount++
 		}
 	}
 
-	return clusterTagCount == 0 && tags[createdByCAPCTagName] != "", nil
+	return clusterTagCount == 0 && tags[CreatedByCAPCTagName] != "", nil
 }
 
 // AddTags adds arbitrary tags to a resource.
@@ -140,5 +159,5 @@ func (c *client) DeleteTags(resourceType ResourceType, resourceID string, tagsTo
 }
 
 func generateClusterTagName(csCluster *infrav1.CloudStackCluster) string {
-	return clusterTagNamePrefix + string(csCluster.UID)
+	return ClusterTagNamePrefix + string(csCluster.UID)
 }
