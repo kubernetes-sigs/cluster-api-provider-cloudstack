@@ -185,8 +185,8 @@ func (r *CloudStackMachineReconciler) reconcile(
 	}
 
 	// Create VM (or Fetch if present).
-	if value, found := secret.Data["value"]; found {
-		if err := r.CS.GetOrCreateVMInstance(csMachine, capiMachine, csCluster, string(value)); err == nil {
+	if data, isPresent := secret.Data["value"]; isPresent {
+		if err := r.CS.GetOrCreateVMInstance(csMachine, capiMachine, csCluster, string(data)); err == nil {
 			if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
 				log.Info("CloudStack instance Created", "instanceStatus", csMachine.Status)
 				controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
@@ -195,11 +195,10 @@ func (r *CloudStackMachineReconciler) reconcile(
 			return ctrl.Result{}, err
 		}
 	} else {
-		return ctrl.Result{}, errors.New("bootstrap secret data not ok")
+		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
 	// Check status of machine.
-	csMachine.Status.Ready = false
 	if csMachine.Status.InstanceState == "Running" {
 		log.Info("Machine instance is Running...")
 		csMachine.Status.Ready = true
