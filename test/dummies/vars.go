@@ -43,6 +43,10 @@ var ( // Declare exported dummy vars.
 	CSClusterTag       map[string]string
 	CreatedByCapcKey   string
 	CreatedByCapcVal   string
+	LBRuleID           string
+	PublicIPID         string
+	EndPointHost       string
+	EndPointPort       int32
 )
 
 // SetDummyVars sets/resets all dummy vars.
@@ -54,6 +58,7 @@ func SetDummyVars() {
 	SetDummyCSMachineTemplateVars()
 	SetDummyCSMachineVars()
 	SetDummyTagVars()
+	LBRuleID = "FakeLBRuleID"
 }
 
 func CAPCNetToCSAPINet(net *capcv1.Network) *csapi.Network {
@@ -157,6 +162,9 @@ func SetDummyCAPCClusterVars() {
 	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta1"
 	CSClusterKind = "CloudStackCluster"
 	CSClusterName = "test-cluster"
+	EndPointHost = "EndpointHost"
+	EndPointPort = int32(8675309)
+	PublicIPID = "FakePublicIPID"
 
 	CSlusterNamespace = "default"
 	AffinityGroup = &cloud.AffinityGroup{
@@ -165,7 +173,7 @@ func SetDummyCAPCClusterVars() {
 		ID:   "FakeAffinityGroupID"}
 	Net1 = capcv1.Network{Name: "SharedGuestNet1", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID1"}
 	Net2 = capcv1.Network{Name: "SharedGuestNet2", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID2"}
-	ISONet1 = capcv1.Network{Name: "IsolatedGuestNet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
+	ISONet1 = capcv1.Network{Name: "IsoGuestNet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
 	Zone1 = capcv1.Zone{Name: "Zone1", ID: "FakeZone1ID", Network: Net1}
 	Zone2 = capcv1.Zone{Name: "Zone2", ID: "FakeZone2ID", Network: Net2}
 
@@ -184,10 +192,10 @@ func SetDummyCAPCClusterVars() {
 				Kind: "Secret",
 				Name: "IdentitySecret",
 			},
-			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "EndpointHost", Port: int32(8675309)},
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
 			Zones:                []capcv1.Zone{Zone1, Zone2},
 		},
-		Status: capcv1.CloudStackClusterStatus{Zones: map[string]capcv1.Zone{Zone1.ID: Zone1}},
+		Status: capcv1.CloudStackClusterStatus{Zones: map[string]capcv1.Zone{}},
 	}
 }
 
@@ -217,8 +225,30 @@ func SetDummyCAPIClusterVars() {
 	}
 }
 
+func SetDummyIsoNetToNameOnly() {
+	ISONet1.ID = ""
+	ISONet1.Type = ""
+	Zone1.Network = ISONet1
+}
+
+// Fills in cluster status vars.
+func SetDummyClusterStatus() {
+	CSCluster.Status.Zones = capcv1.ZoneStatusMap{Zone1.ID: Zone1, Zone2.ID: Zone2}
+	CSCluster.Status.LBRuleID = LBRuleID
+}
+
+// Sets cluster spec to specified network.
+func SetClusterSpecToNet(net *capcv1.Network) {
+	Zone1.Network = *net
+	CSCluster.Spec.Zones = []capcv1.Zone{Zone1}
+}
+
 func SetDummyCAPIMachineVars() {
 	CAPIMachine = &capiv1.Machine{
 		Spec: capiv1.MachineSpec{FailureDomain: pointer.String(Zone1.ID)},
 	}
+}
+
+func SetDummyCSMachineStatuses() {
+	CSMachine1.Status = capcv1.CloudStackMachineStatus{ZoneID: Zone1.ID}
 }
