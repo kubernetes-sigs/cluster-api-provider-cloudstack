@@ -51,6 +51,11 @@ func (c *client) AddClusterTag(resourceType ResourceType, resourceID string, csC
 		return err
 	}
 
+	// Don't tag resources unless they are now being created by CAPC, or were previously created by CAPC.
+	if !addCreatedByCAPCTag && existingTags[createdByCAPCTagName] == "" {
+		return nil
+	}
+
 	if existingTags[clusterTagName] == "" {
 		newTags[clusterTagName] = "1"
 	}

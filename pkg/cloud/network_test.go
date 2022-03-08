@@ -82,13 +82,15 @@ var _ = Describe("Network", func() {
 	})
 
 	// Sets expectations network tag creation.  To be used by tests that get/create networks.
-	expectNetworkTags := func(networkID string) {
+	expectNetworkTags := func(networkID string, expectTagCreation bool) {
 		listTagsParams := &cloudstack.ListTagsParams{}
 		createTagsParams := &cloudstack.CreateTagsParams{}
 		rs.EXPECT().NewListTagsParams().Return(listTagsParams)
 		rs.EXPECT().ListTags(listTagsParams).Return(&cloudstack.ListTagsResponse{}, nil)
-		rs.EXPECT().NewCreateTagsParams([]string{networkID}, string(cloud.ResourceTypeNetwork), gomock.Any()).Return(createTagsParams)
-		rs.EXPECT().CreateTags(createTagsParams).Return(&cloudstack.CreateTagsResponse{}, nil)
+		if expectTagCreation {
+			rs.EXPECT().NewCreateTagsParams([]string{networkID}, string(cloud.ResourceTypeNetwork), gomock.Any()).Return(createTagsParams)
+			rs.EXPECT().CreateTags(createTagsParams).Return(&cloudstack.CreateTagsResponse{}, nil)
+		}
 	}
 
 	Context("for an existing network", func() {
@@ -103,7 +105,7 @@ var _ = Describe("Network", func() {
 		It("does not call to create a new network via GetOrCreateNetwork", func() {
 			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetID, 1, nil)
 			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-			expectNetworkTags(fakeNetID)
+			expectNetworkTags(fakeNetID, false)
 
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
@@ -111,7 +113,7 @@ var _ = Describe("Network", func() {
 		It("resolves network details with network ID instead of network name", func() {
 			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
 			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-			expectNetworkTags(fakeNetID)
+			expectNetworkTags(fakeNetID, false)
 
 			csCluster.Spec.Network = fakeNetID
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
@@ -126,7 +128,7 @@ var _ = Describe("Network", func() {
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&cloudstack.CreateNetworkParams{})
 			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: netID}, nil)
-			expectNetworkTags(netID)
+			expectNetworkTags(netID, true)
 
 			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
