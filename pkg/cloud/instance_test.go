@@ -113,7 +113,6 @@ var _ = Describe("Instance", func() {
 
 	Context("when creating a VM instance", func() {
 		vmMetricResp := &cloudstack.VirtualMachinesMetric{}
-		// dummies.CSMachine1.Spec.Offering
 
 		expectVMNotFound := func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).Return(nil, -1, notFoundError)
@@ -143,7 +142,6 @@ var _ = Describe("Instance", func() {
 		It("returns errors if more than one sevice offering found", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return("", 2, nil)
-			//sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				ShouldNot(Succeed())
 		})
@@ -155,7 +153,6 @@ var _ = Describe("Instance", func() {
 				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
 			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
 				Return("", -1, unknownError)
-			//ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				ShouldNot(Succeed())
 		})
@@ -165,7 +162,6 @@ var _ = Describe("Instance", func() {
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
 				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
 			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).Return("", 2, nil)
-			//ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				ShouldNot(Succeed())
 		})
@@ -241,11 +237,8 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = "template"
 
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
-				//sos.EXPECT().GetServiceOfferingByID(offeringFakeID).Return(&cloudstack.ServiceOffering{}, 1, nil)
 				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
-				//ts.EXPECT().GetTemplateByID(templateFakeID, allFilter, dummies.Zone1.ID).
-				//	Return(&cloudstack.Template{}, 1, nil)
 
 				ActionAndAssert()
 			})
@@ -259,7 +252,6 @@ var _ = Describe("Instance", func() {
 				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{}, 1, nil)
 				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
-				//ts.EXPECT().GetTemplateByID(templateFakeID, allFilter).Return(&cloudstack.Template{}, 1, nil)
 
 				ActionAndAssert()
 			})
@@ -271,7 +263,6 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = ""
 
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
-				//sos.EXPECT().GetServiceOfferingByID(offeringFakeID).Return(&cloudstack.ServiceOffering{}, 1, nil)
 				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{}, 1, nil)
 
 				ActionAndAssert()
