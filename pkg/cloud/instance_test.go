@@ -34,6 +34,8 @@ import (
 var _ = Describe("Instance", func() {
 	notFoundError := errors.New("no match found")
 	const unknownErrorMessage = "unknown err"
+	const offeringFakeID = "123"
+	const templateFakeID = "456"
 	unknownError := errors.New(unknownErrorMessage)
 
 	var (
@@ -132,16 +134,16 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors occuring while fetching sevice offering information", func() {
 			expectVMNotFound()
-			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering).Return("", -1, unknownError)
-			sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering).Return(nil, -1, unknownError)
+			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return("", -1, unknownError)
+			//sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				ShouldNot(Succeed())
 		})
 
 		It("returns errors if more than one sevice offering found", func() {
 			expectVMNotFound()
-			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering).Return("", 2, nil)
-			sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering).Return(nil, -1, unknownError)
+			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return("", 2, nil)
+			//sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				ShouldNot(Succeed())
 		})
@@ -149,33 +151,32 @@ var _ = Describe("Instance", func() {
 		const allFilter = "all"
 		It("returns errors encountered while fetching template", func() {
 			expectVMNotFound()
-			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering).
-				Return(dummies.CSMachine1.Spec.Offering, 1, nil)
-			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template, allFilter, dummies.Zone1.ID).
+			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
+				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
+			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
 				Return("", -1, unknownError)
-			ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template, allFilter).Return(nil, -1, unknownError)
+			//ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				ShouldNot(Succeed())
 		})
 
 		It("returns errors when more than one template found", func() {
 			expectVMNotFound()
-			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering).
-				Return(dummies.CSMachine1.Spec.Offering, 1, nil)
-			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template, allFilter, dummies.Zone1.ID).Return("", 2, nil)
-			ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template, allFilter).Return(nil, -1, unknownError)
+			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
+				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
+			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).Return("", 2, nil)
+			//ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				ShouldNot(Succeed())
 		})
 
 		It("handles deployment errors", func() {
 			expectVMNotFound()
-			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering).
-				Return(dummies.CSMachine1.Spec.Offering, 1, nil)
-			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template, allFilter, dummies.Zone1.ID).
-				Return(dummies.CSMachine1.Spec.Template, 1, nil)
-			vms.EXPECT().NewDeployVirtualMachineParams(
-				dummies.CSMachine1.Spec.Offering, dummies.CSMachine1.Spec.Template, dummies.Zone1.ID).
+			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
+				Return(offeringFakeID, 1, nil)
+			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
+				Return(templateFakeID, 1, nil)
+			vms.EXPECT().NewDeployVirtualMachineParams(offeringFakeID, templateFakeID, dummies.Zone1.ID).
 				Return(&cloudstack.DeployVirtualMachineParams{})
 			vms.EXPECT().DeployVirtualMachine(gomock.Any()).Return(nil, unknownError)
 
@@ -195,12 +196,12 @@ var _ = Describe("Instance", func() {
 				dummies.CSCluster.Spec.Account = account
 				dummies.CSCluster.Status.DomainID = domainID
 				vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).Return(nil, -1, notFoundError)
-				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering).Return(dummies.CSMachine1.Spec.Offering, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template, allFilter, dummies.Zone1.ID).
-					Return(dummies.CSMachine1.Spec.Template, 1, nil)
+				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
+					Return(templateFakeID, 1, nil)
 				vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
 					Return(&cloudstack.VirtualMachinesMetric{}, 1, nil)
-				vms.EXPECT().NewDeployVirtualMachineParams(dummies.CSMachine1.Spec.Offering, dummies.CSMachine1.Spec.Template, dummies.Zone1.ID).
+				vms.EXPECT().NewDeployVirtualMachineParams(offeringFakeID, templateFakeID, dummies.Zone1.ID).
 					Return(&cloudstack.DeployVirtualMachineParams{})
 				vms.EXPECT().DeployVirtualMachine(ParamMatch(And(AccountEquals(account), DomainIDEquals(domainID)))).
 					Return(&cloudstack.DeployVirtualMachineResponse{Id: *dummies.CSMachine1.Spec.InstanceID}, nil)
@@ -224,7 +225,7 @@ var _ = Describe("Instance", func() {
 			})
 
 			ActionAndAssert := func() {
-				vms.EXPECT().NewDeployVirtualMachineParams(dummies.CSMachine1.Spec.Offering, dummies.CSMachine1.Spec.Template, dummies.Zone1.ID).
+				vms.EXPECT().NewDeployVirtualMachineParams(offeringFakeID, templateFakeID, dummies.Zone1.ID).
 					Return(&cloudstack.DeployVirtualMachineParams{})
 
 				deploymentResp := &cloudstack.DeployVirtualMachineResponse{Id: *dummies.CSMachine1.Spec.InstanceID}
@@ -234,39 +235,68 @@ var _ = Describe("Instance", func() {
 			}
 
 			It("works with service offering name and template name", func() {
-				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering).Return(dummies.CSMachine1.Spec.Offering, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template, allFilter, dummies.Zone1.ID).
-					Return(dummies.CSMachine1.Spec.Template, 1, nil)
+				dummies.CSMachine1.Spec.Offering.ID = ""
+				dummies.CSMachine1.Spec.Template.ID = ""
+				dummies.CSMachine1.Spec.Offering.Name = "offering"
+				dummies.CSMachine1.Spec.Template.Name = "template"
+
+				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
+				//sos.EXPECT().GetServiceOfferingByID(offeringFakeID).Return(&cloudstack.ServiceOffering{}, 1, nil)
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
+					Return(templateFakeID, 1, nil)
+				//ts.EXPECT().GetTemplateByID(templateFakeID, allFilter, dummies.Zone1.ID).
+				//	Return(&cloudstack.Template{}, 1, nil)
 
 				ActionAndAssert()
 			})
 
 			It("works with service offering ID and template name", func() {
-				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering).Return("", -1, notFoundError)
-				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering).Return(&cloudstack.ServiceOffering{}, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template, allFilter, dummies.Zone1.ID).
-					Return(dummies.CSMachine1.Spec.Template, 1, nil)
+				dummies.CSMachine1.Spec.Offering.ID = offeringFakeID
+				dummies.CSMachine1.Spec.Template.ID = ""
+				dummies.CSMachine1.Spec.Offering.Name = ""
+				dummies.CSMachine1.Spec.Template.Name = "template"
+
+				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{}, 1, nil)
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
+					Return(templateFakeID, 1, nil)
+				//ts.EXPECT().GetTemplateByID(templateFakeID, allFilter).Return(&cloudstack.Template{}, 1, nil)
 
 				ActionAndAssert()
 			})
 
 			It("works with service offering name and template ID", func() {
-				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering).Return(dummies.CSMachine1.Spec.Offering, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template, allFilter, dummies.Zone1.ID).
-					Return("", -1, notFoundError)
-				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template, allFilter).
-					Return(&cloudstack.Template{}, 1, nil)
+				dummies.CSMachine1.Spec.Offering.ID = ""
+				dummies.CSMachine1.Spec.Template.ID = templateFakeID
+				dummies.CSMachine1.Spec.Offering.Name = "offering"
+				dummies.CSMachine1.Spec.Template.Name = ""
+
+				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
+				//sos.EXPECT().GetServiceOfferingByID(offeringFakeID).Return(&cloudstack.ServiceOffering{}, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{}, 1, nil)
 
 				ActionAndAssert()
 			})
 
 			It("works with service offering ID and template ID", func() {
-				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering).Return("", -1, notFoundError)
-				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering).Return(&cloudstack.ServiceOffering{}, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template, allFilter, dummies.Zone1.ID).
-					Return("", -1, notFoundError)
-				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template, allFilter).
-					Return(&cloudstack.Template{}, 1, nil)
+				dummies.CSMachine1.Spec.Offering.ID = offeringFakeID
+				dummies.CSMachine1.Spec.Template.ID = templateFakeID
+				dummies.CSMachine1.Spec.Offering.Name = ""
+				dummies.CSMachine1.Spec.Template.Name = ""
+
+				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{}, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{}, 1, nil)
+
+				ActionAndAssert()
+			})
+
+			It("works with Id and name both provided", func() {
+				dummies.CSMachine1.Spec.Offering.ID = offeringFakeID
+				dummies.CSMachine1.Spec.Template.ID = templateFakeID
+				dummies.CSMachine1.Spec.Offering.Name = "offering"
+				dummies.CSMachine1.Spec.Template.Name = "template"
+
+				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{}, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{}, 1, nil)
 
 				ActionAndAssert()
 			})

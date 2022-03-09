@@ -47,7 +47,7 @@ func EnsureStringFieldsAreEqual(new string, old string, name string, allErrs fie
 
 func EnsureBothFieldsAreEqual(new1 string, new2 string, old1 string, old2 string, name string, allErrs field.ErrorList) field.ErrorList {
 	if new1 != old1 || new2 != old2 {
-		allErrs = append(allErrs, field.Required(field.NewPath("spec", name), name))
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))
 	}
 	return allErrs
 }
