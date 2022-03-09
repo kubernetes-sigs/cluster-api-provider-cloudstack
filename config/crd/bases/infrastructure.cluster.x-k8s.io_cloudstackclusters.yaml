@@ -89,7 +89,8 @@ spec:
                             in.
                           type: string
                         name:
-                          description: Name of the infrastructure identity to be used.
+                          description: Cloudstack Network Name the cluster is built
+                            in.
                           type: string
                         type:
                           description: Cloudstack Network Type the cluster is built
@@ -159,7 +160,8 @@ spec:
                             in.
                           type: string
                         name:
-                          description: Name of the infrastructure identity to be used.
+                          description: Cloudstack Network Name the cluster is built
+                            in.
                           type: string
                         type:
                           description: Cloudstack Network Type the cluster is built
