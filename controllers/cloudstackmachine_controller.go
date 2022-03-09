@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"time"
 
@@ -134,9 +135,11 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			log.Info("CloudStackCluster not found.")
 			return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 		}
-		return ctrl.Result{}, err
-	} else if csCluster.Status.ZoneID == "" {
-		log.Info("CloudStackCluster ZoneId not initialized. Likely not ready.")
+	}
+
+	if util.IsControlPlaneMachine(capiMachine) &&
+		(capiMachine.Spec.FailureDomain == nil || *capiMachine.Spec.FailureDomain == "") {
+		log.Info("CloudStackCluster ZoneID not initialized. Likely not ready.")
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
@@ -153,7 +156,6 @@ func (r *CloudStackMachineReconciler) reconcile(
 	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
 
 	log.V(1).Info("reconcile CloudStackMachine")
-
 	// Make sure bootstrap data is available in CAPI machine.
 	if capiMachine.Spec.Bootstrap.DataSecretName == nil {
 		log.Info("Bootstrap DataSecretName not yet available.")
@@ -161,33 +163,61 @@ func (r *CloudStackMachineReconciler) reconcile(
 	}
 	log.Info("Got Bootstrap DataSecretName.")
 
+	// Set ZoneID on csMachine.
+	if util.IsControlPlaneMachine(capiMachine) { // Use failure domain zone.
+		csMachine.Status.ZoneID = *capiMachine.Spec.FailureDomain
+	} else { // Specified by Machine Template or Random zone.
+		if csMachine.Spec.ZoneID != "" {
+			if zone, foundZone := csCluster.Status.Zones[csMachine.Spec.ZoneID]; foundZone { // ZoneID Specified.
+				csMachine.Status.ZoneID = zone.ID
+			} else {
+				return ctrl.Result{}, errors.Errorf("could not find zone by zoneID: %s", csMachine.Spec.ZoneID)
+			}
+		} else if csMachine.Spec.ZoneName != "" {
+			if zone := csCluster.Status.Zones.GetByName(csMachine.Spec.ZoneID); zone != nil { // ZoneName Specified.
+				csMachine.Status.ZoneID = zone.ID
+			} else {
+				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", csMachine.Spec.ZoneName)
+			}
+		} else { // No Zone Specified, pick a Random Zone.
+			zones := make([]string, len(csCluster.Status.Zones))
+			zidx := 0
+			for zoneID := range csCluster.Status.Zones {
+				zones[zidx] = zoneID
+				zidx++
+			}
+			randNum := (rand.Int() % len(csCluster.Spec.Zones)) // #nosec G404 -- weak crypt rand doesn't matter here.
+			csMachine.Status.ZoneID = zones[randNum]
+		}
+	}
+
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: capiMachine.Namespace, Name: *capiMachine.Spec.Bootstrap.DataSecretName}
 	if err := r.Client.Get(context.TODO(), key, secret); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	value, ok := secret.Data["value"]
-	if !ok {
-		return ctrl.Result{}, errors.New("bootstrap secret data not ok")
-	}
-
-	// Create VM (or Fetch if present). Will set ready to true.
-	if err := r.CS.GetOrCreateVMInstance(csMachine, capiMachine, csCluster, string(value)); err == nil {
-		if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
-			log.Info("CloudStack instance Created", "instanceStatus", csMachine.Status, "instanceSpec", csMachine.Spec)
-			controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
+	// Create VM (or Fetch if present).
+	if data, isPresent := secret.Data["value"]; isPresent {
+		if err := r.CS.GetOrCreateVMInstance(csMachine, capiMachine, csCluster, string(data)); err == nil {
+			if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
+				log.Info("CloudStack instance Created", "instanceStatus", csMachine.Status)
+				controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
+			}
+		} else if err != nil {
+			return ctrl.Result{}, err
 		}
-	} else if err != nil {
-		return ctrl.Result{}, err
+	} else {
+		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
+	// Check status of machine.
 	if csMachine.Status.InstanceState == "Running" {
 		log.Info("Machine instance is Running...")
 		csMachine.Status.Ready = true
 	} else if csMachine.Status.InstanceState == "Error" {
-		log.Info("CloudStackMachine VM in error state.  Deleting associated Machine.", "csMachine", csMachine)
-		if err := r.Client.Delete(ctx, capiMachine); err != nil {
+		log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", csMachine)
+		if err := r.Client.Delete(ctx, csMachine); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
@@ -196,7 +226,9 @@ func (r *CloudStackMachineReconciler) reconcile(
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
-	if util.IsControlPlaneMachine(capiMachine) && csCluster.Status.NetworkType != cloud.NetworkTypeShared {
+	// Add machine to load balancer if it is a control plane in an isolated network.
+	zone := csCluster.Status.Zones[csMachine.Status.ZoneID]
+	if util.IsControlPlaneMachine(capiMachine) && zone.Network.Type == cloud.NetworkTypeIsolated {
 		log.Info("Assigning VM to load balancer rule.")
 		err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
 		if err != nil {
@@ -220,7 +252,7 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 		return ctrl.Result{}, err
 	} else if deleted {
 		if err := r.RemoveManagedAffinity(log, capiMachine, csMachine); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "Error encountered when removing affinity group.")
+			return ctrl.Result{}, errors.Wrap(err, "error encountered when removing affinity group")
 		}
 	}
 

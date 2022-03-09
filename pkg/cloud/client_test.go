@@ -17,8 +17,6 @@ limitations under the License.
 package cloud_test
 
 import (
-	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/ini.v1"
@@ -49,7 +47,6 @@ var _ = Describe("Instance", func() {
 			cfg := &Global{}
 			rawCfg, err := ini.Load("../../cloud-config")
 			Ω(rawCfg.Section("Global")).ShouldNot(BeNil())
-			fmt.Println(rawCfg.Section("Global"))
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(rawCfg.Section("Global").MapTo(cfg)).Should(Succeed())
 			Ω(cfg.VerifySSL).Should(BeFalse())

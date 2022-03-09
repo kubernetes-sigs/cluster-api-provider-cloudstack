@@ -84,19 +84,19 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (o
 	offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering)
 	if err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(
-			err, "Could not get Service Offering ID from %s.", csMachine.Spec.Offering))
+			err, "could not get Service Offering ID from %s", csMachine.Spec.Offering))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
-			"Expected 1 Service Offering with name %s, but got %d.", csMachine.Spec.Offering, count))
+			"expected 1 Service Offering with name %s, but got %d", csMachine.Spec.Offering, count))
 	}
 
 	if retErr != nil {
 		if _, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering); err != nil {
 			return "", multierror.Append(retErr, errors.Wrapf(
-				err, "Could not get Service Offering by ID %s.", csMachine.Spec.Offering))
+				err, "could not get Service Offering by ID %s", csMachine.Spec.Offering))
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"Expected 1 Service Offering with UUID %s, but got %d.", csMachine.Spec.Offering, count))
+				"expected 1 Service Offering with UUID %s, but got %d", csMachine.Spec.Offering, count))
 		} else {
 			offeringID = csMachine.Spec.Offering
 		}
@@ -105,23 +105,27 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (o
 	return offeringID, nil
 }
 
-func (c *client) ResolveTemplate(csCluster *infrav1.CloudStackCluster, csMachine *infrav1.CloudStackMachine) (templateID string, retErr error) {
-	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", csCluster.Status.ZoneID)
+func (c *client) ResolveTemplate(
+	csCluster *infrav1.CloudStackCluster,
+	csMachine *infrav1.CloudStackMachine,
+	zoneID string,
+) (templateID string, retErr error) {
+	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template, "all", zoneID)
 	if err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(
-			err, "Could not get Template ID from %s.", csMachine.Spec.Template))
+			err, "could not get Template ID from %s", csMachine.Spec.Template))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
-			"Expected 1 Template with name %s, but got %d.", csMachine.Spec.Template, count))
+			"expected 1 Template with name %s, but got %d", csMachine.Spec.Template, count))
 	}
 
 	if retErr != nil {
 		if _, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template, "all"); err != nil {
 			return "", multierror.Append(retErr, errors.Wrapf(
-				err, "Could not get Template by ID %s.", csMachine.Spec.Template))
+				err, "could not get Template by ID %s", csMachine.Spec.Template))
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"Expected 1 Template with UUID %s, but got %d.", csMachine.Spec.Template, count))
+				"expected 1 Template with UUID %s, but got %d", csMachine.Spec.Template, count))
 		} else {
 			templateID = csMachine.Spec.Template
 		}
@@ -143,21 +147,23 @@ func (c *client) GetOrCreateVMInstance(
 		!strings.Contains(strings.ToLower(err.Error()), "no match") {
 		return err
 	}
+
 	offeringID, err := c.ResolveServiceOffering(csMachine)
 	if err != nil {
 		return err
 	}
-
-	templateID, err := c.ResolveTemplate(csCluster, csMachine)
+	templateID, err := c.ResolveTemplate(csCluster, csMachine, csMachine.Status.ZoneID)
 	if err != nil {
 		return err
 	}
 
 	// Create VM instance.
-	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csCluster.Status.ZoneID)
-	p.SetNetworkids([]string{csCluster.Status.NetworkID})
-	setIfNotEmpty(capiMachine.Name, p.SetName)
-	setIfNotEmpty(capiMachine.Name, p.SetDisplayname)
+	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csMachine.Status.ZoneID)
+	zone := csCluster.Status.Zones[csMachine.Status.ZoneID]
+	p.SetNetworkids([]string{zone.Network.ID})
+	setIfNotEmpty(csMachine.Name, p.SetName)
+	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
+
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
 	compressedAndEncodedUserData, err := CompressAndEncodeString(userData)
@@ -166,8 +172,8 @@ func (c *client) GetOrCreateVMInstance(
 	}
 	setIfNotEmpty(compressedAndEncodedUserData, p.SetUserdata)
 
-	if len(csMachine.Spec.AffinityGroupIds) > 0 {
-		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIds)
+	if len(csMachine.Spec.AffinityGroupIDs) > 0 {
+		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIDs)
 	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
 		affinityType := AffinityGroupType
 		if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
@@ -188,7 +194,7 @@ func (c *client) GetOrCreateVMInstance(
 
 	// If this VM instance is a control plane, consider setting its IP.
 	_, isControlPlanceMachine := capiMachine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
-	if isControlPlanceMachine && csCluster.Status.NetworkType == NetworkTypeShared {
+	if isControlPlanceMachine && zone.Network.Type == NetworkTypeShared {
 		// If the specified control plane endpoint is an IP address, specify the IP address of this VM instance.
 		if net.ParseIP(csCluster.Spec.ControlPlaneEndpoint.Host) != nil {
 			p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)
@@ -210,29 +216,18 @@ func (c *client) GetOrCreateVMInstance(
 
 }
 
-// DestroyVMInstance Destroy a VM instance. Assumes machine has been fetched prior and has an instance ID.
+// DestroyVMInstance Destroys a VM instance. Assumes machine has been fetched prior and has an instance ID.
 func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 
-	if err := c.ResolveVMInstanceDetails(csMachine); err == nil && csMachine.Status.InstanceState != "Running" {
-		if csMachine.Status.InstanceState == "Stopping" ||
-			csMachine.Status.InstanceState == "Stopped" {
-			return errors.New("VM deletion in progress")
-		} else if csMachine.Status.InstanceState == "Expunging" ||
-			csMachine.Status.InstanceState == "Expunged" {
-			// VM is stopped and getting expunged.  So the desired state is getting satisfied.  Let's move on.
-			return nil
-		}
-	} else if err != nil && strings.Contains(strings.ToLower(err.Error()), "no match found") {
-		// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
-		return nil
-	}
-
+	// Attempt deletion regardless of machine state.
 	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
 	p.SetExpunge(true)
-	_, err := c.csAsync.VirtualMachine.DestroyVirtualMachine(p)
-	if err != nil && strings.Contains(err.Error(), "Unable to find UUID for id") {
-		// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
+	if _, err := c.csAsync.VirtualMachine.DestroyVirtualMachine(p); err != nil &&
+		strings.Contains(strings.ToLower(err.Error()), "unable to find uuid for id") {
+		// VM doesn't exist. Success...
 		return nil
+	} else if err != nil {
+		return err
 	}
 	return errors.New("VM deletion in progress")
 }

@@ -39,13 +39,58 @@ type CloudStackIdentityReference struct {
 	Name string `json:"name"`
 }
 
+type Network struct {
+	// Cloudstack Network ID the cluster is built in.
+	// +optional
+	ID string `json:"id,omitempty"`
+
+	// Cloudstack Network Type the cluster is built in.
+	// + optional
+	Type string `json:"type,omitempty"`
+
+	// Cloudstack Network Name the cluster is built in.
+	// +optional
+	Name string `json:"name"`
+}
+
+type ZoneStatusMap map[string]Zone
+
+// GetOne just returns a Zone from the map of zone statuses
+// Needed as there's no short way to do this.
+func (zones ZoneStatusMap) GetOne() *Zone {
+	for _, zone := range zones {
+		return &zone
+	}
+	return nil
+}
+
+// GetByName fetches a zone by name if present in the map of zone statuses.
+// Needed as there's no short way to do this.
+func (zones ZoneStatusMap) GetByName(name string) *Zone {
+	for zoneName, zone := range zones {
+		if zoneName == name {
+			return &zone
+		}
+	}
+	return nil
+}
+
+type Zone struct {
+	// The Zone name.
+	// + optional
+	Name string `json:"name,omitempty"`
+
+	// The CS zone ID the cluster is built in.
+	// + optional
+	ID string `json:"id,omitempty"`
+
+	// The network within the Zone to use.
+	Network Network `json:"network"`
+}
+
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
 type CloudStackClusterSpec struct {
-	// CloudStack Zone name.
-	Zone string `json:"zone"`
-
-	// CloudStack guest network name.
-	Network string `json:"network,omitempty"`
+	Zones []Zone `json:"zones"`
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
@@ -65,23 +110,27 @@ type CloudStackClusterSpec struct {
 
 // The status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
 type CloudStackClusterStatus struct {
+
+	// The status of the cluster's ACS Zones.
+	// +optional
+	Zones ZoneStatusMap `json:"zones,omitempty"`
+
+	// CAPI recognizes failure domains as a method to spread machines.
+	// CAPC sets failure domains to indicate functioning Zones.
+	// +optional
+	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+
 	// Reflects the readiness of the CS cluster.
 	Ready bool `json:"ready"`
-
-	// The CS zone ID the cluster is built in.
-	ZoneID string `json:"zoneID"`
-
-	// Cloudstack Network ID the cluster is built in.
-	NetworkID string `json:"networkID,omitempty"`
-
-	// Cloudstack Network Type the cluster is built in.
-	NetworkType string `json:"networkType,omitempty"`
 
 	// Cloudstack Domain ID the cluster is built in.
 	DomainID string `json:"domainID,omitempty"`
 
 	// The CS public IP ID to use for the k8s endpoint.
 	PublicIPID string `json:"publicIPID,omitempty"`
+
+	// The ID of the network the PublicIP is in.
+	PublicIPNetworkID string `json:"publicIPNetworkID,omitempty"`
 
 	// The ID of the lb rule used to assign VMs to the lb.
 	LBRuleID string `json:"loadBalancerRuleID,omitempty"`

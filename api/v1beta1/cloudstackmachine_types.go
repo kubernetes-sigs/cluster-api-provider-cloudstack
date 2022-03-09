@@ -52,16 +52,22 @@ type CloudStackMachineSpec struct {
 
 	// Optional affinitygroupids for deployVirtualMachine
 	// +optional
-	AffinityGroupIds []string `json:"affinitygroupids,omitempty"`
+	AffinityGroupIDs []string `json:"affinitygroupids,omitempty"`
 
-	// Mutually exclusive parameter with AffinityGroupIds.
+	// Mutually exclusive parameter with AffinityGroupIDs.
 	// Defaults to `no`. Can be `pro` or `anti`. Will create an affinity group per machine set.
 	// +optional
 	Affinity string `json:"affinity,omitempty"`
 
-	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine Id)
+	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine ID)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
+
+	// Optionally settable Zone ID to land the machine in.
+	ZoneID string `json:"zoneID,omitempty"`
+
+	// Optionally settable Zone Name to land the machine in.
+	ZoneName string `json:"zoneName,omitempty"`
 
 	// IdentityRef is a reference to a identity to be used when reconciling this cluster
 	// +optional
@@ -74,6 +80,10 @@ type InstanceState string
 
 // Type pulled mostly from the CloudStack API.
 type CloudStackMachineStatus struct {
+	// Zone ID is used so that the zone can be computed once per reconcile and then propagate.
+	// +optional
+	ZoneID string `json:"zoneID,omitempty"`
+
 	// Addresses contains a CloudStack VM instance's IP addresses.
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
@@ -111,7 +121,7 @@ func (csm CloudStackMachine) AffinityGroupName(
 
 	managerOwnerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
 	if managerOwnerRef == nil {
-		return "", errors.Errorf("Could not find owner UID for %s/%s.", csm.Namespace, csm.Name)
+		return "", errors.Errorf("could not find owner UID for %s/%s", csm.Namespace, csm.Name)
 	}
 	return fmt.Sprintf("%sAffinity-%s-%s", strings.Title(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID), nil
 }
