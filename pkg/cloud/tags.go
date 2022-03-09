@@ -51,6 +51,24 @@ func ignoreAlreadyPresentErrors(err error, rType ResourceType, rID string) error
 	if err != nil && !strings.Contains(strings.ToLower(err.Error()), matchSubString) {
 		return err
 	}
+
+	// Don't tag resources unless they are now being created by CAPC, or were previously created by CAPC.
+	if !addCreatedByCAPCTag && existingTags[createdByCAPCTagName] == "" {
+		return nil
+	}
+
+	if existingTags[clusterTagName] == "" {
+		newTags[clusterTagName] = "1"
+	}
+
+	if addCreatedByCAPCTag && existingTags[createdByCAPCTagName] == "" {
+		newTags[createdByCAPCTagName] = "1"
+	}
+
+	if len(newTags) > 0 {
+		return c.AddTags(resourceType, resourceID, newTags)
+	}
+
 	return nil
 }
 

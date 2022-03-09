@@ -67,34 +67,52 @@ var _ = Describe("Network", func() {
 		mockCtrl.Finish()
 	})
 
-	// // Sets expectations network tag creation.  To be used by tests that get/create networks.
-	// expectNetworkTags := func(networkID string) {
-	// 	listTagsParams := &csapi.ListTagsParams{}
-	// 	createTagsParams := &csapi.CreateTagsParams{}
-	// 	rs.EXPECT().NewListTagsParams().Return(listTagsParams)
-	// 	rs.EXPECT().ListTags(listTagsParams).Return(&csapi.ListTagsResponse{}, nil)
-	// 	rs.EXPECT().NewCreateTagsParams([]string{networkID}, string(cloud.ResourceTypeNetwork), gomock.Any()).Return(createTagsParams)
-	// 	rs.EXPECT().CreateTags(createTagsParams).Return(&csapi.CreateTagsResponse{}, nil)
-	// }
+	// Sets expectations network tag creation.  To be used by tests that get/create networks.
+	expectNetworkTags := func(networkID string, expectTagCreation bool) {
+		listTagsParams := &cloudstack.ListTagsParams{}
+		createTagsParams := &cloudstack.CreateTagsParams{}
+		rs.EXPECT().NewListTagsParams().Return(listTagsParams)
+		rs.EXPECT().ListTags(listTagsParams).Return(&cloudstack.ListTagsResponse{}, nil)
+		if expectTagCreation {
+			rs.EXPECT().NewCreateTagsParams([]string{networkID}, string(cloud.ResourceTypeNetwork), gomock.Any()).Return(createTagsParams)
+			rs.EXPECT().CreateTags(createTagsParams).Return(&cloudstack.CreateTagsResponse{}, nil)
+		}
+	}
 
 	Context("for an existing network", func() {
 		It("resolves network by ID", func() {
 			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(nil, 0, nil)
 			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
 
+		It("does not call to create a new network via GetOrCreateNetwork", func() {
+			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetID, 1, nil)
+			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
+			expectNetworkTags(fakeNetID, false)
+
+			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
+		})
+
+		It("resolves network details with network ID instead of network name", func() {
+			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
+			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
+			expectNetworkTags(fakeNetID, false)
+
 			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
 		})
 
-		It("resolves network by Name", func() {
-			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
+	Context("for a non-existent network", func() {
+		It("when GetOrCreateNetwork is called it calls CloudStack to create a network", func() {
+			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
+			ns.EXPECT().GetNetworkByID(gomock.Any()).Return(nil, -1, errors.New("no match found for blah"))
+			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
+			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&cloudstack.CreateNetworkParams{})
+			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: netID}, nil)
+			expectNetworkTags(netID, true)
 
-			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
+			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
 		})
-
-		It("resolves network details in cluster status", func() {
-			dummies.SetDummyZoneStatus()
-			// Gets Net1 by Name.
-			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
+	})
 
 			// Trys to get Net2 by name and doesn't find it. Then finds Net2 via ID.
 			ns.EXPECT().GetNetworkByName(dummies.Net2.Name).Return(nil, 0, nil)
