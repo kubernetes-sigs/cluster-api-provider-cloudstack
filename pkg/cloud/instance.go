@@ -91,17 +91,16 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (o
 				"expected 1 Service Offering with UUID %s, but got %d", csMachine.Spec.Offering.ID, count))
 		}
 		return csMachine.Spec.Offering.ID, nil
-	} else {
-		offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering.Name)
-		if err != nil {
-			retErr = multierror.Append(retErr, errors.Wrapf(
-				err, "could not get Service Offering ID from %s", csMachine.Spec.Offering.Name))
-		} else if count != 1 {
-			retErr = multierror.Append(retErr, errors.Errorf(
-				"expected 1 Service Offering with name %s, but got %d", csMachine.Spec.Offering.Name, count))
-		}
-		return offeringID, nil
 	}
+	offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering.Name)
+	if err != nil {
+		return "", multierror.Append(retErr, errors.Wrapf(
+			err, "could not get Service Offering ID from %s", csMachine.Spec.Offering.Name))
+	} else if count != 1 {
+		return "", multierror.Append(retErr, errors.Errorf(
+			"expected 1 Service Offering with name %s, but got %d", csMachine.Spec.Offering.Name, count))
+	}
+	return offeringID, nil
 }
 
 func (c *client) ResolveTemplate(
@@ -119,17 +118,16 @@ func (c *client) ResolveTemplate(
 				"expected 1 Template with UUID %s, but got %d", csMachine.Spec.Template.ID, count))
 		}
 		return csMachine.Spec.Template.ID, nil
-	} else {
-		templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template.Name, "all", zoneID)
-		if err != nil {
-			retErr = multierror.Append(retErr, errors.Wrapf(
-				err, "could not get Template ID from %s", csMachine.Spec.Template.Name))
-		} else if count != 1 {
-			retErr = multierror.Append(retErr, errors.Errorf(
-				"expected 1 Template with name %s, but got %d", csMachine.Spec.Template.Name, count))
-		}
-		return templateID, nil
 	}
+	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template.Name, "all", zoneID)
+	if err != nil {
+		return "", multierror.Append(retErr, errors.Wrapf(
+			err, "could not get Template ID from %s", csMachine.Spec.Template.Name))
+	} else if count != 1 {
+		return "", multierror.Append(retErr, errors.Errorf(
+			"expected 1 Template with name %s, but got %d", csMachine.Spec.Template.Name, count))
+	}
+	return templateID, nil
 }
 
 // GetOrCreateVMInstance CreateVMInstance will fetch or create a VM instance, and
@@ -161,7 +159,7 @@ func (c *client) GetOrCreateVMInstance(
 	p.SetNetworkids([]string{zone.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
-	
+
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
 	compressedAndEncodedUserData, err := CompressAndEncodeString(userData)
