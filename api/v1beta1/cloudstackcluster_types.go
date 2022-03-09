@@ -116,7 +116,7 @@ type CloudStackClusterStatus struct {
 	Zones ZoneStatusMap `json:"zones,omitempty"`
 
 	// CAPI recognizes failure domains as a method to spread machines.
-	// CAPC sets failure domains per to indicate functionin Zones.
+	// CAPC sets failure domains to indicate functioning Zones.
 	// +optional
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 
