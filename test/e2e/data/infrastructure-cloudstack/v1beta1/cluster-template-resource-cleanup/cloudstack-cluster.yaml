@@ -1,0 +1,10 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: CloudStackCluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  zone: ${CLOUDSTACK_ZONE_NAME}
+  network: ${CLOUDSTACK_NEW_NETWORK_NAME}
+  controlPlaneEndpoint:
+    host: ${CLUSTER_ENDPOINT_NEW_IP}
+    port: ${CLUSTER_ENDPOINT_PORT}

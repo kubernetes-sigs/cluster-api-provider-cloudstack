@@ -285,6 +285,21 @@ func CheckAffinityGroup(clusterName string, affinityType string) []string {
 	return affinityIds
 }
 
+func CheckNetworkExists(networkName string) (bool, error) {
+	client := createCloudStackClient()
+
+	_, count, err := client.Network.GetNetworkByName(networkName)
+	if err != nil {
+		if strings.Contains(err.Error(), "No match found for") {
+			return false, nil
+		}
+		return false, err
+	} else if count > 1 {
+		return false, errors.New(fmt.Sprintf("Expected 0-1 Network with name %s, but got %d.", networkName, count))
+	}
+	return count == 1, nil
+}
+
 func createCloudStackClient() *cloudstack.CloudStackClient {
 	encodedSecret := os.Getenv("CLOUDSTACK_B64ENCODED_SECRET")
 	secret, err := base64.StdEncoding.DecodeString(encodedSecret)
