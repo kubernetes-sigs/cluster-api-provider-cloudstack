@@ -45,7 +45,7 @@ var _ = Describe("Tag Unit Tests", func() {
 				Fail("Failed to get existing tags. Error: " + err.Error())
 			}
 			if len(existingTags) > 0 {
-				err = client.DeleteTags(cloud.ResourceTypeNetwork, networkID, existingTags)
+				err = client.DeleteTags(cloud.ResourceTypeNetwork, dummies.Net1.ID, existingTags)
 				if err != nil {
 					Fail("Failed to delete existing tags. Error: " + err.Error())
 				}
@@ -68,6 +68,8 @@ var _ = Describe("Tag Unit Tests", func() {
 		})
 
 		It("adds the tags for a cluster (resource created by CAPC)", func() {
+			Ω(client.AddCreatedByCAPCTag(cloud.ResourceTypeNetwork, dummies.Net1.ID)).
+				Should(Succeed())
 			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).
 				Should(Succeed())
 
@@ -83,14 +85,14 @@ var _ = Describe("Tag Unit Tests", func() {
 			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
 		})
 
-		It("doesn't add the tags for a cluster (resource NOT created by CAPC)", func() {
-			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, networkID, csCluster, false)).Should(Succeed())
+		It("doesn't adds the tags for a cluster (resource NOT created by CAPC)", func() {
+			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.Net1.ID, dummies.CSCluster)).Should(Succeed())
 
 			// Verify tags
 			tags, err := client.GetTags(cloud.ResourceTypeNetwork, dummies.Net1.ID)
 			Ω(err).Should(BeNil())
-			Ω(tags[createdByCAPCTag]).Should(Equal(""))
-			Ω(tags[clusterTag]).Should(Equal(""))
+			Ω(tags[dummies.CreatedByCapcKey]).Should(Equal(""))
+			Ω(tags[dummies.CSClusterTagKey]).Should(Equal(""))
 		})
 
 		It("deletes a cluster tag", func() {

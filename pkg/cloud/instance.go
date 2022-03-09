@@ -145,6 +145,7 @@ func (c *client) GetOrCreateVMInstance(
 		!strings.Contains(strings.ToLower(err.Error()), "no match") {
 		return err
 	}
+
 	offeringID, err := c.ResolveServiceOffering(csMachine)
 	if err != nil {
 		return err
@@ -155,10 +156,12 @@ func (c *client) GetOrCreateVMInstance(
 	}
 
 	// Create VM instance.
-	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csCluster.Status.ZoneID)
-	p.SetNetworkids([]string{csCluster.Status.NetworkID})
-	setIfNotEmpty(capiMachine.Name, p.SetName)
-	setIfNotEmpty(capiMachine.Name, p.SetDisplayname)
+	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csMachine.Status.ZoneID)
+	zone := csCluster.Status.Zones[csMachine.Status.ZoneID]
+	p.SetNetworkids([]string{zone.Network.ID})
+	setIfNotEmpty(csMachine.Name, p.SetName)
+	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
+	
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
 	compressedAndEncodedUserData, err := CompressAndEncodeString(userData)

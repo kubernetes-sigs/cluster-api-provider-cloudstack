@@ -54,6 +54,8 @@ var _ = Describe("Instance", func() {
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 
 		dummies.SetDummyVars()
+		dummies.SetDummyClusterStatus()
+		dummies.SetDummyCSMachineStatuses()
 	})
 
 	AfterEach(func() {

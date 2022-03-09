@@ -31,7 +31,7 @@ type NetworkIface interface {
 	ResolveNetwork(*capcv1.CloudStackCluster, *capcv1.Network) error
 	CreateIsolatedNetwork(*capcv1.CloudStackCluster) error
 	OpenFirewallRules(*capcv1.CloudStackCluster) error
-	ResolvePublicIPDetails(*capcv1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
+	FetchPublicIP(*capcv1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
 	ResolveLoadBalancerRuleDetails(*capcv1.CloudStackCluster) error
 	GetOrCreateLoadBalancerRule(*capcv1.CloudStackCluster) error
 	GetOrCreateIsolatedNetwork(*capcv1.CloudStackCluster) error
@@ -100,7 +100,7 @@ func (c *client) ResolveNetwork(csCluster *capcv1.CloudStackCluster, net *capcv1
 }
 
 func generateNetworkTagName(csCluster *capcv1.CloudStackCluster) string {
-	return clusterTagNamePrefix + string(csCluster.UID)
+	return ClusterTagNamePrefix + string(csCluster.UID)
 }
 
 // getOfferingID fetches an offering id.
@@ -134,18 +134,16 @@ func (c *client) CreateIsolatedNetwork(csCluster *capcv1.CloudStackCluster) (ret
 	if err != nil {
 		return err
 	}
-	if err := c.AddClusterTag(ResourceTypeNetwork, zoneStatus.Network.ID, csCluster); err != nil {
-		return err
-	}
-	if err := c.AddCreatedByCAPCTag(ResourceTypeNetwork, zoneStatus.Network.ID); err != nil {
-		return err
-	}
 
 	// Update Zone/Network status accordingly.
 	netStatus.ID = resp.Id
 	netStatus.Type = resp.Type
 	zoneStatus.Network = netStatus
 	csCluster.Status.Zones[zoneStatus.Name] = zoneStatus
+
+	if err := c.AddCreatedByCAPCTag(ResourceTypeNetwork, zoneStatus.Network.ID); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -171,9 +169,9 @@ func (c *client) RemoveClusterTagFromNetwork(csCluster *capcv1.CloudStackCluster
 		return err
 	}
 
-	clusterTagName := generateNetworkTagName(csCluster)
-	if tagValue := tags[clusterTagName]; tagValue != "" {
-		if err = c.DeleteTags(ResourceTypeNetwork, net.ID, map[string]string{clusterTagName: tagValue}); err != nil {
+	ClusterTagName := generateNetworkTagName(csCluster)
+	if tagValue := tags[ClusterTagName]; tagValue != "" {
+		if err = c.DeleteTags(ResourceTypeNetwork, net.ID, map[string]string{ClusterTagName: tagValue}); err != nil {
 			return err
 		}
 	}
@@ -189,19 +187,19 @@ func (c *client) DeleteNetworkIfNotInUse(csCluster *capcv1.CloudStackCluster, ne
 
 	var clusterTagCount int
 	for tagName := range tags {
-		if strings.HasPrefix(tagName, clusterTagNamePrefix) {
+		if strings.HasPrefix(tagName, ClusterTagNamePrefix) {
 			clusterTagCount++
 		}
 	}
 
-	if clusterTagCount == 0 && tags[createdByCAPCTagName] != "" {
+	if clusterTagCount == 0 && tags[CreatedByCAPCTagName] != "" {
 		return c.DestroyNetwork(net)
 	}
 
 	return nil
 }
 
-func (c *client) ResolvePublicIPDetails(csCluster *capcv1.CloudStackCluster) (*cloudstack.PublicIpAddress, error) {
+func (c *client) FetchPublicIP(csCluster *capcv1.CloudStackCluster) (*cloudstack.PublicIpAddress, error) {
 	ip := csCluster.Spec.ControlPlaneEndpoint.Host
 
 	zoneStatus := csCluster.Status.Zones.GetOne()
@@ -234,7 +232,7 @@ func (c *client) ResolvePublicIPDetails(csCluster *capcv1.CloudStackCluster) (*c
 
 // AssociatePublicIPAddress Gets a PublicIP and associates it.
 func (c *client) AssociatePublicIPAddress(csCluster *capcv1.CloudStackCluster) (retErr error) {
-	publicAddress, err := c.ResolvePublicIPDetails(csCluster)
+	publicAddress, err := c.FetchPublicIP(csCluster)
 	if err != nil {
 		return err
 	}
@@ -379,9 +377,17 @@ func (c *client) GetOrCreateIsolatedNetwork(csCluster *capcv1.CloudStackCluster)
 			return err
 		}
 	}
+	networkID := csCluster.Status.Zones.GetOne().Network.ID
+	if err := c.AddClusterTag(ResourceTypeNetwork, networkID, csCluster); err != nil {
+		return err
+	}
 
 	if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
 		if err := c.AssociatePublicIPAddress(csCluster); err != nil {
+			return err
+		}
+		// Add created by CAPC tag to public IP.
+		if err := c.AddCreatedByCAPCTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID); err != nil {
 			return err
 		}
 	}

@@ -48,7 +48,7 @@ type Network struct {
 	// + optional
 	Type string `json:"type,omitempty"`
 
-	// Name of the infrastructure identity to be used.
+	// Cloudstack Network Name the cluster is built in.
 	// +optional
 	Name string `json:"name"`
 }
