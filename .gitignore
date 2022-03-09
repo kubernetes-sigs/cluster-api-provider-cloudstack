@@ -8,6 +8,7 @@ bin
 testbin/*
 
 nginx.conf
+nginx.conf.bak
 
 pkg/mocks/*
 !pkg/mocks/.keep

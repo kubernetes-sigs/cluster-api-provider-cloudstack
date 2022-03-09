@@ -99,15 +99,6 @@ var _ = Describe("Network", func() {
 		It("correctly identifies an existing network from a network status", func() {
 			Ω(cloud.NetworkExists(dummies.CSCluster.Status.Zones.GetOne().Network)).Should(BeTrue())
 		})
-
-		// It("resolves network details with network ID instead of network name", func() {
-		// 	ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
-		// 	ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-		// 	expectNetworkTags(fakeNetID, false)
-
-		// 	csCluster.Spec.Network = fakeNetID
-		// 	Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
-		// })
 	})
 
 	Context("for a non-existent network", func() {
