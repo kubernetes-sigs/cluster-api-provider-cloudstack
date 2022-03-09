@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+nfraCopyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ type Network struct {
 	// + optional
 	Type string `json:"type,omitempty"`
 
-	// Name of the infrastructure identity to be used.
+	// Cloudstack Network Name the cluster is built in.
 	// +optional
 	Name string `json:"name"`
 }

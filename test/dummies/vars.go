@@ -92,7 +92,7 @@ func SetDummyTagVars() {
 	Tags = map[string]string{Tag1Key: Tag1Val, Tag2Key: Tag2Val}
 }
 
-// SetDummyClusterSpecVars resets the values in each of the exported CloudStackMachines related dummy variables.
+// SetDummyCSMachineTemplateVars resets the values in each of the exported CloudStackMachinesTemplate dummy variables.
 func SetDummyCSMachineTemplateVars() {
 	CSMachineTemplate1 = &capcv1.CloudStackMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
@@ -125,7 +125,7 @@ func SetDummyCSMachineTemplateVars() {
 	}
 }
 
-// SetDummyClusterSpecVars resets the values in each of the exported CloudStackMachines related dummy variables.
+// SetDummyCSMachineVars resets the values in each of the exported CloudStackMachine dummy variables.
 func SetDummyCSMachineVars() {
 	CSMachine1 = &capcv1.CloudStackMachine{
 		TypeMeta: metav1.TypeMeta{
@@ -153,8 +153,8 @@ func SetDummyCSMachineVars() {
 	CSMachine1.ObjectMeta.SetName("test-vm")
 }
 
-// SetDummyClusterSpecVars resets the values in each of the exported CloudStackCluster related dummy variables.
-// It is intended to be called in BeforeEach( functions.
+// SetDummyCAPCClusterVars resets the values in each of the exported CloudStackCluster related dummy variables.
+// It is intended to be called in BeforeEach() functions.
 func SetDummyCAPCClusterVars() {
 	DomainID = "FakeDomainID"
 	Domain = "FakeDomainName"
@@ -199,11 +199,13 @@ func SetDummyCAPCClusterVars() {
 	}
 }
 
+// SetDummyDomainAndAccount sets domain and account in the CSCluster Spec. This is not the default.
 func SetDummyDomainAndAccount() {
 	CSCluster.Spec.Account = Account
 	CSCluster.Spec.Domain = Domain
 }
 
+// SetDummyDomainAndAccount sets domainID in the CSCluster Status. This is not the default.
 func SetDummyDomainID() {
 	CSCluster.Status.DomainID = "FakeDomainID"
 }

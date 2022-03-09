@@ -18,8 +18,10 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	flag "github.com/spf13/pflag"
@@ -142,6 +144,9 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
+
+	// Set a random seed for randomly placing CloudStackMachines in Zones.
+	rand.Seed(time.Now().Unix())
 
 	// Register machine and cluster reconcilers with the controller manager.
 	if err = (&controllers.CloudStackClusterReconciler{
