@@ -97,6 +97,14 @@ spec:
                       template:
                         description: CloudStack template to use.
                         type: string
+                      zoneID:
+                        description: Optionally settable Zone ID to land the machine
+                          in.
+                        type: string
+                      zoneName:
+                        description: Optionally settable Zone Name to land the machine
+                          in.
+                        type: string
                     required:
                     - offering
                     - template

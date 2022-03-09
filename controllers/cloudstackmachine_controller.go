@@ -166,15 +166,29 @@ func (r *CloudStackMachineReconciler) reconcile(
 	// Set ZoneID on csMachine.
 	if util.IsControlPlaneMachine(capiMachine) { // Use failure domain zone.
 		csMachine.Status.ZoneID = *capiMachine.Spec.FailureDomain
-	} else { // Random zone.
-		zones := make([]string, len(csCluster.Status.Zones))
-		zidx := 0
-		for zoneID := range csCluster.Status.Zones {
-			zones[zidx] = zoneID
-			zidx++
+	} else { // Specified by Machine Template or Random zone.
+		if csMachine.Spec.ZoneID != "" {
+			if zone, foundZone := csCluster.Status.Zones[csMachine.Spec.ZoneID]; foundZone { // ZoneID Specified.
+				csMachine.Status.ZoneID = zone.ID
+			} else {
+				return ctrl.Result{}, errors.Errorf("could not find zone by zoneID: %s", csMachine.Spec.ZoneID)
+			}
+		} else if csMachine.Spec.ZoneName != "" {
+			if zone := csCluster.Status.Zones.GetByName(csMachine.Spec.ZoneID); zone != nil { // ZoneName Specified.
+				csMachine.Status.ZoneID = zone.ID
+			} else {
+				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", csMachine.Spec.ZoneName)
+			}
+		} else { // No Zone Specified, pick a Random Zone.
+			zones := make([]string, len(csCluster.Status.Zones))
+			zidx := 0
+			for zoneID := range csCluster.Status.Zones {
+				zones[zidx] = zoneID
+				zidx++
+			}
+			randNum := (rand.Int() % len(csCluster.Spec.Zones)) // #nosec G404 -- weak crypt rand doesn't matter here.
+			csMachine.Status.ZoneID = zones[randNum]
 		}
-		randNum := (rand.Int() % len(csCluster.Spec.Zones)) // #nosec G404 -- weak crypt rand doesn't matter here.
-		csMachine.Status.ZoneID = zones[randNum]
 	}
 
 	secret := &corev1.Secret{}
