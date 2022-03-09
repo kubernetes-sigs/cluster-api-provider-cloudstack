@@ -174,7 +174,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 				return ctrl.Result{}, errors.Errorf("could not find zone by zoneID: %s", csMachine.Spec.ZoneID)
 			}
 		} else if csMachine.Spec.ZoneName != "" {
-			if zone := csCluster.Status.Zones.GetByName(csMachine.Spec.ZoneID); zone != nil { // ZoneName Specified.
+			if zone := csCluster.Status.Zones.GetByName(csMachine.Spec.ZoneName); zone != nil { // ZoneName Specified.
 				csMachine.Status.ZoneID = zone.ID
 			} else {
 				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", csMachine.Spec.ZoneName)
