@@ -82,19 +82,19 @@ var _ = Describe("CloudStackMachine webhook", func() {
 				Should(MatchError(MatchRegexp(forbiddenRegex, "details")))
 		})
 
-		It("should reject identity reference kind udpates to the CloudStackMachine", func() {
+		It("should reject identity reference kind updates to the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Kind")))
 		})
 
-		It("should reject identity reference name udpates to the CloudStackMachine", func() {
+		It("should reject identity reference name updates to the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Name = "IdentityConfigMap"
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Name")))
 		})
 
-		It("should reject udpates to the list of affinty groups of the CloudStackMachine", func() {
+		It("should reject updates to the list of affinty groups of the CloudStackMachine", func() {
 			dummies.CSMachine1.Spec.AffinityGroupIDs = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2af"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "AffinityGroupIDs")))
