@@ -1,7 +1,8 @@
 {
     "name": "cloudstack",
-    "label": "CAPC",
     "config": {
+        "manager_name": "capc-controller-manager",
+        "label": "CAPC",
         "image": "localhost:5000/cluster-api-provider-cloudstack",
         "live_reload_deps": [
             "main.go",

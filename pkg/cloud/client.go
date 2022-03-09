@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
 )
@@ -30,12 +29,7 @@ import (
 type Client interface {
 	ClusterIface
 	VMIface
-	ResolveNetwork(*infrav1.CloudStackCluster) error
-	GetOrCreateNetwork(*infrav1.CloudStackCluster) error
-	OpenFirewallRules(*infrav1.CloudStackCluster) error
-	ResolvePublicIPDetails(*infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
-	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackCluster) error
-	GetOrCreateLoadBalancerRule(*infrav1.CloudStackCluster) error
+	NetworkIface
 	AffinityGroupIface
 	TagIface
 }
@@ -68,9 +62,9 @@ func NewClient(ccPath string) (Client, error) {
 	c.csAsync = cloudstack.NewClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
 	_, err := c.cs.APIDiscovery.ListApis(c.cs.APIDiscovery.NewListApisParams())
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
-		return c, errors.Wrap(err, "Timeout while checking CloudStack API Client connectivity.")
+		return c, errors.Wrap(err, "timeout while checking CloudStack API Client connectivity")
 	}
-	return c, errors.Wrap(err, "Error encountered while checking CloudStack API Client connectivity.")
+	return c, errors.Wrap(err, "error encountered while checking CloudStack API Client connectivity")
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {

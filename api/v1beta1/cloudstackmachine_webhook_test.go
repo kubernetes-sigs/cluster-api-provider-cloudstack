@@ -14,224 +14,90 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1beta1_test
 
 import (
 	"context"
 
+	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("CloudStackMachine webhook", func() {
-	Context("When creating a CloudStackMachine with all validated attributes", func() {
-		It("Should succeed", func() {
-			ctx := context.Background()
-			cloudStackMachine := &CloudStackMachine{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackMachine",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine",
-					Namespace: "default",
-				},
-				Spec: CloudStackMachineSpec{
-					IdentityRef: &CloudStackIdentityReference{
-						Kind: defaultIdentityRefKind,
-						Name: "IdentitySecret",
-					},
-					Template: "Template",
-					Offering: "Offering",
-				},
-			}
-			Expect(k8sClient.Create(ctx, cloudStackMachine)).Should(Succeed())
-		})
+	var ctx context.Context
+	forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
+	requiredRegex := "admission webhook.*denied the request.*Required value\\: %s"
+
+	BeforeEach(func() { // Reset test vars to initial state.
+		dummies.SetDummyVars()
+		ctx = context.Background()
+		_ = k8sClient.Delete(ctx, dummies.CSMachine1) // Clear out any remaining machines. Ignore errors.
 	})
 
-	Context("When creating a CloudStackMachine with all attributes", func() {
-		It("Should succeed", func() {
-			ctx := context.Background()
-			cloudStackMachine := &CloudStackMachine{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackMachine",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine-2",
-					Namespace: "default",
-				},
-				Spec: CloudStackMachineSpec{
-					IdentityRef: &CloudStackIdentityReference{
-						Kind: defaultIdentityRefKind,
-						Name: "IdentitySecret",
-					},
-					Template: "Template",
-					Offering: "Offering",
-					Details: map[string]string{
-						"memoryOvercommitRatio": "1.2",
-					},
-				},
-			}
-			Expect(k8sClient.Create(ctx, cloudStackMachine)).Should(Succeed())
+	Context("When creating a CloudStackMachine", func() {
+		It("should accept CloudStackMachine with all attributes", func() {
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 		})
-	})
 
-	Context("When creating a CloudStackMachine with all attributes", func() {
-		It("Should succeed", func() {
-			ctx := context.Background()
-			cloudStackMachine := &CloudStackMachine{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackMachine",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine-3",
-					Namespace: "default",
-				},
-				Spec: CloudStackMachineSpec{
-					IdentityRef: &CloudStackIdentityReference{
-						Kind: defaultIdentityRefKind,
-						Name: "IdentitySecret",
-					},
-					Template:         "Template",
-					Offering:         "Offering",
-					AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
-				},
-			}
-			Expect(k8sClient.Create(ctx, cloudStackMachine)).Should(Succeed())
+		It("should reject a CloudStackMachine with missing Offering attribute", func() {
+			dummies.CSMachine1.Spec.Offering = ""
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(requiredRegex, "Offering")))
 		})
-	})
 
-	Context("When creating a CloudStackMachine with missing Offering attribute", func() {
-		It("Should be rejected by the validating webhooks", func() {
-			ctx := context.Background()
-			cloudStackMachine := &CloudStackMachine{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackMachine",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine",
-					Namespace: "default",
-				},
-				Spec: CloudStackMachineSpec{
-					IdentityRef: &CloudStackIdentityReference{
-						Kind: defaultIdentityRefKind,
-						Name: "IdentitySecret",
-					},
-					Template: "Template",
-				},
-			}
-			Expect(k8sClient.Create(ctx, cloudStackMachine).Error()).Should(MatchRegexp("admission webhook.*denied the request.*Required value\\: Offering"))
+		It("should reject a CloudStackMachine with missing Template attribute", func() {
+			dummies.CSMachine1.Spec.Template = ""
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(requiredRegex, "Template")))
 		})
-	})
 
-	Context("When creating a CloudStackMachine with missing Template attribute", func() {
-		It("Should be rejected by the validating webhooks", func() {
-			ctx := context.Background()
-			cloudStackMachine := &CloudStackMachine{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackMachine",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine",
-					Namespace: "default",
-				},
-				Spec: CloudStackMachineSpec{
-					IdentityRef: &CloudStackIdentityReference{
-						Kind: defaultIdentityRefKind,
-						Name: "IdentitySecret",
-					},
-					Offering: "Offering",
-				},
-			}
-			Expect(k8sClient.Create(ctx, cloudStackMachine).Error()).Should(MatchRegexp("admission webhook.*denied the request.*Required value\\: Template"))
-		})
-	})
-
-	Context("When creating a CloudStackMachine with the wrong kind of IdentityReference", func() {
-		It("Should be rejected by the validating webhooks", func() {
-			ctx := context.Background()
-			cloudStackMachine := &CloudStackMachine{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackMachine",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine",
-					Namespace: "default",
-				},
-				Spec: CloudStackMachineSpec{
-					IdentityRef: &CloudStackIdentityReference{
-						Kind: "ConfigMap",
-						Name: "IdentityConfigMap",
-					},
-					Template: "Template",
-					Offering: "Offering",
-				},
-			}
-			Expect(k8sClient.Create(ctx, cloudStackMachine).Error()).Should(MatchRegexp("admission webhook.*denied the request.*Forbidden\\: must be a Secret"))
+		It("should reject a CloudStackMachine with IdentityRef not of kind 'Secret'", func() {
+			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "must be a Secret")))
 		})
 	})
 
 	Context("When updating a CloudStackMachine", func() {
-		It("Should be rejected by the validating webhooks", func() {
-			ctx := context.Background()
-			cloudStackMachine := &CloudStackMachine{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-					Kind:       "CloudStackMachine",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-machine-4",
-					Namespace: "default",
-				},
-				Spec: CloudStackMachineSpec{
-					IdentityRef: &CloudStackIdentityReference{
-						Kind: defaultIdentityRefKind,
-						Name: "IdentitySecret",
-					},
-					Template: "Template",
-					Offering: "Offering",
-					Details: map[string]string{
-						"memoryOvercommitRatio": "1.2",
-					},
-					AffinityGroupIds: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
-				},
-			}
-			Expect(k8sClient.Create(ctx, cloudStackMachine)).Should(Succeed())
+		BeforeEach(func() {
+			Ω(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
+		})
 
-			forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
-			cloudStackMachineUpdate := &CloudStackMachine{}
+		It("should reject VM offering updates to the CloudStackMachine", func() {
+			dummies.CSMachine1.Spec.Offering = "ArbitraryUpdateOffering"
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "offering")))
+		})
 
-			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
-			cloudStackMachineUpdate.Spec.Template = "Template2"
-			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "template"))
+		It("should reject VM template updates to the CloudStackMachine", func() {
+			dummies.CSMachine1.Spec.Template = "ArbitraryUpdateTemplate"
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "template")))
+		})
 
-			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
-			cloudStackMachineUpdate.Spec.Offering = "Offering2"
-			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "offering"))
+		It("should reject updates to VM details of the CloudStackMachine", func() {
+			dummies.CSMachine1.Spec.Details = map[string]string{"memoryOvercommitRatio": "1.5"}
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "details")))
+		})
 
-			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
-			cloudStackMachineUpdate.Spec.Details = map[string]string{
-				"memoryOvercommitRatio": "1.5",
-			}
-			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "details"))
+		It("should reject identity reference kind updates to the CloudStackMachine", func() {
+			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Kind")))
+		})
 
-			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
-			cloudStackMachineUpdate.Spec.IdentityRef.Kind = "ConfigMap"
-			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "identityRef\\.Kind"))
+		It("should reject identity reference name updates to the CloudStackMachine", func() {
+			dummies.CSMachine1.Spec.IdentityRef.Name = "IdentityConfigMap"
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Name")))
+		})
 
-			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
-			cloudStackMachineUpdate.Spec.IdentityRef.Name = "IdentityConfigMap"
-			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "identityRef\\.Name"))
-
-			cloudStackMachine.DeepCopyInto(cloudStackMachineUpdate)
-			cloudStackMachineUpdate.Spec.AffinityGroupIds = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2af"}
-			Expect(k8sClient.Update(ctx, cloudStackMachineUpdate).Error()).Should(MatchRegexp(forbiddenRegex, "AffinityGroupIds"))
+		It("should reject updates to the list of affinty groups of the CloudStackMachine", func() {
+			dummies.CSMachine1.Spec.AffinityGroupIDs = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2af"}
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "AffinityGroupIDs")))
 		})
 	})
 })

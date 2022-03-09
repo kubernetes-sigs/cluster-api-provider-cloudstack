@@ -1,0 +1,4 @@
+- op: add
+  path: /spec/template/spec/containers/0/ports/-
+  value:
+    containerPort: 40000 # Delve debugging port.

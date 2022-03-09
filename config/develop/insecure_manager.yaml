@@ -11,5 +11,5 @@ spec:
       labels:
         control-plane: capc-controller-manager
     spec:
-      securityContext:
+      securityContext: # Tilt image build and runs as root.
         runAsNonRoot: false
