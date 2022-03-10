@@ -38,10 +38,10 @@ type CloudStackMachineSpec struct {
 	InstanceID *string `json:"instanceID,omitempty"`
 
 	// CloudStack compute offering.
-	Offering string `json:"offering"`
+	Offering CloudStackResourceIdentifier `json:"offering"`
 
 	// CloudStack template to use.
-	Template string `json:"template"`
+	Template CloudStackResourceIdentifier `json:"template"`
 
 	// CloudStack ssh key to use.
 	// +optional
@@ -73,6 +73,16 @@ type CloudStackMachineSpec struct {
 	// +optional
 	// +k8s:conversion-gen=false
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
+}
+
+type CloudStackResourceIdentifier struct {
+	// Cloudstack resource ID.
+	// +optional
+	ID string `json:"id,omitempty"`
+
+	// Cloudstack resource Name
+	// +optional
+	Name string `json:"name,omitempty"`
 }
 
 // TODO: Review the use of this field/type.

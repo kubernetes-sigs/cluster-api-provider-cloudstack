@@ -129,7 +129,7 @@ spec:
                       type: boolean
                   type: object
                 description: CAPI recognizes failure domains as a method to spread
-                  machines. CAPC sets failure domains per to indicate functionin Zones.
+                  machines. CAPC sets failure domains to indicate functioning Zones.
                 type: object
               loadBalancerRuleID:
                 description: The ID of the lb rule used to assign VMs to the lb.

@@ -86,7 +86,14 @@ spec:
                         type: string
                       offering:
                         description: CloudStack compute offering.
-                        type: string
+                        properties:
+                          id:
+                            description: Cloudstack resource ID.
+                            type: string
+                          name:
+                            description: Cloudstack resource Name
+                            type: string
+                        type: object
                       providerID:
                         description: 'The CS specific unique identifier. Of the form:
                           fmt.Sprintf("cloudstack:///%s", CS Machine ID)'
@@ -96,7 +103,14 @@ spec:
                         type: string
                       template:
                         description: CloudStack template to use.
-                        type: string
+                        properties:
+                          id:
+                            description: Cloudstack resource ID.
+                            type: string
+                          name:
+                            description: Cloudstack resource Name
+                            type: string
+                        type: object
                       zoneID:
                         description: Optionally settable Zone ID to land the machine
                           in.

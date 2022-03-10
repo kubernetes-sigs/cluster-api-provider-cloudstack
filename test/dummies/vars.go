@@ -114,8 +114,12 @@ func SetDummyCSMachineTemplateVars() {
 						Kind: "Secret",
 						Name: "IdentitySecret",
 					},
-					Template: "Template",
-					Offering: "Offering",
+					Template: capcv1.CloudStackResourceIdentifier{
+						Name: "Template",
+					},
+					Offering: capcv1.CloudStackResourceIdentifier{
+						Name: "Offering",
+					},
 					Details: map[string]string{
 						"memoryOvercommitRatio": "1.2",
 					},
@@ -141,9 +145,13 @@ func SetDummyCSMachineVars() {
 				Kind: "Secret",
 				Name: "IdentitySecret",
 			},
-			InstanceID:       pointer.String("Instance1"),
-			Template:         "Template",
-			Offering:         "Offering",
+			InstanceID: pointer.String("Instance1"),
+			Template: capcv1.CloudStackResourceIdentifier{
+				Name: "Template",
+			},
+			Offering: capcv1.CloudStackResourceIdentifier{
+				Name: "Offering",
+			},
 			AffinityGroupIDs: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
 			Details: map[string]string{
 				"memoryOvercommitRatio": "1.2",
