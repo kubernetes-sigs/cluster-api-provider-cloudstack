@@ -49,7 +49,7 @@ The default mode of operation for the deployed Kubernetes cluster components is 
 
 ### Known Issues :
 
-* When using IP address for controlPlaneEndpoint cluster upgrade is not supported.
+* Cluster upgrade is not supported when the controlPlaneEndpoint is defined to be an IP address in a shared network.
 
 ###  Future Scope/Features
 
