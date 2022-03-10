@@ -137,9 +137,14 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 	}
 
+	if !csCluster.Status.Ready {
+		log.Info("CloudStackCluster not ready. Requeuing.")
+		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+	}
+
 	if util.IsControlPlaneMachine(capiMachine) &&
 		(capiMachine.Spec.FailureDomain == nil || *capiMachine.Spec.FailureDomain == "") {
-		log.Info("CloudStackCluster ZoneID not initialized. Likely not ready.")
+		log.Info("CAPI zone placement specification not yet set. Requeuing.")
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
