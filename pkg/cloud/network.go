@@ -36,6 +36,7 @@ type NetworkIface interface {
 	GetOrCreateLoadBalancerRule(*capcv1.CloudStackCluster) error
 	GetOrCreateIsolatedNetwork(*capcv1.CloudStackCluster) error
 	AssociatePublicIPAddress(*capcv1.CloudStackCluster) error
+	DeleteNetwork(capcv1.Network) error
 }
 
 const (
@@ -132,14 +133,14 @@ func (c *client) CreateIsolatedNetwork(csCluster *capcv1.CloudStackCluster) (ret
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	resp, err := c.cs.Network.CreateNetwork(p)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error encountered when creating network with name: %s", netStatus.Name)
 	}
 
 	// Update Zone/Network status accordingly.
 	netStatus.ID = resp.Id
 	netStatus.Type = resp.Type
 	zoneStatus.Network = netStatus
-	csCluster.Status.Zones[zoneStatus.Name] = zoneStatus
+	csCluster.Status.Zones[zoneStatus.ID] = zoneStatus
 
 	if err := c.AddCreatedByCAPCTag(ResourceTypeNetwork, zoneStatus.Network.ID); err != nil {
 		return err
@@ -193,7 +194,7 @@ func (c *client) DeleteNetworkIfNotInUse(csCluster *capcv1.CloudStackCluster, ne
 	}
 
 	if clusterTagCount == 0 && tags[CreatedByCAPCTagName] != "" {
-		return c.DestroyNetwork(net)
+		return c.DeleteNetwork(net)
 	}
 
 	return nil
@@ -209,9 +210,7 @@ func (c *client) FetchPublicIP(csCluster *capcv1.CloudStackCluster) (*cloudstack
 	p.SetZoneid(zoneStatus.ID)
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
-	if ip != "" {
-		p.SetIpaddress(ip)
-	}
+	setIfNotEmpty(ip, p.SetIpaddress)
 	publicAddresses, err := c.cs.Address.ListPublicIpAddresses(p)
 
 	if err != nil {
@@ -234,25 +233,37 @@ func (c *client) FetchPublicIP(csCluster *capcv1.CloudStackCluster) (*cloudstack
 func (c *client) AssociatePublicIPAddress(csCluster *capcv1.CloudStackCluster) (retErr error) {
 	publicAddress, err := c.FetchPublicIP(csCluster)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "error encountered while fetching a public IP address")
 	}
 
 	csCluster.Spec.ControlPlaneEndpoint.Host = publicAddress.Ipaddress
 	csCluster.Status.PublicIPID = publicAddress.Id
 
+	// Check if the address is already associated with the network.
 	zoneStatus := csCluster.Status.Zones.GetOne()
+	if publicAddress.Associatednetworkid == zoneStatus.Network.ID {
+		return nil
+	}
 
-	// Public IP found, but not yet allocated to network.
+	// Public IP found, but not yet associated with network -- associate it.
 	p := c.cs.Address.NewAssociateIpAddressParams()
 	p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)
 	p.SetNetworkid(zoneStatus.Network.ID)
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	if _, err := c.cs.Address.AssociateIpAddress(p); err != nil {
-		return err
+		return errors.Wrapf(err,
+			"error encountered while associating public IP address with ID: %s to netowrk with ID: %s",
+			publicAddress.Id, zoneStatus.Network.ID)
 	}
 	if err := c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster); err != nil {
-		return err
+		return errors.Wrapf(err,
+			"error encountered while adding tag to public IP address with ID: %s", publicAddress.Id)
+	}
+	// Add created by CAPC tag to public IP.
+	if err := c.AddCreatedByCAPCTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID); err != nil {
+		return errors.Wrapf(err,
+			"error encountered while adding tag to public IP address with ID: %s", publicAddress.Id)
 	}
 	return nil
 }
@@ -343,9 +354,9 @@ func (c *client) GetOrCreateLoadBalancerRule(csCluster *capcv1.CloudStackCluster
 	return nil
 }
 
-func (c *client) DestroyNetwork(net capcv1.Network) (retErr error) {
-	_, retErr = c.cs.Network.DeleteNetwork(c.cs.Network.NewDeleteNetworkParams(net.ID))
-	return retErr
+func (c *client) DeleteNetwork(net capcv1.Network) error {
+	_, err := c.cs.Network.DeleteNetwork(c.cs.Network.NewDeleteNetworkParams(net.ID))
+	return errors.Wrapf(err, "error encountered while deleting network with id: %s", net.ID)
 }
 
 func (c *client) AssignVMToLoadBalancerRule(csCluster *capcv1.CloudStackCluster, instanceID string) (retErr error) {
@@ -374,21 +385,17 @@ func (c *client) GetOrCreateIsolatedNetwork(csCluster *capcv1.CloudStackCluster)
 	onlyNetStatus := csCluster.Status.Zones.GetOne().Network
 	if !NetworkExists(onlyNetStatus) { // create isolated network.
 		if err := c.CreateIsolatedNetwork(csCluster); err != nil {
-			return err
+			return errors.Wrap(err, "error encountered while creating a new isolated network.")
 		}
 	}
 	networkID := csCluster.Status.Zones.GetOne().Network.ID
 	if err := c.AddClusterTag(ResourceTypeNetwork, networkID, csCluster); err != nil {
-		return err
+		return errors.Wrapf(err, "error encountered while tagging network with id: %s", networkID)
 	}
 
 	if csCluster.Status.PublicIPID == "" { // Don't try to get public IP again it's already been fetched.
 		if err := c.AssociatePublicIPAddress(csCluster); err != nil {
-			return err
-		}
-		// Add created by CAPC tag to public IP.
-		if err := c.AddCreatedByCAPCTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID); err != nil {
-			return err
+			return errors.Wrapf(err, "error encountered when associating public IP address to csCluster")
 		}
 	}
 	if err := c.GetOrCreateLoadBalancerRule(csCluster); err != nil {
