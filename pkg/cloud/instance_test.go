@@ -134,7 +134,6 @@ var _ = Describe("Instance", func() {
 		It("returns errors occuring while fetching sevice offering information", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return("", -1, unknownError)
-			//sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				ShouldNot(Succeed())
 		})
