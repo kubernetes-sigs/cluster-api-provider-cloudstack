@@ -248,7 +248,7 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Offering.Name = ""
 				dummies.CSMachine1.Spec.Template.Name = "template"
 
-				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{}, 1, nil)
+				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: ""}, 1, nil)
 				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
 
@@ -262,7 +262,7 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = ""
 
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
-				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{}, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: ""}, 1, nil)
 
 				ActionAndAssert()
 			})
@@ -273,8 +273,8 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Offering.Name = ""
 				dummies.CSMachine1.Spec.Template.Name = ""
 
-				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{}, 1, nil)
-				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{}, 1, nil)
+				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: "template"}, 1, nil)
 
 				ActionAndAssert()
 			})
@@ -285,10 +285,42 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Offering.Name = "offering"
 				dummies.CSMachine1.Spec.Template.Name = "template"
 
-				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{}, 1, nil)
-				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{}, 1, nil)
+				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: "template"}, 1, nil)
 
 				ActionAndAssert()
+			})
+		})
+
+		Context("when using both UUIDs and names to locate service offerings and templates", func() {
+			BeforeEach(func() {
+				vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
+					Return(nil, -1, notFoundError)
+				vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(nil, -1, notFoundError)
+			})
+
+			It("works with Id and name both provided, offering name mismatch", func() {
+				dummies.CSMachine1.Spec.Offering.ID = offeringFakeID
+				dummies.CSMachine1.Spec.Template.ID = templateFakeID
+				dummies.CSMachine1.Spec.Offering.Name = "offering"
+				dummies.CSMachine1.Spec.Template.Name = "template"
+
+				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering-not-match"}, 1, nil)
+				requiredRegexp := "offering name %s does not match name %s returned using UUID %s"
+				Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).Should(MatchError(MatchRegexp(requiredRegexp, dummies.CSMachine1.Spec.Offering.Name, "offering-not-match", offeringFakeID)))
+			})
+
+			It("works with Id and name both provided, template name mismatch", func() {
+				dummies.CSMachine1.Spec.Offering.ID = offeringFakeID
+				dummies.CSMachine1.Spec.Template.ID = templateFakeID
+				dummies.CSMachine1.Spec.Offering.Name = "offering"
+				dummies.CSMachine1.Spec.Template.Name = "template"
+
+				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: "template-not-match"}, 1, nil)
+				requiredRegexp := "template name %s does not match name %s returned using UUID %s"
+				Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).Should(MatchError(MatchRegexp(requiredRegexp, dummies.CSMachine1.Spec.Template.Name, "template-not-match", templateFakeID)))
+
 			})
 		})
 	})

@@ -82,13 +82,18 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 
 func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (offeringID string, retErr error) {
 	if len(csMachine.Spec.Offering.ID) > 0 {
-		_, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering.ID)
+		csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering.ID)
 		if err != nil {
 			return "", multierror.Append(retErr, errors.Wrapf(
 				err, "could not get Service Offering by ID %s", csMachine.Spec.Offering.ID))
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
 				"expected 1 Service Offering with UUID %s, but got %d", csMachine.Spec.Offering.ID, count))
+		}
+
+		if len(csMachine.Spec.Offering.Name) > 0 && csMachine.Spec.Offering.Name != csOffering.Name {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"offering name %s does not match name %s returned using UUID %s", csMachine.Spec.Offering.Name, csOffering.Name, csMachine.Spec.Offering.ID))
 		}
 		return csMachine.Spec.Offering.ID, nil
 	}
@@ -109,13 +114,18 @@ func (c *client) ResolveTemplate(
 	zoneID string,
 ) (templateID string, retErr error) {
 	if len(csMachine.Spec.Template.ID) > 0 {
-		_, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template.ID, "all")
+		csTemplate, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template.ID, "all")
 		if err != nil {
 			return "", multierror.Append(retErr, errors.Wrapf(
 				err, "could not get Template by ID %s", csMachine.Spec.Template.ID))
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
 				"expected 1 Template with UUID %s, but got %d", csMachine.Spec.Template.ID, count))
+		}
+
+		if len(csMachine.Spec.Template.Name) > 0 && csMachine.Spec.Template.Name != csTemplate.Name {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"template name %s does not match name %s returned using UUID %s", csMachine.Spec.Template.Name, csTemplate.Name, csMachine.Spec.Template.ID))
 		}
 		return csMachine.Spec.Template.ID, nil
 	}
