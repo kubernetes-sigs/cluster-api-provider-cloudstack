@@ -5,6 +5,8 @@ metadata:
 spec:
   template:
     spec:
-      offering: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
-      template: ${CLOUDSTACK_INVALID_TEMPLATE_NAME}
+      offering: 
+        name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
+      template: 
+        name: ${CLOUDSTACK_INVALID_TEMPLATE_NAME}
       sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
