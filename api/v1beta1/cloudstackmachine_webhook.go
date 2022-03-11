@@ -63,8 +63,8 @@ func (r *CloudStackMachine) ValidateCreate() error {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
-	errorList = webhookutil.EnsureFieldExists(r.Spec.Offering, "Offering", errorList)
-	errorList = webhookutil.EnsureFieldExists(r.Spec.Template, "Template", errorList)
+	errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Offering.ID, r.Spec.Offering.Name, "Offering", errorList)
+	errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Template.ID, r.Spec.Template.Name, "Template", errorList)
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
@@ -81,9 +81,9 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	}
 	oldSpec := oldMachine.Spec
 
-	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.Offering, oldSpec.Offering, "offering", errorList)
+	errorList = webhookutil.EnsureBothFieldsAreEqual(r.Spec.Offering.ID, r.Spec.Offering.Name, oldSpec.Offering.ID, oldSpec.Offering.Name, "offering", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.Template, oldSpec.Template, "template", errorList)
+	errorList = webhookutil.EnsureBothFieldsAreEqual(r.Spec.Template.ID, r.Spec.Template.Name, oldSpec.Template.ID, oldSpec.Template.Name, "template", errorList)
 	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&r.Spec.Details, &oldSpec.Details, "details", errorList)
 	if r.Spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
