@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -307,4 +308,27 @@ func HasMatchingUnhealthyConditions(machineHealthCheck *clusterv1.MachineHealthC
 		}
 	}
 	return false
+}
+
+func ClusterExists(ctx context.Context, mgmtClient client.Client, cluster *clusterv1.Cluster) bool {
+	key := client.ObjectKey{
+		Namespace: cluster.GetNamespace(),
+		Name:      cluster.GetName(),
+	}
+	return !apierrors.IsNotFound(mgmtClient.Get(ctx, key, &clusterv1.Cluster{}))
+}
+
+func IsClusterReady(ctx context.Context, mgmtClient client.Client, cluster *clusterv1.Cluster) bool {
+	key := client.ObjectKey{
+		Namespace: cluster.GetNamespace(),
+		Name:      cluster.GetName(),
+	}
+	c := &clusterv1.Cluster{}
+	err := mgmtClient.Get(ctx, key, c)
+
+	if apierrors.IsNotFound(err) {
+		return false
+	}
+	Expect(err).To(BeNil(), "Failed to get cluster status")
+	return c.Status.ControlPlaneReady && c.Status.InfrastructureReady
 }

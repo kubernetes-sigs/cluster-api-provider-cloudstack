@@ -38,13 +38,15 @@ func SecondClusterSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 
 	var (
 		input             CommonSpecInput
-		namespace         *corev1.Namespace
-		cancelWatches     context.CancelFunc
+		namespace1        *corev1.Namespace
+		namespace2        *corev1.Namespace
+		cancelWatches1    context.CancelFunc
+		cancelWatches2    context.CancelFunc
 		clusterResources1 *clusterctl.ApplyClusterTemplateAndWaitResult
 		clusterResources2 *clusterctl.ApplyClusterTemplateAndWaitResult
 	)
 
-	createCluster := func(flavor string, resources *clusterctl.ApplyClusterTemplateAndWaitResult) {
+	createCluster := func(flavor string, namespace *corev1.Namespace, resources *clusterctl.ApplyClusterTemplateAndWaitResult) {
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:    input.BootstrapClusterProxy,
 			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
@@ -76,34 +78,42 @@ func SecondClusterSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.GetVariable(KubernetesVersion)))
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		// Set up namespaces to host objects for this spec and create watchers for the namespace events.
+		namespace1, cancelWatches1 = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace2, cancelWatches2 = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 		clusterResources1 = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 		clusterResources2 = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
 	It("should successfully add and remove a second cluster", func() {
-		By("create the first cluster")
-		createCluster(clusterctl.DefaultFlavor, clusterResources1)
+		mgmtClient := input.BootstrapClusterProxy.GetClient()
 
-		By("create the second cluster")
-		createCluster("second-cluster", clusterResources2)
+		By("create the first cluster and verify that it's ready")
+		createCluster(clusterctl.DefaultFlavor, namespace1, clusterResources1)
+		Expect(IsClusterReady(ctx, mgmtClient, clusterResources1.Cluster)).To(BeTrue())
 
-		By("verify that the second cluster works")
+		By("create the second cluster and verify that it's ready")
+		createCluster("second-cluster", namespace2, clusterResources2)
+		Expect(IsClusterReady(ctx, mgmtClient, clusterResources2.Cluster)).To(BeTrue())
 
 		By("delete the second cluster")
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources2.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace2,
+			cancelWatches2, clusterResources2.Cluster, input.E2EConfig.GetIntervals, false)
 
-		By("verify that the second cluster is gone")
+		By("verify the second cluster is gone")
+		Expect(ClusterExists(ctx, mgmtClient, clusterResources2.Cluster)).To(BeFalse())
 
-		By("verify that the first cluster still works")
+		By("verify the first cluster is still ready")
+		Expect(IsClusterReady(ctx, mgmtClient, clusterResources1.Cluster)).To(BeTrue())
 
 		By("PASSED!")
 	})
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources1.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources2.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace1, cancelWatches1, clusterResources1.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		if clusterResources2.Cluster != nil && ClusterExists(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources2.Cluster) {
+			dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace2, cancelWatches2, clusterResources2.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		}
 	})
 }

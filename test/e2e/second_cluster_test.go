@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("with a second cluster [SecondCluster]", func() {
+var _ = Describe("with a second cluster", func() {
 
 	SecondClusterSpec(context.TODO(), func() CommonSpecInput {
 		return CommonSpecInput{
