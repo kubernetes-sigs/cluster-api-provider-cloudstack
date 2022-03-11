@@ -23,8 +23,10 @@ kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
-  zone: ${CLOUDSTACK_ZONE_NAME}
-  network: ${CLOUDSTACK_NETWORK_NAME}
+  zones:
+  - name : ${CLOUDSTACK_ZONE_NAME}
+    network: 
+      name: ${CLOUDSTACK_NETWORK_NAME}
   controlPlaneEndpoint:
     host: ${CLUSTER_ENDPOINT_IP}
     port: ${CLUSTER_ENDPOINT_PORT}

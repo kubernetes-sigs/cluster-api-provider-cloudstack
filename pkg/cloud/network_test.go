@@ -17,156 +17,177 @@ limitations under the License.
 package cloud_test
 
 import (
-	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	"strconv"
+
+	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
+	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var _ = Describe("Network", func() {
 	var ( // Declare shared vars.
 		mockCtrl   *gomock.Controller
-		mockClient *cloudstack.CloudStackClient
-		ns         *cloudstack.MockNetworkServiceIface
-		nos        *cloudstack.MockNetworkOfferingServiceIface
-		fs         *cloudstack.MockFirewallServiceIface
-		as         *cloudstack.MockAddressServiceIface
-		lbs        *cloudstack.MockLoadBalancerServiceIface
-		rs         *cloudstack.MockResourcetagsServiceIface
-		csCluster  *infrav1.CloudStackCluster
+		mockClient *csapi.CloudStackClient
+		ns         *csapi.MockNetworkServiceIface
+		nos        *csapi.MockNetworkOfferingServiceIface
+		fs         *csapi.MockFirewallServiceIface
+		as         *csapi.MockAddressServiceIface
+		lbs        *csapi.MockLoadBalancerServiceIface
+		rs         *csapi.MockResourcetagsServiceIface
 		client     cloud.Client
-	)
-
-	const (
-		fakeNetID           = "fakeNetID"
-		fakeNetName         = "fakeNetName"
-		isolatedNetworkType = "Isolated"
-		lbRuleID            = "lbRuleID"
-		netID               = "someNetID"
-		protocol            = "tcp"
-		publicPort          = "6443"
 	)
 
 	BeforeEach(func() {
 		// Setup new mock services.
 		mockCtrl = gomock.NewController(GinkgoT())
-		mockClient = cloudstack.NewMockClient(mockCtrl)
-		ns = mockClient.Network.(*cloudstack.MockNetworkServiceIface)
-		nos = mockClient.NetworkOffering.(*cloudstack.MockNetworkOfferingServiceIface)
-		fs = mockClient.Firewall.(*cloudstack.MockFirewallServiceIface)
-		as = mockClient.Address.(*cloudstack.MockAddressServiceIface)
-		lbs = mockClient.LoadBalancer.(*cloudstack.MockLoadBalancerServiceIface)
-		rs = mockClient.Resourcetags.(*cloudstack.MockResourcetagsServiceIface)
+		mockClient = csapi.NewMockClient(mockCtrl)
+		ns = mockClient.Network.(*csapi.MockNetworkServiceIface)
+		nos = mockClient.NetworkOffering.(*csapi.MockNetworkOfferingServiceIface)
+		fs = mockClient.Firewall.(*csapi.MockFirewallServiceIface)
+		as = mockClient.Address.(*csapi.MockAddressServiceIface)
+		lbs = mockClient.LoadBalancer.(*csapi.MockLoadBalancerServiceIface)
+		rs = mockClient.Resourcetags.(*csapi.MockResourcetagsServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
-
-		// Reset csCluster.
-		csCluster = &infrav1.CloudStackCluster{
-			Spec: infrav1.CloudStackClusterSpec{
-				Zone:                 "zone1",
-				Network:              fakeNetName,
-				ControlPlaneEndpoint: clusterv1.APIEndpoint{Port: int32(6443)},
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				UID: "0",
-			},
-		}
+		dummies.SetDummyVars()
+		dummies.SetDummyClusterStatus()
 	})
 
 	AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
-	// Sets expectations network tag creation.  To be used by tests that get/create networks.
-	expectNetworkTags := func(networkID string) {
-		listTagsParams := &cloudstack.ListTagsParams{}
-		createTagsParams := &cloudstack.CreateTagsParams{}
-		rs.EXPECT().NewListTagsParams().Return(listTagsParams)
-		rs.EXPECT().ListTags(listTagsParams).Return(&cloudstack.ListTagsResponse{}, nil)
-		rs.EXPECT().NewCreateTagsParams([]string{networkID}, string(cloud.ResourceTypeNetwork), gomock.Any()).Return(createTagsParams)
-		rs.EXPECT().CreateTags(createTagsParams).Return(&cloudstack.CreateTagsResponse{}, nil)
-	}
-
 	Context("for an existing network", func() {
+		It("resolves network by ID", func() {
+			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(nil, 0, nil)
+			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
+
+			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
+		})
+
+		It("resolves network by Name", func() {
+			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
+
+			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
+		})
+
 		It("resolves network details in cluster status", func() {
-			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetID, 1, nil)
-			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-			Ω(client.ResolveNetwork(csCluster)).Should(Succeed())
-			Ω(csCluster.Status.NetworkID).Should(Equal(fakeNetID))
-			Ω(csCluster.Status.NetworkType).Should(Equal(isolatedNetworkType))
+			// Gets Net1 by Name.
+			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
+
+			// Trys to get Net2 by name and doesn't find it. Then finds Net2 via ID.
+			ns.EXPECT().GetNetworkByName(dummies.Net2.Name).Return(nil, 0, nil)
+			ns.EXPECT().GetNetworkByID(dummies.Net2.ID).Return(dummies.CAPCNetToCSAPINet(&dummies.Net2), 1, nil)
+
+			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
+			Ω(dummies.CSCluster.Status.Zones[dummies.Zone1.ID].Network).Should(Equal(dummies.Net1))
+			Ω(dummies.CSCluster.Status.Zones[dummies.Zone2.ID].Network).Should(Equal(dummies.Net2))
 		})
 
-		It("does not call to create a new network via GetOrCreateNetwork", func() {
-			ns.EXPECT().GetNetworkID(fakeNetName).Return(fakeNetID, 1, nil)
-			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-			expectNetworkTags(fakeNetID)
-
-			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
+		It("correctly identifies the shared network use case", func() {
+			Ω(cloud.UsesIsolatedNetwork(dummies.CSCluster)).Should(BeFalse())
 		})
-
-		It("resolves network details with network ID instead of network name", func() {
-			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
-			ns.EXPECT().GetNetworkByID(fakeNetID).Return(&cloudstack.Network{Type: isolatedNetworkType}, 1, nil)
-			expectNetworkTags(fakeNetID)
-
-			csCluster.Spec.Network = fakeNetID
-			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
+		It("correctly identifies the isolated network use case", func() {
+			dummies.Zone1.Network = dummies.ISONet1
+			dummies.CSCluster.Status.Zones = map[string]capcv1.Zone{dummies.Zone1.ID: dummies.Zone1}
+			Ω(cloud.UsesIsolatedNetwork(dummies.CSCluster)).Should(BeTrue())
+		})
+		It("correctly identifies an existing network from a network status", func() {
+			Ω(cloud.NetworkExists(dummies.CSCluster.Status.Zones.GetOne().Network)).Should(BeTrue())
 		})
 	})
 
 	Context("for a non-existent network", func() {
-		It("when GetOrCreateNetwork is called it calls CloudStack to create a network", func() {
-			ns.EXPECT().GetNetworkID(gomock.Any()).Return("", -1, errors.New("no match found for blah"))
+		It("when ResolveNetworkStatuses is called it does not create a network", func() {
+			ns.EXPECT().GetNetworkByName(gomock.Any()).Return(nil, -1, errors.New("no match found for blah"))
 			ns.EXPECT().GetNetworkByID(gomock.Any()).Return(nil, -1, errors.New("no match found for blah"))
-			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
-			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-				Return(&cloudstack.CreateNetworkParams{})
-			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&cloudstack.CreateNetworkResponse{Id: netID}, nil)
-			expectNetworkTags(netID)
 
-			Ω(client.GetOrCreateNetwork(csCluster)).Should(Succeed())
+			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).ShouldNot(Succeed())
 		})
+	})
+
+	It("calls to create an isolated network when not found", func() {
+		dummies.Zone1.Network = dummies.ISONet1
+		dummies.Zone1.Network.ID = ""
+		dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
+		dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
+
+		nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
+		ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&csapi.CreateNetworkParams{})
+		ns.EXPECT().CreateNetwork(gomock.Any()).Return(&csapi.CreateNetworkResponse{Id: dummies.ISONet1.ID}, nil)
+		as.EXPECT().NewListPublicIpAddressesParams().Return(&csapi.ListPublicIpAddressesParams{})
+		as.EXPECT().ListPublicIpAddresses(gomock.Any()).
+			Return(&csapi.ListPublicIpAddressesResponse{
+				Count:             1,
+				PublicIpAddresses: []*csapi.PublicIpAddress{{Id: dummies.PublicIPID, Ipaddress: "fakeIP"}}}, nil)
+		as.EXPECT().NewAssociateIpAddressParams().Return(&csapi.AssociateIpAddressParams{})
+		as.EXPECT().AssociateIpAddress(gomock.Any())
+
+		// Will add cluster tag once to Network and once to PublicIP.
+		createdByResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: cloud.CreatedByCAPCTagName, Value: "1"}}}
+		gomock.InOrder(
+			rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}),
+			rs.EXPECT().ListTags(gomock.Any()).Return(createdByResponse, nil),
+			rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}),
+			rs.EXPECT().ListTags(gomock.Any()).Return(createdByResponse, nil))
+
+		// Will add creation and cluster tags to network and PublicIP.
+		rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&csapi.CreateTagsParams{}).Times(4)
+		rs.EXPECT().CreateTags(gomock.Any()).Return(&csapi.CreateTagsResponse{}, nil).Times(4)
+
+		lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&csapi.ListLoadBalancerRulesParams{})
+		lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).Return(
+			&csapi.ListLoadBalancerRulesResponse{LoadBalancerRules: []*csapi.LoadBalancerRule{
+				{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
+
+		Ω(client.GetOrCreateIsolatedNetwork(dummies.CSCluster)).Should(Succeed())
 	})
 
 	Context("for a closed firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall", func() {
-			netID := netID
-			csCluster.Status.NetworkID = netID
-			fs.EXPECT().NewCreateEgressFirewallRuleParams(netID, protocol).
-				Return(&cloudstack.CreateEgressFirewallRuleParams{})
-			fs.EXPECT().CreateEgressFirewallRule(&cloudstack.CreateEgressFirewallRuleParams{}).
-				Return(&cloudstack.CreateEgressFirewallRuleResponse{}, nil)
+			dummies.Zone1.Network = dummies.ISONet1
+			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
+			dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, cloud.NetworkProtocolTCP).
+				Return(&csapi.CreateEgressFirewallRuleParams{})
+			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
+				Return(&csapi.CreateEgressFirewallRuleResponse{}, nil)
 
-			Ω(client.OpenFirewallRules(csCluster)).Should(Succeed())
+			Ω(client.OpenFirewallRules(dummies.CSCluster)).Should(Succeed())
 		})
 	})
 
 	Context("for an open firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
-			netID := netID
-			csCluster.Status.NetworkID = netID
-			fs.EXPECT().NewCreateEgressFirewallRuleParams(netID, protocol).
-				Return(&cloudstack.CreateEgressFirewallRuleParams{})
-			fs.EXPECT().CreateEgressFirewallRule(&cloudstack.CreateEgressFirewallRuleParams{}).
-				Return(&cloudstack.CreateEgressFirewallRuleResponse{}, errors.New("there is already a rule like this"))
-			Ω(client.OpenFirewallRules(csCluster)).Should(Succeed())
+			dummies.Zone1.Network = dummies.ISONet1
+			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
+			dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
+
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, "tcp").
+				Return(&csapi.CreateEgressFirewallRuleParams{})
+			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
+				Return(&csapi.CreateEgressFirewallRuleResponse{}, errors.New("there is already a rule like this"))
+
+			Ω(client.OpenFirewallRules(dummies.CSCluster)).Should(Succeed())
 		})
 	})
 
 	Context("in an isolated network with public IPs available", func() {
 		It("will resolve public IP details given an endpoint spec", func() {
 			ipAddress := "192.168.1.14"
-			as.EXPECT().NewListPublicIpAddressesParams().Return(&cloudstack.ListPublicIpAddressesParams{})
+			as.EXPECT().NewListPublicIpAddressesParams().Return(&csapi.ListPublicIpAddressesParams{})
 			as.EXPECT().ListPublicIpAddresses(gomock.Any()).
-				Return(&cloudstack.ListPublicIpAddressesResponse{
+				Return(&csapi.ListPublicIpAddressesResponse{
 					Count:             1,
-					PublicIpAddresses: []*cloudstack.PublicIpAddress{{Id: "PublicIPID", Ipaddress: ipAddress}},
+					PublicIpAddresses: []*csapi.PublicIpAddress{{Id: "PublicIPID", Ipaddress: ipAddress}},
 				}, nil)
-			publicIPAddress, err := client.ResolvePublicIPDetails(csCluster)
+			publicIPAddress, err := client.FetchPublicIP(dummies.CSCluster)
 			Ω(err).Should(Succeed())
 			Ω(publicIPAddress).ShouldNot(BeNil())
 			Ω(publicIPAddress.Ipaddress).Should(Equal(ipAddress))
@@ -175,36 +196,84 @@ var _ = Describe("Network", func() {
 
 	Context("The specific load balancer rule does exist", func() {
 		It("resolves the rule's ID", func() {
-			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
+			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&csapi.ListLoadBalancerRulesParams{})
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).Return(
-				&cloudstack.ListLoadBalancerRulesResponse{
-					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: publicPort, Id: lbRuleID}}}, nil)
-			Ω(client.ResolveLoadBalancerRuleDetails(csCluster)).Should(Succeed())
-			Ω(csCluster.Status.LBRuleID).Should(Equal(lbRuleID))
+				&csapi.ListLoadBalancerRulesResponse{LoadBalancerRules: []*csapi.LoadBalancerRule{
+					{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
+
+			dummies.CSCluster.Status.LBRuleID = ""
+			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSCluster)).Should(Succeed())
+			Ω(dummies.CSCluster.Status.LBRuleID).Should(Equal(dummies.LBRuleID))
 		})
 
 		It("doesn't create a new load balancer rule on create", func() {
-			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
+			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&csapi.ListLoadBalancerRulesParams{})
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).
-				Return(&cloudstack.ListLoadBalancerRulesResponse{
-					LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: publicPort, Id: lbRuleID}}}, nil)
-			Ω(client.GetOrCreateLoadBalancerRule(csCluster)).Should(Succeed())
-			Ω(csCluster.Status.LBRuleID).Should(Equal(lbRuleID))
+				Return(&csapi.ListLoadBalancerRulesResponse{
+					LoadBalancerRules: []*csapi.LoadBalancerRule{
+						{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
+
+			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSCluster)).Should(Succeed())
+			Ω(dummies.CSCluster.Status.LBRuleID).Should(Equal(dummies.LBRuleID))
 		})
 	})
 
 	Context("load balancer rule does not exist", func() {
 		It("calls cloudstack to create a new load balancer rule.", func() {
-			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&cloudstack.ListLoadBalancerRulesParams{})
-			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).Return(&cloudstack.ListLoadBalancerRulesResponse{
-				LoadBalancerRules: []*cloudstack.LoadBalancerRule{{Publicport: "7443", Id: lbRuleID}}}, nil)
+			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&csapi.ListLoadBalancerRulesParams{})
+			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).
+				Return(&csapi.ListLoadBalancerRulesResponse{
+					LoadBalancerRules: []*csapi.LoadBalancerRule{{Publicport: "7443", Id: dummies.LBRuleID}}}, nil)
 			lbs.EXPECT().NewCreateLoadBalancerRuleParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-				Return(&cloudstack.CreateLoadBalancerRuleParams{})
-			const randomID = "randomID"
+				Return(&csapi.CreateLoadBalancerRuleParams{})
 			lbs.EXPECT().CreateLoadBalancerRule(gomock.Any()).
-				Return(&cloudstack.CreateLoadBalancerRuleResponse{Id: randomID}, nil)
-			Ω(client.GetOrCreateLoadBalancerRule(csCluster)).Should(Succeed())
-			Ω(csCluster.Status.LBRuleID).Should(Equal(randomID))
+				Return(&csapi.CreateLoadBalancerRuleResponse{Id: "2ndLBRuleID"}, nil)
+
+			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSCluster)).Should(Succeed())
+			Ω(dummies.CSCluster.Status.LBRuleID).Should(Equal("2ndLBRuleID"))
+		})
+	})
+
+	Context("Networking Integ Tests", func() {
+		client, connectionErr := cloud.NewClient("../../cloud-config")
+
+		BeforeEach(func() {
+			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
+				Skip("Could not connect to ACS instance.")
+			}
+			if err := client.ResolveNetwork(dummies.CSCluster, &dummies.Net1); err != nil {
+				Skip("Could not find network.")
+			}
+
+			// Delete any existing tags
+			existingTags, err := client.GetTags(cloud.ResourceTypeNetwork, dummies.Net1.ID)
+			if err != nil {
+				Fail("Failed to get existing tags. Error: " + err.Error())
+			}
+			if len(existingTags) != 0 {
+				err = client.DeleteTags(cloud.ResourceTypeNetwork, dummies.Net1.ID, existingTags)
+				if err != nil {
+					Fail("Failed to delete existing tags. Error: " + err.Error())
+				}
+			}
+		})
+
+		It("fetches an isolated network", func() {
+			dummies.SetDummyIsoNetToNameOnly()
+			dummies.SetClusterSpecToNet(&dummies.ISONet1)
+
+			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
+			Ω(dummies.ISONet1.ID).ShouldNot(BeEmpty())
+			Ω(dummies.ISONet1.Type).Should(Equal(cloud.NetworkTypeIsolated))
+		})
+
+		It("fetches a public IP", func() {
+			dummies.Zone1.ID = ""
+			dummies.SetDummyIsoNetToNameOnly()
+			dummies.SetClusterSpecToNet(&dummies.ISONet1)
+			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""
+			Ω(client.ResolveZones(dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
 		})
 	})
 })

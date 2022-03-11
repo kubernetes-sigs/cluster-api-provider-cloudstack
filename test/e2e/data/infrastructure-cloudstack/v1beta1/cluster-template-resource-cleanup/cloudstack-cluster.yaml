@@ -4,9 +4,9 @@ metadata:
   name: ${CLUSTER_NAME}
 spec:
   zones:
-  - name : ${CLOUDSTACK_INVALID_ZONE_NAME}
+  - name : ${CLOUDSTACK_ZONE_NAME}
     network: 
-      name: ${CLOUDSTACK_NETWORK_NAME}
+      name: ${CLOUDSTACK_NEW_NETWORK_NAME}
   controlPlaneEndpoint:
-    host: ${CLUSTER_ENDPOINT_IP}
+    host: ${CLUSTER_ENDPOINT_NEW_IP}
     port: ${CLUSTER_ENDPOINT_PORT}

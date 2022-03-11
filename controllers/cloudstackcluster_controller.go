@@ -100,8 +100,7 @@ func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	defer func() {
 		if err = patchHelper.Patch(ctx, csCluster); err != nil {
-			msg := "error patching CloudStackCluster %s/%s"
-			err = errors.Wrapf(err, msg, csCluster.Namespace, csCluster.Name)
+			err = errors.Wrapf(err, "error patching CloudStackCluster %s/%s", csCluster.Namespace, csCluster.Name)
 			retErr = multierror.Append(retErr, err)
 		}
 	}()
@@ -122,17 +121,24 @@ func (r *CloudStackClusterReconciler) reconcile(
 	csCluster *infrav1.CloudStackCluster,
 ) (ctrl.Result, error) {
 
-	log.V(1).Info("reconcile CloudStackCluster")
+	log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", csCluster.Spec)
 
 	// Prevent premature deletion of the csCluster construct from CAPI.
 	controllerutil.AddFinalizer(csCluster, infrav1.ClusterFinalizer)
+	// Set ready status so that a partial reconcile can be patched.
+	// Ready is required, and patching will fail otherwise.
+	csCluster.Status.Ready = false
 
-	// Create and or fetch cluster components -- sets cluster to ready if no errors.
+	// Create and or fetch cluster components.
 	err := r.CS.GetOrCreateCluster(csCluster)
 	if err == nil {
-		log.Info("Fetched cluster info successfully.", "clusterSpec", csCluster.Spec,
-			"clusterStatus", csCluster.Status)
+		log.Info("Fetched cluster info successfully.")
+		log.V(1).Info("Post fetch cluster status.", "clusterStatus", csCluster.Status)
+
+		// Set cluster to ready to indicate readiness to CAPI.
+		csCluster.Status.Ready = true
 	}
+
 	return ctrl.Result{}, err
 }
 

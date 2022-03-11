@@ -112,11 +112,11 @@ func (c *client) getCurrentAffinityGroups(csMachine *infrav1.CloudStackMachine) 
 }
 
 func (ags *affinityGroups) toArrayOfIDs() []string {
-	groupIds := make([]string, 0, len(*ags))
+	groupIDs := make([]string, 0, len(*ags))
 	for _, group := range *ags {
-		groupIds = append(groupIds, group.ID)
+		groupIDs = append(groupIDs, group.ID)
 	}
-	return groupIds
+	return groupIDs
 }
 
 func (ags *affinityGroups) addGroup(addGroup AffinityGroup) {

@@ -31,14 +31,15 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// MachineRemediationSpec implements a test that verifies that an app deployed to the workload cluster works.
-func MachineRemediationSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
+// ResourceCleanupSpec implements a test that verifies that an app deployed to the workload cluster works.
+func ResourceCleanupSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
-		specName         = "machine-remediation"
+		specName         = "resource-cleanup"
 		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
+		networkName      = "isolated-for-e2e-new"
 	)
 
 	BeforeEach(func() {
@@ -54,38 +55,36 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() CommonSpecIn
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
+
+		exists, err := CheckNetworkExists(networkName)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeFalse())
 	})
 
-	It("Should replace a machine when it is destroyed", func() {
-		cpMatcher := ControlPlaneIndicator
-		cpCount := 3
-		mdMatcher := MachineDeploymentIndicator
-		mdCount := 3
-		proxy := input.BootstrapClusterProxy
-
+	It("Should create a new network when the specified network does not exist", func() {
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy:    proxy,
+			ClusterProxy:    input.BootstrapClusterProxy,
 			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   "machine-remediation",
+				Flavor:                   "resource-cleanup",
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64Ptr(3),
-				WorkerMachineCount:       pointer.Int64Ptr(3),
+				ControlPlaneMachineCount: pointer.Int64Ptr(1),
+				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
-		cluster := clusterResources.Cluster
 
-		WaitForMachineRemediationAfterDestroy(ctx, proxy, cluster, cpMatcher, cpCount, input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"))
-		WaitForMachineRemediationAfterDestroy(ctx, proxy, cluster, mdMatcher, mdCount, input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"))
+		exists, err := CheckNetworkExists(networkName)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
 
 		By("PASSED!")
 	})
@@ -93,5 +92,9 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() CommonSpecIn
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+
+		exists, err := CheckNetworkExists(networkName)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeFalse())
 	})
 }

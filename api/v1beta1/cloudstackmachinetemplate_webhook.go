@@ -44,7 +44,7 @@ var _ webhook.Defaulter = &CloudStackMachineTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) Default() {
-	cloudstackmachinetemplatelog.Info("default", "name", r.Name)
+	cloudstackmachinetemplatelog.V(1).Info("entered default setting webhook", "api resource name", r.Name)
 	// No defaulted values supported yet.
 }
 
@@ -54,7 +54,7 @@ var _ webhook.Validator = &CloudStackMachineTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) ValidateCreate() error {
-	cloudstackmachinetemplatelog.Info("validate create", "name", r.Name)
+	cloudstackmachinetemplatelog.V(1).Info("entered validate create webhook", "api resource name", r.Name)
 
 	var (
 		errorList field.ErrorList
@@ -71,9 +71,9 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 		errorList = append(errorList, field.Invalid(field.NewPath("spec", "Affinity"), spec.Affinity,
 			`Affinity must be "no", "pro", "anti", or unspecified.`))
 	}
-	if affinity != "no" && affinity != "" && len(spec.AffinityGroupIds) > 0 {
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"),
-			"AffinityGroupIds cannot be specified when Affinity is specified as anything but `no`"))
+	if affinity != "no" && affinity != "" && len(spec.AffinityGroupIDs) > 0 {
+		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"),
+			"AffinityGroupIDs cannot be specified when Affinity is specified as anything but `no`"))
 	}
 
 	errorList = webhookutil.EnsureFieldExists(spec.Offering, "Offering", errorList)
@@ -84,31 +84,29 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
-	cloudstackmachinetemplatelog.Info("validate update", "name", r.Name)
-
-	var (
-		errorList field.ErrorList
-		spec      = r.Spec.Spec.Spec // CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
-	)
+	cloudstackmachinetemplatelog.V(1).Info("entered validate update webhook", "api resource name", r.Name)
 
 	oldMachineTemplate, ok := old.(*CloudStackMachineTemplate)
 	if !ok {
 		return errors.NewBadRequest(fmt.Sprintf("expected a CloudStackMachineTemplate but got a %T", old))
 	}
+
+	// CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
+	spec := r.Spec.Spec.Spec
 	oldSpec := oldMachineTemplate.Spec.Spec.Spec
 
+	errorList := field.ErrorList(nil)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Offering, oldSpec.Offering, "offering", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Template, oldSpec.Template, "template", errorList)
 	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&spec.Details, &oldSpec.Details, "details", errorList)
-
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Affinity, oldSpec.Affinity, "affinity", errorList)
 
-	if !reflect.DeepEqual(spec.AffinityGroupIds, oldSpec.AffinityGroupIds) { // Equivalent to other Ensure funcs.
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIds"), "AffinityGroupIds"))
+	if !reflect.DeepEqual(spec.AffinityGroupIDs, oldSpec.AffinityGroupIDs) { // Equivalent to other Ensure funcs.
+		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"), "AffinityGroupIDs"))
 	}
 
-	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
+	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil { // Allow setting once.
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
@@ -120,7 +118,7 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) ValidateDelete() error {
-	cloudstackmachinetemplatelog.Info("validate delete", "name", r.Name)
+	cloudstackmachinetemplatelog.V(1).Info("entered validate delete webhook", "api resource name", r.Name)
 	// No deletion validations.  Deletion webhook not enabled.
 	return nil
 }
