@@ -285,6 +285,71 @@ func CheckAffinityGroup(clusterName string, affinityType string) []string {
 	return affinityIds
 }
 
+func CheckZones(clusterName string, zoneNames []string) []string {
+	client := createCloudStackClient()
+
+	By("Listing all machines")
+	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+	if err != nil {
+		Fail("Failed to list machines")
+	}
+	cpZoneIdMap := make(map[string]int)
+	mdZoneIdMap := make(map[string]int)
+	zoneIds := []string{}
+
+	for _, vm := range listResp.VirtualMachines {
+		if strings.Contains(vm.Name, clusterName) {
+			By(vm.Name + " is in zone " + vm.Zonename + " (" + vm.Zoneid + ")")
+			zoneIds = append(zoneIds, vm.Zoneid)
+			if !checkZoneNameInRange(vm, zoneNames) {
+				Byf("vm %s is assigned in zone %s : valid zones %s", vm.Name, vm.Zonename, zoneNames)
+			}
+			err := checkZoneAssignments(vm, cpZoneIdMap, mdZoneIdMap)
+			if err != nil {
+				Fail(err.Error())
+			}
+		}
+	}
+	By("cpZoneIdMap")
+	for key, value := range cpZoneIdMap {
+		Byf("\t%s value is %v\n", key, value)
+	}
+	By("mdZoneIdMap")
+	for key, value := range mdZoneIdMap {
+		Byf("\t%s value is %v\n", key, value)
+	}
+	return zoneIds
+}
+
+func checkZoneAssignments(vm *cloudstack.VirtualMachine, cpZoneIdMap map[string]int, mdZoneIdMap map[string]int) error {
+	if strings.Contains(vm.Name, ControlPlaneIndicator) {
+		count, ok := cpZoneIdMap[vm.Zoneid]
+		if !ok {
+			cpZoneIdMap[vm.Zoneid] = 1
+		} else {
+			cpZoneIdMap[vm.Zoneid] = count + 1
+		}
+	}
+	if strings.Contains(vm.Name, MachineDeploymentIndicator) {
+		count, ok := mdZoneIdMap[vm.Zoneid]
+		if !ok {
+			mdZoneIdMap[vm.Zoneid] = 1
+		} else {
+			mdZoneIdMap[vm.Zoneid] = count + 1
+		}
+	}
+	return nil
+}
+
+func checkZoneNameInRange(vm *cloudstack.VirtualMachine, zoneNames []string) bool {
+	for _, zoneName := range zoneNames {
+		if vm.Zonename == zoneName {
+			return true
+		}
+	}
+	return false
+}
+
 func CheckNetworkExists(networkName string) (bool, error) {
 	client := createCloudStackClient()
 
