@@ -18,6 +18,7 @@ package v1beta1_test
 
 import (
 	"context"
+	"github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo"
@@ -41,13 +42,13 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 		})
 
 		It("Should reject a CloudStackMachineTemplate when missing the VM Offering attribute", func() {
-			dummies.CSMachineTemplate1.Spec.Spec.Spec.Offering = ""
+			dummies.CSMachineTemplate1.Spec.Spec.Spec.Offering = v1beta1.CloudStackResourceIdentifier{Name: "", ID: ""}
 			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).
 				Should(MatchError(MatchRegexp(requiredRegex, "Offering")))
 		})
 
 		It("Should reject a CloudStackMachineTemplate when missing the VM Template attribute", func() {
-			dummies.CSMachineTemplate1.Spec.Spec.Spec.Template = ""
+			dummies.CSMachineTemplate1.Spec.Spec.Spec.Template = v1beta1.CloudStackResourceIdentifier{Name: "", ID: ""}
 			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).
 				Should(MatchError(MatchRegexp(requiredRegex, "Template")))
 		})
@@ -65,13 +66,13 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 		})
 
 		It("should reject VM template updates to the CloudStackMachineTemplate", func() {
-			dummies.CSMachineTemplate1.Spec.Spec.Spec.Template = "ArbitraryUpdateTemplate"
+			dummies.CSMachineTemplate1.Spec.Spec.Spec.Template = v1beta1.CloudStackResourceIdentifier{Name: "ArbitraryUpdateTemplate"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "template")))
 		})
 
 		It("should reject VM offering updates to the CloudStackMachineTemplate", func() {
-			dummies.CSMachineTemplate1.Spec.Spec.Spec.Offering = "Offering2"
+			dummies.CSMachineTemplate1.Spec.Spec.Spec.Offering = v1beta1.CloudStackResourceIdentifier{Name: "Offering2"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "offering")))
 		})

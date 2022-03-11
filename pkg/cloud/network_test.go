@@ -276,4 +276,41 @@ var _ = Describe("Network", func() {
 			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
 		})
 	})
+
+	Context("Network Semi-Integ Tests", func() {
+		client, connectionErr := cloud.NewClient("../../cloud-config")
+
+		BeforeEach(func() {
+			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
+				Skip("Could not connect to ACS instance.")
+			}
+
+			// Setup Isolated Network Dummy Vars.
+			dummies.ISONet1.ID = ""                               // Make CAPC methods resolve this.
+			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = "" // Make CAPC methods resolve this.
+			dummies.CSCluster.Spec.Zones = []capcv1.Zone{{Name: "zone1", Network: dummies.ISONet1}}
+			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
+
+			Ω(client.ResolveZones(dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
+			if dummies.CSCluster.Status.Zones.GetOne().Network.ID != "" { // Delete current test network.
+				Ω(client.DeleteNetwork(dummies.CSCluster.Status.Zones.GetOne().Network)).Should(Succeed())
+			}
+			// Reset status.
+			dummies.CSCluster.Spec.Zones = []capcv1.Zone{{Name: "zone1", Network: dummies.ISONet1}}
+			Ω(client.ResolveZones(dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
+		})
+
+		It("adds an isolated network and doesn't fail when asked to GetOrCreateIsolatedNetwork multiple times", func() {
+			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSCluster)).Should(Succeed())
+			// Reset status.
+			dummies.CSCluster.Spec.Zones = []capcv1.Zone{{Name: "zone1", Network: dummies.ISONet1}}
+			Ω(client.ResolveZones(dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
+			// Do once more.
+			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSCluster)).Should(Succeed())
+		})
+	})
 })

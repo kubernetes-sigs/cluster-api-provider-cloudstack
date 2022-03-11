@@ -31,8 +31,22 @@ func EnsureFieldExists(value string, name string, allErrs field.ErrorList) field
 	return allErrs
 }
 
+func EnsureAtLeastOneFieldExists(value1 string, value2 string, name string, allErrs field.ErrorList) field.ErrorList {
+	if value1 == "" && value2 == "" {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec", name), name))
+	}
+	return allErrs
+}
+
 func EnsureStringFieldsAreEqual(new string, old string, name string, allErrs field.ErrorList) field.ErrorList {
 	if new != old {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))
+	}
+	return allErrs
+}
+
+func EnsureBothFieldsAreEqual(new1 string, new2 string, old1 string, old2 string, name string, allErrs field.ErrorList) field.ErrorList {
+	if new1 != old1 || new2 != old2 {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))
 	}
 	return allErrs

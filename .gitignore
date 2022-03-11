@@ -6,7 +6,6 @@
 *.dylib
 bin
 testbin/*
-api/*/zz*generated.deepcopy.go
 
 nginx.conf
 nginx.conf.bak

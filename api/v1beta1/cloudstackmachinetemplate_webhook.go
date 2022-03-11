@@ -76,8 +76,8 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 			"AffinityGroupIDs cannot be specified when Affinity is specified as anything but `no`"))
 	}
 
-	errorList = webhookutil.EnsureFieldExists(spec.Offering, "Offering", errorList)
-	errorList = webhookutil.EnsureFieldExists(spec.Template, "Template", errorList)
+	errorList = webhookutil.EnsureAtLeastOneFieldExists(spec.Offering.ID, spec.Offering.Name, "Offering", errorList)
+	errorList = webhookutil.EnsureAtLeastOneFieldExists(spec.Template.ID, spec.Template.Name, "Template", errorList)
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
@@ -96,9 +96,9 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	oldSpec := oldMachineTemplate.Spec.Spec.Spec
 
 	errorList := field.ErrorList(nil)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Offering, oldSpec.Offering, "offering", errorList)
+	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.Offering.ID, spec.Offering.Name, oldSpec.Offering.ID, oldSpec.Offering.Name, "offering", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Template, oldSpec.Template, "template", errorList)
+	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.Template.ID, spec.Template.Name, oldSpec.Template.ID, oldSpec.Template.Name, "template", errorList)
 	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&spec.Details, &oldSpec.Details, "details", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Affinity, oldSpec.Affinity, "affinity", errorList)
 
