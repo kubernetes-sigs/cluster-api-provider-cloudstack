@@ -88,22 +88,22 @@ func SecondClusterSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 	It("should successfully add and remove a second cluster", func() {
 		mgmtClient := input.BootstrapClusterProxy.GetClient()
 
-		By("create the first cluster and verify that it's ready")
+		By("Create the first cluster and verify that it's ready")
 		createCluster(clusterctl.DefaultFlavor, namespace1, clusterResources1)
 		Expect(IsClusterReady(ctx, mgmtClient, clusterResources1.Cluster)).To(BeTrue())
 
-		By("create the second cluster and verify that it's ready")
+		By("Create the second cluster and verify that it's ready")
 		createCluster("second-cluster", namespace2, clusterResources2)
 		Expect(IsClusterReady(ctx, mgmtClient, clusterResources2.Cluster)).To(BeTrue())
 
-		By("delete the second cluster")
+		By("Delete the second cluster")
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace2,
 			cancelWatches2, clusterResources2.Cluster, input.E2EConfig.GetIntervals, false)
 
-		By("verify the second cluster is gone")
+		By("Verify the second cluster is gone")
 		Expect(ClusterExists(ctx, mgmtClient, clusterResources2.Cluster)).To(BeFalse())
 
-		By("verify the first cluster is still ready")
+		By("Verify the first cluster is still ready")
 		Expect(IsClusterReady(ctx, mgmtClient, clusterResources1.Cluster)).To(BeTrue())
 
 		By("PASSED!")

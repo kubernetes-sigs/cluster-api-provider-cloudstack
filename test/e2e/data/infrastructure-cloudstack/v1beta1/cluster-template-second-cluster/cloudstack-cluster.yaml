@@ -3,5 +3,12 @@ kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
+  zones:
+  - name: ${CLOUDSTACK_ZONE_NAME}
+    network:
+      name: ${CLOUDSTACK_NETWORK_NAME}
+  account: ${CLOUDSTACK_INVALID_ACCOUNT_NAME}
+  domain: ${CLOUDSTACK_DOMAIN_NAME}
   controlPlaneEndpoint:
+    host: ${CLUSTER_ENDPOINT_IP}
     port: ${CLUSTER_ENDPOINT_PORT_2}
