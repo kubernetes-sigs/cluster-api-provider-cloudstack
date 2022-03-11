@@ -62,7 +62,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 	})
 
 	It("Should fail due to the specified account is not found [TC4a]", func() {
-		testInvalidResource(ctx, input, "invalid-account", "could not find account "+input.E2EConfig.GetVariable(InvalidAccountName))
+		testInvalidResource(ctx, input, "invalid-account", "Unable to find account by name "+input.E2EConfig.GetVariable(InvalidAccountName))
 	})
 
 	It("Should fail due to the specified domain is not found [TC4b]", func() {
@@ -86,7 +86,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 	})
 
 	It("Should fail due to the compute resources are not sufficient for the specified offering [TC8]", func() {
-		testInvalidResource(ctx, input, "insufficient-compute-resources", "CloudStackMachine VM in error state.  Deleting associated Machine.")
+		testInvalidResource(ctx, input, "insufficient-compute-resources", "Unable to create a deployment for VM")
 	})
 
 	AfterEach(func() {
