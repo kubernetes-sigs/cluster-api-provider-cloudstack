@@ -30,7 +30,6 @@ type NetworkIface interface {
 	ResolveNetworkStatuses(*capcv1.CloudStackCluster) error
 	ResolveNetwork(*capcv1.CloudStackCluster, *capcv1.Network) error
 	CreateIsolatedNetwork(*capcv1.CloudStackCluster) error
-	OpenFirewallRules(*capcv1.CloudStackCluster) error
 	FetchPublicIP(*capcv1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
 	ResolveLoadBalancerRuleDetails(*capcv1.CloudStackCluster) error
 	GetOrCreateLoadBalancerRule(*capcv1.CloudStackCluster) error
@@ -143,6 +142,10 @@ func (c *client) CreateIsolatedNetwork(csCluster *capcv1.CloudStackCluster) (ret
 	csCluster.Status.Zones[zoneStatus.ID] = zoneStatus
 
 	if err := c.AddCreatedByCAPCTag(ResourceTypeNetwork, zoneStatus.Network.ID); err != nil {
+		return err
+	}
+
+	if err := c.openFirewallRules(zoneStatus.Network.ID); err != nil {
 		return err
 	}
 
@@ -268,8 +271,8 @@ func (c *client) AssociatePublicIPAddress(csCluster *capcv1.CloudStackCluster) (
 	return nil
 }
 
-func (c *client) OpenFirewallRules(csCluster *capcv1.CloudStackCluster) (retErr error) {
-	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(csCluster.Status.PublicIPNetworkID, NetworkProtocolTCP)
+func (c *client) openFirewallRules(networkID string) (retErr error) {
+	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(networkID, NetworkProtocolTCP)
 	_, retErr = c.cs.Firewall.CreateEgressFirewallRule(p)
 	if retErr != nil && strings.Contains(strings.ToLower(retErr.Error()), "there is already") { // Already a firewall rule here.
 		retErr = nil
