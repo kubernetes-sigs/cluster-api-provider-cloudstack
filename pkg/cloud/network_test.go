@@ -127,6 +127,10 @@ var _ = Describe("Network", func() {
 				PublicIpAddresses: []*csapi.PublicIpAddress{{Id: dummies.PublicIPID, Ipaddress: "fakeIP"}}}, nil)
 		as.EXPECT().NewAssociateIpAddressParams().Return(&csapi.AssociateIpAddressParams{})
 		as.EXPECT().AssociateIpAddress(gomock.Any())
+		fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, cloud.NetworkProtocolTCP).
+			Return(&csapi.CreateEgressFirewallRuleParams{})
+		fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
+			Return(&csapi.CreateEgressFirewallRuleResponse{}, nil)
 
 		// Will add cluster tag once to Network and once to PublicIP.
 		createdByResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: cloud.CreatedByCAPCTagName, Value: "1"}}}
@@ -147,6 +151,35 @@ var _ = Describe("Network", func() {
 				{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
 
 		Ω(client.GetOrCreateIsolatedNetwork(dummies.CSCluster)).Should(Succeed())
+	})
+
+	Context("for a closed firewall", func() {
+		It("OpenFirewallRule asks CloudStack to open the firewall", func() {
+			dummies.Zone1.Network = dummies.ISONet1
+			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
+			dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, cloud.NetworkProtocolTCP).
+				Return(&csapi.CreateEgressFirewallRuleParams{})
+			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
+				Return(&csapi.CreateEgressFirewallRuleResponse{}, nil)
+
+			Ω(client.OpenFirewallRules(dummies.ISONet1.ID)).Should(Succeed())
+		})
+	})
+
+	Context("for an open firewall", func() {
+		It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
+			dummies.Zone1.Network = dummies.ISONet1
+			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
+			dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
+
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, "tcp").
+				Return(&csapi.CreateEgressFirewallRuleParams{})
+			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
+				Return(&csapi.CreateEgressFirewallRuleResponse{}, errors.New("there is already a rule like this"))
+
+			Ω(client.OpenFirewallRules(dummies.ISONet1.ID)).Should(Succeed())
+		})
 	})
 
 	Context("in an isolated network with public IPs available", func() {
