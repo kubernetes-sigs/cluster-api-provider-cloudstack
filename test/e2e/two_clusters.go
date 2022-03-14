@@ -31,10 +31,10 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// SecondClusterSpec implements a test that verifies two clusters can co-exist.
-func SecondClusterSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
+// TwoClustersSpec implements a test that verifies two clusters can co-exist.
+func TwoClustersSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 
-	const specName = "second-cluster"
+	const specName = "two-clusters"
 
 	var (
 		input             CommonSpecInput
@@ -85,7 +85,7 @@ func SecondClusterSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		clusterResources2 = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("should successfully add and remove a second cluster", func() {
+	It("should successfully add and remove a second cluster without breaking the first cluster", func() {
 		mgmtClient := input.BootstrapClusterProxy.GetClient()
 
 		By("Create the first cluster and verify that it's ready")

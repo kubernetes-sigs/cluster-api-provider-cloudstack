@@ -24,9 +24,9 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("with a second cluster", func() {
+var _ = Describe("with two clusters", func() {
 
-	SecondClusterSpec(context.TODO(), func() CommonSpecInput {
+	TwoClustersSpec(context.TODO(), func() CommonSpecInput {
 		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
