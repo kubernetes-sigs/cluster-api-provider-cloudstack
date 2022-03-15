@@ -86,7 +86,10 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-affinity-group-pro.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-affinity-group-anti.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-resource-cleanup.yaml"
+<<<<<<< HEAD
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-second-cluster.yaml"
+=======
+>>>>>>> ed72b0bd5c5e9b0bf4cb1304b54f58351f82b546
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-multi-zone.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
