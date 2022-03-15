@@ -21,10 +21,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"strings"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/blang/semver"
@@ -286,7 +287,7 @@ func CheckAffinityGroup(clusterName string, affinityType string) []string {
 	return affinityIds
 }
 
-func CheckZones(clusterName string, zoneNames []string) []string {
+func CheckZones(clusterName string, zoneNames []string, nWorkerNodesPerZone int) []string {
 	client := createCloudStackClient()
 
 	By("Listing all machines")
@@ -311,13 +312,14 @@ func CheckZones(clusterName string, zoneNames []string) []string {
 			}
 		}
 	}
-	By("cpZoneIdMap")
-	for key, value := range cpZoneIdMap {
-		Byf("\t%s value is %v\n", key, value)
+	Expect(len(cpZoneIdMap)).To(Equal(len(zoneNames)))
+	for _, value := range cpZoneIdMap {
+		Expect(value).ToNot(BeZero())
 	}
-	By("mdZoneIdMap")
-	for key, value := range mdZoneIdMap {
-		Byf("\t%s value is %v\n", key, value)
+
+	Expect(len(mdZoneIdMap)).To(Equal(len(zoneNames)))
+	for _, value := range mdZoneIdMap {
+		Expect(value).To(Equal(nWorkerNodesPerZone))
 	}
 	return zoneIds
 }
