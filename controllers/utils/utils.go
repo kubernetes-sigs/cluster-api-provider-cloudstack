@@ -38,6 +38,9 @@ func getMachineSetFromCAPIMachine(
 ) (*capiv1.MachineSet, error) {
 
 	ref := GetManagementOwnerRef(capiMachine)
+	if ref == nil {
+		return nil, errors.New("management owner not found")
+	}
 	gv, err := schema.ParseGroupVersion(ref.APIVersion)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -66,6 +69,9 @@ func getKubeadmControlPlaneFromCAPIMachine(
 ) (*controlplanev1.KubeadmControlPlane, error) {
 
 	ref := GetManagementOwnerRef(capiMachine)
+	if ref == nil {
+		return nil, errors.New("management owner not found")
+	}
 	gv, err := schema.ParseGroupVersion(ref.APIVersion)
 	if err != nil {
 		return nil, errors.WithStack(err)
@@ -122,6 +128,8 @@ func fetchOwnerRef(refList []meta.OwnerReference, kind string) *meta.OwnerRefere
 func GetManagementOwnerRef(capiMachine *capiv1.Machine) *meta.OwnerReference {
 	if util.IsControlPlaneMachine(capiMachine) {
 		return fetchOwnerRef(capiMachine.OwnerReferences, "KubeadmControlPlane")
+	} else if ref := fetchOwnerRef(capiMachine.OwnerReferences, "MachineSet"); ref != nil {
+		return ref
 	}
-	return fetchOwnerRef(capiMachine.OwnerReferences, "MachineSet")
+	return fetchOwnerRef(capiMachine.OwnerReferences, "EtcdadmCluster")
 }
