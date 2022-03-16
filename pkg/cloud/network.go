@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// NetworkIface contains the collection of functions for network.
 type NetworkIface interface {
 	ResolveNetworkStatuses(*capcv1.CloudStackCluster) error
 	ResolveNetwork(*capcv1.CloudStackCluster, *capcv1.Network) error
@@ -40,14 +41,15 @@ type NetworkIface interface {
 }
 
 const (
-	NetOffering         = "DefaultIsolatedNetworkOfferingWithSourceNatService"
-	K8sDefaultAPIPort   = 6443
+	netOffering       = "DefaultIsolatedNetworkOfferingWithSourceNatService"
+	k8sDefaultAPIPort = 6443
+
 	NetworkTypeIsolated = "Isolated"
 	NetworkTypeShared   = "Shared"
 	NetworkProtocolTCP  = "tcp"
 )
 
-// usesIsolatedNetwork returns true if this cluster is specs an isolated network.
+// UsesIsolatedNetwork returns true if this cluster is specs an isolated network.
 // Assumes that the a fetch has been done on network statuses prior.
 func UsesIsolatedNetwork(csCluster *capcv1.CloudStackCluster) bool {
 	// Check for Isolated network use case.
@@ -106,7 +108,7 @@ func generateNetworkTagName(csCluster *capcv1.CloudStackCluster) string {
 
 // getOfferingID fetches an offering id.
 func (c *client) getOfferingID() (string, error) {
-	offeringID, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
+	offeringID, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(netOffering)
 	if retErr != nil {
 		return "", retErr
 	} else if count != 1 {
@@ -340,7 +342,7 @@ func (c *client) GetOrCreateLoadBalancerRule(csCluster *capcv1.CloudStackCluster
 	}
 
 	p := c.cs.LoadBalancer.NewCreateLoadBalancerRuleParams(
-		"roundrobin", "Kubernetes_API_Server", K8sDefaultAPIPort, K8sDefaultAPIPort)
+		"roundrobin", "Kubernetes_API_Server", k8sDefaultAPIPort, k8sDefaultAPIPort)
 
 	p.SetNetworkid(csCluster.Status.Zones.GetOne().Network.ID)
 	if csCluster.Spec.ControlPlaneEndpoint.Port != 0 { // Override default public port if endpoint port specified.

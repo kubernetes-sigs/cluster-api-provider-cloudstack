@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TagIface contains the collection of functions for tag.
 type TagIface interface {
 	AddClusterTag(ResourceType, string, *infrav1.CloudStackCluster) error
 	DeleteClusterTag(ResourceType, string, *infrav1.CloudStackCluster) error

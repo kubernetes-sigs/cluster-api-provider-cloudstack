@@ -33,6 +33,7 @@ import (
 // log is for logging in this package.
 var cloudstackmachinetemplatelog = logf.Log.WithName("cloudstackmachinetemplate-resource")
 
+// SetupWebhookWithManager creates a new webhook managed by passed manager.
 func (r *CloudStackMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).

@@ -23,6 +23,7 @@ import (
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// ClusterIface contains the collection of functions for Cluster.
 type ClusterIface interface {
 	GetOrCreateCluster(*infrav1.CloudStackCluster) error
 	DisposeClusterResources(cluster *infrav1.CloudStackCluster) error

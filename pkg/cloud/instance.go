@@ -34,6 +34,7 @@ import (
 
 const antiAffinityValue = "anti"
 
+// VMIface contains the collection of functions for VM instances.
 type VMIface interface {
 	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error

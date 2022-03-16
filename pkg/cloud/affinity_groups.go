@@ -32,6 +32,7 @@ type AffinityGroup struct {
 	ID   string
 }
 
+// AffinityGroupIface contains the collection of functions for AffinityGroup.
 type AffinityGroupIface interface {
 	FetchAffinityGroup(*AffinityGroup) error
 	GetOrCreateAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error

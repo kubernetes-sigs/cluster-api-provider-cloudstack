@@ -273,7 +273,7 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 	return ctrl.Result{}, nil
 }
 
-// Called in main, this registers the machine reconciler to the CAPI controller manager.
+// SetupWithManager is called in main, this registers the machine reconciler to the CAPI controller manager.
 func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).

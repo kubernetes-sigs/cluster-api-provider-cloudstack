@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
+	// ClusterFinalizer prevents CAPI from deleting the corresponding CAPI data.
 	ClusterFinalizer       = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
 	defaultIdentityRefKind = "Secret"
 )
@@ -39,6 +39,7 @@ type CloudStackIdentityReference struct {
 	Name string `json:"name"`
 }
 
+// Network type
 type Network struct {
 	// Cloudstack Network ID the cluster is built in.
 	// +optional
@@ -53,6 +54,7 @@ type Network struct {
 	Name string `json:"name"`
 }
 
+// ZoneStatusMap is a map of zone IDs and Zones
 type ZoneStatusMap map[string]Zone
 
 // GetOne just returns a Zone from the map of zone statuses
@@ -75,6 +77,7 @@ func (zones ZoneStatusMap) GetByName(name string) *Zone {
 	return nil
 }
 
+// Zone type
 type Zone struct {
 	// The Zone name.
 	// + optional
@@ -108,7 +111,7 @@ type CloudStackClusterSpec struct {
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
-// The status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
+// CloudStackClusterStatus is the status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
 type CloudStackClusterStatus struct {
 
 	// The status of the cluster's ACS Zones.
