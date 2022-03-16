@@ -287,7 +287,7 @@ func CheckAffinityGroup(clusterName string, affinityType string) []string {
 	return affinityIds
 }
 
-func CheckZones(clusterName string, zoneNames []string, nWorkerNodesPerZone int) []string {
+func CheckZones(clusterName string, numZones int, nWorkerNodesPerZone int) {
 	client := createCloudStackClient()
 
 	By("Listing all machines")
@@ -301,47 +301,31 @@ func CheckZones(clusterName string, zoneNames []string, nWorkerNodesPerZone int)
 
 	for _, vm := range listResp.VirtualMachines {
 		if strings.Contains(vm.Name, clusterName) {
-			By(vm.Name + " is in zone " + vm.Zonename + " (" + vm.Zoneid + ")")
+			Byf("%s is in zone %s (%s)", vm.Name, vm.Zonename, vm.Zoneid)
 			zoneIds = append(zoneIds, vm.Zoneid)
-			if !checkZoneNameInRange(vm, zoneNames) {
-				Byf("vm %s is assigned in zone %s : valid zones %s", vm.Name, vm.Zonename, zoneNames)
-			}
-			err := checkZoneAssignments(vm, cpZoneIdMap, mdZoneIdMap)
-			if err != nil {
-				Fail(err.Error())
-			}
+			checkZoneAssignments(vm, cpZoneIdMap, mdZoneIdMap)
 		}
 	}
-	Expect(len(cpZoneIdMap)).To(Equal(len(zoneNames)))
+
+	Expect(len(cpZoneIdMap)).To(Equal(numZones))
 	for _, value := range cpZoneIdMap {
 		Expect(value).ToNot(BeZero())
 	}
 
-	Expect(len(mdZoneIdMap)).To(Equal(len(zoneNames)))
+	Expect(len(mdZoneIdMap)).To(Equal(numZones))
 	for _, value := range mdZoneIdMap {
 		Expect(value).To(Equal(nWorkerNodesPerZone))
 	}
-	return zoneIds
 }
 
-func checkZoneAssignments(vm *cloudstack.VirtualMachine, cpZoneIdMap map[string]int, mdZoneIdMap map[string]int) error {
+func checkZoneAssignments(vm *cloudstack.VirtualMachine, cpZoneIdMap map[string]int, mdZoneIdMap map[string]int) {
 	if strings.Contains(vm.Name, ControlPlaneIndicator) {
-		count, ok := cpZoneIdMap[vm.Zoneid]
-		if !ok {
-			cpZoneIdMap[vm.Zoneid] = 1
-		} else {
-			cpZoneIdMap[vm.Zoneid] = count + 1
-		}
+		cpZoneIdMap[vm.Zoneid]++
 	}
+
 	if strings.Contains(vm.Name, MachineDeploymentIndicator) {
-		count, ok := mdZoneIdMap[vm.Zoneid]
-		if !ok {
-			mdZoneIdMap[vm.Zoneid] = 1
-		} else {
-			mdZoneIdMap[vm.Zoneid] = count + 1
-		}
+		mdZoneIdMap[vm.Zoneid]++
 	}
-	return nil
 }
 
 func checkZoneNameInRange(vm *cloudstack.VirtualMachine, zoneNames []string) bool {

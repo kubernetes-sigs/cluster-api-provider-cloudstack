@@ -58,6 +58,7 @@ func MultiZoneSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 
 	It("Should be able to create a cluster with multiple CPs and workers across multiple zones", func() {
 		workerMachineCount := 2
+		numZones := 2
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:    input.BootstrapClusterProxy,
 			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
@@ -78,7 +79,7 @@ func MultiZoneSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
-		CheckZones(clusterResources.Cluster.Name, []string{"Zone3", "Zone2"}, workerMachineCount)
+		CheckZones(clusterResources.Cluster.Name, numZones, workerMachineCount)
 
 		By("PASSED!")
 	})
