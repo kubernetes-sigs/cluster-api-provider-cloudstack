@@ -148,26 +148,6 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
-	// Reconcile a VM instance for creates/updates
-	return r.reconcile(ctx, log, csMachine, capiMachine, csCluster)
-}
-
-// Actually reconcile/Create a VM instance.
-func (r *CloudStackMachineReconciler) reconcile(
-	ctx context.Context,
-	log logr.Logger,
-	csMachine *infrav1.CloudStackMachine,
-	capiMachine *capiv1.Machine,
-	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
-
-	log.V(1).Info("reconcile CloudStackMachine")
-	// Make sure bootstrap data is available in CAPI machine.
-	if capiMachine.Spec.Bootstrap.DataSecretName == nil {
-		log.Info("Bootstrap DataSecretName not yet available.")
-		return ctrl.Result{}, nil
-	}
-	log.Info("Got Bootstrap DataSecretName.")
-
 	// Set ZoneID on csMachine.
 	if util.IsControlPlaneMachine(capiMachine) { // Use failure domain zone.
 		csMachine.Status.ZoneID = *capiMachine.Spec.FailureDomain
@@ -195,6 +175,32 @@ func (r *CloudStackMachineReconciler) reconcile(
 			csMachine.Status.ZoneID = zones[randNum]
 		}
 	}
+
+	csZone, err := csCtrlrUtils.GetZoneByID(ctx, r.Client, csMachine.ObjectMeta, csMachine.Spec.ZoneID)
+	fmt.Println(csZone)
+	fmt.Println(csZone)
+	fmt.Println(csZone)
+	fmt.Println(csZone)
+
+	// Reconcile a VM instance for creates/updates
+	return r.reconcile(ctx, log, csMachine, capiMachine, csCluster)
+}
+
+// Actually reconcile/Create a VM instance.
+func (r *CloudStackMachineReconciler) reconcile(
+	ctx context.Context,
+	log logr.Logger,
+	csMachine *infrav1.CloudStackMachine,
+	capiMachine *capiv1.Machine,
+	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
+
+	log.V(1).Info("reconcile CloudStackMachine")
+	// Make sure bootstrap data is available in CAPI machine.
+	if capiMachine.Spec.Bootstrap.DataSecretName == nil {
+		log.Info("Bootstrap DataSecretName not yet available.")
+		return ctrl.Result{}, nil
+	}
+	log.Info("Got Bootstrap DataSecretName.")
 
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: capiMachine.Namespace, Name: *capiMachine.Spec.Bootstrap.DataSecretName}
@@ -252,14 +258,14 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 	capiMachine *capiv1.Machine,
 ) (ctrl.Result, error) {
 
-	// Remove any CAPC managed Affinity groups if owner references a deleted object.
-	if deleted, err := csCtrlrUtils.IsOwnerDeleted(ctx, r.Client, capiMachine); err != nil {
-		return ctrl.Result{}, err
-	} else if deleted {
-		if err := r.RemoveManagedAffinity(log, capiMachine, csMachine); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "error encountered when removing affinity group")
-		}
-	}
+	// // Remove any CAPC managed Affinity groups if owner references a deleted object.
+	// if deleted, err := csCtrlrUtils.IsOwnerDeleted(ctx, r.Client, capiMachine); err != nil {
+	// 	return ctrl.Result{}, err
+	// } else if deleted {
+	// 	if err := r.RemoveManagedAffinity(log, capiMachine, csMachine); err != nil {
+	// 		return ctrl.Result{}, errors.Wrap(err, "error encountered when removing affinity group")
+	// 	}
+	// }
 
 	log.Info("Deleting instance", "instance-id", *csMachine.Spec.InstanceID)
 	if err := r.CS.DestroyVMInstance(csMachine); err != nil {
@@ -356,29 +362,29 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	)
 }
 
-// RemoveManagedAffinity considers a machine's affinity management strategy and removes the created affinity group
-// if it exists.
-func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
-	log logr.Logger,
-	capiMachine *capiv1.Machine,
-	csMachine *infrav1.CloudStackMachine,
-) error {
+// // RemoveManagedAffinity considers a machine's affinity management strategy and removes the created affinity group
+// // if it exists.
+// func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
+// 	log logr.Logger,
+// 	capiMachine *capiv1.Machine,
+// 	csMachine *infrav1.CloudStackMachine,
+// ) error {
 
-	ownerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
-	if ownerRef == nil {
-		return errors.Errorf("Could not find management owner reference for %s/%s", csMachine.Namespace, csMachine.Name)
-	}
-	name, err := csMachine.AffinityGroupName(capiMachine)
-	if err != nil {
-		return err
-	}
-	group := &cloud.AffinityGroup{Name: name}
-	_ = r.CS.FetchAffinityGroup(group)
-	if group.ID == "" { // Affinity group not found, must have been deleted.
-		return nil
-	}
+// 	ownerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
+// 	if ownerRef == nil {
+// 		return errors.Errorf("Could not find management owner reference for %s/%s", csMachine.Namespace, csMachine.Name)
+// 	}
+// 	name, err := csMachine.AffinityGroupName(capiMachine)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	group := &cloud.AffinityGroup{Name: name}
+// 	_ = r.CS.FetchAffinityGroup(group)
+// 	if group.ID == "" { // Affinity group not found, must have been deleted.
+// 		return nil
+// 	}
 
-	log.Info(fmt.Sprintf("Deleting affinity group '%s'", name))
+// 	log.Info(fmt.Sprintf("Deleting affinity group '%s'", name))
 
-	return r.CS.DeleteAffinityGroup(group)
-}
+// 	return r.CS.DeleteAffinityGroup(group)
+// }

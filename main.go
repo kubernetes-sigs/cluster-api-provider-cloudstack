@@ -23,9 +23,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/klog"
@@ -37,9 +38,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+
+	infrastructurev1beta1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/controllers"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -53,6 +56,7 @@ func init() {
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(controlplanev1.AddToScheme(scheme))
+	utilruntime.Must(infrastructurev1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -165,6 +169,24 @@ func main() {
 		CS:     client,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
+		os.Exit(1)
+	}
+	if err = (&controllers.CloudStackIsolatedNetworkReconciler{
+		Log:    ctrl.Log.WithName("controllers").WithName("CloudStackIsolatedNetwork"),
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		CS:     client,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsolatedNetwork")
+		os.Exit(1)
+	}
+	if err = (&controllers.CloudStackZoneReconciler{
+		Log:    ctrl.Log.WithName("controllers").WithName("CloudStackZone"),
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		CS:     client,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackZone")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

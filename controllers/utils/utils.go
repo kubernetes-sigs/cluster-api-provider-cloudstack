@@ -20,13 +20,16 @@ import (
 	"context"
 	"strings"
 
+	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	capiControlPlanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientPkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -63,20 +66,20 @@ func getKubeadmControlPlaneFromCAPIMachine(
 	ctx context.Context,
 	client clientPkg.Client,
 	capiMachine *capiv1.Machine,
-) (*controlplanev1.KubeadmControlPlane, error) {
+) (*capiControlPlanev1.KubeadmControlPlane, error) {
 
 	ref := GetManagementOwnerRef(capiMachine)
 	gv, err := schema.ParseGroupVersion(ref.APIVersion)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	if gv.Group == controlplanev1.GroupVersion.Group {
+	if gv.Group == capiControlPlanev1.GroupVersion.Group {
 		key := clientPkg.ObjectKey{
 			Namespace: capiMachine.Namespace,
 			Name:      ref.Name,
 		}
 
-		controlPlane := &controlplanev1.KubeadmControlPlane{}
+		controlPlane := &capiControlPlanev1.KubeadmControlPlane{}
 		if err := client.Get(ctx, key, controlPlane); err != nil {
 			return nil, err
 		}
@@ -124,4 +127,58 @@ func GetManagementOwnerRef(capiMachine *capiv1.Machine) *meta.OwnerReference {
 		return fetchOwnerRef(capiMachine.OwnerReferences, "KubeadmControlPlane")
 	}
 	return fetchOwnerRef(capiMachine.OwnerReferences, "MachineSet")
+}
+
+// GetOwnerCloudStackCluster returns the Cluster object owning the current resource.
+func GetOwnerCloudStackCluster(ctx context.Context, c clientPkg.Client, obj metav1.ObjectMeta) (*capcv1.CloudStackCluster, error) {
+	for _, ref := range obj.OwnerReferences {
+		if ref.Kind != "Cluster" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if gv.Group == capcv1.GroupVersion.Group {
+			csCluster := &capcv1.CloudStackCluster{}
+			key := client.ObjectKey{Name: ref.Name, Namespace: obj.Namespace}
+			if err := c.Get(ctx, key, csCluster); err != nil {
+				return nil, err
+			}
+			return csCluster, nil
+		}
+	}
+	return nil, nil
+}
+
+// GetOwnerZone returns the Cluster object owning the current resource.
+func GetOwnerZone(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*capcv1.CloudStackZone, error) {
+	for _, ref := range obj.OwnerReferences {
+		if ref.Kind != "Cluster" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if gv.Group == capcv1.GroupVersion.Group {
+			zone := &capcv1.CloudStackZone{}
+			key := client.ObjectKey{Name: ref.Name, Namespace: obj.Namespace}
+			if err := c.Get(ctx, key, zone); err != nil {
+				return nil, err
+			}
+			return zone, nil
+		}
+	}
+	return nil, nil
+}
+
+// GetOwnerZone returns the Cluster object owning the current resource.
+func GetZoneByID(ctx context.Context, c client.Client, obj metav1.ObjectMeta, zoneID string) (*capcv1.CloudStackZone, error) {
+	zoneList := &capcv1.CloudStackZoneList{}
+	opts := clientPkg.MatchingFields{"spec.id": zoneID}
+	if err := c.List(ctx, zoneList, client.InNamespace(obj.Namespace), opts); err != nil {
+		return nil, err
+	}
+	return &zoneList.Items[0], nil
 }

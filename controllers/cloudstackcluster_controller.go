@@ -21,6 +21,9 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -85,6 +88,10 @@ func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	} else if capiCluster == nil {
 		log.Info("Waiting for CAPI Cluster controller to set owner reference on CloudStack cluster.")
 		return reconcile.Result{}, nil
+	}
+
+	for _, zone := range csCluster.Status.Zones {
+		r.generateZone(ctx, csCluster, zone)
 	}
 
 	// Check the cluster is not paused.
@@ -203,4 +210,24 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return ok
 			}},
 	)
+}
+
+func (r *CloudStackClusterReconciler) generateZone(ctx context.Context, csCluster *infrav1.CloudStackCluster, zoneSpec infrav1.Zone) error {
+	csZone := &infrav1.CloudStackZone{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      zoneSpec.Name,
+			Namespace: "capc-system", // was kcp.Namespace,
+			// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
+			Annotations: map[string]string{},
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
+			},
+		},
+		Spec: infrav1.CloudStackZoneSpec{Name: zoneSpec.Name},
+	}
+
+	if err := r.Client.Create(ctx, csZone); err != nil {
+		return errors.Wrap(err, "failed to create machine")
+	}
+	return nil
 }

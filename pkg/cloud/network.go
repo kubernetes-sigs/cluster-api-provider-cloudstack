@@ -29,7 +29,8 @@ import (
 type NetworkIface interface {
 	ResolveNetworkStatuses(*capcv1.CloudStackCluster) error
 	ResolveNetwork(*capcv1.CloudStackCluster, *capcv1.Network) error
-	CreateIsolatedNetwork(*capcv1.CloudStackCluster) error
+	CreateIsolatedNetwork(*capcv1.CloudStackZone, *capcv1.CloudStackCluster) error
+	FetchIsolatedNetwork(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork) error
 	OpenFirewallRules(*capcv1.CloudStackCluster) error
 	FetchPublicIP(*capcv1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
 	ResolveLoadBalancerRuleDetails(*capcv1.CloudStackCluster) error
@@ -115,9 +116,35 @@ func (c *client) getOfferingID() (string, error) {
 	return offeringID, nil
 }
 
+// FetchIsolatedNetwork creates an isolated network in the relevant Zone.
+// Assumes that there is only the one zone in the cluster.
+func (c *client) FetchIsolatedNetwork(csZone *capcv1.CloudStackZone, csNet *capcv1.CloudStackIsolatedNetwork) (retErr error) {
+	netDetails, count, err := c.cs.Network.GetNetworkByName(csNet.Spec.Name)
+	if err != nil {
+		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Network ID from %s", csNet.Spec.Name))
+	} else if count != 1 {
+		retErr = multierror.Append(retErr, errors.Errorf(
+			"expected 1 Network with name %s, but got %d", csNet.Name, count))
+	} else { // Got netID from the network's name.
+		csNet.Spec.ID = netDetails.Id
+		csNet.Status.Type = netDetails.Type
+		return nil
+	}
+
+	netDetails, count, err = c.cs.Network.GetNetworkByID(csNet.Spec.ID)
+	if err != nil {
+		return multierror.Append(retErr, errors.Wrapf(err, "could not get Network by ID %s", csNet.Spec.ID))
+	} else if count != 1 {
+		return multierror.Append(retErr, errors.Errorf("expected 1 Network with UUID %s, but got %d", csNet.Spec.ID, count))
+	}
+	csNet.Name = netDetails.Name
+	csNet.Status.Type = netDetails.Type
+	return nil
+}
+
 // CreateIsolatedNetwork creates an isolated network in the relevant Zone.
 // Assumes that there is only the one zone in the cluster.
-func (c *client) CreateIsolatedNetwork(csCluster *capcv1.CloudStackCluster) (retErr error) {
+func (c *client) CreateIsolatedNetwork(csZone *capcv1.CloudStackZone, csCluster *capcv1.CloudStackCluster) (retErr error) {
 	zoneStatus := *csCluster.Status.Zones.GetOne() // Should only be the one...
 	netStatus := zoneStatus.Network
 
@@ -384,7 +411,7 @@ func (c *client) AssignVMToLoadBalancerRule(csCluster *capcv1.CloudStackCluster,
 func (c *client) GetOrCreateIsolatedNetwork(csCluster *capcv1.CloudStackCluster) error {
 	onlyNetStatus := csCluster.Status.Zones.GetOne().Network
 	if !NetworkExists(onlyNetStatus) { // create isolated network.
-		if err := c.CreateIsolatedNetwork(csCluster); err != nil {
+		if err := c.CreateIsolatedNetwork(&capcv1.CloudStackZone{}, csCluster); err != nil {
 			return errors.Wrap(err, "error encountered while creating a new isolated network.")
 		}
 	}

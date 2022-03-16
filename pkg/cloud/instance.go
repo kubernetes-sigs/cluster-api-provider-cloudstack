@@ -181,19 +181,19 @@ func (c *client) GetOrCreateVMInstance(
 	if len(csMachine.Spec.AffinityGroupIDs) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIDs)
 	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
-		affinityType := AffinityGroupType
-		if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
-			affinityType = AntiAffinityGroupType
-		}
-		name, err := csMachine.AffinityGroupName(capiMachine)
+		//affinityType := AffinityGroupType
+		// if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
+		// 	affinityType = AntiAffinityGroupType
+		// }
+		//name, err := csMachine.AffinityGroupName(capiMachine)
 		if err != nil {
 			return err
 		}
-		group := &AffinityGroup{Name: name, Type: affinityType}
-		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
-			return err
-		}
-		p.SetAffinitygroupids([]string{group.ID})
+		// group := &AffinityGroup{Name: name, Type: affinityType}
+		// if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
+		// 	return err
+		// }
+		// p.SetAffinitygroupids([]string{group.ID})
 	}
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
@@ -219,7 +219,6 @@ func (c *client) GetOrCreateVMInstance(
 	// Resolve uses a VM metrics request response to fill cloudstack machine status.
 	// The deployment response is insufficient.
 	return c.ResolveVMInstanceDetails(csMachine)
-
 }
 
 // DestroyVMInstance Destroys a VM instance. Assumes machine has been fetched prior and has an instance ID.
@@ -235,5 +234,5 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 	} else if err != nil {
 		return err
 	}
-	return errors.New("VM deletion in progress")
+	return nil // errors.New("VM deletion in progress")
 }
