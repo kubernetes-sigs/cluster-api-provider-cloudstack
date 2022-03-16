@@ -204,3 +204,23 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 			CreateFunc: func(e event.CreateEvent) bool { return false }})
 	return errors.Wrap(err, "building CloudStackCluster controller:")
 }
+
+func (r *CloudStackClusterReconciler) generateZone(ctx context.Context, csCluster *infrav1.CloudStackCluster, zoneSpec infrav1.Zone) error {
+	csZone := &infrav1.CloudStackZone{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      zoneSpec.Name,
+			Namespace: "capc-system", // was kcp.Namespace,
+			// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
+			Annotations: map[string]string{},
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
+			},
+		},
+		Spec: infrav1.CloudStackZoneSpec{Name: zoneSpec.Name},
+	}
+
+	if err := r.Client.Create(ctx, csZone); err != nil {
+		return errors.Wrap(err, "failed to create machine")
+	}
+	return nil
+}

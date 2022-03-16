@@ -31,6 +31,29 @@ type ClusterIface interface {
 	GetOrCreateCluster(*infrav1.CloudStackCluster) error
 	DisposeClusterResources(cluster *infrav1.CloudStackCluster) error
 	ResolveZones(*infrav1.CloudStackCluster) error
+	ResolveZone(*infrav1.CloudStackZone) error
+}
+
+func (c *client) ResolveZone(csZone *infrav1.CloudStackZone) (retErr error) {
+	if zoneID, count, err := c.cs.Zone.GetZoneID(csZone.Name); err != nil {
+		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %s", csZone))
+	} else if count != 1 {
+		retErr = multierror.Append(retErr, errors.Errorf(
+			"expected 1 Zone with name %s, but got %d", csZone.Name, count))
+	} else {
+		csZone.Spec.ID = zoneID
+	}
+
+	if resp, count, err := c.cs.Zone.GetZoneByID(csZone.Spec.ID); err != nil {
+		return multierror.Append(retErr, errors.Wrapf(err, "could not get Zone by ID %s", csZone.Spec.ID))
+	} else if count != 1 {
+		return multierror.Append(retErr, errors.Errorf(
+			"expected 1 Zone with UUID %s, but got %d", csZone.Spec.ID, count))
+	} else {
+		csZone.Spec.ID = resp.Id
+		csZone.Spec.Name = resp.Name
+	}
+	return nil
 }
 
 func (c *client) ResolveZones(csCluster *infrav1.CloudStackCluster) (retErr error) {

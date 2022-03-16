@@ -20,7 +20,9 @@ import (
 	"context"
 	"strings"
 
+	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -166,4 +168,58 @@ func ContainsNoMatchSubstring(err error) bool {
 
 func ContainsAlreadyExistsSubstring(err error) bool {
 	return strings.Contains(strings.ToLower(err.Error()), "already exists")
+}
+
+// GetOwnerCloudStackCluster returns the Cluster object owning the current resource.
+func GetOwnerCloudStackCluster(ctx context.Context, c clientPkg.Client, obj metav1.ObjectMeta) (*capcv1.CloudStackCluster, error) {
+	for _, ref := range obj.OwnerReferences {
+		if ref.Kind != "Cluster" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if gv.Group == capcv1.GroupVersion.Group {
+			csCluster := &capcv1.CloudStackCluster{}
+			key := client.ObjectKey{Name: ref.Name, Namespace: obj.Namespace}
+			if err := c.Get(ctx, key, csCluster); err != nil {
+				return nil, err
+			}
+			return csCluster, nil
+		}
+	}
+	return nil, nil
+}
+
+// GetOwnerZone returns the Cluster object owning the current resource.
+func GetOwnerZone(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*capcv1.CloudStackZone, error) {
+	for _, ref := range obj.OwnerReferences {
+		if ref.Kind != "Cluster" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if gv.Group == capcv1.GroupVersion.Group {
+			zone := &capcv1.CloudStackZone{}
+			key := client.ObjectKey{Name: ref.Name, Namespace: obj.Namespace}
+			if err := c.Get(ctx, key, zone); err != nil {
+				return nil, err
+			}
+			return zone, nil
+		}
+	}
+	return nil, nil
+}
+
+// GetOwnerZone returns the Cluster object owning the current resource.
+func GetZoneByID(ctx context.Context, c client.Client, obj metav1.ObjectMeta, zoneID string) (*capcv1.CloudStackZone, error) {
+	zoneList := &capcv1.CloudStackZoneList{}
+	opts := clientPkg.MatchingFields{"spec.id": zoneID}
+	if err := c.List(ctx, zoneList, client.InNamespace(obj.Namespace), opts); err != nil {
+		return nil, err
+	}
+	return &zoneList.Items[0], nil
 }
