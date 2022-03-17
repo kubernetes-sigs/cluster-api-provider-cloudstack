@@ -80,7 +80,6 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-template.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-cp-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-insufficient-compute-resources.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-worker-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-node-drain.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-machine-remediation.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-affinity-group-pro.yaml"
