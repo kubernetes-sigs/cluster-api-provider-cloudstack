@@ -249,7 +249,7 @@ func assignZoneToMachine(capiMachine *capiv1.Machine, csMachine *infrav1.CloudSt
 				zones[zidx] = zoneID
 				zidx++
 			}
-			randNum := (rand.Int() % len(csCluster.Spec.Zones))
+			randNum := (rand.Int() % len(csCluster.Spec.Zones)) // nolint:gosec // Weak random number generation would be okay for zone placements
 			csMachine.Status.ZoneID = zones[randNum]
 		}
 	}
