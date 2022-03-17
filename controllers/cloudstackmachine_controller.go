@@ -142,14 +142,20 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
-	if util.IsControlPlaneMachine(capiMachine) &&
-		(capiMachine.Spec.FailureDomain == nil || *capiMachine.Spec.FailureDomain == "") {
+	if !isZonePlacementDone(capiMachine) {
 		log.Info("CAPI zone placement specification not yet set. Requeuing.")
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 	}
 
 	// Reconcile a VM instance for creates/updates
 	return r.reconcile(ctx, log, csMachine, capiMachine, csCluster)
+}
+
+func isZonePlacementDone(capiMachine *capiv1.Machine) bool {
+	return !util.IsControlPlaneMachine(capiMachine) ||
+		(util.IsControlPlaneMachine(capiMachine) &&
+			capiMachine.Spec.FailureDomain != nil &&
+			*capiMachine.Spec.FailureDomain != "")
 }
 
 // Actually reconcile/Create a VM instance.
@@ -168,32 +174,8 @@ func (r *CloudStackMachineReconciler) reconcile(
 	}
 	log.Info("Got Bootstrap DataSecretName.")
 
-	// Set ZoneID on csMachine.
-	if util.IsControlPlaneMachine(capiMachine) { // Use failure domain zone.
-		csMachine.Status.ZoneID = *capiMachine.Spec.FailureDomain
-	} else { // Specified by Machine Template or Random zone.
-		if csMachine.Spec.ZoneID != "" {
-			if zone, foundZone := csCluster.Status.Zones[csMachine.Spec.ZoneID]; foundZone { // ZoneID Specified.
-				csMachine.Status.ZoneID = zone.ID
-			} else {
-				return ctrl.Result{}, errors.Errorf("could not find zone by zoneID: %s", csMachine.Spec.ZoneID)
-			}
-		} else if csMachine.Spec.ZoneName != "" {
-			if zone := csCluster.Status.Zones.GetByName(csMachine.Spec.ZoneName); zone != nil { // ZoneName Specified.
-				csMachine.Status.ZoneID = zone.ID
-			} else {
-				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", csMachine.Spec.ZoneName)
-			}
-		} else { // No Zone Specified, pick a Random Zone.
-			zones := make([]string, len(csCluster.Status.Zones))
-			zidx := 0
-			for zoneID := range csCluster.Status.Zones {
-				zones[zidx] = zoneID
-				zidx++
-			}
-			randNum := (rand.Int() % len(csCluster.Spec.Zones)) // #nosec G404 -- weak crypt rand doesn't matter here.
-			csMachine.Status.ZoneID = zones[randNum]
-		}
+	if err := assignZoneToMachine(capiMachine, csMachine, csCluster); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	secret := &corev1.Secret{}
@@ -242,6 +224,36 @@ func (r *CloudStackMachineReconciler) reconcile(
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func assignZoneToMachine(capiMachine *capiv1.Machine, csMachine *infrav1.CloudStackMachine, csCluster *infrav1.CloudStackCluster) error {
+	if util.IsControlPlaneMachine(capiMachine) {
+		csMachine.Status.ZoneID = *capiMachine.Spec.FailureDomain
+	} else {
+		if csMachine.Spec.ZoneID != "" {
+			if zone, foundZone := csCluster.Status.Zones[csMachine.Spec.ZoneID]; foundZone {
+				csMachine.Status.ZoneID = zone.ID
+			} else {
+				return errors.Errorf("could not find zone by zoneID: %s", csMachine.Spec.ZoneID)
+			}
+		} else if csMachine.Spec.ZoneName != "" {
+			if zone := csCluster.Status.Zones.GetByName(csMachine.Spec.ZoneName); zone != nil {
+				csMachine.Status.ZoneID = zone.ID
+			} else {
+				return errors.Errorf("could not find zone by zoneName: %s", csMachine.Spec.ZoneName)
+			}
+		} else {
+			zones := make([]string, len(csCluster.Status.Zones))
+			zidx := 0
+			for zoneID := range csCluster.Status.Zones {
+				zones[zidx] = zoneID
+				zidx++
+			}
+			randNum := (rand.Int() % len(csCluster.Spec.Zones))
+			csMachine.Status.ZoneID = zones[randNum]
+		}
+	}
+	return nil
 }
 
 // Reconcile/Destroy a deleted VM instance.

@@ -18,11 +18,16 @@ linters-settings:
       See the License for the specific language governing permissions and
       limitations under the License.
 
+  gocyclo:
+    min-complexity: 15
+
 linters:
   enable:
     - gosec
     - goheader
     - revive
+    - gocyclo
+    - misspell
 
 run:
   issues-exit-code: 1

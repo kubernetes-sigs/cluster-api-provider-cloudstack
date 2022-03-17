@@ -178,23 +178,10 @@ func (c *client) GetOrCreateVMInstance(
 	}
 	setIfNotEmpty(compressedAndEncodedUserData, p.SetUserdata)
 
-	if len(csMachine.Spec.AffinityGroupIDs) > 0 {
-		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIDs)
-	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
-		affinityType := AffinityGroupType
-		if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
-			affinityType = AntiAffinityGroupType
-		}
-		name, err := csMachine.AffinityGroupName(capiMachine)
-		if err != nil {
-			return err
-		}
-		group := &AffinityGroup{Name: name, Type: affinityType}
-		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
-			return err
-		}
-		p.SetAffinitygroupids([]string{group.ID})
+	if err := c.assignAffinityGroupToMachine(csMachine, capiMachine, csCluster, p); err != nil {
+		return err
 	}
+
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 
@@ -220,6 +207,27 @@ func (c *client) GetOrCreateVMInstance(
 	// The deployment response is insufficient.
 	return c.ResolveVMInstanceDetails(csMachine)
 
+}
+
+func (c *client) assignAffinityGroupToMachine(csMachine *infrav1.CloudStackMachine, capiMachine *capiv1.Machine, csCluster *infrav1.CloudStackCluster, p *cloudstack.DeployVirtualMachineParams) error {
+	if len(csMachine.Spec.AffinityGroupIDs) > 0 {
+		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIDs)
+	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
+		affinityType := AffinityGroupType
+		if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
+			affinityType = AntiAffinityGroupType
+		}
+		name, err := csMachine.AffinityGroupName(capiMachine)
+		if err != nil {
+			return err
+		}
+		group := &AffinityGroup{Name: name, Type: affinityType}
+		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
+			return err
+		}
+		p.SetAffinitygroupids([]string{group.ID})
+	}
+	return nil
 }
 
 // DestroyVMInstance Destroys a VM instance. Assumes machine has been fetched prior and has an instance ID.
