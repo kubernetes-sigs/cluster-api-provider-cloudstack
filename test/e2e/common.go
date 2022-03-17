@@ -21,10 +21,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"path/filepath"
 	"strings"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/blang/semver"
@@ -57,7 +58,6 @@ const (
 	InvalidTemplateName          = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
 	InvalidCPOfferingName        = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
 	ExtremelyLargeCPOfferingName = "CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING"
-	InvalidWorkerOfferingName    = "CLOUDSTACK_INVALID_WORKER_MACHINE_OFFERING"
 )
 
 const (
