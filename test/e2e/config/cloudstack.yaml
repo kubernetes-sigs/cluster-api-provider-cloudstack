@@ -80,7 +80,6 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-template.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-cp-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-insufficient-compute-resources.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-worker-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-node-drain.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-machine-remediation.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-affinity-group-pro.yaml"
@@ -116,15 +115,14 @@ variables:
   CLOUDSTACK_NETWORK_NAME_2: SharedNet2
   CLOUDSTACK_NEW_NETWORK_NAME: isolated-for-e2e-new
   CLUSTER_ENDPOINT_IP: 10.11.128.199
-  CLUSTER_ENDPOINT_IP_2: 10.11.128.199
+  CLUSTER_ENDPOINT_IP_2: 10.11.128.198
   CLUSTER_ENDPOINT_NEW_IP: 10.11.1.201
   CLUSTER_ENDPOINT_PORT: 6443
-  CLUSTER_ENDPOINT_PORT_2: 6444
-  CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Fruitstand Instance"
+  CLUSTER_ENDPOINT_PORT_2: 6443
+  CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
   CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING: "Extremely Large Instance"
-  CLOUDSTACK_WORKER_MACHINE_OFFERING: "Fruitstand Instance"
-  CLOUDSTACK_INVALID_WORKER_MACHINE_OFFERING: "OfferingYYYY"
+  CLOUDSTACK_WORKER_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_TEMPLATE_NAME: ubuntu-2004-kube-v1.20.10
   CLOUDSTACK_INVALID_TEMPLATE_NAME: templateXXXX
   CLOUDSTACK_SSH_KEY_NAME: CAPCKeyPair6

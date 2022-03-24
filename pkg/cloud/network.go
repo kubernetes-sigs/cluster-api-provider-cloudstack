@@ -257,7 +257,7 @@ func (c *client) AssociatePublicIPAddress(csCluster *capcv1.CloudStackCluster) (
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	if _, err := c.cs.Address.AssociateIpAddress(p); err != nil {
 		return errors.Wrapf(err,
-			"error encountered while associating public IP address with ID: %s to netowrk with ID: %s",
+			"error encountered while associating public IP address with ID: %s to network with ID: %s",
 			publicAddress.Id, zoneStatus.Network.ID)
 	}
 	if err := c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster); err != nil {

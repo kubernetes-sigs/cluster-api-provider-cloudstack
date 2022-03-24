@@ -131,14 +131,14 @@ var _ = Describe("Instance", func() {
 				Should(MatchError(unknownErrorMessage))
 		})
 
-		It("returns errors occuring while fetching sevice offering information", func() {
+		It("returns errors occurring while fetching service offering information", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return("", -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				ShouldNot(Succeed())
 		})
 
-		It("returns errors if more than one sevice offering found", func() {
+		It("returns errors if more than one service offering found", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return("", 2, nil)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).

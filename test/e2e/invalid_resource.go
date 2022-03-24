@@ -69,12 +69,8 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 		testInvalidResource(ctx, input, "invalid-domain", "No match found for "+input.E2EConfig.GetVariable(InvalidDomainName))
 	})
 
-	It("Should fail due to the specified control plane offering is not found [TC7a]", func() {
+	It("Should fail due to the specified control plane offering is not found [TC7]", func() {
 		testInvalidResource(ctx, input, "invalid-cp-offering", "No match found for "+input.E2EConfig.GetVariable(InvalidCPOfferingName))
-	})
-
-	It("Should fail due to the specified worker offering is not found [TC7b]", func() {
-		testInvalidResource(ctx, input, "invalid-worker-offering", "No match found for "+input.E2EConfig.GetVariable(InvalidWorkerOfferingName))
 	})
 
 	It("Should fail due to the specified template is not found [TC6]", func() {
