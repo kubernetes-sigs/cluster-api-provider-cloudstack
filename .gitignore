@@ -42,3 +42,5 @@ cloud-config
 *.swp
 *.swo
 *~
+examples/*
+hack/tools/share/*
