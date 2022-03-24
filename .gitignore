@@ -20,6 +20,7 @@ pkg/mocks/*
 out
 .build
 .DS_Store
+_artifacts
 
 # CAPI used with Tilt.
 cluster-api
