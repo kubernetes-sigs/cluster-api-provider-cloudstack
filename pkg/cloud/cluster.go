@@ -69,13 +69,16 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 
 	// If provided, translate Domain name to Domain ID.
 	if csCluster.Spec.Domain != "" {
-		domainID, count, retErr := c.cs.Domain.GetDomainID(csCluster.Spec.Domain)
+		p := c.cs.Domain.NewListDomainsParams()
+		p.SetListall(true)
+		p.SetName(csCluster.Spec.Domain)
+		resp, retErr := c.cs.Domain.ListDomains(p)
 		if retErr != nil {
 			return retErr
-		} else if count != 1 {
-			return errors.Errorf("expected 1 Domain with name %s, but got %d", csCluster.Spec.Domain, count)
+		} else if resp.Count != 1 {
+			return errors.Errorf("expected 1 Domain with name %s, but got %d", csCluster.Spec.Domain, resp.Count)
 		} else {
-			csCluster.Status.DomainID = domainID
+			csCluster.Status.DomainID = resp.Domains[0].Id
 		}
 	}
 
