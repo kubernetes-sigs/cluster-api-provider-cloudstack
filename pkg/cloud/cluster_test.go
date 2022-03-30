@@ -47,6 +47,7 @@ var _ = Describe("Cluster", func() {
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
 		dummies.SetDummyDomainAndAccount()
+		dummies.SetDummyCSApiResponse()
 	})
 
 	AfterEach(func() {
@@ -75,7 +76,8 @@ var _ = Describe("Cluster", func() {
 		It("translates Domain to DomainID when Domain is set", func() {
 			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
 			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
-			ds.EXPECT().GetDomainID(dummies.CSCluster.Spec.Domain).Return(dummies.DomainID, 1, nil)
+			ds.EXPECT().NewListDomainsParams().Return(dummies.ListDomainsParams)
+			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainResp, nil)
 			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
 
 			// Limit test to single zone.
