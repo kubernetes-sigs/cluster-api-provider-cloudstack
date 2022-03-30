@@ -101,7 +101,7 @@ type CloudStackClusterSpec struct {
 
 	// CloudStack domain.
 	// +optional
-	Domain string `json:"domain,omitempty"`
+	Domain CloudStackResourceIdentifier `json:"domain,omitempty"`
 
 	// +optional
 	// +k8s:conversion-gen=false

@@ -23,7 +23,7 @@ var ( // Declare exported dummy vars.
 	Net1               capcv1.Network
 	Net2               capcv1.Network
 	ISONet1            capcv1.Network
-	Domain             string
+	DomainName         string
 	DomainID           string
 	Account            string
 	Tags               map[string]string
@@ -167,7 +167,7 @@ func SetDummyCSMachineVars() {
 // It is intended to be called in BeforeEach() functions.
 func SetDummyCAPCClusterVars() {
 	DomainID = "FakeDomainID"
-	Domain = "FakeDomainName"
+	DomainName = "FakeDomainName"
 	Account = "FakeAccountName"
 	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta1"
 	CSClusterKind = "CloudStackCluster"
@@ -212,7 +212,7 @@ func SetDummyCAPCClusterVars() {
 // SetDummyDomainAndAccount sets domain and account in the CSCluster Spec. This is not the default.
 func SetDummyDomainAndAccount() {
 	CSCluster.Spec.Account = Account
-	CSCluster.Spec.Domain = Domain
+	CSCluster.Spec.Domain.Name = DomainName
 }
 
 // SetDummyDomainAndAccount sets domainID in the CSCluster Status. This is not the default.

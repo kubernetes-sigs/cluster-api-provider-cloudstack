@@ -63,9 +63,13 @@ func (r *CloudStackCluster) ValidateCreate() error {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
-	if (r.Spec.Account != "") && (r.Spec.Domain == "") {
+	if r.Spec.Account != "" {
+		errorList = webhookutil.EnsureOnlyOneFieldExists(r.Spec.Domain.ID, r.Spec.Domain.Name, "Domain", errorList)
+	}
+
+	if (r.Spec.Domain.Name != "" || r.Spec.Domain.ID != "") && r.Spec.Account == "" {
 		errorList = append(errorList, field.Required(
-			field.NewPath("spec", "account"), "specifying account requires additionally specifying domain"))
+			field.NewPath("spec", "account"), "specifying domain requires additionally specifying account"))
 	}
 
 	// Require Zones and their respective Networks.

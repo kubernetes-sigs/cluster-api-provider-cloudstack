@@ -8,7 +8,8 @@ spec:
     network: 
       name: ${CLOUDSTACK_NETWORK_NAME}
   account: ${CLOUDSTACK_ACCOUNT_NAME}
-  domain: ${CLOUDSTACK_INVALID_DOMAIN_NAME}
+  domain: 
+    name: ${CLOUDSTACK_INVALID_DOMAIN_NAME}
   controlPlaneEndpoint:
     host: ${CLUSTER_ENDPOINT_IP}
     port: ${CLUSTER_ENDPOINT_PORT}

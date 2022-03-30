@@ -31,8 +31,8 @@ func EnsureFieldExists(value string, name string, allErrs field.ErrorList) field
 	return allErrs
 }
 
-func EnsureAtLeastOneFieldExists(value1 string, value2 string, name string, allErrs field.ErrorList) field.ErrorList {
-	if value1 == "" && value2 == "" {
+func EnsureOnlyOneFieldExists(value1 string, value2 string, name string, allErrs field.ErrorList) field.ErrorList {
+	if (value1 == "" && value2 == "") || (value1 != "" && value2 != "") {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec", name), name))
 	}
 	return allErrs

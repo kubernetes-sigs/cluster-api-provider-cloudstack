@@ -63,8 +63,8 @@ func (r *CloudStackMachine) ValidateCreate() error {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
-	errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Offering.ID, r.Spec.Offering.Name, "Offering", errorList)
-	errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Template.ID, r.Spec.Template.Name, "Template", errorList)
+	errorList = webhookutil.EnsureOnlyOneFieldExists(r.Spec.Offering.ID, r.Spec.Offering.Name, "Offering", errorList)
+	errorList = webhookutil.EnsureOnlyOneFieldExists(r.Spec.Template.ID, r.Spec.Template.Name, "Template", errorList)
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }

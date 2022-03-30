@@ -67,16 +67,18 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		csCluster.Status.FailureDomains[zone.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
 	}
 
-	// If provided, translate Domain name to Domain ID.
-	if csCluster.Spec.Domain != "" {
+	// If domain name or ID are provided, check if only one domain exists for them
+	if csCluster.Spec.Domain.Name != "" || csCluster.Spec.Domain.ID != "" {
 		p := c.cs.Domain.NewListDomainsParams()
 		p.SetListall(true)
-		p.SetName(csCluster.Spec.Domain)
+		setIfNotEmpty(csCluster.Spec.Domain.Name, p.SetName)
+		setIfNotEmpty(csCluster.Spec.Domain.ID, p.SetId)
 		resp, retErr := c.cs.Domain.ListDomains(p)
 		if retErr != nil {
 			return retErr
 		} else if resp.Count != 1 {
-			return errors.Errorf("expected 1 Domain with name %s, but got %d", csCluster.Spec.Domain, resp.Count)
+			return errors.Errorf("expected 1 Domain with name %s or ID %s, but got %d",
+				csCluster.Spec.Domain.Name, csCluster.Spec.Domain.ID, resp.Count)
 		} else {
 			csCluster.Status.DomainID = resp.Domains[0].Id
 		}

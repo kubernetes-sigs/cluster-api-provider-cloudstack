@@ -95,6 +95,7 @@ func (in *CloudStackClusterSpec) DeepCopyInto(out *CloudStackClusterSpec) {
 		copy(*out, *in)
 	}
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
+	out.Domain = in.Domain
 	if in.IdentityRef != nil {
 		in, out := &in.IdentityRef, &out.IdentityRef
 		*out = new(CloudStackIdentityReference)

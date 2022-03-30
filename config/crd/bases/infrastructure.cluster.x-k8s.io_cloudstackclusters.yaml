@@ -55,7 +55,14 @@ spec:
                 type: object
               domain:
                 description: CloudStack domain.
-                type: string
+                properties:
+                  id:
+                    description: Cloudstack resource ID.
+                    type: string
+                  name:
+                    description: Cloudstack resource Name
+                    type: string
+                type: object
               identityRef:
                 description: CloudStackIdentityReference is a reference to an infrastructure
                   provider identity to be used to provision cluster resources.
