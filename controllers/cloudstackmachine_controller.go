@@ -222,7 +222,7 @@ func (r *CloudStackMachineReconciler) reconcile(
 		csMachine.Status.Ready = true
 	} else if csMachine.Status.InstanceState == "Error" {
 		log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", csMachine)
-		if err := r.Client.Delete(ctx, csMachine); err != nil {
+		if err := r.Client.Delete(ctx, capiMachine); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
