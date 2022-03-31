@@ -86,6 +86,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-affinity-group-anti.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-resource-cleanup.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-second-cluster.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-shared-network-kubevip.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
       - name: v1.0.0
@@ -111,6 +112,7 @@ variables:
   CLOUDSTACK_INVALID_DOMAIN_NAME: domainXXXX
   CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
   CLOUDSTACK_NEW_NETWORK_NAME: isolated-for-e2e-new
+  CLOUDSTACK_SHARED_NETWORK_NAME: Shared1
   CLUSTER_ENDPOINT_IP: 172.16.2.199
   CLUSTER_ENDPOINT_IP_2: 172.16.2.198
   CLUSTER_ENDPOINT_NEW_IP: 172.16.2.201
