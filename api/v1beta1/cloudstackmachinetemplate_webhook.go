@@ -76,8 +76,8 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 			"AffinityGroupIDs cannot be specified when Affinity is specified as anything but `no`"))
 	}
 
-	errorList = webhookutil.EnsureOnlyOneFieldExists(spec.Offering.ID, spec.Offering.Name, "Offering", errorList)
-	errorList = webhookutil.EnsureOnlyOneFieldExists(spec.Template.ID, spec.Template.Name, "Template", errorList)
+	errorList = webhookutil.EnsureAtLeastOneFieldExists(spec.Offering.ID, spec.Offering.Name, "Offering", errorList)
+	errorList = webhookutil.EnsureAtLeastOneFieldExists(spec.Template.ID, spec.Template.Name, "Template", errorList)
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }

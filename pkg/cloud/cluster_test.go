@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
-	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
@@ -35,6 +34,7 @@ var _ = Describe("Cluster", func() {
 		mockClient *csapi.CloudStackClient
 		zs         *csapi.MockZoneServiceIface
 		ds         *csapi.MockDomainServiceIface
+		as         *csapi.MockAccountServiceIface
 		ns         *csapi.MockNetworkServiceIface
 	)
 
@@ -43,6 +43,7 @@ var _ = Describe("Cluster", func() {
 		mockClient = csapi.NewMockClient(mockCtrl)
 		zs = mockClient.Zone.(*csapi.MockZoneServiceIface)
 		ds = mockClient.Domain.(*csapi.MockDomainServiceIface)
+		as = mockClient.Account.(*csapi.MockAccountServiceIface)
 		ns = mockClient.Network.(*csapi.MockNetworkServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
@@ -73,19 +74,30 @@ var _ = Describe("Cluster", func() {
 				ContainSubstring("could not get Zone by ID "+dummies.Zone1.ID+": Not found"))))
 		})
 
-		It("translates Domain to DomainID when Domain is set", func() {
+		It("resolves Domain and Account when Domain and Account are set", func() {
 			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
 			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
 			ds.EXPECT().NewListDomainsParams().Return(dummies.ListDomainsParams)
-			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainResp, nil)
+			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainsResp, nil)
+			as.EXPECT().NewListAccountsParams().Return(dummies.ListAccountsParams)
+			as.EXPECT().ListAccounts(dummies.ListAccountsParams).Return(dummies.ListAccountsResp, nil)
 			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
-
-			// Limit test to single zone.
-			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
-			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
 
 			Ω(client.GetOrCreateCluster(dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSCluster.Status.DomainID).Should(Equal(dummies.DomainID))
+		})
+
+		It("fails when Domain and Account don't match", func() {
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
+			ds.EXPECT().NewListDomainsParams().Return(dummies.ListDomainsParams)
+			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainsResp, nil)
+			as.EXPECT().NewListAccountsParams().Return(dummies.ListAccountsParams)
+			as.EXPECT().ListAccounts(dummies.ListAccountsParams).Return(dummies.ListAccountsResp, nil)
+
+			dummies.CSCluster.Spec.Account = "AccountX"
+
+			Ω(client.GetOrCreateCluster(dummies.CSCluster)).ShouldNot(Succeed())
 		})
 	})
 })

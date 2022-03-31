@@ -49,7 +49,7 @@ var _ = Describe("CloudStackCluster types", func() {
 		})
 
 		It("Should return nil if ZoneStatusMap does not have a zone having the name passed into GetByName", func() {
-			zones := capcv1.ZoneStatusMap{dummies.Zone2.ID: dummies.Zone2}
+			zones := capcv1.ZoneStatusMap{dummies.Zone2.ID: dummies.Zone2}.DeepCopy()
 			Ω(zones.GetByName(dummies.Zone1.Name)).Should(BeNil())
 		})
 	})

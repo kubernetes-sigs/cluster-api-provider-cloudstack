@@ -67,20 +67,9 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		csCluster.Status.FailureDomains[zone.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
 	}
 
-	// If domain name or ID are provided, check if only one domain exists for them
 	if csCluster.Spec.Domain.Name != "" || csCluster.Spec.Domain.ID != "" {
-		p := c.cs.Domain.NewListDomainsParams()
-		p.SetListall(true)
-		setIfNotEmpty(csCluster.Spec.Domain.Name, p.SetName)
-		setIfNotEmpty(csCluster.Spec.Domain.ID, p.SetId)
-		resp, retErr := c.cs.Domain.ListDomains(p)
-		if retErr != nil {
+		if retErr = c.resolveDomainAndAccount(csCluster); retErr != nil {
 			return retErr
-		} else if resp.Count != 1 {
-			return errors.Errorf("expected 1 Domain with name %s or ID %s, but got %d",
-				csCluster.Spec.Domain.Name, csCluster.Spec.Domain.ID, resp.Count)
-		} else {
-			csCluster.Status.DomainID = resp.Domains[0].Id
 		}
 	}
 
@@ -95,6 +84,36 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 	}
 
 	return nil
+}
+
+func (c *client) resolveDomainAndAccount(csCluster *infrav1.CloudStackCluster) error {
+	p := c.cs.Domain.NewListDomainsParams()
+	p.SetListall(true)
+	setIfNotEmpty(csCluster.Spec.Domain.Name, p.SetName)
+	setIfNotEmpty(csCluster.Spec.Domain.ID, p.SetId)
+	resp, retErr := c.cs.Domain.ListDomains(p)
+	if retErr != nil {
+		return retErr
+	} else if resp.Count < 1 {
+		return errors.Errorf("Domain not found for name %s and/or ID %s", csCluster.Spec.Domain.Name, csCluster.Spec.Domain.ID)
+	}
+	for _, domain := range resp.Domains {
+		p := c.cs.Account.NewListAccountsParams()
+		p.SetDomainid(domain.Id)
+		resp, retErr := c.cs.Account.ListAccounts(p)
+		if retErr != nil || resp.Count < 1 {
+			continue
+		} else {
+			for _, account := range resp.Accounts {
+				if account.Name == csCluster.Spec.Account {
+					csCluster.Status.DomainID = domain.Id
+					return nil
+				}
+			}
+		}
+	}
+	return errors.Errorf("Failed to resolve domain (name: %s, ID: %s) and account %s",
+		csCluster.Spec.Domain.Name, csCluster.Spec.Domain.ID, csCluster.Spec.Account)
 }
 
 func (c *client) DisposeClusterResources(csCluster *infrav1.CloudStackCluster) (retError error) {

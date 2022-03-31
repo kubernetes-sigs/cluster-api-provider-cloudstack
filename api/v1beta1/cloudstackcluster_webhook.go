@@ -64,7 +64,7 @@ func (r *CloudStackCluster) ValidateCreate() error {
 	}
 
 	if r.Spec.Account != "" {
-		errorList = webhookutil.EnsureOnlyOneFieldExists(r.Spec.Domain.ID, r.Spec.Domain.Name, "Domain", errorList)
+		errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Domain.ID, r.Spec.Domain.Name, "Domain", errorList)
 	}
 
 	if (r.Spec.Domain.Name != "" || r.Spec.Domain.ID != "") && r.Spec.Account == "" {
