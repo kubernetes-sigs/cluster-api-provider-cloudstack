@@ -17,6 +17,8 @@ limitations under the License.
 package cloud
 
 import (
+	"strings"
+
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -93,17 +95,21 @@ func (c *client) ResolveDomainAndAccount(csCluster *infrav1.CloudStackCluster) e
 	}
 
 	if csCluster.Spec.Domain != "" && csCluster.Spec.Account != "" {
+		tokens := strings.Split(csCluster.Spec.Domain, "/")
+		domainName := tokens[len(tokens)-1]
+
 		p := c.cs.Domain.NewListDomainsParams()
 		p.SetListall(true)
+		p.SetName(domainName)
+		p.SetLevel(len(tokens))
 		resp, retErr := c.cs.Domain.ListDomains(p)
 		if retErr != nil {
 			return retErr
-		} else {
-			for _, domain := range resp.Domains {
-				if domain.Path == domainPrefix+csCluster.Spec.Domain {
-					csCluster.Status.DomainID = domain.Id
-					break
-				}
+		}
+		for _, domain := range resp.Domains {
+			if domain.Path == domainPrefix+csCluster.Spec.Domain {
+				csCluster.Status.DomainID = domain.Id
+				break
 			}
 		}
 		if csCluster.Status.DomainID == "" {
