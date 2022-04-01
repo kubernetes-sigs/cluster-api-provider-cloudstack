@@ -61,7 +61,7 @@ const destoryVMRequeueInterval = 10 * time.Second
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/finalizers,verbs=update
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
 
@@ -71,7 +71,7 @@ const destoryVMRequeueInterval = 10 * time.Second
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	log := r.Log.WithValues("machine", req.Name, "namespace", req.Namespace)
+	log := r.Log.WithValues("cloudstackmachine", req.Name, "namespace", req.Namespace)
 	log.V(1).Info("Reconcile CloudStackMachine")
 
 	// Fetch the CloudStackMachine.
@@ -210,6 +210,10 @@ func (r *CloudStackMachineReconciler) reconcile(
 				controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
 			}
 		} else if err != nil {
+			if csMachine.Spec.InstanceID != nil {
+				// Despite the failed VM Creation call, a VM has been created, and will need to be properly destroyed.
+				controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
+			}
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -221,11 +225,12 @@ func (r *CloudStackMachineReconciler) reconcile(
 		log.Info("Machine instance is Running...")
 		csMachine.Status.Ready = true
 	} else if csMachine.Status.InstanceState == "Error" {
-		log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", csMachine)
-		if err := r.Client.Delete(ctx, csMachine); err != nil {
+		log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "capiMachine", capiMachine, "csMachine", csMachine)
+		if err := r.Client.Delete(ctx, capiMachine); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+		log.Info("CAPI machine deletion requested.")
+		return ctrl.Result{}, nil // We're done.  CAPI Machine will take it from here.
 	} else {
 		log.Info(fmt.Sprintf("Instance not ready, is %s.", csMachine.Status.InstanceState))
 		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
