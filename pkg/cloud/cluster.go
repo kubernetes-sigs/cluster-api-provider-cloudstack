@@ -25,7 +25,8 @@ import (
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-const domainPrefix = "ROOT/"
+const rootDomain = "ROOT"
+const domainDelimiter = "/"
 
 type ClusterIface interface {
 	GetOrCreateCluster(*infrav1.CloudStackCluster) error
@@ -95,21 +96,29 @@ func (c *client) ResolveDomainAndAccount(csCluster *infrav1.CloudStackCluster) e
 	}
 
 	if csCluster.Spec.Domain != "" && csCluster.Spec.Account != "" {
-		tokens := strings.Split(csCluster.Spec.Domain, "/")
-		domainName := tokens[len(tokens)-1]
-
 		p := c.cs.Domain.NewListDomainsParams()
-		p.SetListall(true)
-		p.SetName(domainName)
-		p.SetLevel(len(tokens))
+
+		if csCluster.Spec.Domain == rootDomain {
+			p.SetName(csCluster.Spec.Domain)
+		} else {
+			tokens := strings.Split(csCluster.Spec.Domain, domainDelimiter)
+			domainName := tokens[len(tokens)-1]
+
+			p.SetListall(true)
+			p.SetName(domainName)
+			p.SetLevel(len(tokens))
+		}
 		resp, retErr := c.cs.Domain.ListDomains(p)
 		if retErr != nil {
 			return retErr
-		}
-		for _, domain := range resp.Domains {
-			if domain.Path == domainPrefix+csCluster.Spec.Domain {
-				csCluster.Status.DomainID = domain.Id
-				break
+		} else if resp.Count == 1 {
+			csCluster.Status.DomainID = resp.Domains[0].Id
+		} else {
+			for _, domain := range resp.Domains {
+				if domain.Path == rootDomain+domainDelimiter+csCluster.Spec.Domain {
+					csCluster.Status.DomainID = domain.Id
+					break
+				}
 			}
 		}
 		if csCluster.Status.DomainID == "" {
