@@ -212,6 +212,14 @@ func (c *client) GetOrCreateVMInstance(
 
 	deployVMResp, err := c.cs.VirtualMachine.DeployVirtualMachine(p)
 	if err != nil {
+		// Just because an error was returned doesn't mean a (failed) VM wasn't created and will need to be dealt with.
+		// Regretfully the deployVMResp may be nil, so we need to get the VM ID with a separate query, so we
+		// can return it to the caller, so they can clean it up.
+		listVirtualMachineParams := c.cs.VirtualMachine.NewListVirtualMachinesParams()
+		listVirtualMachineParams.SetName(csMachine.Name)
+		if listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams); err2 == nil && listVirtualMachinesResponse.Count > 0 {
+			csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)
+		}
 		return err
 	}
 	csMachine.Spec.InstanceID = pointer.StringPtr(deployVMResp.Id)
