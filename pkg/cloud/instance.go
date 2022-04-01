@@ -216,7 +216,12 @@ func (c *client) GetOrCreateVMInstance(
 		// Regretfully the deployVMResp may be nil, so we need to get the VM ID with a separate query, so we
 		// can return it to the caller, so they can clean it up.
 		listVirtualMachineParams := c.cs.VirtualMachine.NewListVirtualMachinesParams()
+		listVirtualMachineParams.SetTemplateid(templateID)
+		listVirtualMachineParams.SetZoneid(csMachine.Status.ZoneID)
+		listVirtualMachineParams.SetNetworkid(zone.Network.ID)
 		listVirtualMachineParams.SetName(csMachine.Name)
+		setIfNotEmpty(csCluster.Status.DomainID, listVirtualMachineParams.SetDomainid)
+		setIfNotEmpty(csCluster.Spec.Account, listVirtualMachineParams.SetAccount)
 		if listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams); err2 == nil && listVirtualMachinesResponse.Count > 0 {
 			csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)
 		}
