@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -205,12 +206,15 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 	return errors.Wrap(err, "building CloudStackCluster controller:")
 }
 
-func (r *CloudStackClusterReconciler) generateZone(ctx context.Context, csCluster *infrav1.CloudStackCluster, zoneSpec infrav1.Zone) error {
+func (r *CloudStackClusterReconciler) generateZone(
+	ctx context.Context, csCluster *infrav1.CloudStackCluster, zoneSpec infrav1.Zone,
+) error {
+
 	csZone := &infrav1.CloudStackZone{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      zoneSpec.Name,
-			Namespace: "capc-system", // was kcp.Namespace,
-			// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
+			Name:        strings.ToLower(zoneSpec.Name),
+			Namespace:   csCluster.Namespace,
+			Labels:      map[string]string{"OwnedBy": csCluster.Name},
 			Annotations: map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
@@ -220,7 +224,37 @@ func (r *CloudStackClusterReconciler) generateZone(ctx context.Context, csCluste
 	}
 
 	if err := r.Client.Create(ctx, csZone); err != nil {
-		return errors.Wrap(err, "failed to create machine")
+		return errors.Wrap(err, "failed to create zone")
 	}
 	return nil
+}
+
+// fetchZones fetches CloudStackZones owned by a CloudStackCluster via an ownership label.
+func (r *CloudStackClusterReconciler) fetchZones(
+	ctx context.Context,
+	req ctrl.Request,
+) (ctrl.Result, error) {
+
+	labels := map[string]string{"OwnedBy": r.CC.CSCluster.Name}
+	if err := r.Client.List(
+		ctx,
+		r.CC.Zones,
+		client.InNamespace(r.CC.CSCluster.Namespace),
+		client.MatchingLabels(labels),
+	); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to list zones")
+	}
+	return ctrl.Result{}, nil
+}
+
+// Run runs all given CloudStackClusterReconcilerFunc, and returns on either the first encountered error, or after all
+// successfully complete.
+func (r *CloudStackClusterReconciler) RunWith(
+	ctx context.Context, req ctrl.Request, fns ...CloudStackClusterReconcilerFunc) (ctrl.Result, error) {
+	for _, fn := range fns {
+		if rslt, err := fn(ctx, req); err != nil || rslt.Requeue == true || rslt.RequeueAfter != 0 {
+			return rslt, err
+		}
+	}
+	return ctrl.Result{}, nil
 }
