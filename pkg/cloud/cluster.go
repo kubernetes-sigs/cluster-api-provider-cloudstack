@@ -106,7 +106,6 @@ func (c *client) ResolveDomainAndAccount(csCluster *infrav1.CloudStackCluster) e
 
 			p.SetListall(true)
 			p.SetName(domainName)
-			p.SetLevel(len(tokens))
 		}
 		resp, retErr := c.cs.Domain.ListDomains(p)
 		if retErr != nil {

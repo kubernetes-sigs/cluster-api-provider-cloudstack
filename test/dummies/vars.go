@@ -48,7 +48,9 @@ var ( // Declare exported dummy vars.
 	EndPointHost       string
 	EndPointPort       int32
 	ListDomainsParams  *csapi.ListDomainsParams
-	ListDomainResp     *csapi.ListDomainsResponse
+	ListDomainsResp    *csapi.ListDomainsResponse
+	ListAccountsParams *csapi.ListAccountsParams
+	ListAccountsResp   *csapi.ListAccountsResponse
 )
 
 // SetDummyVars sets/resets all dummy vars.
@@ -267,7 +269,12 @@ func SetDummyCSMachineStatuses() {
 
 func SetDummyCSApiResponse() {
 	ListDomainsParams = &csapi.ListDomainsParams{}
-	ListDomainResp = &csapi.ListDomainsResponse{}
-	ListDomainResp.Count = 1
-	ListDomainResp.Domains = []*csapi.Domain{{Id: DomainID}}
+	ListDomainsResp = &csapi.ListDomainsResponse{}
+	ListDomainsResp.Count = 1
+	ListDomainsResp.Domains = []*csapi.Domain{{Id: DomainID}}
+
+	ListAccountsParams = &csapi.ListAccountsParams{}
+	ListAccountsResp = &csapi.ListAccountsResponse{}
+	ListAccountsResp.Count = 1
+	ListAccountsResp.Accounts = []*csapi.Account{{Name: Account}}
 }
