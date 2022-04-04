@@ -47,6 +47,10 @@ var ( // Declare exported dummy vars.
 	PublicIPID         string
 	EndPointHost       string
 	EndPointPort       int32
+	ListDomainsParams  *csapi.ListDomainsParams
+	ListDomainsResp    *csapi.ListDomainsResponse
+	ListAccountsParams *csapi.ListAccountsParams
+	ListAccountsResp   *csapi.ListAccountsResponse
 )
 
 // SetDummyVars sets/resets all dummy vars.
@@ -261,4 +265,16 @@ func SetDummyCAPIMachineVars() {
 
 func SetDummyCSMachineStatuses() {
 	CSMachine1.Status = capcv1.CloudStackMachineStatus{ZoneID: Zone1.ID}
+}
+
+func SetDummyCSApiResponse() {
+	ListDomainsParams = &csapi.ListDomainsParams{}
+	ListDomainsResp = &csapi.ListDomainsResponse{}
+	ListDomainsResp.Count = 1
+	ListDomainsResp.Domains = []*csapi.Domain{{Id: DomainID}}
+
+	ListAccountsParams = &csapi.ListAccountsParams{}
+	ListAccountsResp = &csapi.ListAccountsResponse{}
+	ListAccountsResp.Count = 1
+	ListAccountsResp.Accounts = []*csapi.Account{{Name: Account}}
 }
