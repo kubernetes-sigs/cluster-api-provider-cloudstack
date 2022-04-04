@@ -13,6 +13,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	gopkg.in/ini.v1 v1.63.2
 	k8s.io/api v0.22.2
+	k8s.io/apiextensions-apiserver v0.22.2
 	k8s.io/apimachinery v0.22.2
 	k8s.io/client-go v0.22.2
 	k8s.io/klog v1.0.0

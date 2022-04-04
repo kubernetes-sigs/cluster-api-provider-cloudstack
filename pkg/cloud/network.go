@@ -256,6 +256,45 @@ func (c *client) FetchPublicIP(csCluster *capcv1.CloudStackCluster) (*cloudstack
 	return nil, errors.New("no public addresses found in available networks")
 }
 
+// INetAssociatePublicIPAddress Gets a PublicIP and associates it.
+func (c *client) INetAssociatePublicIPAddress(csCluster *capcv1.CloudStackCluster) (retErr error) {
+	publicAddress, err := c.FetchPublicIP(csCluster)
+	if err != nil {
+		return errors.Wrapf(err, "error encountered while fetching a public IP address")
+	}
+
+	csCluster.Spec.ControlPlaneEndpoint.Host = publicAddress.Ipaddress
+	csCluster.Status.PublicIPID = publicAddress.Id
+
+	// Check if the address is already associated with the network.
+	zoneStatus := csCluster.Status.Zones.GetOne()
+	if publicAddress.Associatednetworkid == zoneStatus.Network.ID {
+		return nil
+	}
+
+	// Public IP found, but not yet associated with network -- associate it.
+	p := c.cs.Address.NewAssociateIpAddressParams()
+	p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)
+	p.SetNetworkid(zoneStatus.Network.ID)
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
+	if _, err := c.cs.Address.AssociateIpAddress(p); err != nil {
+		return errors.Wrapf(err,
+			"error encountered while associating public IP address with ID: %s to netowrk with ID: %s",
+			publicAddress.Id, zoneStatus.Network.ID)
+	}
+	if err := c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster); err != nil {
+		return errors.Wrapf(err,
+			"error encountered while adding tag to public IP address with ID: %s", publicAddress.Id)
+	}
+	// Add created by CAPC tag to public IP.
+	if err := c.AddCreatedByCAPCTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID); err != nil {
+		return errors.Wrapf(err,
+			"error encountered while adding tag to public IP address with ID: %s", publicAddress.Id)
+	}
+	return nil
+}
+
 // AssociatePublicIPAddress Gets a PublicIP and associates it.
 func (c *client) AssociatePublicIPAddress(csCluster *capcv1.CloudStackCluster) (retErr error) {
 	publicAddress, err := c.FetchPublicIP(csCluster)
@@ -353,6 +392,51 @@ func (c *client) ResolveLoadBalancerRuleDetails(csCluster *capcv1.CloudStackClus
 	}
 	return errors.New("no load balancer rule found")
 }
+
+// func (c *client) INetResolveLoadBalancerRuleDetails(csIsoNet *capcv1.CloudStackIsolatedNetwork) (retErr error) {
+// 	p := c.cs.LoadBalancer.NewListLoadBalancerRulesParams()
+// 	p.SetPublicipid(csIsoNet.Spec.PublicIPID)
+// 	setIfNotEmpty(csIsoNet.Spec.Account, p.SetAccount)
+// 	setIfNotEmpty(csIsoNet.Spec.DomainID, p.SetDomainid)
+// 	loadBalancerRules, err := c.cs.LoadBalancer.ListLoadBalancerRules(p)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	for _, rule := range loadBalancerRules.LoadBalancerRules {
+// 		if rule.Publicport == strconv.Itoa(int(csIsoNet.Spec.ControlPlaneEndpoint.Port)) {
+// 			csIsoNet.Status.LBRuleID = rule.Id
+// 			return nil
+// 		}
+// 	}
+// 	return errors.New("no load balancer rule found")
+// }
+
+// // GetOrCreateLoadBalancerRule Create a load balancer rule that can be assigned to instances.
+// func (c *client) INetGetOrCreateLoadBalancerRule(csIsoNet *capcv1.CloudStackIsolatedNetwork) (retErr error) {
+// 	// Check if rule exists.
+// 	if err := c.INetResolveLoadBalancerRuleDetails(csIsoNet); err == nil ||
+// 		!strings.Contains(strings.ToLower(err.Error()), "no load balancer rule found") {
+// 		return err
+// 	}
+
+// 	p := c.cs.LoadBalancer.NewCreateLoadBalancerRuleParams(
+// 		"roundrobin", "Kubernetes_API_Server", K8sDefaultAPIPort, K8sDefaultAPIPort)
+
+// 	p.SetNetworkid(csIsoNet.Spec.ID)
+// 	if csIsoNet.Spec.ControlPlaneEndpoint.Port != 0 { // Override default public port if endpoint port specified.
+// 		p.SetPublicport(int(csIsoNet.Spec.ControlPlaneEndpoint.Port))
+// 	}
+// 	p.SetPublicipid(csIsoNet.Status.PublicIPID)
+// 	p.SetProtocol(NetworkProtocolTCP)
+// 	setIfNotEmpty(csIsoNet.Spec.Account, p.SetAccount)
+// 	setIfNotEmpty(csIsoNet.Status.DomainID, p.SetDomainid)
+// 	resp, err := c.cs.LoadBalancer.CreateLoadBalancerRule(p)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	csIsoNet.Status.LBRuleID = resp.Id
+// 	return nil
+// }
 
 // GetOrCreateLoadBalancerRule Create a load balancer rule that can be assigned to instances.
 func (c *client) GetOrCreateLoadBalancerRule(csCluster *capcv1.CloudStackCluster) (retErr error) {

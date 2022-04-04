@@ -19,9 +19,7 @@ package controllers
 import (
 	"context"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -29,7 +27,6 @@ import (
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 )
 
 // CloudStackZoneReconciler reconciles a CloudStackZone object
@@ -82,22 +79,22 @@ func (r *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *CloudStackZoneReconciler) generateIsolatedNetwork(
 	ctx context.Context, zone *infrav1.CloudStackZone, csCluster *infrav1.CloudStackCluster) error {
 
-	csIsoNet := &infrav1.CloudStackIsolatedNetwork{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      zone.Spec.Name,
-			Namespace: zone.Namespace,
-			// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
-			Annotations: map[string]string{},
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(zone, controlplanev1.GroupVersion.WithKind("CloudStackZone")),
-				*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
-			},
-		},
-		Spec: infrav1.CloudStackIsolatedNetworkSpec{Name: zone.Spec.Network.Name},
-	}
+	// csIsoNet := &infrav1.CloudStackIsolatedNetwork{
+	// 	ObjectMeta: metav1.ObjectMeta{
+	// 		Name:      zone.Spec.Name,
+	// 		Namespace: zone.Namespace,
+	// 		// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
+	// 		Annotations: map[string]string{},
+	// 		OwnerReferences: []metav1.OwnerReference{
+	// 			*metav1.NewControllerRef(zone, controlplanev1.GroupVersion.WithKind("CloudStackZone")),
+	// 			*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
+	// 		},
+	// 	},
+	// 	Spec: infrav1.CloudStackIsolatedNetworkSpec{Name: zone.Spec.Network.Name},
+	// }
 
-	if err := r.Client.Create(ctx, csIsoNet); err != nil {
-		return errors.Wrap(err, "failed to create machine")
-	}
+	// if err := r.Client.Create(ctx, csIsoNet); err != nil {
+	// 	return errors.Wrap(err, "failed to create machine")
+	// }
 	return nil
 }

@@ -24,7 +24,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
@@ -41,6 +40,12 @@ type CloudStackIsolatedNetworkReconciler struct {
 	CS     cloud.Client
 }
 
+type IsoNetContext struct {
+	IsoNet       *infrav1.CloudStackIsolatedNetwork
+	OwnerCluster *infrav1.CloudStackCluster
+	OwnerZone    *infrav1.CloudStackZone
+}
+
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks/finalizers,verbs=update
@@ -49,42 +54,58 @@ func (r *CloudStackIsolatedNetworkReconciler) Reconcile(ctx context.Context, req
 	log := r.Log.WithValues("IsolatedNetwork", req.Name, "namespace", req.Namespace)
 	log.V(1).Info("Reconcile CloudStackIsolatedNetwork")
 
-	// Fetch the CloudStackIsolatedNetwork.
-	csIsoNet := &capcv1.CloudStackIsolatedNetwork{}
-	if err := r.Client.Get(ctx, req.NamespacedName, csIsoNet); err != nil {
-		if client.IgnoreNotFound(err) == nil {
-			log.Info("CloudStackIsolatedNetwork not found.")
-		}
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	csCluster, err := csCtrlrUtils.GetOwnerCloudStackCluster(ctx, r.Client, csIsoNet.ObjectMeta)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	csZone, err := csCtrlrUtils.GetOwnerZone(ctx, r.Client, csIsoNet.ObjectMeta)
+	crds, err := r.FetchRelatedResources(ctx, req)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Setup patcher. This ensures modifications to the csIsoNet copy fetched above are patched into the origin.
-	patchHelper, err := patch.NewHelper(csIsoNet, r.Client)
+	patchHelper, err := patch.NewHelper(crds.IsoNet, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	defer func() { // If there was no error on return, but the patch fails, set the error accordingly.
-		if err = patchHelper.Patch(ctx, csIsoNet); err != nil {
+		if err = patchHelper.Patch(ctx, crds.IsoNet); err != nil {
 			msg := "error patching CloudStackIsolatedNetwork %s/%s"
-			err = errors.Wrapf(err, msg, csIsoNet.Namespace, csIsoNet.Name)
+			err = errors.Wrapf(err, msg, crds.IsoNet.Namespace, crds.IsoNet.Name)
 			retErr = multierror.Append(retErr, err)
 		}
 	}()
 
-	if err := r.CS.FetchIsolatedNetwork(csZone, csIsoNet); err != nil { // If err, then network doesn't exist.
-		return ctrl.Result{}, r.CS.CreateIsolatedNetwork(csZone, csCluster)
+	if err := r.CS.FetchIsolatedNetwork(crds.OwnerZone, crds.IsoNet); err != nil { // If err, then network doesn't exist.
+		return ctrl.Result{}, r.CS.CreateIsolatedNetwork(crds.OwnerZone, crds.OwnerCluster)
 	}
+	// if err := r.CS.INetAssociatePublicIPAddress(crds.IsoNet); err != nil {
+	// 	return ctrl.Result{}, errors.Wrapf(err, "error encountered when associating public IP address to csCluster")
+	// }
+	// if err := r.CS.GetOrCreateLoadBalancerRule(crds.IsoNet); err != nil {
+	// 	return ctrl.Result{}, err
+	// }
+	crds.IsoNet.Status.Ready = true
 
 	return ctrl.Result{}, nil
+}
+
+// FetchRelatedResources fetches kubernetes resources required to reconcile an isolated network.
+func (r *CloudStackIsolatedNetworkReconciler) FetchRelatedResources(
+	ctx context.Context, req ctrl.Request,
+) (*IsoNetContext, error) {
+	var err error
+
+	crds := &IsoNetContext{}
+	// Fetch the CloudStackIsolatedNetwork.
+	if err := r.Client.Get(ctx, req.NamespacedName, crds.IsoNet); err != nil {
+		return nil, err
+	}
+	meta := crds.IsoNet.ObjectMeta
+	if crds.OwnerCluster, err = csCtrlrUtils.GetOwnerCloudStackCluster(ctx, r.Client, meta); err != nil {
+		return nil, err
+	}
+	if crds.OwnerZone, err = csCtrlrUtils.GetOwnerZone(ctx, r.Client, meta); err != nil {
+		return nil, err
+	}
+
+	return crds, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

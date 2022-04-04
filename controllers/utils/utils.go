@@ -182,3 +182,6 @@ func GetZoneByID(ctx context.Context, c client.Client, obj metav1.ObjectMeta, zo
 	}
 	return &zoneList.Items[0], nil
 }
+
+func OwnedObjectsReadiness(ctx context.Context, c client.Client, obj metav1.ObjectMeta) {
+}
