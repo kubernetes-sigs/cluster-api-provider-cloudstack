@@ -83,13 +83,69 @@ var _ = Describe("Cluster", func() {
 			as.EXPECT().NewListAccountsParams().Return(dummies.ListAccountsParams)
 			as.EXPECT().ListAccounts(dummies.ListAccountsParams).Return(dummies.ListAccountsResp, nil)
 			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
-
 			// Limit test to single zone.
 			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
 			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
 
 			Ω(client.GetOrCreateCluster(dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSCluster.Status.DomainID).Should(Equal(dummies.DomainID))
+		})
+
+		It("resolves domain when ROOT domain is specified", func() {
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
+			ds.EXPECT().NewListDomainsParams().Return(dummies.ListDomainsParams)
+			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainsResp, nil)
+			as.EXPECT().NewListAccountsParams().Return(dummies.ListAccountsParams)
+			as.EXPECT().ListAccounts(dummies.ListAccountsParams).Return(dummies.ListAccountsResp, nil)
+			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
+
+			// Limit test to single zone.
+			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
+			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
+
+			dummies.CSCluster.Spec.Domain = dummies.RootDomain
+
+			Ω(client.GetOrCreateCluster(dummies.CSCluster)).Should(Succeed())
+			Ω(dummies.CSCluster.Status.DomainID).Should(Equal(dummies.RootDomainID))
+		})
+
+		It("resolves domain when domain is a fully qualified name", func() {
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
+			ds.EXPECT().NewListDomainsParams().Return(dummies.ListDomainsParams)
+			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainsResp, nil)
+			as.EXPECT().NewListAccountsParams().Return(dummies.ListAccountsParams)
+			as.EXPECT().ListAccounts(dummies.ListAccountsParams).Return(dummies.ListAccountsResp, nil)
+			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
+
+			// Limit test to single zone.
+			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
+			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
+
+			dummies.CSCluster.Spec.Domain = dummies.Level2Domain
+
+			Ω(client.GetOrCreateCluster(dummies.CSCluster)).Should(Succeed())
+			Ω(dummies.CSCluster.Status.DomainID).Should(Equal(dummies.Level2DomainID))
+		})
+
+		It("fails to resolve domain when domain path does not match", func() {
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
+			ds.EXPECT().NewListDomainsParams().Return(dummies.ListDomainsParams)
+			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainsResp, nil)
+			as.EXPECT().NewListAccountsParams().Return(dummies.ListAccountsParams)
+			as.EXPECT().ListAccounts(dummies.ListAccountsParams).Return(dummies.ListAccountsResp, nil)
+			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
+
+			// Limit test to single zone.
+			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
+			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
+
+			dummies.CSCluster.Spec.Domain = dummies.Level2Domain
+
+			Ω(client.GetOrCreateCluster(dummies.CSCluster)).Should(Succeed())
+			Ω(dummies.CSCluster.Status.DomainID).Should(Equal(dummies.Level2DomainID))
 		})
 
 		It("resolves domain and account when none are specified", func() {

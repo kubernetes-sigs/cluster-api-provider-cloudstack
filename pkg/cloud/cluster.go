@@ -97,27 +97,26 @@ func (c *client) ResolveDomainAndAccount(csCluster *infrav1.CloudStackCluster) e
 
 	if csCluster.Spec.Domain != "" && csCluster.Spec.Account != "" {
 		p := c.cs.Domain.NewListDomainsParams()
+		tokens := strings.Split(csCluster.Spec.Domain, domainDelimiter)
+		domainName := tokens[len(tokens)-1]
+		p.SetListall(true)
+		p.SetName(domainName)
 
-		if csCluster.Spec.Domain == rootDomain {
-			p.SetName(csCluster.Spec.Domain)
-		} else {
-			tokens := strings.Split(csCluster.Spec.Domain, domainDelimiter)
-			domainName := tokens[len(tokens)-1]
-
-			p.SetListall(true)
-			p.SetName(domainName)
-		}
 		resp, retErr := c.cs.Domain.ListDomains(p)
 		if retErr != nil {
 			return retErr
-		} else if resp.Count == 1 {
-			csCluster.Status.DomainID = resp.Domains[0].Id
+		}
+
+		var domainPath string
+		if csCluster.Spec.Domain == rootDomain {
+			domainPath = rootDomain
 		} else {
-			for _, domain := range resp.Domains {
-				if domain.Path == rootDomain+domainDelimiter+csCluster.Spec.Domain {
-					csCluster.Status.DomainID = domain.Id
-					break
-				}
+			domainPath = strings.Join([]string{rootDomain, csCluster.Spec.Domain}, domainDelimiter)
+		}
+		for _, domain := range resp.Domains {
+			if domain.Path == domainPath {
+				csCluster.Status.DomainID = domain.Id
+				break
 			}
 		}
 		if csCluster.Status.DomainID == "" {
