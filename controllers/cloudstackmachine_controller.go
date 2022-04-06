@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -55,8 +56,13 @@ type CloudStackMachineReconciler struct {
 	CS     cloud.Client
 }
 
-const requeueTimeout = 5 * time.Second
-const destoryVMRequeueInterval = 10 * time.Second
+const (
+	requeueTimeout           = 5 * time.Second
+	destoryVMRequeueInterval = 10 * time.Second
+)
+
+var AffinityNameAnnotationKey = strings.Join([]string{
+	infrav1.GroupVersion.Group, infrav1.GroupVersion.Version, "affinity-group-name"}, "/")
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
@@ -220,6 +226,18 @@ func (r *CloudStackMachineReconciler) reconcile(
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
+	if csMachine.HasAffinityManaged() {
+		// Store Affinity Group name.
+		if name, err := csMachine.AffinityGroupName(capiMachine); err != nil {
+			return ctrl.Result{}, errors.Wrap(
+				err, "error encountered when fetching managed affinity group name to annotate CloudStackMachine")
+		} else {
+			if _, set := csMachine.Annotations[AffinityNameAnnotationKey]; !set {
+				csMachine.Annotations[AffinityNameAnnotationKey] = name
+			}
+		}
+	}
+
 	// Check status of machine.
 	if csMachine.Status.InstanceState == "Running" {
 		log.Info("Machine instance is Running...")
@@ -369,13 +387,13 @@ func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 	csMachine *infrav1.CloudStackMachine,
 ) error {
 
-	ownerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
-	if ownerRef == nil {
-		return errors.Errorf("Could not find management owner reference for %s/%s", csMachine.Namespace, csMachine.Name)
+	if !csMachine.HasAffinityManaged() { // Don't bother if machine is not part of a managed affinity group.
+		return nil
 	}
-	name, err := csMachine.AffinityGroupName(capiMachine)
-	if err != nil {
-		return err
+
+	name, found := csMachine.Annotations[AffinityNameAnnotationKey]
+	if !found {
+		return errors.New("annotation missing in deletion of managed affinity group")
 	}
 	group := &cloud.AffinityGroup{Name: name}
 	_ = r.CS.FetchAffinityGroup(group)

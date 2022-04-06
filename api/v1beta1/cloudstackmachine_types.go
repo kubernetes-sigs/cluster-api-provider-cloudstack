@@ -136,6 +136,11 @@ func (csm CloudStackMachine) AffinityGroupName(
 	return fmt.Sprintf("%sAffinity-%s-%s", strings.Title(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID), nil
 }
 
+// The computed affinity group name relevant to this machine.
+func (csm CloudStackMachine) HasAffinityManaged() bool {
+	return csm.Spec.Affinity == "anti" || csm.Spec.Affinity == "pro"
+}
+
 //+kubebuilder:object:root=true
 
 // CloudStackMachineList contains a list of CloudStackMachine
