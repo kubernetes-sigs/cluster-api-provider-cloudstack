@@ -228,13 +228,13 @@ func (r *CloudStackMachineReconciler) reconcile(
 
 	if csMachine.HasAffinityManaged() {
 		// Store Affinity Group name.
-		if name, err := csMachine.AffinityGroupName(capiMachine); err != nil {
+		name, err := csMachine.AffinityGroupName(capiMachine)
+		if err != nil {
 			return ctrl.Result{}, errors.Wrap(
 				err, "error encountered when fetching managed affinity group name to annotate CloudStackMachine")
-		} else {
-			if _, set := csMachine.Annotations[AffinityNameAnnotationKey]; !set {
-				csMachine.Annotations[AffinityNameAnnotationKey] = name
-			}
+		}
+		if _, set := csMachine.Annotations[AffinityNameAnnotationKey]; !set {
+			csMachine.Annotations[AffinityNameAnnotationKey] = name
 		}
 	}
 
