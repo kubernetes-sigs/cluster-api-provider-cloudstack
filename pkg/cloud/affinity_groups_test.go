@@ -50,14 +50,17 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 
 	It("fetches an affinity group", func() {
 		dummies.AffinityGroup.ID = "" // Force name fetching.
-		ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name).Return(&cloudstack.AffinityGroup{}, 1, nil)
+		ags.EXPECT().NewListAffinityGroupsParams().Return(dummies.ListAffinityGroupsParams)
+		ags.EXPECT().ListAffinityGroups(dummies.ListAffinityGroupsParams).Return(dummies.ListAffinityGroupsResponse, nil)
 
 		Ω(client.GetOrCreateAffinityGroup(dummies.CSCluster, dummies.AffinityGroup)).Should(Succeed())
 	})
 	It("creates an affinity group", func() {
 		dummies.SetDummyDomainAndAccount()
 		dummies.SetDummyDomainID()
-		ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(nil, -1, errors.New("FakeError"))
+
+		ags.EXPECT().NewListAffinityGroupsParams().Return(dummies.ListAffinityGroupsParams)
+		ags.EXPECT().ListAffinityGroups(dummies.ListAffinityGroupsParams).Return(nil, errors.New("FakeError"))
 		ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
 			Return(&cloudstack.CreateAffinityGroupParams{})
 		ags.EXPECT().CreateAffinityGroup(ParamMatch(
@@ -95,7 +98,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		})
 		It("Deletes an affinity group.", func() {
 			Ω(client.DeleteAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
-			Ω(client.FetchAffinityGroup(dummies.AffinityGroup)).ShouldNot(Succeed())
+			Ω(client.FetchAffinityGroup(dummies.CSCluster, dummies.AffinityGroup)).ShouldNot(Succeed())
 		})
 	})
 })

@@ -33,47 +33,39 @@ type AffinityGroup struct {
 }
 
 type AffinityGroupIface interface {
-	FetchAffinityGroup(*AffinityGroup) error
+	FetchAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error
 	GetOrCreateAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error
 	DeleteAffinityGroup(*AffinityGroup) error
 	AssociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
 	DisassociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
 }
 
-func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
+func (c *client) FetchAffinityGroup(csCluster *infrav1.CloudStackCluster, group *AffinityGroup) (reterr error) {
+	p := c.cs.AffinityGroup.NewListAffinityGroupsParams()
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
+
 	if group.ID != "" {
-		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByID(group.ID)
-		if err != nil {
-			// handle via multierr
-			return err
-		} else if count > 1 {
-			// handle via creating a new error.
-			return errors.New("count bad")
-		} else {
-			group.Name = affinityGroup.Name
-			group.Type = affinityGroup.Type
-			return nil
-		}
+		p.SetId(group.ID)
+	} else if group.Name != "" {
+		p.SetName(group.Name)
 	}
-	if group.Name != "" {
-		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByName(group.Name)
-		if err != nil {
-			// handle via multierr
-			return err
-		} else if count > 1 {
-			// handle via creating a new error.
-			return errors.New("count bad")
-		} else {
-			group.ID = affinityGroup.Id
-			group.Type = affinityGroup.Type
-			return nil
-		}
+
+	resp, err := c.cs.AffinityGroup.ListAffinityGroups(p)
+	if err != nil {
+		return err
+	} else if resp.Count > 1 {
+		return errors.Errorf("found more than one affinity group by name %s or id %s", group.Name, group.ID)
+	} else if resp.Count == 0 {
+		return errors.Errorf("affinity group not found by name %s or id %s", group.Name, group.ID)
 	}
-	return errors.Errorf(`could not fetch AffinityGroup by name "%s" or id "%s"`, group.Name, group.ID)
+	group.Name = resp.AffinityGroups[0].Name
+	group.Type = resp.AffinityGroups[0].Type
+	return nil
 }
 
 func (c *client) GetOrCreateAffinityGroup(csCluster *infrav1.CloudStackCluster, group *AffinityGroup) (retErr error) {
-	if err := c.FetchAffinityGroup(group); err != nil { // Group not found?
+	if err := c.FetchAffinityGroup(csCluster, group); err != nil { // Group not found?
 		p := c.cs.AffinityGroup.NewCreateAffinityGroupParams(group.Name, group.Type)
 		setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 		setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)

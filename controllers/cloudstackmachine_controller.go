@@ -118,11 +118,6 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return reconcile.Result{}, nil
 	}
 
-	// Delete VM instance if deletion timestamp present.
-	if !csMachine.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, log, csMachine, capiMachine)
-	}
-
 	// Fetch the CloudStack cluster associated with this machine.
 	csCluster := &infrav1.CloudStackCluster{}
 	if err := r.Client.Get(
@@ -135,6 +130,11 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			log.Info("CloudStackCluster not found.")
 			return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 		}
+	}
+
+	// Delete VM instance if deletion timestamp present.
+	if !csMachine.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, log, csMachine, capiMachine, csCluster)
 	}
 
 	if !csCluster.Status.Ready {
@@ -255,13 +255,14 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 	log logr.Logger,
 	csMachine *infrav1.CloudStackMachine,
 	capiMachine *capiv1.Machine,
+	csCluster *infrav1.CloudStackCluster,
 ) (ctrl.Result, error) {
 
 	// Remove any CAPC managed Affinity groups if owner references a deleted object.
 	if deleted, err := csCtrlrUtils.IsOwnerDeleted(ctx, r.Client, capiMachine); err != nil {
 		return ctrl.Result{}, err
 	} else if deleted {
-		if err := r.RemoveManagedAffinity(log, capiMachine, csMachine); err != nil {
+		if err := r.RemoveManagedAffinity(log, csCluster, capiMachine, csMachine); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "error encountered when removing affinity group")
 		}
 	}
@@ -365,6 +366,7 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // if it exists.
 func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 	log logr.Logger,
+	csCluster *infrav1.CloudStackCluster,
 	capiMachine *capiv1.Machine,
 	csMachine *infrav1.CloudStackMachine,
 ) error {
@@ -378,7 +380,7 @@ func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 		return err
 	}
 	group := &cloud.AffinityGroup{Name: name}
-	_ = r.CS.FetchAffinityGroup(group)
+	_ = r.CS.FetchAffinityGroup(csCluster, group)
 	if group.ID == "" { // Affinity group not found, must have been deleted.
 		return nil
 	}

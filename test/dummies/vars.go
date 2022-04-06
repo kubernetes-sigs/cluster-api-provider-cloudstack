@@ -12,49 +12,51 @@ import (
 )
 
 var ( // Declare exported dummy vars.
-	AffinityGroup      *cloud.AffinityGroup
-	CSCluster          *capcv1.CloudStackCluster
-	CAPIMachine        *capiv1.Machine
-	CSMachine1         *capcv1.CloudStackMachine
-	CAPICluster        *clusterv1.Cluster
-	CSMachineTemplate1 *capcv1.CloudStackMachineTemplate
-	Zone1              capcv1.Zone
-	Zone2              capcv1.Zone
-	Net1               capcv1.Network
-	Net2               capcv1.Network
-	ISONet1            capcv1.Network
-	Domain             string
-	DomainID           string
-	RootDomain         string
-	RootDomainID       string
-	Level2Domain       string
-	Level2DomainID     string
-	Account            string
-	Tags               map[string]string
-	Tag1               map[string]string
-	Tag2               map[string]string
-	Tag1Key            string
-	Tag1Val            string
-	Tag2Key            string
-	Tag2Val            string
-	CSApiVersion       string
-	CSClusterKind      string
-	CSClusterName      string
-	CSlusterNamespace  string
-	TestTags           map[string]string
-	CSClusterTagKey    string
-	CSClusterTagVal    string
-	CSClusterTag       map[string]string
-	CreatedByCapcKey   string
-	CreatedByCapcVal   string
-	LBRuleID           string
-	PublicIPID         string
-	EndPointHost       string
-	EndPointPort       int32
-	ListDomainsParams  *csapi.ListDomainsParams
-	ListDomainsResp    *csapi.ListDomainsResponse
-	ListAccountsParams *csapi.ListAccountsParams
-	ListAccountsResp   *csapi.ListAccountsResponse
+	AffinityGroup              *cloud.AffinityGroup
+	ListAffinityGroupsParams   *csapi.ListAffinityGroupsParams
+	ListAffinityGroupsResponse *csapi.ListAffinityGroupsResponse
+	CSCluster                  *capcv1.CloudStackCluster
+	CAPIMachine                *capiv1.Machine
+	CSMachine1                 *capcv1.CloudStackMachine
+	CAPICluster                *clusterv1.Cluster
+	CSMachineTemplate1         *capcv1.CloudStackMachineTemplate
+	Zone1                      capcv1.Zone
+	Zone2                      capcv1.Zone
+	Net1                       capcv1.Network
+	Net2                       capcv1.Network
+	ISONet1                    capcv1.Network
+	Domain                     string
+	DomainID                   string
+	RootDomain                 string
+	RootDomainID               string
+	Level2Domain               string
+	Level2DomainID             string
+	Account                    string
+	Tags                       map[string]string
+	Tag1                       map[string]string
+	Tag2                       map[string]string
+	Tag1Key                    string
+	Tag1Val                    string
+	Tag2Key                    string
+	Tag2Val                    string
+	CSApiVersion               string
+	CSClusterKind              string
+	CSClusterName              string
+	CSlusterNamespace          string
+	TestTags                   map[string]string
+	CSClusterTagKey            string
+	CSClusterTagVal            string
+	CSClusterTag               map[string]string
+	CreatedByCapcKey           string
+	CreatedByCapcVal           string
+	LBRuleID                   string
+	PublicIPID                 string
+	EndPointHost               string
+	EndPointPort               int32
+	ListDomainsParams          *csapi.ListDomainsParams
+	ListDomainsResp            *csapi.ListDomainsResponse
+	ListAccountsParams         *csapi.ListAccountsParams
+	ListAccountsResp           *csapi.ListAccountsResponse
 )
 
 // SetDummyVars sets/resets all dummy vars.
@@ -285,4 +287,9 @@ func SetDummyCSApiResponse() {
 	ListAccountsResp = &csapi.ListAccountsResponse{}
 	ListAccountsResp.Count = 1
 	ListAccountsResp.Accounts = []*csapi.Account{{Name: Account}}
+
+	ListAffinityGroupsParams = &csapi.ListAffinityGroupsParams{}
+	ListAffinityGroupsResponse = &csapi.ListAffinityGroupsResponse{}
+	ListAffinityGroupsResponse.Count = 1
+	ListAffinityGroupsResponse.AffinityGroups = []*csapi.AffinityGroup{{Name: AffinityGroup.Name, Id: AffinityGroup.ID}}
 }
