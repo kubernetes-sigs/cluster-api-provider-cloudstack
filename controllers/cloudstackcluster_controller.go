@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"reflect"
-	"strings"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -162,76 +161,17 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 // checkOwnedCRDsforReadiness checks that owned CRDs like Zones are ready.
 func (r *CloudStackClusterReconciler) checkOwnedCRDsforReadiness(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	if len(r.CC.CSCluster.Spec.Zones) != len(r.CC.Zones.Items) {
+	if len(r.CSCluster.Spec.Zones) != len(r.Zones.Items) {
 		return reconcile.Result{}, errors.New("did not find all zones required for cluster reconciliation")
 	}
 
-	for _, zone := range r.CC.Zones.Items {
+	for _, zone := range r.Zones.Items {
 		if !zone.Status.Ready {
 			r.Log.Info("not all required zones are ready, requeing")
 			return ctrl.Result{RequeueAfter: requeueTimeout}, nil
 		}
 	}
 
-	return ctrl.Result{}, nil
-}
-
-// generateZones generates a CloudStackClusterZone CRD for each of the CloudStackCluster's spec Zones.
-func (r *CloudStackClusterReconciler) generateZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	for _, zone := range r.CC.CSCluster.Spec.Zones {
-		if err := r.generateZone(ctx, zone); err != nil {
-			if !strings.Contains(strings.ToLower(err.Error()), "already exists") {
-				return reconcile.Result{}, errors.Wrap(err, "error encountered when creating CloudStackZone")
-			}
-		}
-	}
-	return ctrl.Result{}, nil
-}
-
-// generateZone generates a specified CloudStackZone CRD owned by the CloudStackCluster.
-func (r *CloudStackClusterReconciler) generateZone(ctx context.Context, zoneSpec infrav1.Zone) error {
-	csZone := &infrav1.CloudStackZone{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        strings.ToLower(zoneSpec.Name),
-			Namespace:   r.CC.CSCluster.Namespace,
-			Labels:      map[string]string{"OwnedBy": r.CC.CSCluster.Name},
-			Annotations: map[string]string{},
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(r.CC.CSCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
-			},
-		},
-		Spec: infrav1.CloudStackZoneSpec{Name: zoneSpec.Name},
-	}
-
-	if err := r.Client.Create(ctx, csZone); err != nil {
-		return errors.Wrap(err, "failed to create zone")
-	}
-	return nil
-}
-
-// fetchZones fetches CloudStackZones owned by a CloudStackCluster via an ownership label.
-func (r *CloudStackClusterReconciler) fetchZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	labels := map[string]string{"OwnedBy": r.CC.CSCluster.Name}
-	if err := r.Client.List(
-		ctx,
-		r.CC.Zones,
-		client.InNamespace(r.CC.CSCluster.Namespace),
-		client.MatchingLabels(labels),
-	); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to list zones")
-	}
-	return ctrl.Result{}, nil
-}
-
-// runWith runs all given CloudStackClusterReconcilerFunc with the given context and request object and returns on
-// either the first encountered error, or after all successfully complete.
-func (r *CloudStackClusterReconciler) runWith(
-	ctx context.Context, req ctrl.Request, fns ...CloudStackClusterReconcilerFunc) (ctrl.Result, error) {
-	for _, fn := range fns {
-		if rslt, err := fn(ctx, req); err != nil || rslt.Requeue == true || rslt.RequeueAfter != 0 {
-			return rslt, err
-		}
-	}
 	return ctrl.Result{}, nil
 }
 
