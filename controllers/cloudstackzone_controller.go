@@ -133,16 +133,12 @@ func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func (r *CloudStackZoneReconciler) reconcile(context.Context
+func (r *CloudStackZoneReconciler) reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
 
-// Fetches all CRDs relavent to reconciling a CloudStackCluster.
-func (r *CloudStackZoneReconciler) fetchRelatedCRDs(
-	ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
-	r.GetBaseCRDs(ctx, req)
-	// Get CloudStackZones.
-	// _, reterr = r.fetchIsolatedNetworks(ctx, req)
-	// if reterr != nil {
-	// 	return reconcile.Result{}, errors.Wrap(reterr, "error encountered fetching CloudStackZone(s)")
-	// }
+	r.SubjectOfReconciliation.Status.Ready = true
+	return ctrl.Result{}, nil
+}
+
+func (r *CloudStackZoneReconciler) reconcileDelete(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
 	return ctrl.Result{}, nil
 }
