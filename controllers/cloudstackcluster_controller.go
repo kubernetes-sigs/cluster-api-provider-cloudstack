@@ -39,12 +39,14 @@ import (
 type CloudStackClusterReconciler struct {
 	CloudStackBaseReconciler
 	CloudStackZoneUser
+	SubjectOfReconciliation *infrav1.CloudStackCluster
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters/finalizers,verbs=update
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones,verbs=get;list;watch;create;delete
 
 // TODO review whether these unnamed groups are used and if so add clarity via a comment.
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
@@ -63,7 +65,9 @@ func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	r.Log.V(1).Info("Reconcile CloudStackCluster")
 
 	return r.runWith(ctx, req,
+		r.FetchSubjectOfReconciliation,
 		r.GetBaseCRDs,
+		r.LogSubjectOfReconciliation,
 		r.CheckIfPaused,
 		r.FetchZones,
 		r.reconcileDelete,

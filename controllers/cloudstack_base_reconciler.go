@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -112,6 +113,15 @@ func (r *CloudStackBaseReconciler) GetBaseCRDs(ctx context.Context, req ctrl.Req
 	return res, nil
 }
 
+func (r *CloudStackBaseReconciler) FetchSubjectOfReconciliation(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
+	return ctrl.Result{}, r.Client.Get(ctx, req.NamespacedName, r.ReconciliationSubject)
+}
+
+func (r *CloudStackBaseReconciler) LogSubjectOfReconciliation(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
+	r.Log.Info(fmt.Sprintln(r.ReconciliationSubject))
+	return ctrl.Result{}, nil
+}
+
 type CloudStackZoneUser struct {
 	CloudStackBaseReconciler
 	Zones *infrav1.CloudStackZoneList
@@ -131,7 +141,8 @@ func (r *CloudStackZoneUser) FetchZones(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
-// GenerateZones generates a CloudStackClusterZone CRD for each of the CloudStackCluster's spec Zones.
+// GenerateZones generates a CloudStackClusterZone CRD for each of the SubjectOfReconciliation's Zones.
+// Assumes SubjectOfReconciliation has a Spec.Zones field.
 func (r *CloudStackZoneUser) GenerateZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	for _, zone := range r.CSCluster.Spec.Zones {
 		if err := r.GenerateZone(ctx, zone); err != nil {
@@ -143,8 +154,9 @@ func (r *CloudStackZoneUser) GenerateZones(ctx context.Context, req ctrl.Request
 	return ctrl.Result{}, nil
 }
 
-// generateZone generates a specified CloudStackZone CRD owned by the CloudStackCluster.
+// GenerateZone generates a specified CloudStackZone CRD owned by the SubjectOfReconciliation.
 func (r *CloudStackZoneUser) GenerateZone(ctx context.Context, zoneSpec infrav1.Zone) error {
+	ownerKind := r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind
 	csZone := &infrav1.CloudStackZone{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        strings.ToLower(zoneSpec.Name),
@@ -152,7 +164,7 @@ func (r *CloudStackZoneUser) GenerateZone(ctx context.Context, zoneSpec infrav1.
 			Labels:      map[string]string{"OwnedBy": r.CSCluster.Name},
 			Annotations: map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(r.CSCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
+				*metav1.NewControllerRef(r.ReconciliationSubject, controlplanev1.GroupVersion.WithKind(ownerKind)),
 			},
 		},
 		Spec: infrav1.CloudStackZoneSpec{Name: zoneSpec.Name},
@@ -160,6 +172,35 @@ func (r *CloudStackZoneUser) GenerateZone(ctx context.Context, zoneSpec infrav1.
 
 	if err := r.Client.Create(ctx, csZone); err != nil {
 		return errors.Wrap(err, "failed to create zone")
+	}
+	return nil
+}
+
+type CloudStackIsoNetUser struct {
+	CloudStackBaseReconciler
+	Zones *infrav1.CloudStackZoneList
+}
+
+// GenerateIsolatedNetwork generates a CloudStackIsolatedNetwork CRD owned by the SubjectOfReconciliation.
+func (r *CloudStackIsoNetUser) GenerateIsolatedNetwork(
+	ctx context.Context, zone *infrav1.CloudStackZone, csCluster *infrav1.CloudStackCluster) error {
+
+	csIsoNet := &infrav1.CloudStackIsolatedNetwork{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      zone.Spec.Name,
+			Namespace: zone.Namespace,
+			// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
+			Annotations: map[string]string{},
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(zone, controlplanev1.GroupVersion.WithKind("CloudStackZone")),
+				*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
+			},
+		},
+		Spec: infrav1.CloudStackIsolatedNetworkSpec{Name: zone.Spec.Network.Name},
+	}
+
+	if err := r.Client.Create(ctx, csIsoNet); err != nil {
+		return errors.Wrap(err, "failed to create machine")
 	}
 	return nil
 }

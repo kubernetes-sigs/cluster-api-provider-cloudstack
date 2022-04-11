@@ -24,12 +24,11 @@ import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 )
 
-type ReconcilerMethdod (*CloudStackBaseReconciler) (context.Context) error
-
 // CloudStackZoneReconciler reconciles a CloudStackZone object
 type CloudStackZoneReconciler struct {
 	CloudStackBaseReconciler
-	CSISONetwork *infrav1.CloudStackIsolatedNetwork
+	CSISONetwork            *infrav1.CloudStackIsolatedNetwork
+	SubjectOfReconciliation infrav1.CloudStackZone
 }
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones,verbs=get;list;watch;create;update;patch;delete
@@ -40,33 +39,16 @@ func (r *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	log.V(1).Info("Reconcile CloudStackZone")
 
 	return r.runWith(ctx, req,
-		r.fetchRelatedCRDs,
+		r.GetBaseCRDs,
+		r.FetchSubjectOfReconciliation,
+		r.LogSubjectOfReconciliation,
 		r.CheckIfPaused,
 		r.reconcileDelete,
 		r.reconcile,
 		r.patchChangesBackToAPI,
 	)
 
-	// // Get CloudStack Zone.
-	// csZone := &infrav1.CloudStackZone{}
-	// if err := r.Client.Get(ctx, req.NamespacedName, csZone); err != nil {
-	// 	if client.IgnoreNotFound(err) == nil {
-	// 		log.Info("Zone not found.")
-	// 	}
-	// 	return ctrl.Result{}, client.IgnoreNotFound(err)
-	// }
-
-	// // Get CloudStack cluster that owns the zone.
-	// csCluster, err := csCtrlrUtils.GetOwnerCloudStackCluster(ctx, r.Client, csZone.ObjectMeta)
-	// if err != nil {
-	// 	return ctrl.Result{}, err
-	// }
-
-	// r.generateIsolatedNetwork(ctx, csZone, csCluster)
-
 	// log.Info("Reconcile CloudStackZone completed successfully.", "spec", csZone.Spec)
-
-	//csZone.Status.Ready = true
 
 	return ctrl.Result{}, nil
 }
@@ -101,16 +83,12 @@ func (r *CloudStackZoneReconciler) generateIsolatedNetwork(
 	return nil
 }
 
-func (r *CloudStackZoneReconciler) reconcile(context.Context
+func (r *CloudStackZoneReconciler) reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
 
-// Fetches all CRDs relavent to reconciling a CloudStackCluster.
-func (r *CloudStackZoneReconciler) fetchRelatedCRDs(
-	ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
-	r.GetBaseCRDs(ctx, req)
-	// Get CloudStackZones.
-	// _, reterr = r.fetchIsolatedNetworks(ctx, req)
-	// if reterr != nil {
-	// 	return reconcile.Result{}, errors.Wrap(reterr, "error encountered fetching CloudStackZone(s)")
-	// }
+	r.SubjectOfReconciliation.Status.Ready = true
+	return ctrl.Result{}, nil
+}
+
+func (r *CloudStackZoneReconciler) reconcileDelete(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
 	return ctrl.Result{}, nil
 }

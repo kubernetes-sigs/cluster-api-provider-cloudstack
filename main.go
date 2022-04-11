@@ -154,10 +154,11 @@ func main() {
 
 	// Register machine and cluster reconcilers with the controller manager.
 	if err = (&controllers.CloudStackClusterReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
-		Scheme: mgr.GetScheme(),
-		CS:     client,
+		CloudStackBaseReconciler: controllers.CloudStackBaseReconciler{
+			Client: mgr.GetClient(),
+			Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
+			Scheme: mgr.GetScheme(),
+			CS:     client},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
@@ -181,10 +182,11 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.CloudStackZoneReconciler{
-		Log:    ctrl.Log.WithName("controllers").WithName("CloudStackZone"),
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		CS:     client,
+		CloudStackBaseReconciler: controllers.CloudStackBaseReconciler{
+			Log:    ctrl.Log.WithName("controllers").WithName("CloudStackZone"),
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+			CS:     client},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackZone")
 		os.Exit(1)
