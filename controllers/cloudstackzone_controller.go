@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -136,6 +137,7 @@ func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Resu
 func (r *CloudStackZoneReconciler) reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
 
 	r.ReconciliationSubject.Status.Ready = true
+	fmt.Println(r.ReconciliationSubject)
 	return ctrl.Result{}, nil
 }
 

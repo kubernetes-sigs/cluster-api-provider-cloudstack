@@ -21,7 +21,6 @@ import (
 	"reflect"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -162,7 +161,7 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 // checkOwnedCRDsforReadiness checks that owned CRDs like Zones are ready.
 func (r *CloudStackClusterReconciler) checkOwnedCRDsforReadiness(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	if len(r.CSCluster.Spec.Zones) != len(r.Zones.Items) {
+	if len(r.ReconciliationSubject.Spec.Zones) != len(r.Zones.Items) {
 		return reconcile.Result{}, errors.New("did not find all zones required for cluster reconciliation")
 	}
 
@@ -233,7 +232,7 @@ func (r *CloudStackClusterReconciler) CreateZones(ctx context.Context, req ctrl.
 }
 
 // SettableZones satisfies the ZoneUsingReconciler interface by providing access to the reconciler's Zone list.
-func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackClusterList {
+func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackZoneList {
 	return &r.Zones
 }
 
