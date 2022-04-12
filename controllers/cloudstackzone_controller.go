@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -59,6 +60,7 @@ func (r *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *CloudStackZoneReconciler) reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
 
 	r.ReconciliationSubject.Status.Ready = true
+	fmt.Println(r.ReconciliationSubject)
 	return ctrl.Result{}, nil
 }
 

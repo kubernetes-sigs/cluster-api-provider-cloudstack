@@ -63,9 +63,9 @@ func (r *CloudStackBaseReconciler) UsingConcreteSubject(subject client.Object) {
 
 // SetupLogger sets up the reconciler's logger to log with cluster and namespace values.
 func (r *CloudStackBaseReconciler) SetupLogger(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// Setup loger with reconciler specifics.
-	// r.Log = r.Log.WithValues(r.ReconciliationSubject.GetObjectKind(), req.Name, "namespace", req.Namespace)
-
+	kind := r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind
+	fmt.Println(kind)
+	r.Log = r.Log.WithValues(kind, req.Name, "namespace", req.Namespace)
 	return ctrl.Result{}, nil
 }
 
@@ -82,6 +82,9 @@ func (r *CloudStackBaseReconciler) CheckIfPaused(ctx context.Context, req ctrl.R
 // to the API.
 func (r *CloudStackBaseReconciler) PatchChangesBackToAPI(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	patchHelper, err := patch.NewHelper(r.ReconciliationSubject, r.Client)
+	fmt.Println("base")
+	fmt.Println(r.ReconciliationSubject)
+	fmt.Println("base")
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -124,10 +127,6 @@ func (r *CloudStackBaseReconciler) GetBaseCRDs(ctx context.Context, req ctrl.Req
 
 // FetchReconcilationSubject fetches the reconciliation subject of type defined by the concrete reconciler.
 func (r *CloudStackBaseReconciler) FetchReconcilationSubject(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
-	fmt.Println("blah")
-	fmt.Println(r.ReconciliationSubject)
-	fmt.Println(r.ReconciliationSubject)
-	fmt.Println("blah")
 	return ctrl.Result{}, r.Client.Get(ctx, req.NamespacedName, r.ReconciliationSubject)
 }
 
@@ -141,18 +140,9 @@ func (r *CloudStackBaseReconciler) Subject() client.Object {
 	return r.ReconciliationSubject
 }
 
-// FetchReconcilationSubject logs the reconcilation subject in its entirety.
+// LogReconcilationSubject logs the reconcilation subject in its entirety.
 func (r *CloudStackBaseReconciler) LogReconcilationSubject(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
-	fmt.Println("tooblah")
-	fmt.Println(fmt.Sprintln(r.ReconciliationSubject))
-	fmt.Println(r.ReconciliationSubject)
-	fmt.Println("tooblah")
 	return ctrl.Result{}, nil
-}
-
-type CloudStackIsoNetUser struct {
-	CloudStackBaseReconciler
-	Zones *infrav1.CloudStackZoneList
 }
 
 // // GenerateIsolatedNetwork generates a CloudStackIsolatedNetwork CRD owned by the ReconcilationSubject.

@@ -157,7 +157,7 @@ func main() {
 	if err = (&controllers.CloudStackClusterReconciler{
 		CloudStackBaseReconciler: csCtrlrUtils.CloudStackBaseReconciler{
 			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
+			Log:    ctrl.Log.WithName("controllers").WithName("CloudStackCluster"),
 			Scheme: mgr.GetScheme(),
 			CS:     client},
 	}).SetupWithManager(mgr); err != nil {
@@ -166,7 +166,7 @@ func main() {
 	}
 	if err = (&controllers.CloudStackMachineReconciler{
 		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Machine"),
+		Log:    ctrl.Log.WithName("controllers").WithName("CloudStackMachine"),
 		Scheme: mgr.GetScheme(),
 		CS:     client,
 	}).SetupWithManager(mgr); err != nil {

@@ -24,7 +24,6 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -40,7 +39,7 @@ import (
 // CloudStackClusterReconciler reconciles a CloudStackCluster object.
 type CloudStackClusterReconciler struct {
 	utils.CloudStackBaseReconciler
-	Zones                 infrav1.CloudStackClusterList
+	Zones                 infrav1.CloudStackZoneList
 	ReconciliationSubject infrav1.CloudStackCluster
 }
 
@@ -54,16 +53,8 @@ type CloudStackClusterReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-
-type blah struct {
-	client.Object
-}
-
+// Reconcile is part of the main kubernetes reconciliation loop which aims to move the current state of the cluster
+// closer to the desired state.
 func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
 
 	r.CloudStackBaseReconciler.UsingConcreteSubject(&r.ReconciliationSubject)
@@ -132,7 +123,7 @@ func (r *CloudStackClusterReconciler) reconcileDelete(ctx context.Context, req c
 // checkOwnedCRDsforReadiness checks that owned CRDs like Zones are ready.
 func (r *CloudStackClusterReconciler) checkOwnedCRDsforReadiness(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	if len(r.CSCluster.Spec.Zones) != len(r.Zones.Items) {
+	if len(r.ReconciliationSubject.Spec.Zones) != len(r.Zones.Items) {
 		return reconcile.Result{}, errors.New("did not find all zones required for cluster reconciliation")
 	}
 
@@ -203,7 +194,7 @@ func (r *CloudStackClusterReconciler) CreateZones(ctx context.Context, req ctrl.
 }
 
 // SettableZones satisfies the ZoneUsingReconciler interface by providing access to the reconciler's Zone list.
-func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackClusterList {
+func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackZoneList {
 	return &r.Zones
 }
 

@@ -19,7 +19,7 @@ type ZoneUsingReconciler interface {
 	Subject() client.Object
 	Base() CloudStackBaseReconciler
 	ZoneSpecs() []infrav1.Zone
-	SettableZones() *infrav1.CloudStackClusterList // For retrieving zone information.
+	SettableZones() *infrav1.CloudStackZoneList // For retrieving zone information.
 }
 
 // CreateZone generates a specified CloudStackZone CRD owned by the ReconcilationSubject.
@@ -60,6 +60,7 @@ func CreateZones(ctx context.Context, reconciler ZoneUsingReconciler) (ctrl.Resu
 // GetZones gets CloudStackZones owned by a CloudStackCluster via an ownership label.
 func GetZones(ctx context.Context, reconciler ZoneUsingReconciler) (ctrl.Result, error) {
 	labels := map[string]string{"OwnedBy": reconciler.Subject().GetName()}
+
 	if err := reconciler.Base().Client.List(
 		ctx,
 		reconciler.SettableZones(),
