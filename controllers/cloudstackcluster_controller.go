@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -168,7 +169,7 @@ func (r *CloudStackClusterReconciler) checkOwnedCRDsforReadiness(ctx context.Con
 	for _, zone := range r.Zones.Items {
 		if !zone.Status.Ready {
 			r.Log.Info("not all required zones are ready, requeing")
-			return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+			return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 		}
 	}
 
@@ -219,4 +220,24 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 			DeleteFunc: func(e event.DeleteEvent) bool { return false },
 			CreateFunc: func(e event.CreateEvent) bool { return false }})
 	return errors.Wrap(err, "building CloudStackCluster controller:")
+}
+
+// GetZones translates the utility function of the same name to a reconciler function.
+func (r *CloudStackClusterReconciler) GetZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	return utils.GetZones(ctx, r)
+}
+
+// CreateZones translates the utility function of the same name to a reconciler function.
+func (r *CloudStackClusterReconciler) CreateZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	return utils.CreateZones(ctx, r)
+}
+
+// SettableZones satisfies the ZoneUsingReconciler interface by providing access to the reconciler's Zone list.
+func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackClusterList {
+	return &r.Zones
+}
+
+// ZoneSpecs satisfies the ZoneUsingReconciler interface by providing access to the Cluster's Speced Zones.
+func (r *CloudStackClusterReconciler) ZoneSpecs() []infrav1.Zone {
+	return r.ReconciliationSubject.Spec.Zones
 }

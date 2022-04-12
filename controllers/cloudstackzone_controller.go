@@ -135,10 +135,33 @@ func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Resu
 
 func (r *CloudStackZoneReconciler) reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
 
-	r.SubjectOfReconciliation.Status.Ready = true
+	r.ReconciliationSubject.Status.Ready = true
 	return ctrl.Result{}, nil
 }
 
 func (r *CloudStackZoneReconciler) reconcileDelete(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
 	return ctrl.Result{}, nil
 }
+
+// func (r *CloudStackZoneReconciler) generateIsolatedNetwork(
+// 	ctx context.Context, zone *infrav1.CloudStackZone, csCluster *infrav1.CloudStackCluster) error {
+
+// 	// csIsoNet := &infrav1.CloudStackIsolatedNetwork{
+// 	// 	ObjectMeta: metav1.ObjectMeta{
+// 	// 		Name:      zone.Spec.Name,
+// 	// 		Namespace: zone.Namespace,
+// 	// 		// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
+// 	// 		Annotations: map[string]string{},
+// 	// 		OwnerReferences: []metav1.OwnerReference{
+// 	// 			*metav1.NewControllerRef(zone, controlplanev1.GroupVersion.WithKind("CloudStackZone")),
+// 	// 			*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
+// 	// 		},
+// 	// 	},
+// 	// 	Spec: infrav1.CloudStackIsolatedNetworkSpec{Name: zone.Spec.Network.Name},
+// 	// }
+
+// 	// if err := r.Client.Create(ctx, csIsoNet); err != nil {
+// 	// 	return errors.Wrap(err, "failed to create machine")
+// 	// }
+// 	return nil
+// }
