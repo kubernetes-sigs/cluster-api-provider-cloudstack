@@ -14,14 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package utils
 
 import (
 	"context"
 	"fmt"
-	"strings"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
@@ -29,7 +26,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -50,7 +46,7 @@ type CloudStackBaseReconciler struct {
 
 type CloudStackReconcilerMethod func(context.Context, ctrl.Request) (ctrl.Result, error)
 
-func (r *CloudStackBaseReconciler) runWith(
+func (r *CloudStackBaseReconciler) RunWith(
 	ctx context.Context, req ctrl.Request, fns ...CloudStackReconcilerMethod) (ctrl.Result, error) {
 	for _, fn := range fns {
 		if rslt, err := fn(ctx, req); err != nil || rslt.Requeue == true || rslt.RequeueAfter != 0 {
@@ -60,18 +56,31 @@ func (r *CloudStackBaseReconciler) runWith(
 	return ctrl.Result{}, nil
 }
 
+// UsingConcreteSubject sets up the base reconciler to use passed concrete reconciler subject.
+func (r *CloudStackBaseReconciler) UsingConcreteSubject(subject client.Object) {
+	r.ReconciliationSubject = subject
+}
+
+// SetupLogger sets up the reconciler's logger to log with cluster and namespace values.
+func (r *CloudStackBaseReconciler) SetupLogger(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// Setup loger with reconciler specifics.
+	// r.Log = r.Log.WithValues(r.ReconciliationSubject.GetObjectKind(), req.Name, "namespace", req.Namespace)
+
+	return ctrl.Result{}, nil
+}
+
 // CheckIfPaused returns with reque later set if paused.
 func (r *CloudStackBaseReconciler) CheckIfPaused(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	if annotations.IsPaused(r.CAPICluster, r.CSCluster) {
 		r.Log.Info("Cluster is paused. Refusing to reconcile.")
-		return reconcile.Result{RequeueAfter: requeueTimeout}, nil
+		return reconcile.Result{RequeueAfter: RequeueTimeout}, nil
 	}
 	return reconcile.Result{}, nil
 }
 
 // patchChangesBackToAPI writes the changes made to the Reconciler's local copy of the reconcilation subject back
 // to the API.
-func (r *CloudStackBaseReconciler) patchChangesBackToAPI(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *CloudStackBaseReconciler) PatchChangesBackToAPI(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	patchHelper, err := patch.NewHelper(r.ReconciliationSubject, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -113,67 +122,32 @@ func (r *CloudStackBaseReconciler) GetBaseCRDs(ctx context.Context, req ctrl.Req
 	return res, nil
 }
 
-func (r *CloudStackBaseReconciler) FetchSubjectOfReconciliation(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
+// FetchReconcilationSubject fetches the reconciliation subject of type defined by the concrete reconciler.
+func (r *CloudStackBaseReconciler) FetchReconcilationSubject(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
+	fmt.Println("blah")
+	fmt.Println(r.ReconciliationSubject)
+	fmt.Println(r.ReconciliationSubject)
+	fmt.Println("blah")
 	return ctrl.Result{}, r.Client.Get(ctx, req.NamespacedName, r.ReconciliationSubject)
 }
 
-func (r *CloudStackBaseReconciler) LogSubjectOfReconciliation(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
-	r.Log.Info(fmt.Sprintln(r.ReconciliationSubject))
+// Base returns the base cloudstack reconciler itself. This is to satisfy additional CRD interfaces.
+func (r *CloudStackBaseReconciler) Base() CloudStackBaseReconciler {
+	return *r
+}
+
+// Subject returns the ReconciliationSubject. This is to satisfy additional CRD interfaces.
+func (r *CloudStackBaseReconciler) Subject() client.Object {
+	return r.ReconciliationSubject
+}
+
+// FetchReconcilationSubject logs the reconcilation subject in its entirety.
+func (r *CloudStackBaseReconciler) LogReconcilationSubject(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
+	fmt.Println("tooblah")
+	fmt.Println(fmt.Sprintln(r.ReconciliationSubject))
+	fmt.Println(r.ReconciliationSubject)
+	fmt.Println("tooblah")
 	return ctrl.Result{}, nil
-}
-
-type CloudStackZoneUser struct {
-	CloudStackBaseReconciler
-	Zones *infrav1.CloudStackZoneList
-}
-
-// FetchZones fetches CloudStackZones owned by a CloudStackCluster via an ownership label.
-func (r *CloudStackZoneUser) FetchZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	labels := map[string]string{"OwnedBy": r.CSCluster.Name}
-	if err := r.Client.List(
-		ctx,
-		r.Zones,
-		client.InNamespace(r.CSCluster.Namespace),
-		client.MatchingLabels(labels),
-	); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to list zones")
-	}
-	return ctrl.Result{}, nil
-}
-
-// GenerateZones generates a CloudStackClusterZone CRD for each of the SubjectOfReconciliation's Zones.
-// Assumes SubjectOfReconciliation has a Spec.Zones field.
-func (r *CloudStackZoneUser) GenerateZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	for _, zone := range r.CSCluster.Spec.Zones {
-		if err := r.GenerateZone(ctx, zone); err != nil {
-			if !strings.Contains(strings.ToLower(err.Error()), "already exists") {
-				return reconcile.Result{}, errors.Wrap(err, "error encountered when creating CloudStackZone")
-			}
-		}
-	}
-	return ctrl.Result{}, nil
-}
-
-// GenerateZone generates a specified CloudStackZone CRD owned by the SubjectOfReconciliation.
-func (r *CloudStackZoneUser) GenerateZone(ctx context.Context, zoneSpec infrav1.Zone) error {
-	ownerKind := r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind
-	csZone := &infrav1.CloudStackZone{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        strings.ToLower(zoneSpec.Name),
-			Namespace:   r.CSCluster.Namespace,
-			Labels:      map[string]string{"OwnedBy": r.CSCluster.Name},
-			Annotations: map[string]string{},
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(r.ReconciliationSubject, controlplanev1.GroupVersion.WithKind(ownerKind)),
-			},
-		},
-		Spec: infrav1.CloudStackZoneSpec{Name: zoneSpec.Name},
-	}
-
-	if err := r.Client.Create(ctx, csZone); err != nil {
-		return errors.Wrap(err, "failed to create zone")
-	}
-	return nil
 }
 
 type CloudStackIsoNetUser struct {
@@ -181,26 +155,26 @@ type CloudStackIsoNetUser struct {
 	Zones *infrav1.CloudStackZoneList
 }
 
-// GenerateIsolatedNetwork generates a CloudStackIsolatedNetwork CRD owned by the SubjectOfReconciliation.
-func (r *CloudStackIsoNetUser) GenerateIsolatedNetwork(
-	ctx context.Context, zone *infrav1.CloudStackZone, csCluster *infrav1.CloudStackCluster) error {
+// // GenerateIsolatedNetwork generates a CloudStackIsolatedNetwork CRD owned by the ReconcilationSubject.
+// func (r *CloudStackIsoNetUser) GenerateIsolatedNetwork(
+// 	ctx context.Context, zone *infrav1.CloudStackZone, csCluster *infrav1.CloudStackCluster) error {
 
-	csIsoNet := &infrav1.CloudStackIsolatedNetwork{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      zone.Spec.Name,
-			Namespace: zone.Namespace,
-			// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
-			Annotations: map[string]string{},
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(zone, controlplanev1.GroupVersion.WithKind("CloudStackZone")),
-				*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
-			},
-		},
-		Spec: infrav1.CloudStackIsolatedNetworkSpec{Name: zone.Spec.Network.Name},
-	}
+// 	csIsoNet := &infrav1.CloudStackIsolatedNetwork{
+// 		ObjectMeta: metav1.ObjectMeta{
+// 			Name:      zone.Spec.Name,
+// 			Namespace: zone.Namespace,
+// 			// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
+// 			Annotations: map[string]string{},
+// 			OwnerReferences: []metav1.OwnerReference{
+// 				*metav1.NewControllerRef(zone, controlplanev1.GroupVersion.WithKind("CloudStackZone")),
+// 				*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
+// 			},
+// 		},
+// 		Spec: infrav1.CloudStackIsolatedNetworkSpec{Name: zone.Spec.Network.Name},
+// 	}
 
-	if err := r.Client.Create(ctx, csIsoNet); err != nil {
-		return errors.Wrap(err, "failed to create machine")
-	}
-	return nil
-}
+// 	if err := r.Client.Create(ctx, csIsoNet); err != nil {
+// 		return errors.Wrap(err, "failed to create machine")
+// 	}
+// 	return nil
+// }

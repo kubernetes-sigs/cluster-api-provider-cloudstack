@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -32,14 +33,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // CloudStackClusterReconciler reconciles a CloudStackCluster object.
 type CloudStackClusterReconciler struct {
-	CloudStackBaseReconciler
-	CloudStackZoneUser
-	SubjectOfReconciliation *infrav1.CloudStackCluster
+	utils.CloudStackBaseReconciler
+	Zones                 infrav1.CloudStackClusterList
+	ReconciliationSubject infrav1.CloudStackCluster
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=get;list;watch;create;update;patch;delete
@@ -58,21 +60,23 @@ type CloudStackClusterReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 
-type CloudStackClusterReconcilerFunc func(context.Context, ctrl.Request) (ctrl.Result, error)
+type blah struct {
+	client.Object
+}
 
 func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	r.Log = r.Log.WithValues("cluster", req.Name, "namespace", req.Namespace)
-	r.Log.V(1).Info("Reconcile CloudStackCluster")
 
-	return r.runWith(ctx, req,
-		r.FetchSubjectOfReconciliation,
+	r.CloudStackBaseReconciler.UsingConcreteSubject(&r.ReconciliationSubject)
+
+	return r.RunWith(ctx, req,
+		r.SetupLogger,
+		r.FetchReconcilationSubject,
 		r.GetBaseCRDs,
-		r.LogSubjectOfReconciliation,
 		r.CheckIfPaused,
-		r.FetchZones,
+		r.GetZones,
 		r.reconcileDelete,
 		r.reconcile,
-		r.patchChangesBackToAPI,
+		r.PatchChangesBackToAPI,
 	)
 }
 
@@ -85,8 +89,8 @@ func (r *CloudStackClusterReconciler) reconcile(ctx context.Context, req ctrl.Re
 
 	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.CSCluster.Spec)
 
-	return r.runWith(ctx, req,
-		r.GenerateZones,
+	return r.RunWith(ctx, req,
+		r.CreateZones,
 		r.checkOwnedCRDsforReadiness,
 		r.resolveClusterDetails,
 	)
@@ -135,7 +139,7 @@ func (r *CloudStackClusterReconciler) checkOwnedCRDsforReadiness(ctx context.Con
 	for _, zone := range r.Zones.Items {
 		if !zone.Status.Ready {
 			r.Log.Info("not all required zones are ready, requeing")
-			return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+			return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 		}
 	}
 
@@ -186,4 +190,24 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return ok
 			}},
 	)
+}
+
+// GetZones translates the utility function of the same name to a reconciler function.
+func (r *CloudStackClusterReconciler) GetZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	return utils.GetZones(ctx, r)
+}
+
+// CreateZones translates the utility function of the same name to a reconciler function.
+func (r *CloudStackClusterReconciler) CreateZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	return utils.CreateZones(ctx, r)
+}
+
+// SettableZones satisfies the ZoneUsingReconciler interface by providing access to the reconciler's Zone list.
+func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackClusterList {
+	return &r.Zones
+}
+
+// ZoneSpecs satisfies the ZoneUsingReconciler interface by providing access to the Cluster's Speced Zones.
+func (r *CloudStackClusterReconciler) ZoneSpecs() []infrav1.Zone {
+	return r.ReconciliationSubject.Spec.Zones
 }

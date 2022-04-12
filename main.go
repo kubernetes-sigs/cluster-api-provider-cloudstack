@@ -26,6 +26,7 @@ import (
 	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
+	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -154,7 +155,7 @@ func main() {
 
 	// Register machine and cluster reconcilers with the controller manager.
 	if err = (&controllers.CloudStackClusterReconciler{
-		CloudStackBaseReconciler: controllers.CloudStackBaseReconciler{
+		CloudStackBaseReconciler: csCtrlrUtils.CloudStackBaseReconciler{
 			Client: mgr.GetClient(),
 			Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
 			Scheme: mgr.GetScheme(),
@@ -182,7 +183,7 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.CloudStackZoneReconciler{
-		CloudStackBaseReconciler: controllers.CloudStackBaseReconciler{
+		CloudStackBaseReconciler: csCtrlrUtils.CloudStackBaseReconciler{
 			Log:    ctrl.Log.WithName("controllers").WithName("CloudStackZone"),
 			Client: mgr.GetClient(),
 			Scheme: mgr.GetScheme(),

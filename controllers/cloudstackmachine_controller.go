@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
@@ -42,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -54,9 +54,6 @@ type CloudStackMachineReconciler struct {
 	Scheme *runtime.Scheme
 	CS     cloud.Client
 }
-
-const requeueTimeout = 5 * time.Second
-const destoryVMRequeueInterval = 10 * time.Second
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
@@ -102,14 +99,14 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, err
 	} else if capiMachine == nil {
 		log.Info("Waiting for CAPI cluster controller to set owner reference on CloudStack machine.")
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	}
 
 	// Fetch the CAPI Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		log.Info("Machine is missing cluster label or cluster does not exist.")
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	}
 
 	// Check if the machine is paused.
@@ -133,19 +130,19 @@ func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		csCluster); err != nil {
 		if client.IgnoreNotFound(err) == nil {
 			log.Info("CloudStackCluster not found.")
-			return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+			return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 		}
 	}
 
 	if !csCluster.Status.Ready {
 		log.Info("CloudStackCluster not ready. Requeuing.")
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	}
 
 	if util.IsControlPlaneMachine(capiMachine) &&
 		(capiMachine.Spec.FailureDomain == nil || *capiMachine.Spec.FailureDomain == "") {
 		log.Info("CAPI zone placement specification not yet set. Requeuing.")
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	}
 
 	// Set ZoneID on csMachine.
@@ -231,10 +228,10 @@ func (r *CloudStackMachineReconciler) reconcile(
 		if err := r.Client.Delete(ctx, csMachine); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	} else {
 		log.Info(fmt.Sprintf("Instance not ready, is %s.", csMachine.Status.InstanceState))
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	}
 
 	// Add machine to load balancer if it is a control plane in an isolated network.
@@ -271,7 +268,7 @@ func (r *CloudStackMachineReconciler) reconcileDelete(
 	if err := r.CS.DestroyVMInstance(csMachine); err != nil {
 		if err.Error() == "VM deletion in progress" {
 			log.Info(err.Error())
-			return ctrl.Result{RequeueAfter: destoryVMRequeueInterval}, nil
+			return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
 		}
 		return ctrl.Result{}, err
 	}
