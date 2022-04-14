@@ -39,12 +39,12 @@ func DeployAppSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		namespace                 *corev1.Namespace
 		cancelWatches             context.CancelFunc
 		clusterResources          *clusterctl.ApplyClusterTemplateAndWaitResult
-		appName                   = "httpbin"
-		appManifestUrl            = "https://raw.githubusercontent.com/istio/istio/master/samples/httpbin/httpbin.yaml"
+		appName                   = "httpd"
+		appManifestPath           = "data/fixture/sample-application.yaml"
 		expectedHtmlPath          = "data/fixture/expected-webpage.html"
 		appDeploymentReadyTimeout = 180
-		appPort                   = 8000
-		appDefaultHtmlPath        = "/html"
+		appPort                   = 8080
+		appDefaultHtmlPath        = "/"
 		expectedHtml              = ""
 	)
 
@@ -100,8 +100,9 @@ func DeployAppSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		workloadKubeconfigPath := workloadClusterProxy.GetKubeconfigPath()
 
-		By("Deploying a simple web server application to the workload cluster")
-		Expect(DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx, workloadKubeconfigPath, appName, appManifestUrl, appDeploymentReadyTimeout)).To(Succeed())
+		appManifestAbsolutePath, _ := filepath.Abs(appManifestPath)
+		Byf("Deploying a simple web server application to the workload cluster from %s", appManifestAbsolutePath)
+		Expect(DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx, workloadKubeconfigPath, appName, appManifestAbsolutePath, appDeploymentReadyTimeout)).To(Succeed())
 
 		By("Downloading the default html of the web server")
 		actualHtml, err := DownloadFromAppInWorkloadCluster(ctx, workloadKubeconfigPath, appName, appPort, appDefaultHtmlPath)
