@@ -76,7 +76,6 @@ func (r *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *CloudStackZoneReconciler) reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
-	r.ReconciliationSubject.Status.Stay = "blah"
 	r.ReconciliationSubject.Status.Ready = true
 	return ctrl.Result{}, nil
 }
