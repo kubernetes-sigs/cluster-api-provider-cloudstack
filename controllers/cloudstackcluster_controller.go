@@ -164,7 +164,6 @@ func (r *CloudStackClusterReconciler) checkOwnedCRDsforReadiness(ctx context.Con
 	if len(r.ReconciliationSubject.Spec.Zones) != len(r.Zones.Items) {
 		return reconcile.Result{}, errors.New("did not find all zones required for cluster reconciliation")
 	}
-
 	for _, zone := range r.Zones.Items {
 		if !zone.Status.Ready {
 			r.Log.Info("not all required zones are ready, requeing")
@@ -221,22 +220,22 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 	return errors.Wrap(err, "building CloudStackCluster controller:")
 }
 
-// GetZones translates the utility function of the same name to a reconciler function.
-func (r *CloudStackClusterReconciler) GetZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return utils.GetZones(ctx, r)
-}
+// // GetZones translates the utility function of the same name to a reconciler function.
+// func (r *CloudStackClusterReconciler) GetZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// 	return utils.GetZones(ctx, r)
+// }
 
-// CreateZones translates the utility function of the same name to a reconciler function.
-func (r *CloudStackClusterReconciler) CreateZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return utils.CreateZones(ctx, r)
-}
+// // CreateZones translates the utility function of the same name to a reconciler function.
+// func (r *CloudStackClusterReconciler) CreateZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// 	return utils.CreateZones(ctx, r)
+// }
 
-// SettableZones satisfies the ZoneUsingReconciler interface by providing access to the reconciler's Zone list.
-func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackZoneList {
-	return &r.Zones
-}
+// // SettableZones satisfies the ZoneUsingReconciler interface by providing access to the reconciler's Zone list.
+// func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackZoneList {
+// 	return &r.Zones
+// }
 
-// ZoneSpecs satisfies the ZoneUsingReconciler interface by providing access to the Cluster's Speced Zones.
-func (r *CloudStackClusterReconciler) ZoneSpecs() []infrav1.Zone {
-	return r.ReconciliationSubject.Spec.Zones
-}
+// // ZoneSpecs satisfies the ZoneUsingReconciler interface by providing access to the Cluster's Speced Zones.
+// func (r *CloudStackClusterReconciler) ZoneSpecs() []infrav1.Zone {
+// 	return r.ReconciliationSubject.Spec.Zones
+// }

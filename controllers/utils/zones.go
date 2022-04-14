@@ -41,6 +41,12 @@ func (r *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
 	return errors.Wrap(r.K8sClient.Create(r.RequestCtx, csZone), "creating CloudStackZone:")
 }
 
+func (runner *ReconciliationRunner) CreateZones2(zoneSpecs []infrav1.Zone) (ctrl.Result, error) {
+	return func() (ctrl.Result, error) {
+		return ctrl.Result{}, nil
+	}()
+}
+
 // CreateZones generates a CloudStackClusterZone CRD for each of the ReconcilationSubject's Zones.
 // Returns a CloudStackReconcilerMethod to curry zoneSpecs.
 func (r *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudStackReconcilerMethod {
