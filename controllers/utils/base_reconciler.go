@@ -18,7 +18,7 @@ package utils
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
@@ -34,79 +34,58 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type CloudStackBaseReconciler struct {
-	CAPICluster           *capiv1.Cluster
-	CSCluster             *infrav1.CloudStackCluster
-	Log                   logr.Logger
-	Scheme                *runtime.Scheme
-	CS                    cloud.Client
-	Client                client.Client
-	ReconciliationSubject client.Object
+// ReconcilerBase is the base set of componenets we use in k8s reconcilers.
+// These are items that are not copied for each reconciliation request, and must be written to with caution.
+type ReconcilerBase struct {
+	Log    logr.Logger
+	Scheme *runtime.Scheme
+	Client client.Client
+	CS     cloud.Client
 }
 
-type CloudStackReconcilerMethod func(context.Context, ctrl.Request) (ctrl.Result, error)
-
-func (r *CloudStackBaseReconciler) RunWith(
-	ctx context.Context, req ctrl.Request, fns ...CloudStackReconcilerMethod) (ctrl.Result, error) {
-	for _, fn := range fns {
-		if rslt, err := fn(ctx, req); err != nil || rslt.Requeue == true || rslt.RequeueAfter != 0 {
-			return rslt, err
-		}
-	}
-	return ctrl.Result{}, nil
+// CloudStackBaseContext is the base CloudStack data structure created/copied for each reconciliation request to avoid
+// concurrent member access.
+type CloudStackBaseContext struct {
+	RequestCtx  context.Context
+	Request     ctrl.Request
+	CAPICluster *capiv1.Cluster
+	CSCluster   *infrav1.CloudStackCluster
+	Patcher     *patch.Helper
 }
 
-// UsingConcreteSubject sets up the base reconciler to use passed concrete reconciler subject.
-func (r *CloudStackBaseReconciler) UsingConcreteSubject(subject client.Object) {
-	r.ReconciliationSubject = subject
+// ReconciliationRunner is the base structure used to run reconciliation methods and implements several.
+type ReconciliationRunner struct {
+	fn interface{}
+	ReconcilerBase
+	CloudStackBaseContext
+	ReconciliationSubject client.Object // Underlying crd interface.
 }
 
-// SetupLogger sets up the reconciler's logger to log with cluster and namespace values.
-func (r *CloudStackBaseReconciler) SetupLogger(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	kind := r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind
-	fmt.Println(kind)
-	r.Log = r.Log.WithValues(kind, req.Name, "namespace", req.Namespace)
-	return ctrl.Result{}, nil
+// UsingBaseReconciler sets the ReconciliationRunner to use the same base components as the passed base reconciler.
+func (runner *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *ReconciliationRunner {
+	runner.ReconcilerBase = base
+	return runner
 }
 
-// CheckIfPaused returns with reque later set if paused.
-func (r *CloudStackBaseReconciler) CheckIfPaused(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	if annotations.IsPaused(r.CAPICluster, r.CSCluster) {
-		r.Log.Info("Cluster is paused. Refusing to reconcile.")
-		return reconcile.Result{RequeueAfter: RequeueTimeout}, nil
-	}
-	return reconcile.Result{}, nil
+// ForRequest sets the reconciliation request.
+func (runner *ReconciliationRunner) ForRequest(req ctrl.Request) *ReconciliationRunner {
+	runner.Request = req
+	return runner
 }
 
-// patchChangesBackToAPI writes the changes made to the Reconciler's local copy of the reconcilation subject back
-// to the API.
-func (r *CloudStackBaseReconciler) PatchChangesBackToAPI(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	patchHelper, err := patch.NewHelper(r.ReconciliationSubject, r.Client)
-	fmt.Println("base")
-	fmt.Println(r.ReconciliationSubject)
-	fmt.Println("base")
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if err = patchHelper.Patch(ctx, r.ReconciliationSubject); err != nil {
-		err = errors.Wrapf(
-			err,
-			"error patching %s %s/%s",
-			r.ReconciliationSubject.GetObjectKind(),
-			r.ReconciliationSubject.GetNamespace(),
-			r.ReconciliationSubject.GetName(),
-		)
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{}, nil
+// WithRequestCtx sets the request context.
+func (runner *ReconciliationRunner) WithRequestCtx(ctx context.Context) *ReconciliationRunner {
+	runner.RequestCtx = ctx
+	return runner
 }
 
-func (r *CloudStackBaseReconciler) GetBaseCRDs(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
-	r.CSCluster = &infrav1.CloudStackCluster{}
-	r.CAPICluster = &capiv1.Cluster{}
+// GetBaseCRDs fetches the CAPI Cluster and the CloudStackCluster. These are the base CRDs required for every
+// CloudStack reconciliation.
+func (r *ReconciliationRunner) GetBaseCRDs() (res ctrl.Result, reterr error) {
 
 	// Get CloudStack cluster.
-	if reterr = r.Client.Get(ctx, req.NamespacedName, r.CSCluster); reterr != nil {
+	r.CSCluster = &infrav1.CloudStackCluster{}
+	if reterr = r.Client.Get(r.RequestCtx, r.Request.NamespacedName, r.CSCluster); reterr != nil {
 		if client.IgnoreNotFound(reterr) == nil {
 			r.Log.Info("Cluster not found.")
 			return ctrl.Result{}, nil
@@ -115,34 +94,67 @@ func (r *CloudStackBaseReconciler) GetBaseCRDs(ctx context.Context, req ctrl.Req
 	}
 
 	// Get CAPI cluster.
-	r.CAPICluster, reterr = util.GetOwnerCluster(ctx, r.Client, r.CSCluster.ObjectMeta)
+	r.CAPICluster, reterr = util.GetOwnerCluster(r.RequestCtx, r.Client, r.CSCluster.ObjectMeta)
 	if reterr != nil {
 		return ctrl.Result{}, errors.Wrap(reterr, "error encountered while fetching CAPI Cluster crd")
 	} else if r.CAPICluster == nil {
-		return res, errors.New("CAPI Cluster not found")
+		r.Log.Info("CAPI Cluster not found, requeueing.")
+		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
 
 	return res, nil
 }
 
-// FetchReconcilationSubject fetches the reconciliation subject of type defined by the concrete reconciler.
-func (r *CloudStackBaseReconciler) FetchReconcilationSubject(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
-	return ctrl.Result{}, r.Client.Get(ctx, req.NamespacedName, r.ReconciliationSubject)
-}
-
-// Base returns the base cloudstack reconciler itself. This is to satisfy additional CRD interfaces.
-func (r *CloudStackBaseReconciler) Base() CloudStackBaseReconciler {
-	return *r
-}
-
-// Subject returns the ReconciliationSubject. This is to satisfy additional CRD interfaces.
-func (r *CloudStackBaseReconciler) Subject() client.Object {
-	return r.ReconciliationSubject
-}
-
-// LogReconcilationSubject logs the reconcilation subject in its entirety.
-func (r *CloudStackBaseReconciler) LogReconcilationSubject(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
+// SetupLogger sets up the reconciler's logger to log with name and namespace values.
+func (r *ReconciliationRunner) SetupLogger() (res ctrl.Result, retErr error) {
+	r.Log = r.Log.WithValues("name", r.Request.Name, "namespace", r.Request.Namespace)
 	return ctrl.Result{}, nil
+}
+
+// SetupPatcher initializes the patcher with the ReconciliationSubject.
+// This must be done before changes to the ReconciliationSubject for changes to be patched back later.
+func (r *ReconciliationRunner) SetupPatcher() (res ctrl.Result, retErr error) {
+	r.Log.V(1).Info("Setting up patcher.")
+	r.Patcher, retErr = patch.NewHelper(r.ReconciliationSubject, r.Client)
+	return res, errors.Wrapf(retErr, "error encountered while setting up patcher")
+}
+
+// PatchChangesBackToAPI patches changes to the ReconciliationSubject back to the appropriate API.
+func (r *ReconciliationRunner) PatchChangesBackToAPI() (res ctrl.Result, retErr error) {
+	r.Log.V(1).Info("Patching changes back to api.")
+	err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject)
+	return res, errors.Wrapf(err, "error encountered while patching reconciliation subject")
+}
+
+// CloudStackReconcilerMethod is the method type used in RunReconciliationStages. Additional arguments can be added
+// by wrapping this type in another function affectively currying them.
+type CloudStackReconcilerMethod func() (ctrl.Result, error)
+
+// RunReconciliationStages runs CloudStackReconcilerMethods in order and exits if an error or requeue condition is set.
+func (runner *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackReconcilerMethod) (ctrl.Result, error) {
+	for _, fn := range fns {
+		if rslt, err := fn(); err != nil {
+			return rslt, err
+		} else if rslt.Requeue == true || rslt.RequeueAfter != time.Duration(0) {
+			runner.Log.Info("requeing")
+			return rslt, nil
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+// CheckIfPaused returns with reque later set if paused.
+func (r *ReconciliationRunner) CheckIfPaused() (ctrl.Result, error) {
+	if annotations.IsPaused(r.CAPICluster, r.CSCluster) {
+		r.Log.Info("Cluster is paused. Refusing to reconcile.")
+		return reconcile.Result{RequeueAfter: RequeueTimeout}, nil
+	}
+	return reconcile.Result{}, nil
+}
+
+// FetchReconcilationSubject fetches the reconciliation subject of type defined by the concrete reconciler.
+func (r *ReconciliationRunner) FetchReconcilationSubject() (res ctrl.Result, reterr error) {
+	return ctrl.Result{}, r.Client.Get(r.RequestCtx, r.Request.NamespacedName, r.ReconciliationSubject)
 }
 
 // // GenerateIsolatedNetwork generates a CloudStackIsolatedNetwork CRD owned by the ReconcilationSubject.

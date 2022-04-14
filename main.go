@@ -26,7 +26,6 @@ import (
 	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
-	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -44,6 +43,7 @@ import (
 	infrastructurev1beta1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/controllers"
+	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -155,12 +155,12 @@ func main() {
 
 	// Register machine and cluster reconcilers with the controller manager.
 	if err = (&controllers.CloudStackClusterReconciler{
-		CloudStackBaseReconciler: csCtrlrUtils.CloudStackBaseReconciler{
+		ReconcilerBase: csCtrlrUtils.ReconcilerBase{
 			Client: mgr.GetClient(),
 			Log:    ctrl.Log.WithName("controllers").WithName("CloudStackCluster"),
 			Scheme: mgr.GetScheme(),
-			CS:     client},
-	}).SetupWithManager(mgr); err != nil {
+			CS:     client,
+		}}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
 	}
@@ -173,26 +173,26 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
 		os.Exit(1)
 	}
-	if err = (&controllers.CloudStackIsolatedNetworkReconciler{
-		Log:    ctrl.Log.WithName("controllers").WithName("CloudStackIsolatedNetwork"),
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		CS:     client,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsolatedNetwork")
-		os.Exit(1)
-	}
-	if err = (&controllers.CloudStackZoneReconciler{
-		CloudStackBaseReconciler: csCtrlrUtils.CloudStackBaseReconciler{
-			Log:    ctrl.Log.WithName("controllers").WithName("CloudStackZone"),
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
-			CS:     client},
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CloudStackZone")
-		os.Exit(1)
-	}
-	//+kubebuilder:scaffold:builder
+	// if err = (&controllers.CloudStackIsolatedNetworkReconciler{
+	// 	Log:    ctrl.Log.WithName("controllers").WithName("CloudStackIsolatedNetwork"),
+	// 	Client: mgr.GetClient(),
+	// 	Scheme: mgr.GetScheme(),
+	// 	CS:     client,
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsolatedNetwork")
+	// 	os.Exit(1)
+	// }
+	// if err = (&controllers.CloudStackZoneReconciler{
+	// 	CloudStackBaseReconciler: csCtrlrUtils.CloudStackBaseReconciler{
+	// 		Log:    ctrl.Log.WithName("controllers").WithName("CloudStackZone"),
+	// 		Client: mgr.GetClient(),
+	// 		Scheme: mgr.GetScheme(),
+	// 		CS:     client},
+	// }).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "CloudStackZone")
+	// 	os.Exit(1)
+	// }
+	// +kubebuilder:scaffold:builder
 
 	// Add health and ready checks.
 	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

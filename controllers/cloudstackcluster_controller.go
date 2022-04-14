@@ -21,7 +21,6 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api/util"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,21 +32,25 @@ import (
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
+	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util"
 )
 
-// CloudStackClusterReconciler reconciles a CloudStackCluster object.
-type CloudStackClusterReconciler struct {
-	utils.CloudStackBaseReconciler
+// CloudStackClusterReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+type CloudStackClusterReconciliationRunner struct {
+	csCtrlrUtils.ReconciliationRunner
 	Zones                 infrav1.CloudStackZoneList
-	ReconciliationSubject infrav1.CloudStackCluster
+	ReconciliationSubject *infrav1.CloudStackCluster
+	CSUser                cloud.Client
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters/status,verbs=create;get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters/finalizers,verbs=update
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones,verbs=get;list;watch;create;delete
 
 // TODO review whether these unnamed groups are used and if so add clarity via a comment.
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
@@ -55,40 +58,64 @@ type CloudStackClusterReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to move the current state of the cluster
 // closer to the desired state.
+// CloudStackClusterReconciler is the k8s controller manager's interface to reconcile a CloudStackCluster.
+type CloudStackClusterReconciler struct {
+	csCtrlrUtils.ReconcilerBase
+}
+
 func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-
-	r.CloudStackBaseReconciler.UsingConcreteSubject(&r.ReconciliationSubject)
-
-	return r.RunWith(ctx, req,
-		r.SetupLogger,
-		r.FetchReconcilationSubject,
-		r.GetBaseCRDs,
-		r.CheckIfPaused,
-		r.GetZones,
-		r.reconcileDelete,
-		r.reconcile,
-		r.PatchChangesBackToAPI,
-	)
+	runner := &CloudStackClusterReconciliationRunner{}
+	return runner.
+		UsingBaseReconciler(r.ReconcilerBase).
+		ForRequest(req).
+		WithRequestCtx(ctx).
+		RunReconciliationStages(
+			runner.SetupLogger,
+			runner.GetBaseCRDs,
+			runner.SetReconciliationSubjectToCSCluster,
+			runner.SetupPatcher,
+			runner.Reconcile,
+			runner.PatchChangesBackToAPI,
+		)
 }
 
-// reconcile actually reconciles cluster.
-func (r *CloudStackClusterReconciler) reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// Reconcile only if deletion timestamp not present.
-	if !r.CSCluster.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, nil
+// SetReconciliationSubjectToCSCluster set reconciliation subject to ReconciliationRunner's CloudStackCluster object
+// as in this case, the subject of reconciliation is one of the CloudStack base CRDs (used in all reconciles).
+func (r *CloudStackClusterReconciliationRunner) SetReconciliationSubjectToCSCluster() (res ctrl.Result, retErr error) {
+	r.Log.V(1).Info("Setting CloudStack cluster as the reconciliation subject.")
+	r.ReconciliationRunner.ReconciliationSubject = r.CSCluster
+	r.ReconciliationSubject = r.CSCluster
+	return res, nil
+}
+
+// Reconcile actually reconciles the CloudStackCluster.
+func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
+	if !r.ReconciliationSubject.DeletionTimestamp.IsZero() { // Reconcile deletion if timestamp is present.
+		return r.ReconcileDelete()
 	}
+	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.ReconciliationSubject.Spec)
 
-	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.CSCluster.Spec)
-
-	return r.RunWith(ctx, req,
-		r.CreateZones,
-		r.checkOwnedCRDsforReadiness,
-		r.resolveClusterDetails,
+	return r.RunReconciliationStages(
+		r.CreateZones(r.CSCluster.Spec.Zones),
+		r.CheckOwnedCRDsforReadiness,
+		r.ResolveClusterDetails,
 	)
 }
 
-// resolveClusterDetails fetches cluster specific details like domain and aunt IDs.
-func (r *CloudStackClusterReconciler) resolveClusterDetails(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// ReconcileDelete cleans up resources used by the cluster and finaly removes the CloudStackCluster's finalizers.
+func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
+
+	r.Log.V(1).Info("Deleting CloudStackCluster.")
+
+	if err := r.CS.DisposeClusterResources(r.ReconciliationSubject); err != nil {
+		return ctrl.Result{}, err
+	}
+	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
+	return ctrl.Result{}, nil
+}
+
+// ResolveClusterDetails fetches cluster specific details like domain and account IDs.
+func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Result, error) {
 	// Ensure that CAPI won't prematurely delete this CloudStackCluster.
 	controllerutil.AddFinalizer(r.CSCluster, infrav1.ClusterFinalizer)
 
@@ -96,37 +123,20 @@ func (r *CloudStackClusterReconciler) resolveClusterDetails(ctx context.Context,
 	err := r.CS.GetOrCreateCluster(r.CSCluster)
 	if err == nil {
 		r.Log.Info("Fetched cluster info sussfully.")
-		r.Log.V(1).Info("Post fetch cluster status.", "clusterStatus", r.CSCluster.Status)
+		r.Log.V(1).Info("Post fetch cluster status.", "clusterStatus", r.ReconciliationSubject.Status)
 
 		// Set cluster to ready to indicate readiness to CAPI.
-		r.CSCluster.Status.Ready = true
+		r.ReconciliationSubject.Status.Ready = true
 	}
 	return ctrl.Result{}, err
 }
 
-// reconcileDelete cleans up resources used by the cluster and finaly removes the CloudStackCluster's finalizers.
-func (r *CloudStackClusterReconciler) reconcileDelete(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	if r.CSCluster.DeletionTimestamp.IsZero() { // Reconcile deletion only if deletion timestamp is present.
-		return ctrl.Result{}, nil
-	}
-
-	r.Log.V(1).Info("reconcileDelete CloudStackCluster...")
-
-	if err := r.CS.DisposeClusterResources(r.CSCluster); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	controllerutil.RemoveFinalizer(r.CSCluster, infrav1.ClusterFinalizer)
-	return ctrl.Result{}, nil
-}
-
-// checkOwnedCRDsforReadiness checks that owned CRDs like Zones are ready.
-func (r *CloudStackClusterReconciler) checkOwnedCRDsforReadiness(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// CheckOwnedCRDsforReadiness checks that owned CRDs like Zones are ready.
+func (r *CloudStackClusterReconciliationRunner) CheckOwnedCRDsforReadiness() (ctrl.Result, error) {
 
 	if len(r.ReconciliationSubject.Spec.Zones) != len(r.Zones.Items) {
 		return reconcile.Result{}, errors.New("did not find all zones required for cluster reconciliation")
 	}
-
 	for _, zone := range r.Zones.Items {
 		if !zone.Status.Ready {
 			r.Log.Info("not all required zones are ready, requeing")
@@ -183,22 +193,22 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	)
 }
 
-// GetZones translates the utility function of the same name to a reconciler function.
-func (r *CloudStackClusterReconciler) GetZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return utils.GetZones(ctx, r)
-}
+// // GetZones translates the utility function of the same name to a reconciler function.
+// func (r *CloudStackClusterReconciler) GetZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// 	return utils.GetZones(ctx, r)
+// }
 
-// CreateZones translates the utility function of the same name to a reconciler function.
-func (r *CloudStackClusterReconciler) CreateZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return utils.CreateZones(ctx, r)
-}
+// // CreateZones translates the utility function of the same name to a reconciler function.
+// func (r *CloudStackClusterReconciler) CreateZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+// 	return utils.CreateZones(ctx, r)
+// }
 
-// SettableZones satisfies the ZoneUsingReconciler interface by providing access to the reconciler's Zone list.
-func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackZoneList {
-	return &r.Zones
-}
+// // SettableZones satisfies the ZoneUsingReconciler interface by providing access to the reconciler's Zone list.
+// func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackZoneList {
+// 	return &r.Zones
+// }
 
-// ZoneSpecs satisfies the ZoneUsingReconciler interface by providing access to the Cluster's Speced Zones.
-func (r *CloudStackClusterReconciler) ZoneSpecs() []infrav1.Zone {
-	return r.ReconciliationSubject.Spec.Zones
-}
+// // ZoneSpecs satisfies the ZoneUsingReconciler interface by providing access to the Cluster's Speced Zones.
+// func (r *CloudStackClusterReconciler) ZoneSpecs() []infrav1.Zone {
+// 	return r.ReconciliationSubject.Spec.Zones
+// }

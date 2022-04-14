@@ -64,9 +64,6 @@ type CloudStackMachineReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
 	log := r.Log.WithValues("machine", req.Name, "namespace", req.Namespace)
 	log.V(1).Info("Reconcile CloudStackMachine")

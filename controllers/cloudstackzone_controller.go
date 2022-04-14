@@ -20,34 +20,52 @@ import (
 	"context"
 	"fmt"
 
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
+	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 )
 
 // CloudStackZoneReconciler reconciles a CloudStackZone object
 type CloudStackZoneReconciler struct {
-	utils.CloudStackBaseReconciler
-	ReconciliationSubject infrav1.CloudStackZone
+	csCtrlrUtils.ReconcilerBase
+	ReconciliationSubject *infrav1.CloudStackZone
 }
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones/finalizers,verbs=update
-func (r *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
 
-	r.CloudStackBaseReconciler.UsingConcreteSubject(&r.ReconciliationSubject)
+	// r.ReconciliationSubject = &infrav1.CloudStackZone{}
+	// r.CloudStackBaseReconciler.UsingConcreteSubject(r.ReconciliationSubject)
 
-	return r.RunWith(ctx, req,
-		r.SetupLogger,
-		r.GetBaseCRDs,
-		r.FetchReconcilationSubject,
-		r.CheckIfPaused,
-		r.reconcileDelete,
-		r.reconcile,
-		r.PatchChangesBackToAPI,
-	)
+	// r.RunWith(ctx, req,
+	// 	r.SetupLogger,
+	// 	r.GetBaseCRDs,
+	// 	r.FetchReconcilationSubject,
+	// 	r.CheckIfPaused,
+	// 	r.reconcileDelete,
+	// 	r.reconcile,
+	// 	r.PatchChangesBackToAPI,
+	// )
+
+	// fmt.Println("blah")
+	// fmt.Println(fmt.Sprintf("%+v", r.ReconciliationSubject))
+	// fmt.Println("blah")
+	return ctrl.Result{}, nil
+}
+
+func (r *CloudStackZoneReconciler) PatchChangesBackToAPI(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	patchHelper, err := patch.NewHelper(r.ReconciliationSubject, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	r.Log.Info(fmt.Sprintf("%+v", r.ReconciliationSubject))
+
+	err = patchHelper.Patch(ctx, r.ReconciliationSubject)
+	return ctrl.Result{}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -58,9 +76,8 @@ func (r *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *CloudStackZoneReconciler) reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
-
+	r.ReconciliationSubject.Status.Stay = "blah"
 	r.ReconciliationSubject.Status.Ready = true
-	fmt.Println(r.ReconciliationSubject)
 	return ctrl.Result{}, nil
 }
 
