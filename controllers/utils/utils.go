@@ -170,10 +170,34 @@ func ContainsAlreadyExistsSubstring(err error) bool {
 	return strings.Contains(strings.ToLower(err.Error()), "already exists")
 }
 
+// GetOwnerOfKind returns the Cluster object owning the current resource of passed kind.
+func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned client.Object, owner client.Object) error {
+	gvks, _, err := c.Scheme().ObjectKinds(owner)
+	if err != nil {
+		return errors.Wrapf(err, "error encountered when finding owner kind for %s/%s", owned.GetName(), owned.GetNamespace())
+	} else if len(gvks) != 1 {
+		return errors.Errorf(
+			"found more than one GVK for owner when finding owner kind for %s/%s", owned.GetName(), owned.GetNamespace())
+	}
+	kind := gvks[0].Kind
+	for _, ref := range owned.GetOwnerReferences() {
+		if ref.Kind != kind {
+			continue
+		}
+		key := client.ObjectKey{Name: ref.Name, Namespace: owned.GetNamespace()}
+		if err := c.Get(ctx, key, owner); err != nil {
+			return errors.Wrapf(err, "error encountered when finding owner for %s/%s", owned.GetName(), owned.GetNamespace())
+		}
+		return nil
+	}
+	return errors.Errorf("couldn't find owner for %s/%s", owned.GetName(), owned.GetNamespace())
+}
+
 // GetOwnerCloudStackCluster returns the Cluster object owning the current resource.
 func GetOwnerCloudStackCluster(ctx context.Context, c clientPkg.Client, obj metav1.ObjectMeta) (*capcv1.CloudStackCluster, error) {
+
 	for _, ref := range obj.OwnerReferences {
-		if ref.Kind != "Cluster" {
+		if ref.Kind != "CloudStackCluster" {
 			continue
 		}
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)

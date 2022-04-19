@@ -259,6 +259,17 @@ func (r *ReconciliationRunner) LogReconciliationSubject() (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
+// RequeueWithMessage is a convenience method to log requeue message and then return a result with RequeueAfter set.
+func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...interface{}) (ctrl.Result, error) {
+	r.Log.Info(msg)
+	return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+}
+
+func (r *ReconciliationRunner) LogReconciliationSubject() (ctrl.Result, error) {
+	r.Log.Info("The subject", "subject", r.ReconciliationSubject)
+	return ctrl.Result{}, nil
+}
+
 // CloudStackReconcilerMethod is the method type used in RunReconciliationStages. Additional arguments can be added
 // by wrapping this type in another function affectively currying them.
 type CloudStackReconcilerMethod func() (ctrl.Result, error)

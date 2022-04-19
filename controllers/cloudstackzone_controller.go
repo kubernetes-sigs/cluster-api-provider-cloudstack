@@ -18,9 +18,8 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
-	"sigs.k8s.io/cluster-api/util/patch"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -135,12 +134,18 @@ func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func (r *CloudStackZoneReconciler) reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
+func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+	r.Log.Info("subject", "zone", r.ReconciliationSubject)
+	if !r.ReconciliationSubject.DeletionTimestamp.IsZero() { // Reconcile deletion if timestamp is present.
+		return r.ReconcileDelete()
+	}
+	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.ReconciliationSubject.Spec)
+
 	r.ReconciliationSubject.Status.Ready = true
 	return ctrl.Result{}, nil
 }
 
-func (r *CloudStackZoneReconciler) reconcileDelete(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
+func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
 	return ctrl.Result{}, nil
 }
 
