@@ -58,16 +58,18 @@ func (runner *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudS
 }
 
 // GetZones gets CloudStackZones owned by a CloudStackCluster via an ownership label.
-func (runner *ReconciliationRunner) GetZones(zones *infrav1.CloudStackZoneList) (ctrl.Result, error) {
-	labels := map[string]string{"OwnedBy": runner.Request.Name}
+func (runner *ReconciliationRunner) GetZones(zones *infrav1.CloudStackZoneList) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		labels := map[string]string{"OwnedBy": runner.Request.Name}
 
-	if err := runner.Client.List(
-		runner.RequestCtx,
-		zones,
-		client.InNamespace(runner.Request.Namespace),
-		client.MatchingLabels(labels),
-	); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to list zones")
+		if err := runner.Client.List(
+			runner.RequestCtx,
+			zones,
+			client.InNamespace(runner.Request.Namespace),
+			client.MatchingLabels(labels),
+		); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to list zones")
+		}
+		return ctrl.Result{}, nil
 	}
-	return ctrl.Result{}, nil
 }

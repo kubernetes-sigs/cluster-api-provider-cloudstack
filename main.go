@@ -153,23 +153,17 @@ func main() {
 	// Set a random seed for randomly placing CloudStackMachines in Zones.
 	rand.Seed(time.Now().Unix())
 
-	// Register machine and cluster reconcilers with the controller manager.
-	if err = (&controllers.CloudStackClusterReconciler{
-		ReconcilerBase: csCtrlrUtils.ReconcilerBase{
-			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("CloudStackCluster"),
-			Scheme: mgr.GetScheme(),
-			CS:     client,
-		}}).SetupWithManager(mgr); err != nil {
+	// Register reconcilers with the controller manager.
+	base := csCtrlrUtils.ReconcilerBase{
+		Client:     mgr.GetClient(),
+		BaseLogger: ctrl.Log.WithName("controllers"),
+		Scheme:     mgr.GetScheme(),
+		CS:         client}
+	if err = (&controllers.CloudStackClusterReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err = (&controllers.CloudStackMachineReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("CloudStackMachine"),
-		Scheme: mgr.GetScheme(),
-		CS:     client,
-	}).SetupWithManager(mgr); err != nil {
+	if err = (&controllers.CloudStackMachineReconciler{}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
 		os.Exit(1)
 	}
@@ -182,16 +176,10 @@ func main() {
 	// 	setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsolatedNetwork")
 	// 	os.Exit(1)
 	// }
-	// if err = (&controllers.CloudStackZoneReconciler{
-	// 	CloudStackBaseReconciler: csCtrlrUtils.CloudStackBaseReconciler{
-	// 		Log:    ctrl.Log.WithName("controllers").WithName("CloudStackZone"),
-	// 		Client: mgr.GetClient(),
-	// 		Scheme: mgr.GetScheme(),
-	// 		CS:     client},
-	// }).SetupWithManager(mgr); err != nil {
-	// 	setupLog.Error(err, "unable to create controller", "controller", "CloudStackZone")
-	// 	os.Exit(1)
-	// }
+	if err = (&controllers.CloudStackZoneReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackZone")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	// Add health and ready checks.

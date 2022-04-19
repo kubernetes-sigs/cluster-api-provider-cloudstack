@@ -18,54 +18,50 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
-	"sigs.k8s.io/cluster-api/util/patch"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 )
+
+// CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+type CloudStackZoneReconciliationRunner struct {
+	csCtrlrUtils.ReconciliationRunner
+	Zones                 infrav1.CloudStackZoneList
+	ReconciliationSubject *infrav1.CloudStackZone
+	CSUser                cloud.Client
+}
 
 // CloudStackZoneReconciler reconciles a CloudStackZone object
 type CloudStackZoneReconciler struct {
 	csCtrlrUtils.ReconcilerBase
-	ReconciliationSubject *infrav1.CloudStackZone
 }
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones/finalizers,verbs=update
 func (r *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-
-	// r.ReconciliationSubject = &infrav1.CloudStackZone{}
-	// r.CloudStackBaseReconciler.UsingConcreteSubject(r.ReconciliationSubject)
-
-	// r.RunWith(ctx, req,
-	// 	r.SetupLogger,
-	// 	r.GetBaseCRDs,
-	// 	r.FetchReconcilationSubject,
-	// 	r.CheckIfPaused,
-	// 	r.reconcileDelete,
-	// 	r.reconcile,
-	// 	r.PatchChangesBackToAPI,
-	// )
-
-	// fmt.Println("blah")
-	// fmt.Println(fmt.Sprintf("%+v", r.ReconciliationSubject))
-	// fmt.Println("blah")
-	return ctrl.Result{}, nil
-}
-
-func (r *CloudStackZoneReconciler) PatchChangesBackToAPI(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	patchHelper, err := patch.NewHelper(r.ReconciliationSubject, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	r.Log.Info(fmt.Sprintf("%+v", r.ReconciliationSubject))
-
-	err = patchHelper.Patch(ctx, r.ReconciliationSubject)
-	return ctrl.Result{}, err
+	runner := &CloudStackZoneReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackZone{}}
+	runner.CSCluster = &infrav1.CloudStackCluster{}
+	runner.CAPICluster = &capiv1.Cluster{}
+	return runner.
+		UsingBaseReconciler(r.ReconcilerBase).
+		ForRequest(req).
+		WithRequestCtx(ctx).
+		RunReconciliationStages(
+			runner.SetupLogger,
+			runner.SetReconciliationSubjectToConcreteSubject(runner.ReconciliationSubject),
+			runner.GetReconciliationSubject,
+			//runner.LogReconciliationSubject,
+			runner.GetParent(runner.ReconciliationSubject, runner.CSCluster),
+			runner.GetParent(runner.CSCluster, runner.CAPICluster),
+			runner.CheckIfPaused,
+			runner.SetupPatcher,
+			runner.Reconcile,
+			runner.PatchChangesBackToAPI)
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -75,12 +71,18 @@ func (r *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *CloudStackZoneReconciler) reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
+func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+	r.Log.Info("subject", "zone", r.ReconciliationSubject)
+	if !r.ReconciliationSubject.DeletionTimestamp.IsZero() { // Reconcile deletion if timestamp is present.
+		return r.ReconcileDelete()
+	}
+	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.ReconciliationSubject.Spec)
+
 	r.ReconciliationSubject.Status.Ready = true
 	return ctrl.Result{}, nil
 }
 
-func (r *CloudStackZoneReconciler) reconcileDelete(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
+func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
 	return ctrl.Result{}, nil
 }
 

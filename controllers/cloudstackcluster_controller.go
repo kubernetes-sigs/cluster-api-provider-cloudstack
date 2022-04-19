@@ -1,12 +1,9 @@
 /*
 Copyright 2022 The Kubernetes Authors.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -97,9 +94,9 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 
 	return r.RunReconciliationStages(
 		r.CreateZones(r.CSCluster.Spec.Zones),
+		r.GetZones(&r.Zones),
 		r.CheckOwnedCRDsforReadiness,
-		r.ResolveClusterDetails,
-	)
+		r.ResolveClusterDetails)
 }
 
 // ReconcileDelete cleans up resources used by the cluster and finaly removes the CloudStackCluster's finalizers.
@@ -133,9 +130,11 @@ func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Re
 
 // CheckOwnedCRDsforReadiness checks that owned CRDs like Zones are ready.
 func (r *CloudStackClusterReconciliationRunner) CheckOwnedCRDsforReadiness() (ctrl.Result, error) {
-
+	expected := len(r.ReconciliationSubject.Spec.Zones)
+	zonesFound := len(r.Zones.Items)
 	if len(r.ReconciliationSubject.Spec.Zones) != len(r.Zones.Items) {
-		return reconcile.Result{}, errors.New("did not find all zones required for cluster reconciliation")
+		return reconcile.Result{}, errors.Errorf(
+			"expected to find %v CloudStackZone CRDs, but found %v", expected, zonesFound)
 	}
 	for _, zone := range r.Zones.Items {
 		if !zone.Status.Ready {
@@ -192,23 +191,3 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			}},
 	)
 }
-
-// // GetZones translates the utility function of the same name to a reconciler function.
-// func (r *CloudStackClusterReconciler) GetZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-// 	return utils.GetZones(ctx, r)
-// }
-
-// // CreateZones translates the utility function of the same name to a reconciler function.
-// func (r *CloudStackClusterReconciler) CreateZones(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-// 	return utils.CreateZones(ctx, r)
-// }
-
-// // SettableZones satisfies the ZoneUsingReconciler interface by providing access to the reconciler's Zone list.
-// func (r *CloudStackClusterReconciler) SettableZones() *infrav1.CloudStackZoneList {
-// 	return &r.Zones
-// }
-
-// // ZoneSpecs satisfies the ZoneUsingReconciler interface by providing access to the Cluster's Speced Zones.
-// func (r *CloudStackClusterReconciler) ZoneSpecs() []infrav1.Zone {
-// 	return r.ReconciliationSubject.Spec.Zones
-// }
