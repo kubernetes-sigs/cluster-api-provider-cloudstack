@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,7 +21,7 @@ func (runner *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        strings.ToLower(zoneSpec.Name),
 			Namespace:   runner.Request.Namespace,
-			Labels:      map[string]string{"OwnedBy": runner.Request.Name},
+			Labels:      map[string]string{capiv1.ClusterLabelName: runner.CAPICluster.Name},
 			Annotations: map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(runner.ReconciliationSubject, controlplanev1.GroupVersion.WithKind(ownerKind)),

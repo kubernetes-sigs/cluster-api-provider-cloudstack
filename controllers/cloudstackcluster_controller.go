@@ -17,25 +17,33 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/pkg/errors"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// CloudStackClusterReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+// RBAC permissions used in all reconcilers. Events and Secrets.
+// "" empty string as the api group indicates core kubernetes objects. "*" indicates all objects.
+// +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
+
+// RBAC permissions for CloudStackCluster.
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters/status,verbs=create;get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters/finalizers,verbs=update
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+
+// CloudStackClusterReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackClusters.
+// The runner does the actual reconciliation.
 type CloudStackClusterReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	Zones                 infrav1.CloudStackZoneList
@@ -43,60 +51,68 @@ type CloudStackClusterReconciliationRunner struct {
 	CSUser                cloud.Client
 }
 
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters/status,verbs=create;get;update;patch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters/finalizers,verbs=update
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones,verbs=get;list;watch;create;delete
-
-// TODO review whether these unnamed groups are used and if so add clarity via a comment.
-// +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
-
-// Reconcile is part of the main kubernetes reconciliation loop which aims to move the current state of the cluster
-// closer to the desired state.
 // CloudStackClusterReconciler is the k8s controller manager's interface to reconcile a CloudStackCluster.
+// This is primarily to adapt to k8s.
 type CloudStackClusterReconciler struct {
 	csCtrlrUtils.ReconcilerBase
 }
 
+// Reconcile is the method k8s will call upon a reconciliation request.
 func (r *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	runner := &CloudStackClusterReconciliationRunner{}
+	// For the CloudStackCluster reconciler the subject CSCluster are one in the same.
+	// Point them to the same address.
+	runner := &CloudStackClusterReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackCluster{}}
+	runner.CSCluster = runner.ReconciliationSubject
+
 	return runner.
 		UsingBaseReconciler(r.ReconcilerBase).
 		ForRequest(req).
 		WithRequestCtx(ctx).
 		RunReconciliationStages(
 			runner.SetupLogger,
-			runner.GetBaseCRDs,
-			runner.SetReconciliationSubjectToCSCluster,
+			runner.SetReconciliationSubjectToConcreteSubject(runner.CSCluster),
+			runner.GetReconciliationSubject,
+			runner.GetCAPICluster,
 			runner.SetupPatcher,
-			runner.Reconcile,
+			runner.IfDeletionTimestampIsZero(runner.Reconcile),
+			runner.Else(runner.ReconcileDelete),
 			runner.PatchChangesBackToAPI,
 		)
 }
 
-// SetReconciliationSubjectToCSCluster set reconciliation subject to ReconciliationRunner's CloudStackCluster object
-// as in this case, the subject of reconciliation is one of the CloudStack base CRDs (used in all reconciles).
-func (r *CloudStackClusterReconciliationRunner) SetReconciliationSubjectToCSCluster() (res ctrl.Result, retErr error) {
-	r.Log.V(1).Info("Setting CloudStack cluster as the reconciliation subject.")
-	r.ReconciliationRunner.ReconciliationSubject = r.CSCluster
-	r.ReconciliationSubject = r.CSCluster
-	return res, nil
-}
-
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
-	if !r.ReconciliationSubject.DeletionTimestamp.IsZero() { // Reconcile deletion if timestamp is present.
-		return r.ReconcileDelete()
-	}
-	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.ReconciliationSubject.Spec)
-
 	return r.RunReconciliationStages(
 		r.CreateZones(r.CSCluster.Spec.Zones),
 		r.GetZones(&r.Zones),
-		r.CheckOwnedCRDsforReadiness,
+		r.CheckOwnedCRDsForReadiness,
 		r.ResolveClusterDetails)
+}
+
+// ResolveClusterDetails fetches cluster specific details like domain and account IDs.
+func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Result, error) {
+	// Ensure that CAPI won't prematurely delete this CloudStackCluster.
+	controllerutil.AddFinalizer(r.CSCluster, infrav1.ClusterFinalizer)
+
+	// Create and or fetch cluster components.
+	err := r.CS.GetOrCreateCluster(r.CSCluster)
+	if err == nil {
+		r.Log.Info("Fetched cluster info successfully.")
+		r.Log.V(1).Info("Post fetch cluster status.", "clusterStatus", r.ReconciliationSubject.Status)
+
+		// Set cluster to ready to indicate readiness to CAPI.
+		r.ReconciliationSubject.Status.Ready = true
+	}
+	return ctrl.Result{}, err
+}
+
+// SetFailureDomains sets failure domains to be used for CAPI machine placement.
+func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result, error) {
+	r.CSCluster.Status.FailureDomains = capiv1.FailureDomains{}
+	for _, zone := range r.Zones.Items {
+		r.CSCluster.Status.FailureDomains[zone.Spec.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
+	}
+	return ctrl.Result{}, nil
 }
 
 // ReconcileDelete cleans up resources used by the cluster and finaly removes the CloudStackCluster's finalizers.
@@ -108,41 +124,6 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 		return ctrl.Result{}, err
 	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
-	return ctrl.Result{}, nil
-}
-
-// ResolveClusterDetails fetches cluster specific details like domain and account IDs.
-func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Result, error) {
-	// Ensure that CAPI won't prematurely delete this CloudStackCluster.
-	controllerutil.AddFinalizer(r.CSCluster, infrav1.ClusterFinalizer)
-
-	// Create and or fetch cluster components.
-	err := r.CS.GetOrCreateCluster(r.CSCluster)
-	if err == nil {
-		r.Log.Info("Fetched cluster info sussfully.")
-		r.Log.V(1).Info("Post fetch cluster status.", "clusterStatus", r.ReconciliationSubject.Status)
-
-		// Set cluster to ready to indicate readiness to CAPI.
-		r.ReconciliationSubject.Status.Ready = true
-	}
-	return ctrl.Result{}, err
-}
-
-// CheckOwnedCRDsforReadiness checks that owned CRDs like Zones are ready.
-func (r *CloudStackClusterReconciliationRunner) CheckOwnedCRDsforReadiness() (ctrl.Result, error) {
-	expected := len(r.ReconciliationSubject.Spec.Zones)
-	zonesFound := len(r.Zones.Items)
-	if len(r.ReconciliationSubject.Spec.Zones) != len(r.Zones.Items) {
-		return reconcile.Result{}, errors.Errorf(
-			"expected to find %v CloudStackZone CRDs, but found %v", expected, zonesFound)
-	}
-	for _, zone := range r.Zones.Items {
-		if !zone.Status.Ready {
-			r.Log.Info("not all required zones are ready, requeing")
-			return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
-		}
-	}
-
 	return ctrl.Result{}, nil
 }
 

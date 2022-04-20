@@ -27,6 +27,10 @@ import (
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones/status,verbs=create;get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones/finalizers,verbs=update
+
 // CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
 type CloudStackZoneReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
@@ -40,9 +44,6 @@ type CloudStackZoneReconciler struct {
 	csCtrlrUtils.ReconcilerBase
 }
 
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones/finalizers,verbs=update
 func (r *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
 	runner := &CloudStackZoneReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackZone{}}
 	runner.CSCluster = &infrav1.CloudStackCluster{}
@@ -57,10 +58,11 @@ func (r *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			runner.GetReconciliationSubject,
 			//runner.LogReconciliationSubject,
 			runner.GetParent(runner.ReconciliationSubject, runner.CSCluster),
-			runner.GetParent(runner.CSCluster, runner.CAPICluster),
+			runner.GetCAPICluster,
 			runner.CheckIfPaused,
 			runner.SetupPatcher,
-			runner.Reconcile,
+			runner.IfDeletionTimestampIsZero(runner.Reconcile),
+			runner.Else(runner.ReconcileDelete),
 			runner.PatchChangesBackToAPI)
 }
 
@@ -72,10 +74,7 @@ func (r *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-	r.Log.Info("subject", "zone", r.ReconciliationSubject)
-	if !r.ReconciliationSubject.DeletionTimestamp.IsZero() { // Reconcile deletion if timestamp is present.
-		return r.ReconcileDelete()
-	}
+
 	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.ReconciliationSubject.Spec)
 
 	r.ReconciliationSubject.Status.Ready = true
@@ -85,26 +84,3 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
 	return ctrl.Result{}, nil
 }
-
-// func (r *CloudStackZoneReconciler) generateIsolatedNetwork(
-// 	ctx context.Context, zone *infrav1.CloudStackZone, csCluster *infrav1.CloudStackCluster) error {
-
-// 	// csIsoNet := &infrav1.CloudStackIsolatedNetwork{
-// 	// 	ObjectMeta: metav1.ObjectMeta{
-// 	// 		Name:      zone.Spec.Name,
-// 	// 		Namespace: zone.Namespace,
-// 	// 		// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
-// 	// 		Annotations: map[string]string{},
-// 	// 		OwnerReferences: []metav1.OwnerReference{
-// 	// 			*metav1.NewControllerRef(zone, controlplanev1.GroupVersion.WithKind("CloudStackZone")),
-// 	// 			*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
-// 	// 		},
-// 	// 	},
-// 	// 	Spec: infrav1.CloudStackIsolatedNetworkSpec{Name: zone.Spec.Network.Name},
-// 	// }
-
-// 	// if err := r.Client.Create(ctx, csIsoNet); err != nil {
-// 	// 	return errors.Wrap(err, "failed to create machine")
-// 	// }
-// 	return nil
-// }

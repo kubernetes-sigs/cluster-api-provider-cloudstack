@@ -18,15 +18,17 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -37,17 +39,12 @@ import (
 // ReconcilerBase is the base set of componenets we use in k8s reconcilers.
 // These are items that are not copied for each reconciliation request, and must be written to with caution.
 type ReconcilerBase struct {
-	BaseLogger logr.Logger
-	Scheme     *runtime.Scheme
-	Client     client.Client
-	CS         cloud.Client
-}
-
-type CloudStackClusterReconciliationRunner struct {
-	ReconciliationRunner
-	Zones                 infrav1.CloudStackZoneList
-	ReconciliationSubject *infrav1.CloudStackCluster
-	CSUser                cloud.Client
+	BaseLogger      logr.Logger
+	Scheme          *runtime.Scheme
+	Client          client.Client
+	CS              cloud.Client
+	reconcileDelete CloudStackReconcilerMethod
+	reconcile       CloudStackReconcilerMethod
 }
 
 // CloudStackBaseContext is the base CloudStack data structure created/copied for each reconciliation request to avoid
@@ -67,6 +64,7 @@ type ReconciliationRunner struct {
 	ReconcilerBase
 	CloudStackBaseContext
 	ReconciliationSubject client.Object // Underlying crd interface.
+	ConditionalResult     bool
 }
 
 // UsingBaseReconciler sets the ReconciliationRunner to use the same base components as the passed base reconciler.
@@ -87,31 +85,86 @@ func (runner *ReconciliationRunner) WithRequestCtx(ctx context.Context) *Reconci
 	return runner
 }
 
-// GetBaseCRDs fetches the CAPI Cluster and the CloudStackCluster. These are the base CRDs required for every
-// CloudStack reconciliation.
-func (r *ReconciliationRunner) GetBaseCRDs() (res ctrl.Result, reterr error) {
-	// Get CloudStack cluster.
-	r.CSCluster = &infrav1.CloudStackCluster{}
-	if reterr = r.Client.Get(r.RequestCtx, r.Request.NamespacedName, r.CSCluster); reterr != nil {
-		if client.IgnoreNotFound(reterr) == nil {
-			return r.RequeueWithMessage("CloudStackCluster cluster not found, requeueing.")
-		}
-		return res, errors.Wrap(reterr, "error encountered while fetching CloudStackCluster CRD")
-	}
-
-	// Get CAPI cluster.
-	r.CAPICluster, reterr = util.GetOwnerCluster(r.RequestCtx, r.Client, r.CSCluster.ObjectMeta)
-	if reterr != nil {
-		return ctrl.Result{}, errors.Wrap(reterr, "error encountered while fetching CAPI Cluster CRD")
-	} else if r.CAPICluster == nil {
-		return r.RequeueWithMessage("CAPI Cluster not found, requeueing.")
-	}
-	return res, nil
-}
-
 // SetupLogger sets up the reconciler's logger to log with name and namespace values.
 func (r *ReconciliationRunner) SetupLogger() (res ctrl.Result, retErr error) {
 	r.Log = r.BaseLogger.WithValues("name", r.Request.Name, "namespace", r.Request.Namespace)
+	return ctrl.Result{}, nil
+}
+
+func (r *ReconciliationRunner) IfDeletionTimestampIsZero(fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		if r.ReconciliationSubject.GetDeletionTimestamp().IsZero() {
+			return fn()
+		}
+		r.ConditionalResult = false
+		return ctrl.Result{}, nil
+	}
+}
+
+func (r *ReconciliationRunner) Else(fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		if !r.ConditionalResult {
+			return fn()
+		}
+		return ctrl.Result{}, nil
+	}
+}
+
+// Get the CAPI cluster the reconciliation subject belongs to.
+func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
+	name := r.ReconciliationSubject.GetLabels()[capiv1.ClusterLabelName]
+	fmt.Println(r.ReconciliationSubject.GetLabels())
+	if name == "" {
+		r.Log.Info("Reconciliation Subject is missing cluster label or cluster does not exist.",
+			"SubjectKind", r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind)
+		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+	}
+	r.CAPICluster = &capiv1.Cluster{}
+	key := client.ObjectKey{
+		Namespace: r.ReconciliationSubject.GetNamespace(),
+		Name:      name,
+	}
+	if err := r.Client.Get(r.RequestCtx, key, r.CAPICluster); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get Cluster/%s", name)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// CheckOwnedCRDsForReadiness queries for the readiness of CRDs listed in ReconciliationSubject.
+func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness() (ctrl.Result, error) {
+
+	for _, ref := range r.ReconciliationSubject.GetOwnerReferences() {
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "encountered when parsing group version %s of object ref", ref.APIVersion)
+		}
+		gvk := gv.WithKind(ref.Kind)
+
+		owned := &unstructured.Unstructured{}
+		owned.SetGroupVersionKind(gvk)
+
+		err = r.Client.Get(r.RequestCtx, client.ObjectKey{Namespace: r.ReconciliationSubject.GetNamespace(), Name: ref.Name}, owned)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "encountered when requesting owned object with ref %s", ref)
+		}
+
+		if ready, found, err := unstructured.NestedBool(owned.Object, "status", "ready"); !found || err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "encountered when parsing ready for object %s", owned)
+		} else if !ready {
+			r.Log.Info("Owned object of kind %s not ready, requeueing", ref.Kind)
+			return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+// RequeueIfCloudStackClusterNotReady requeues the reconciliation request if the CloudStackCluster is not ready.
+func (r *ReconciliationRunner) RequeueIfCloudStackClusterNotReady() (ctrl.Result, error) {
+	if !r.CSCluster.Status.Ready {
+		r.Log.Info("CloudStackCluster not ready. Requeuing.")
+		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -144,6 +197,17 @@ func (r *ReconciliationRunner) LogReconciliationSubject() (ctrl.Result, error) {
 // CloudStackReconcilerMethod is the method type used in RunReconciliationStages. Additional arguments can be added
 // by wrapping this type in another function affectively currying them.
 type CloudStackReconcilerMethod func() (ctrl.Result, error)
+
+// RunReconciliationStage runs a CloudStackReconcilerMethod and returns a boolean to indicate whether that stage would
+// have returned a result that cuts the process short or not.
+func (runner *ReconciliationRunner) ShouldReturn(rslt ctrl.Result, err error) bool {
+	if err != nil {
+		return true
+	} else if rslt.Requeue == true || rslt.RequeueAfter != time.Duration(0) {
+		return true
+	}
+	return false
+}
 
 // RunReconciliationStages runs CloudStackReconcilerMethods in order and exits if an error or requeue condition is set.
 func (runner *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackReconcilerMethod) (ctrl.Result, error) {
@@ -178,6 +242,7 @@ func (r *ReconciliationRunner) SetReconciliationSubjectToConcreteSubject(subject
 	}
 }
 
+// InitFromMgr just initiates a ReconcilerBase using given manager's fields/methods.
 func (r *ReconcilerBase) InitFromMgr(mgr ctrl.Manager, client cloud.Client) {
 	r.Client = mgr.GetClient()
 	r.BaseLogger = ctrl.Log.WithName("controllers").WithName("name")
@@ -193,41 +258,9 @@ func (r *ReconciliationRunner) GetParent(child client.Object, parent client.Obje
 	}
 }
 
-// // GetChild returns the
-// func (r *ReconciliationRunner) GetChild(parent client.Object, child client.Object) CloudStackReconcilerMethod {
-// 	return func() (ctrl.Result, error) {
-// 		err := GetOwnerOfKind(r.RequestCtx, r.Client, r.ReconciliationSubject, owner)
-// 		return ctrl.Result{}, err
-// 	}
-// }
-
 func (r *ReconciliationRunner) GetOwnerByKind(owner client.Object) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		err := GetOwnerOfKind(r.RequestCtx, r.Client, r.ReconciliationSubject, owner)
 		return ctrl.Result{}, err
 	}
 }
-
-// // GenerateIsolatedNetwork generates a CloudStackIsolatedNetwork CRD owned by the ReconcilationSubject.
-// func (r *CloudStackIsoNetUser) GenerateIsolatedNetwork(
-// 	ctx context.Context, zone *infrav1.CloudStackZone, csCluster *infrav1.CloudStackCluster) error {
-
-// 	csIsoNet := &infrav1.CloudStackIsolatedNetwork{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name:      zone.Spec.Name,
-// 			Namespace: zone.Namespace,
-// 			// Labels:      internal.ControlPlaneMachineLabelsForCluster(csCluster, csCluster.Name),
-// 			Annotations: map[string]string{},
-// 			OwnerReferences: []metav1.OwnerReference{
-// 				*metav1.NewControllerRef(zone, controlplanev1.GroupVersion.WithKind("CloudStackZone")),
-// 				*metav1.NewControllerRef(csCluster, controlplanev1.GroupVersion.WithKind("CloudStackCluster")),
-// 			},
-// 		},
-// 		Spec: infrav1.CloudStackIsolatedNetworkSpec{Name: zone.Spec.Network.Name},
-// 	}
-
-// 	if err := r.Client.Create(ctx, csIsoNet); err != nil {
-// 		return errors.Wrap(err, "failed to create machine")
-// 	}
-// 	return nil
-// }

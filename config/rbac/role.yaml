@@ -147,4 +147,21 @@ rules:
   - delete
   - get
   - list
+  - patch
+  - update
   - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackzones/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackzones/status
+  verbs:
+  - create
+  - get
+  - patch
+  - update

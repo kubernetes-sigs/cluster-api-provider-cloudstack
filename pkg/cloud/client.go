@@ -32,6 +32,7 @@ type Client interface {
 	NetworkIface
 	AffinityGroupIface
 	TagIface
+	ZoneIFace
 }
 
 type client struct {

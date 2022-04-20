@@ -163,23 +163,15 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err = (&controllers.CloudStackMachineReconciler{}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
-		os.Exit(1)
-	}
-	// if err = (&controllers.CloudStackIsolatedNetworkReconciler{
-	// 	Log:    ctrl.Log.WithName("controllers").WithName("CloudStackIsolatedNetwork"),
-	// 	Client: mgr.GetClient(),
-	// 	Scheme: mgr.GetScheme(),
-	// 	CS:     client,
-	// }).SetupWithManager(mgr); err != nil {
-	// 	setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsolatedNetwork")
-	// 	os.Exit(1)
-	// }
 	if err = (&controllers.CloudStackZoneReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackZone")
 		os.Exit(1)
 	}
+	if err = (&controllers.CloudStackMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
+		os.Exit(1)
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	// Add health and ready checks.
