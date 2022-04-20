@@ -40,7 +40,7 @@ import (
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+// CloudStackMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
 type CloudStackMachineReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackMachine

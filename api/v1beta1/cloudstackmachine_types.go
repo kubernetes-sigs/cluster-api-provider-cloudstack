@@ -118,18 +118,6 @@ type CloudStackMachine struct {
 	Status CloudStackMachineStatus `json:"status,omitempty"`
 }
 
-// // The computed affinity group name relevant to this machine.
-// func (csm CloudStackMachine) AffinityGroupName(
-// 	capiMachine *capiv1.Machine,
-// ) (string, error) {
-
-// 	managerOwnerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
-// 	if managerOwnerRef == nil {
-// 		return "", errors.Errorf("could not find owner UID for %s/%s", csm.Namespace, csm.Name)
-// 	}
-// 	return fmt.Sprintf("%sAffinity-%s-%s", strings.Title(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID), nil
-// }
-
 //+kubebuilder:object:root=true
 
 // CloudStackMachineList contains a list of CloudStackMachine
