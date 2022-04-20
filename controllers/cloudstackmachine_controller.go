@@ -186,6 +186,8 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	if !present {
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
+	return ctrl.Result{}, nil
+}
 
 	err := r.CSClient.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data))
 
