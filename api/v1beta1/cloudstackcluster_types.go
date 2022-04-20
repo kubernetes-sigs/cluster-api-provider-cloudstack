@@ -100,10 +100,6 @@ type CloudStackClusterSpec struct {
 	// +optional
 	// +k8s:conversion-gen=false
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
-
-	// // +optional
-	// // +k8s:conversion-gen=false
-	// OwnedObjects []interface `json:"OwnedObjects,omitempty"`
 }
 
 // The status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
