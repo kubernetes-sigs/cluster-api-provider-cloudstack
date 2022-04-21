@@ -62,6 +62,20 @@ spec:
                           type: string
                         description: Optional details map for deployVirtualMachine
                         type: object
+                      diskOffering:
+                        description: CloudStack disk offering to use.
+                        properties:
+                          id:
+                            description: Cloudstack resource ID.
+                            type: string
+                          mountPath:
+                            type: string
+                          name:
+                            description: Cloudstack resource Name
+                            type: string
+                        required:
+                        - mountPath
+                        type: object
                       identityRef:
                         description: IdentityRef is a reference to a identity to be
                           used when reconciling this cluster

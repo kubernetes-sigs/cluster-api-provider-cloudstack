@@ -41,6 +41,13 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).Should(Succeed())
 		})
 
+		It("Should accept a CloudStackMachineTemplate when missing the VM Disk Offering attribute", func() {
+			dummies.CSMachineTemplate1.Spec.Spec.Spec.DiskOffering = v1beta1.CloudStackResourceDiskOffering{
+				CloudStackResourceIdentifier: v1beta1.CloudStackResourceIdentifier{Name: "", ID: ""},
+			}
+			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).Should(Succeed())
+		})
+
 		It("Should reject a CloudStackMachineTemplate when missing the VM Offering attribute", func() {
 			dummies.CSMachineTemplate1.Spec.Spec.Spec.Offering = v1beta1.CloudStackResourceIdentifier{Name: "", ID: ""}
 			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).
@@ -69,6 +76,13 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 			dummies.CSMachineTemplate1.Spec.Spec.Spec.Template = v1beta1.CloudStackResourceIdentifier{Name: "ArbitraryUpdateTemplate"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "template")))
+		})
+
+		It("should reject VM disk offering updates to the CloudStackMachineTemplate", func() {
+			dummies.CSMachineTemplate1.Spec.Spec.Spec.DiskOffering = v1beta1.CloudStackResourceDiskOffering{
+				CloudStackResourceIdentifier: v1beta1.CloudStackResourceIdentifier{Name: "DiskOffering2"}}
+			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "diskOffering")))
 		})
 
 		It("should reject VM offering updates to the CloudStackMachineTemplate", func() {

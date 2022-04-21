@@ -43,6 +43,9 @@ type CloudStackMachineSpec struct {
 	// CloudStack template to use.
 	Template CloudStackResourceIdentifier `json:"template"`
 
+	// CloudStack disk offering to use.
+	DiskOffering CloudStackResourceDiskOffering `json:"diskOffering,omitempty"`
+
 	// CloudStack ssh key to use.
 	// +optional
 	SSHKey string `json:"sshKey"`
@@ -83,6 +86,11 @@ type CloudStackResourceIdentifier struct {
 	// Cloudstack resource Name
 	// +optional
 	Name string `json:"name,omitempty"`
+}
+
+type CloudStackResourceDiskOffering struct {
+	CloudStackResourceIdentifier `json:",inline"`
+	MountPath                    string `json:"mountPath"`
 }
 
 // TODO: Review the use of this field/type.

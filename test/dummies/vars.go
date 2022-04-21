@@ -128,6 +128,12 @@ func SetDummyCSMachineTemplateVars() {
 					Offering: capcv1.CloudStackResourceIdentifier{
 						Name: "Offering",
 					},
+					DiskOffering: capcv1.CloudStackResourceDiskOffering{
+						CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
+							Name: "DiskOffering",
+						},
+						MountPath: "/data",
+					},
 					Details: map[string]string{
 						"memoryOvercommitRatio": "1.2",
 					},
@@ -159,6 +165,12 @@ func SetDummyCSMachineVars() {
 			},
 			Offering: capcv1.CloudStackResourceIdentifier{
 				Name: "Offering",
+			},
+			DiskOffering: capcv1.CloudStackResourceDiskOffering{
+				CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
+					Name: "DiskOffering",
+				},
+				MountPath: "/data",
 			},
 			AffinityGroupIDs: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
 			Details: map[string]string{
