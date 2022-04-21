@@ -24,6 +24,9 @@ import (
 )
 
 var _ = Describe("CloudStackCluster types", func() {
+	BeforeEach(func() { // Reset test vars to initial state.
+		dummies.SetDummyVars()
+	})
 
 	Context("When retrieving a zone from ZoneStatusMap using GetOne", func() {
 		It("Should return nil if ZoneStatusMap is empty", func() {

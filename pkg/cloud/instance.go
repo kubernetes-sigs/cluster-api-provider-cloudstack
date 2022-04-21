@@ -138,6 +138,37 @@ func (c *client) ResolveTemplate(
 	return templateID, nil
 }
 
+func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine) (diskOfferingID string, retErr error) {
+	if len(csMachine.Spec.DiskOffering.ID) > 0 {
+		csDiskOffering, count, err := c.cs.DiskOffering.GetDiskOfferingByID(csMachine.Spec.DiskOffering.ID)
+		if err != nil {
+			return "", multierror.Append(retErr, errors.Wrapf(
+				err, "could not get DiskOffering by ID %s", csMachine.Spec.DiskOffering.ID))
+		} else if count != 1 {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"expected 1 DiskOffering with UUID %s, but got %d", csMachine.Spec.DiskOffering.ID, count))
+		}
+
+		if len(csMachine.Spec.DiskOffering.Name) > 0 && csMachine.Spec.DiskOffering.Name != csDiskOffering.Name {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"diskOffering name %s does not match name %s returned using UUID %s", csMachine.Spec.DiskOffering.Name, csDiskOffering.Name, csMachine.Spec.DiskOffering.ID))
+		}
+		return csMachine.Spec.DiskOffering.ID, nil
+	}
+	if len(csMachine.Spec.DiskOffering.Name) == 0 {
+		return "", nil
+	}
+	diskID, count, err := c.cs.DiskOffering.GetDiskOfferingID(csMachine.Spec.DiskOffering.Name)
+	if err != nil {
+		return "", multierror.Append(retErr, errors.Wrapf(
+			err, "could not get DiskOffering ID from %s", csMachine.Spec.DiskOffering.Name))
+	} else if count != 1 {
+		return "", multierror.Append(retErr, errors.Errorf(
+			"expected 1 DiskOffering with name %s, but got %d", csMachine.Spec.DiskOffering.Name, count))
+	}
+	return diskID, nil
+}
+
 // GetOrCreateVMInstance CreateVMInstance will fetch or create a VM instance, and
 // sets the infrastructure machine spec and status accordingly.
 func (c *client) GetOrCreateVMInstance(
@@ -160,6 +191,10 @@ func (c *client) GetOrCreateVMInstance(
 	if err != nil {
 		return err
 	}
+	diskOfferingID, err := c.ResolveDiskOffering(csMachine)
+	if err != nil {
+		return err
+	}
 
 	// Create VM instance.
 	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csMachine.Status.ZoneID)
@@ -167,6 +202,7 @@ func (c *client) GetOrCreateVMInstance(
 	p.SetNetworkids([]string{zone.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
+	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
 
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 

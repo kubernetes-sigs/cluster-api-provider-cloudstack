@@ -18,6 +18,7 @@ package cloud_test
 
 import (
 	"fmt"
+	"github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
@@ -36,6 +37,7 @@ var _ = Describe("Instance", func() {
 	const unknownErrorMessage = "unknown err"
 	const offeringFakeID = "123"
 	const templateFakeID = "456"
+	const diskOfferingFakeID = "789"
 	unknownError := errors.New(unknownErrorMessage)
 
 	var (
@@ -43,6 +45,7 @@ var _ = Describe("Instance", func() {
 		mockClient *cloudstack.CloudStackClient
 		vms        *cloudstack.MockVirtualMachineServiceIface
 		sos        *cloudstack.MockServiceOfferingServiceIface
+		dos        *cloudstack.MockDiskOfferingServiceIface
 		ts         *cloudstack.MockTemplateServiceIface
 		client     cloud.Client
 	)
@@ -52,6 +55,7 @@ var _ = Describe("Instance", func() {
 		mockClient = cloudstack.NewMockClient(mockCtrl)
 		vms = mockClient.VirtualMachine.(*cloudstack.MockVirtualMachineServiceIface)
 		sos = mockClient.ServiceOffering.(*cloudstack.MockServiceOfferingServiceIface)
+		dos = mockClient.DiskOffering.(*cloudstack.MockDiskOfferingServiceIface)
 		ts = mockClient.Template.(*cloudstack.MockTemplateServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 
@@ -171,6 +175,8 @@ var _ = Describe("Instance", func() {
 				Return(offeringFakeID, 1, nil)
 			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
 				Return(templateFakeID, 1, nil)
+			dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).
+				Return(diskOfferingFakeID, 1, nil)
 			vms.EXPECT().NewDeployVirtualMachineParams(offeringFakeID, templateFakeID, dummies.Zone1.ID).
 				Return(&cloudstack.DeployVirtualMachineParams{})
 			vms.EXPECT().DeployVirtualMachine(gomock.Any()).Return(nil, unknownError)
@@ -193,6 +199,7 @@ var _ = Describe("Instance", func() {
 				dummies.CSCluster.Status.DomainID = domainID
 				vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).Return(nil, -1, notFoundError)
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
 				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
 				vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
@@ -237,6 +244,21 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = "template"
 
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
+					Return(templateFakeID, 1, nil)
+
+				ActionAndAssert()
+			})
+
+			It("works with service offering name and template name without disk offering", func() {
+				dummies.CSMachine1.Spec.Offering.ID = ""
+				dummies.CSMachine1.Spec.Template.ID = ""
+				dummies.CSMachine1.Spec.Offering.Name = "offering"
+				dummies.CSMachine1.Spec.Template.Name = "template"
+				dummies.CSMachine1.Spec.DiskOffering = v1beta1.CloudStackResourceDiskOffering{}
+
+				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
 				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
 
@@ -250,6 +272,7 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = "template"
 
 				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: ""}, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
 				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
 
@@ -263,6 +286,7 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = ""
 
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
 				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: ""}, 1, nil)
 
 				ActionAndAssert()
@@ -275,6 +299,7 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = ""
 
 				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
 				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: "template"}, 1, nil)
 
 				ActionAndAssert()
@@ -287,6 +312,7 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = "template"
 
 				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
 				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: "template"}, 1, nil)
 
 				ActionAndAssert()
