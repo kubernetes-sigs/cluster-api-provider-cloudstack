@@ -125,11 +125,11 @@ type CloudStackMachine struct {
 }
 
 // The computed affinity group name relevant to this machine.
-func (csm CloudStackMachine) AffinityGroupName(
-	capiMachine *capiv1.Machine,
-) (string, error) {
+func (csm CloudStackMachine) AffinityGroupName(capiMachine *capiv1.Machine) (string, error) {
 
-	managerOwnerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
+	allOwnerRefs := append(csm.OwnerReferences, capiMachine.OwnerReferences...)
+
+	managerOwnerRef := csCtrlrUtils.GetManagementOwnerRef(allOwnerRefs)
 	if managerOwnerRef == nil {
 		return "", errors.Errorf("could not find owner UID for %s/%s", csm.Namespace, csm.Name)
 	}

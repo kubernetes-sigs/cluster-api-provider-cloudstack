@@ -37,7 +37,7 @@ func getMachineSetFromCAPIMachine(
 	capiMachine *capiv1.Machine,
 ) (*capiv1.MachineSet, error) {
 
-	ref := GetManagementOwnerRef(capiMachine)
+	ref := GetManagementOwnerRef(capiMachine.OwnerReferences)
 	if ref == nil {
 		return nil, errors.New("management owner not found")
 	}
@@ -68,7 +68,7 @@ func getKubeadmControlPlaneFromCAPIMachine(
 	capiMachine *capiv1.Machine,
 ) (*controlplanev1.KubeadmControlPlane, error) {
 
-	ref := GetManagementOwnerRef(capiMachine)
+	ref := GetManagementOwnerRef(capiMachine.OwnerReferences)
 	if ref == nil {
 		return nil, errors.New("management owner not found")
 	}
@@ -125,11 +125,11 @@ func fetchOwnerRef(refList []meta.OwnerReference, kind string) *meta.OwnerRefere
 }
 
 // GetManagementOwnerRef returns the reference object pointing to the CAPI machine's manager.
-func GetManagementOwnerRef(capiMachine *capiv1.Machine) *meta.OwnerReference {
-	if util.IsControlPlaneMachine(capiMachine) {
-		return fetchOwnerRef(capiMachine.OwnerReferences, "KubeadmControlPlane")
-	} else if ref := fetchOwnerRef(capiMachine.OwnerReferences, "MachineSet"); ref != nil {
+func GetManagementOwnerRef(refs []meta.OwnerReference) *meta.OwnerReference {
+	if ref := fetchOwnerRef(refs, "KubeadmControlPlane"); ref != nil {
+		return ref
+	} else if ref := fetchOwnerRef(refs, "MachineSet"); ref != nil {
 		return ref
 	}
-	return fetchOwnerRef(capiMachine.OwnerReferences, "EtcdadmCluster")
+	return fetchOwnerRef(refs, "EtcdadmCluster")
 }

@@ -369,10 +369,6 @@ func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
 	csMachine *infrav1.CloudStackMachine,
 ) error {
 
-	ownerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
-	if ownerRef == nil {
-		return errors.Errorf("Could not find management owner reference for %s/%s", csMachine.Namespace, csMachine.Name)
-	}
 	name, err := csMachine.AffinityGroupName(capiMachine)
 	if err != nil {
 		return err
