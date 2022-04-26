@@ -95,6 +95,11 @@ func (r *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *Reconci
 	return r
 }
 
+func (r *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *ReconciliationRunner {
+	r.ReconcilerBase = base
+	return r
+}
+
 // ForRequest sets the reconciliation request.
 func (r *ReconciliationRunner) ForRequest(req ctrl.Request) *ReconciliationRunner {
 	r.Request = req
@@ -263,6 +268,11 @@ func (r *ReconciliationRunner) LogReconciliationSubject() (ctrl.Result, error) {
 func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...interface{}) (ctrl.Result, error) {
 	r.Log.Info(msg)
 	return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+}
+
+// RequeueWithMessage is a convenience method to log requeue message and then return a result with RequeueAfter set.
+func (r *ReconciliationRunner) ReturnWrappedError(err error, msg string) (ctrl.Result, error) {
+	return ctrl.Result{}, errors.Wrap(err, msg)
 }
 
 func (r *ReconciliationRunner) LogReconciliationSubject() (ctrl.Result, error) {

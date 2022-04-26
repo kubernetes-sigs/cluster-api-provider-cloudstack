@@ -106,26 +106,10 @@ func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Re
 	return ctrl.Result{}, nil
 }
 
-// FetchRelatedResources fetches kubernetes resources required to reconcile an isolated network.
-func (r *CloudStackIsolatedNetworkReconciler) FetchRelatedResources(
-	ctx context.Context, req ctrl.Request,
-) (*IsoNetContext, error) {
-	var err error
-
-	crds := &IsoNetContext{}
-	// Fetch the CloudStackIsolatedNetwork.
-	if err := r.Client.Get(ctx, req.NamespacedName, crds.IsoNet); err != nil {
-		return nil, err
-	}
-	meta := crds.IsoNet.ObjectMeta
-	if crds.OwnerCluster, err = csCtrlrUtils.GetOwnerCloudStackCluster(ctx, r.Client, meta); err != nil {
-		return nil, err
-	}
-	if crds.OwnerZone, err = csCtrlrUtils.GetOwnerZone(ctx, r.Client, meta); err != nil {
-		return nil, err
-	}
-
-	return crds, nil
+func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
+	// TODO: Remove finalizers
+	// TODO: Cleanup any IsoNets tagged as created.
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

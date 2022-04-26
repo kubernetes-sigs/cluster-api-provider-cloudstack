@@ -186,11 +186,13 @@ func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned client.Object
 		}
 		key := client.ObjectKey{Name: ref.Name, Namespace: owned.GetNamespace()}
 		if err := c.Get(ctx, key, owner); err != nil {
-			return errors.Wrapf(err, "error encountered when finding owner for %s/%s", owned.GetName(), owned.GetNamespace())
+			return errors.Wrapf(err, "error encountered when finding owner of kind %s %s/%s",
+				owner.GetObjectKind().GroupVersionKind().Kind, owner.GetNamespace(), owner.GetName())
 		}
 		return nil
 	}
-	return errors.Errorf("couldn't find owner for %s/%s", owned.GetName(), owned.GetNamespace())
+	return errors.Errorf("couldn't find owner of kind % %s/%s",
+		owner.GetObjectKind().GroupVersionKind().Kind, owner.GetNamespace(), owner.GetName())
 }
 
 // GetOwnerCloudStackCluster returns the Cluster object owning the current resource.
@@ -248,5 +250,10 @@ func GetZoneByID(ctx context.Context, c client.Client, obj metav1.ObjectMeta, zo
 	return &zoneList.Items[0], nil
 }
 
-func OwnedObjectsReadiness(ctx context.Context, c client.Client, obj metav1.ObjectMeta) {
+func ContainsNoMatchSubstring(err error) bool {
+	return strings.Contains(strings.ToLower(err.Error()), "no match")
+}
+
+func ContainsAlreadyExistsSubstring(err error) bool {
+	return strings.Contains(strings.ToLower(err.Error()), "already exists")
 }
