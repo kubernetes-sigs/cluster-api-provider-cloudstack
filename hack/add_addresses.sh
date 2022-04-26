@@ -16,7 +16,7 @@ while true; do
         done
         docker stop nginx-container &> /dev/null || echo
         docker rm nginx-container &> /dev/null || echo
-        docker run --name=nginx-container --rm -p 8082:8082 -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf nginx &
+        docker run --name=nginx-container --rm -p 6443:6443 -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf nginx &
     fi
     OLD_ADDRESSES=$ADDRESSES 
     sleep 5
