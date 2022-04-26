@@ -46,11 +46,25 @@ type CloudStackMachineReconciliationRunner struct {
 	ReconciliationSubject *infrav1.CloudStackMachine
 	CAPIMachine           *capiv1.Machine
 	CSUser                cloud.Client
+	Zones                 *infrav1.CloudStackZoneList
+	FailureDomain         *infrav1.CloudStackZone
+	IsoNet                *infrav1.CloudStackIsolatedNetwork
 }
 
 // CloudStackMachineReconciler reconciles a CloudStackMachine object
 type CloudStackMachineReconciler struct {
 	csCtrlrUtils.ReconcilerBase
+}
+
+// Initialize a new CloudStackMachine reconciliation runner with concrete types and initialized member fields.
+func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
+	runner := &CloudStackMachineReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachine{}}
+	runner.CAPIMachine = &capiv1.Machine{}
+	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner.ReconciliationSubject) // Initializes base pointers.
+	runner.Zones = &infrav1.CloudStackZoneList{}
+	runner.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
+	runner.FailureDomain = &infrav1.CloudStackZone{}
+	return runner
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
@@ -62,38 +76,33 @@ type CloudStackMachineReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	runner := &CloudStackMachineReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachine{}}
-	runner.CSCluster = &infrav1.CloudStackCluster{}
-	runner.CAPICluster = &capiv1.Cluster{}
-	runner.CAPIMachine = &capiv1.Machine{}
-	return runner.
-		UsingBaseReconciler(r.ReconcilerBase).
+func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+	r := NewCSMachineReconciliationRunner()
+	return r.
+		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
 		WithRequestCtx(ctx).
 		RunReconciliationStages(
-			runner.SetupLogger,
-			runner.SetReconciliationSubjectToConcreteSubject(runner.ReconciliationSubject),
-			runner.GetReconciliationSubject,
-			runner.GetCAPICluster,
-			//runner.LogReconciliationSubject,
-			runner.GetParent(runner.ReconciliationSubject, runner.CAPIMachine),
-			runner.RequeueIfCloudStackClusterNotReady,
-			runner.CheckIfPaused,
-			runner.SetupPatcher,
-			runner.SetFailureDomainOnCSMachine,
-			runner.IfDeletionTimestampIsZero(runner.Reconcile),
-			runner.Else(runner.ReconcileDelete),
-			runner.PatchChangesBackToAPI)
+			r.SetupLogger,
+			r.GetReconciliationSubject,
+			r.GetCAPICluster,
+			r.GetCSCluster,
+			r.GetZones(r.Zones),
+			r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
+			r.RequeueIfCloudStackClusterNotReady,
+			r.CheckIfPaused,
+			r.SetupPatcher,
+			r.IfDeletionTimestampIsZero(r.Reconcile),
+			r.Else(r.ReconcileDelete),
+			r.PatchChangesBackToAPI)
 }
 
 func (runner *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-
-	// This is a dorky example to show that a stage can be ran alone in a reconciliation method.
-	if rslt, err := runner.SetFailureDomainOnCSMachine(); runner.ShouldReturn(rslt, err) {
-		return rslt, err
-	}
-	return runner.RunReconciliationStages(runner.GetOrCreateVMInstance,
+	return runner.RunReconciliationStages(
+		runner.SetFailureDomainOnCSMachine,
+		// This can move to IsoNet controller with a nice watch someday.
+		runner.GetObjectByName(runner.FailureDomain.Spec.Network.Name, runner.IsoNet),
+		runner.GetOrCreateVMInstance,
 		runner.RequeueIfInstanceNotRunning,
 		runner.AddToLBIfNeeded)
 }
@@ -130,14 +139,8 @@ func (runner *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine
 				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", runner.ReconciliationSubject.Spec.ZoneName)
 			}
 		} else { // No Zone Specified, pick a Random Zone.
-			zones := make([]string, len(runner.CSCluster.Status.Zones))
-			zidx := 0
-			for zoneID := range runner.CSCluster.Status.Zones {
-				zones[zidx] = zoneID
-				zidx++
-			}
-			randNum := (rand.Int() % len(runner.CSCluster.Spec.Zones)) // #nosec G404 -- weak crypt rand doesn't matter here.
-			runner.ReconciliationSubject.Status.ZoneID = zones[randNum]
+			randNum := (rand.Int() % len(runner.Zones.Items)) // #nosec G404 -- weak crypt rand doesn't matter here.
+			runner.ReconciliationSubject.Status.ZoneID = runner.Zones.Items[randNum].Spec.ID
 		}
 	}
 	return ctrl.Result{}, nil
@@ -147,20 +150,28 @@ func (runner *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine
 // Implicitly it also fetches its bootstrap secret in order to create said instance.
 func (runner *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes ctrl.Result, reterr error) {
 	if runner.CAPIMachine.Spec.Bootstrap.DataSecretName == nil {
-		runner.Log.Info("Bootstrap DataSecretName not yet available.")
-		return ctrl.Result{}, nil
+		return runner.RequeueWithMessage("Bootstrap DataSecretName not yet available.")
 	}
 	runner.Log.Info("Got Bootstrap DataSecretName.")
 
+	// Get the CloudStackZone for the Machine.
+	var machineZone infrav1.CloudStackZone
+	for _, zone := range runner.Zones.Items {
+		machineZone = zone
+		if zone.Spec.ID == runner.ReconciliationSubject.Status.ZoneID {
+			break
+		}
+	}
+
+	// Get the kubeadm bootstrap secret for this machine.
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: runner.CAPIMachine.Namespace, Name: *runner.CAPIMachine.Spec.Bootstrap.DataSecretName}
 	if err := runner.Client.Get(context.TODO(), key, secret); err != nil {
 		return ctrl.Result{}, err
 	}
-
 	if data, isPresent := secret.Data["value"]; isPresent {
 		if err := runner.CS.GetOrCreateVMInstance(
-			runner.ReconciliationSubject, runner.CAPIMachine, runner.CSCluster, string(data)); err == nil {
+			runner.ReconciliationSubject, runner.CAPIMachine, runner.CSCluster, &machineZone, string(data)); err == nil {
 			if !controllerutil.ContainsFinalizer(runner.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 				runner.Log.Info("CloudStack instance Created", "instanceStatus", runner.ReconciliationSubject.Status)
 				controllerutil.AddFinalizer(runner.ReconciliationSubject, infrav1.MachineFinalizer)
@@ -181,7 +192,7 @@ func (runner *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning
 		runner.ReconciliationSubject.Status.Ready = true
 	} else if runner.ReconciliationSubject.Status.InstanceState == "Error" {
 		runner.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", runner.ReconciliationSubject)
-		if err := runner.Client.Delete(runner.RequestCtx, runner.ReconciliationSubject); err != nil {
+		if err := runner.Client.Delete(runner.RequestCtx, runner.CAPIMachine); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
@@ -197,7 +208,10 @@ func (runner *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes c
 	zone := runner.CSCluster.Status.Zones[runner.ReconciliationSubject.Status.ZoneID]
 	if util.IsControlPlaneMachine(runner.CAPIMachine) && zone.Network.Type == cloud.NetworkTypeIsolated {
 		runner.Log.Info("Assigning VM to load balancer rule.")
-		err := runner.CS.AssignVMToLoadBalancerRule(runner.CSCluster, *runner.ReconciliationSubject.Spec.InstanceID)
+		if runner.IsoNet.Spec.Name == "" {
+			return runner.RequeueWithMessage("Could not get required Isolated Network for VM, requeueing.")
+		}
+		err := runner.CS.AssignVMToLoadBalancerRule(runner.IsoNet, *runner.ReconciliationSubject.Spec.InstanceID)
 		if err != nil {
 			return ctrl.Result{}, err
 		}

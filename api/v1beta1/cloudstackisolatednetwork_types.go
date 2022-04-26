@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -27,13 +28,20 @@ const (
 
 // CloudStackIsolatedNetworkSpec defines the desired state of CloudStackIsolatedNetwork
 type CloudStackIsolatedNetworkSpec struct {
-	// Name is the name of the isolated network.
-	// +optional
-	Name string `json:"name,omitempty"`
-
-	// ID is the CloudStack id of the isolated network.
+	// Cloudstack Network ID the cluster is built in.
 	// +optional
 	ID string `json:"id,omitempty"`
+
+	// Cloudstack Network Type the cluster is built in.
+	// + optional
+	Type string `json:"type,omitempty"`
+
+	// Cloudstack Network Name the cluster is built in.
+	// +optional
+	Name string `json:"name"`
+
+	// The kubernetes control plane endpoint.
+	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// IdentityRef is a reference to a identity to be used when reconciling this cluster
 	// +optional
@@ -43,12 +51,24 @@ type CloudStackIsolatedNetworkSpec struct {
 
 // CloudStackIsolatedNetworkStatus defines the observed state of CloudStackIsolatedNetwork
 type CloudStackIsolatedNetworkStatus struct {
-	// Name is the CloudStack type of the isolated network.
-	// +optional
-	Type string `json:"type,omitempty"`
+	// The CS public IP ID to use for the k8s endpoint.
+	PublicIPID string `json:"publicIPID,omitempty"`
+
+	// The ID of the network the PublicIP is in.
+	PublicIPNetworkID string `json:"publicIPNetworkID,omitempty"`
+
+	// The ID of the lb rule used to assign VMs to the lb.
+	LBRuleID string `json:"loadBalancerRuleID,omitempty"`
 
 	// Ready indicates the readiness of this provider resource.
 	Ready bool `json:"ready"`
+}
+
+func (n *CloudStackIsolatedNetwork) Network() *Network {
+	return &Network{
+		Name: n.Spec.Name,
+		Type: n.Spec.Type,
+		ID:   n.Spec.ID}
 }
 
 //+kubebuilder:object:root=true

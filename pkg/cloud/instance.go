@@ -18,7 +18,6 @@ package cloud
 
 import (
 	"fmt"
-	"net"
 
 	"strings"
 
@@ -35,10 +34,9 @@ import (
 const antiAffinityValue = "anti"
 
 type VMIface interface {
-	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
+	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
 	DestroyVMInstance(*infrav1.CloudStackMachine) error
-	AssignVMToLoadBalancerRule(*infrav1.CloudStackCluster, string) error
 }
 
 // Set infrastructure spec and status from the CloudStack API's virtual machine metrics type.
@@ -146,6 +144,7 @@ func (c *client) GetOrCreateVMInstance(
 	csMachine *infrav1.CloudStackMachine,
 	capiMachine *capiv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
+	zone *infrav1.CloudStackZone,
 	userData string) error {
 
 	// Check if VM instance already exists.
@@ -165,8 +164,7 @@ func (c *client) GetOrCreateVMInstance(
 
 	// Create VM instance.
 	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csMachine.Status.ZoneID)
-	zone := csCluster.Status.Zones[csMachine.Status.ZoneID]
-	p.SetNetworkids([]string{zone.Network.ID})
+	p.SetNetworkids([]string{zone.Spec.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 
@@ -198,14 +196,6 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
 	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 
-	// If this VM instance is a control plane, consider setting its IP.
-	_, isControlPlanceMachine := capiMachine.ObjectMeta.Labels["cluster.x-k8s.io/control-plane"]
-	if isControlPlanceMachine && zone.Network.Type == NetworkTypeShared {
-		// If the specified control plane endpoint is an IP address, specify the IP address of this VM instance.
-		if net.ParseIP(csCluster.Spec.ControlPlaneEndpoint.Host) != nil {
-			p.SetIpaddress(csCluster.Spec.ControlPlaneEndpoint.Host)
-		}
-	}
 	if csMachine.Spec.Details != nil {
 		p.SetDetails(csMachine.Spec.Details)
 	}

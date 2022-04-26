@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -28,9 +29,12 @@ import (
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/go-logr/logr"
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
+
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks/finalizers,verbs=update
 
 // CloudStackIsolatedNetworkReconciler reconciles a CloudStackIsolatedNetwork object
 type CloudStackIsolatedNetworkReconciler struct {
@@ -41,75 +45,90 @@ type CloudStackIsolatedNetworkReconciler struct {
 }
 
 type IsoNetContext struct {
-	IsoNet       *infrav1.CloudStackIsolatedNetwork
-	OwnerCluster *infrav1.CloudStackCluster
-	OwnerZone    *infrav1.CloudStackZone
+	IsoNet *infrav1.CloudStackIsolatedNetwork
+	Zone   *infrav1.CloudStackZone
 }
 
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks/finalizers,verbs=update
+// Initialize a new CloudStackIsoNet reconciliation runner with concrete types and initialized member fields.
+func NewCSIsoNetReconciliationRunner() *CloudStackIsoNetReconciliationRunner {
+	runner := &CloudStackIsoNetReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackIsolatedNetwork{}}
+	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner.ReconciliationSubject) // Initializes base pointers.
+	runner.Zone = &infrav1.CloudStackZone{}
+	return runner
+}
 
-func (r *CloudStackIsolatedNetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	log := r.Log.WithValues("IsolatedNetwork", req.Name, "namespace", req.Namespace)
-	log.V(1).Info("Reconcile CloudStackIsolatedNetwork")
+// CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+type CloudStackIsoNetReconciliationRunner struct {
+	csCtrlrUtils.ReconciliationRunner
+	Zone                  *infrav1.CloudStackZone
+	ReconciliationSubject *infrav1.CloudStackIsolatedNetwork
+	CSUser                cloud.Client
+}
 
-	crds, err := r.FetchRelatedResources(ctx, req)
-	if err != nil {
+// CloudStackIsoNetReconciler reconciles a CloudStackZone object
+type CloudStackIsoNetReconciler struct {
+	csCtrlrUtils.ReconcilerBase
+}
+
+func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+	r := NewCSIsoNetReconciliationRunner()
+	return r.
+		UsingBaseReconciler(reconciler.ReconcilerBase).
+		ForRequest(req).
+		WithRequestCtx(ctx).
+		RunReconciliationStages(
+			r.SetupLogger,
+			r.GetReconciliationSubject,
+			r.GetCAPICluster,
+			r.GetCSCluster,
+			r.GetParent(r.ReconciliationSubject, r.Zone),
+			r.CheckIfPaused,
+			r.SetupPatcher,
+			r.IfDeletionTimestampIsZero(r.Reconcile),
+			r.Else(r.ReconcileDelete),
+			r.PatchChangesBackToAPI)
+}
+
+func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
+	// TODO: Add finalizers.
+	if err := r.CS.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject); err != nil {
 		return ctrl.Result{}, err
 	}
+	r.ReconciliationSubject.Spec.ControlPlaneEndpoint = r.CSCluster.Spec.ControlPlaneEndpoint
 
-	// Setup patcher. This ensures modifications to the csIsoNet copy fetched above are patched into the origin.
-	patchHelper, err := patch.NewHelper(crds.IsoNet, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	defer func() { // If there was no error on return, but the patch fails, set the error accordingly.
-		if err = patchHelper.Patch(ctx, crds.IsoNet); err != nil {
-			msg := "error patching CloudStackIsolatedNetwork %s/%s"
-			err = errors.Wrapf(err, msg, crds.IsoNet.Namespace, crds.IsoNet.Name)
-			retErr = multierror.Append(retErr, err)
+	// Setup isolated network endpoint, egress, and load balancing.
+	// Set endpoint of CloudStackCluster if it is not currently set. (uses patcher to do so)
+	if csClusterPatcher, err := patch.NewHelper(r.CSCluster, r.Client); err != nil {
+		return r.ReturnWrappedError(retErr, "error encountered while setting up CloudStackCluster patcher")
+	} else if err := r.CS.AssociatePublicIPAddress(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+		return r.ReturnWrappedError(err, "error encountered when associating isolated network public IP address")
+	} else if r.ReconciliationSubject.Spec.ControlPlaneEndpoint.Host == "" {
+		return ctrl.Result{}, errors.New("Endpoint not set.")
+	} else if err := r.CS.GetOrCreateLoadBalancerRule(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+		return r.ReturnWrappedError(err, "error encountered when setting up load balancer for isolated network")
+	} else {
+		r.CSCluster.Spec.ControlPlaneEndpoint.Host = r.ReconciliationSubject.Spec.ControlPlaneEndpoint.Host
+		if err := csClusterPatcher.Patch(r.RequestCtx, r.CSCluster); err != nil {
+			return r.ReturnWrappedError(err, "error encountered when patching endpoint update to CloudStackCluster")
 		}
-	}()
-
-	if err := r.CS.FetchIsolatedNetwork(crds.OwnerZone, crds.IsoNet); err != nil { // If err, then network doesn't exist.
-		return ctrl.Result{}, r.CS.CreateIsolatedNetwork(crds.OwnerZone, crds.OwnerCluster)
 	}
-	// if err := r.CS.INetAssociatePublicIPAddress(crds.IsoNet); err != nil {
-	// 	return ctrl.Result{}, errors.Wrapf(err, "error encountered when associating public IP address to csCluster")
-	// }
-	// if err := r.CS.GetOrCreateLoadBalancerRule(crds.IsoNet); err != nil {
-	// 	return ctrl.Result{}, err
-	// }
-	crds.IsoNet.Status.Ready = true
-
+	fmt.Println("here")
+	if r.ReconciliationSubject.Spec.ID != "" && r.ReconciliationSubject.Status.LBRuleID != "" && r.ReconciliationSubject.Status.PublicIPID != "" {
+		r.ReconciliationSubject.Status.Ready = true
+	} else {
+		return r.RequeueWithMessage("network not yet ready")
+	}
 	return ctrl.Result{}, nil
 }
 
-// FetchRelatedResources fetches kubernetes resources required to reconcile an isolated network.
-func (r *CloudStackIsolatedNetworkReconciler) FetchRelatedResources(
-	ctx context.Context, req ctrl.Request,
-) (*IsoNetContext, error) {
-	var err error
-
-	crds := &IsoNetContext{}
-	// Fetch the CloudStackIsolatedNetwork.
-	if err := r.Client.Get(ctx, req.NamespacedName, crds.IsoNet); err != nil {
-		return nil, err
-	}
-	meta := crds.IsoNet.ObjectMeta
-	if crds.OwnerCluster, err = csCtrlrUtils.GetOwnerCloudStackCluster(ctx, r.Client, meta); err != nil {
-		return nil, err
-	}
-	if crds.OwnerZone, err = csCtrlrUtils.GetOwnerZone(ctx, r.Client, meta); err != nil {
-		return nil, err
-	}
-
-	return crds, nil
+func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
+	// TODO: Remove finalizers
+	// TODO: Cleanup any IsoNets tagged as created.
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudStackIsolatedNetworkReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CloudStackIsoNetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackIsolatedNetwork{}).
 		Complete(r)

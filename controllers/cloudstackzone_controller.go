@@ -19,12 +19,12 @@ package controllers
 import (
 	"context"
 
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/pkg/errors"
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones,verbs=get;list;watch;create;update;patch;delete
@@ -34,9 +34,10 @@ import (
 // CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
 type CloudStackZoneReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
-	Zones                 infrav1.CloudStackZoneList
+	Zones                 *infrav1.CloudStackZoneList
 	ReconciliationSubject *infrav1.CloudStackZone
 	CSUser                cloud.Client
+	IsoNet                *infrav1.CloudStackIsolatedNetwork
 }
 
 // CloudStackZoneReconciler reconciles a CloudStackZone object
@@ -44,26 +45,32 @@ type CloudStackZoneReconciler struct {
 	csCtrlrUtils.ReconcilerBase
 }
 
-func (r *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+// Initialize a new CloudStackZone reconciliation runner with concrete types and initialized member fields.
+func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
 	runner := &CloudStackZoneReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackZone{}}
-	runner.CSCluster = &infrav1.CloudStackCluster{}
-	runner.CAPICluster = &capiv1.Cluster{}
-	return runner.
-		UsingBaseReconciler(r.ReconcilerBase).
+	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner.ReconciliationSubject) // Initializes base pointers.
+	runner.Zones = &infrav1.CloudStackZoneList{}
+	runner.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
+
+	return runner
+}
+
+func (reconciler *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+	r := NewCSZoneReconciliationRunner()
+	return r.
+		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
 		WithRequestCtx(ctx).
 		RunReconciliationStages(
-			runner.SetupLogger,
-			runner.SetReconciliationSubjectToConcreteSubject(runner.ReconciliationSubject),
-			runner.GetReconciliationSubject,
-			//runner.LogReconciliationSubject,
-			runner.GetParent(runner.ReconciliationSubject, runner.CSCluster),
-			runner.GetCAPICluster,
-			runner.CheckIfPaused,
-			runner.SetupPatcher,
-			runner.IfDeletionTimestampIsZero(runner.Reconcile),
-			runner.Else(runner.ReconcileDelete),
-			runner.PatchChangesBackToAPI)
+			r.SetupLogger,
+			r.GetReconciliationSubject,
+			r.GetCAPICluster,
+			r.GetCSCluster,
+			r.CheckIfPaused,
+			r.SetupPatcher,
+			r.IfDeletionTimestampIsZero(r.Reconcile),
+			r.Else(r.ReconcileDelete),
+			r.PatchChangesBackToAPI)
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -74,9 +81,34 @@ func (r *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-
 	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.ReconciliationSubject.Spec)
+	// Start by purely data fetching information about the zone and specified network.
+	var res ctrl.Result
+	if err := r.CS.ResolveZone(r.ReconciliationSubject); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "error encountered when resolving CloudStack zone information")
+	} else if res, err = r.PatchChangesBackToAPI(); r.ShouldReturn(res, err) { // Persist found zone ID.
+		return res, err
+	} else if err = r.CS.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
+		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
+		return ctrl.Result{}, errors.Wrap(err, "error encountered when resolving Cloudstack network information")
+	}
 
+	// Address Isolated Networks.
+	// Check if the passed network was an isolated network or the network was missing. In either case, create a
+	// CloudStackIsolatedNetwork to manage the many intricacies and wait until CloudStackIsolatedNetwork is ready.
+	if r.ReconciliationSubject.Spec.Network.ID == "" || r.ReconciliationSubject.Spec.Network.Type == infrav1.NetworkTypeIsolated {
+		netName := r.ReconciliationSubject.Spec.Network.Name
+		if res, err := r.GenerateIsolatedNetwork(netName)(); r.ShouldReturn(res, err) {
+			return res, err
+		} else if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
+			return res, err
+		} else if r.IsoNet.Name == "" {
+			return r.RequeueWithMessage("Couldn't find isolated network.")
+		}
+		if !r.IsoNet.Status.Ready {
+			return r.RequeueWithMessage("Isolated network dependency not ready.")
+		}
+	}
 	r.ReconciliationSubject.Status.Ready = true
 	return ctrl.Result{}, nil
 }

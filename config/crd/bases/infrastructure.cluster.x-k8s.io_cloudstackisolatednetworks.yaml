@@ -38,8 +38,22 @@ spec:
             description: CloudStackIsolatedNetworkSpec defines the desired state of
               CloudStackIsolatedNetwork
             properties:
+              controlPlaneEndpoint:
+                description: The kubernetes control plane endpoint.
+                properties:
+                  host:
+                    description: The hostname on which the API server is serving.
+                    type: string
+                  port:
+                    description: The port on which the API server is serving.
+                    format: int32
+                    type: integer
+                required:
+                - host
+                - port
+                type: object
               id:
-                description: ID is the CloudStack id of the isolated network.
+                description: Cloudstack Network ID the cluster is built in.
                 type: string
               identityRef:
                 description: IdentityRef is a reference to a identity to be used when
@@ -58,19 +72,30 @@ spec:
                 - name
                 type: object
               name:
-                description: Name is the name of the isolated network.
+                description: Cloudstack Network Name the cluster is built in.
                 type: string
+              type:
+                description: Cloudstack Network Type the cluster is built in.
+                type: string
+            required:
+            - controlPlaneEndpoint
             type: object
           status:
             description: CloudStackIsolatedNetworkStatus defines the observed state
               of CloudStackIsolatedNetwork
             properties:
+              loadBalancerRuleID:
+                description: The ID of the lb rule used to assign VMs to the lb.
+                type: string
+              publicIPID:
+                description: The CS public IP ID to use for the k8s endpoint.
+                type: string
+              publicIPNetworkID:
+                description: The ID of the network the PublicIP is in.
+                type: string
               ready:
                 description: Ready indicates the readiness of this provider resource.
                 type: boolean
-              type:
-                description: Name is the CloudStack type of the isolated network.
-                type: string
             required:
             - ready
             type: object

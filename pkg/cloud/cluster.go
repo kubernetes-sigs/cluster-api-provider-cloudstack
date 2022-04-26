@@ -66,35 +66,9 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 		}
 	}
 
-	// Get current network statuses.
-	// CAPC only modifies networks in the single isolated network case.
-	if retErr = c.ResolveNetworkStatuses(csCluster); retErr != nil {
-		return retErr
-	}
-
-	if UsesIsolatedNetwork(csCluster) {
-		return c.GetOrCreateIsolatedNetwork(csCluster)
-	}
-
 	return nil
 }
 
 func (c *client) DisposeClusterResources(csCluster *infrav1.CloudStackCluster) (retError error) {
-	if csCluster.Status.PublicIPID != "" {
-		if err := c.DeleteClusterTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID, csCluster); err != nil {
-			return err
-		}
-		if err := c.DisassociatePublicIPAddressIfNotInUse(csCluster); err != nil {
-			return err
-		}
-	}
-	for _, zone := range csCluster.Status.Zones {
-		if err := c.RemoveClusterTagFromNetwork(csCluster, zone.Network); err != nil {
-			return err
-		}
-		if err := c.DeleteNetworkIfNotInUse(csCluster, zone.Network); err != nil {
-			return err
-		}
-	}
 	return nil
 }

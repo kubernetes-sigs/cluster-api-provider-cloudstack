@@ -6,41 +6,20 @@ import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // CreateZone generates a specified CloudStackZone CRD owned by the ReconcilationSubject.
-func (runner *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
-	ownerKind := runner.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind
+func (r *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
 	csZone := &infrav1.CloudStackZone{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        strings.ToLower(zoneSpec.Name),
-			Namespace:   runner.Request.Namespace,
-			Labels:      map[string]string{capiv1.ClusterLabelName: runner.CAPICluster.Name},
-			Annotations: map[string]string{},
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(runner.ReconciliationSubject, controlplanev1.GroupVersion.WithKind(ownerKind)),
-			},
-		},
-		Spec:   infrav1.CloudStackZoneSpec{Name: zoneSpec.Name},
-		Status: infrav1.CloudStackZoneStatus{Ready: false},
+		ObjectMeta: r.NewChildObjectMeta(zoneSpec.Name),
+		Spec:       infrav1.CloudStackZoneSpec{Name: zoneSpec.Name, ID: zoneSpec.ID, Network: zoneSpec.Network},
+		Status:     infrav1.CloudStackZoneStatus{Ready: false},
 	}
-
-	if err := runner.Client.Create(runner.RequestCtx, csZone); err != nil {
-		return errors.Wrap(err, "failed to create zone")
-	}
-	return nil
-}
-
-func (runner *ReconciliationRunner) CreateZones2(zoneSpecs []infrav1.Zone) (ctrl.Result, error) {
-	return func() (ctrl.Result, error) {
-		return ctrl.Result{}, nil
-	}()
+	return errors.Wrap(r.Client.Create(r.RequestCtx, csZone), "error encountered when creating CloudStackZone")
 }
 
 // CreateZones generates a CloudStackClusterZone CRD for each of the ReconcilationSubject's Zones.
@@ -61,13 +40,14 @@ func (runner *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudS
 // GetZones gets CloudStackZones owned by a CloudStackCluster via an ownership label.
 func (runner *ReconciliationRunner) GetZones(zones *infrav1.CloudStackZoneList) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		labels := map[string]string{"OwnedBy": runner.Request.Name}
-
+		// labels := map[string]string{"OwnedBy": runner.Request.Name}
+		capiClusterLabel := map[string]string{
+			capiv1.ClusterLabelName: runner.CSCluster.GetLabels()[capiv1.ClusterLabelName]}
 		if err := runner.Client.List(
 			runner.RequestCtx,
 			zones,
 			client.InNamespace(runner.Request.Namespace),
-			client.MatchingLabels(labels),
+			client.MatchingLabels(capiClusterLabel),
 		); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to list zones")
 		}

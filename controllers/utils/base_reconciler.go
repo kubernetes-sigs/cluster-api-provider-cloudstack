@@ -19,12 +19,14 @@ package utils
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -39,12 +41,10 @@ import (
 // ReconcilerBase is the base set of componenets we use in k8s reconcilers.
 // These are items that are not copied for each reconciliation request, and must be written to with caution.
 type ReconcilerBase struct {
-	BaseLogger      logr.Logger
-	Scheme          *runtime.Scheme
-	Client          client.Client
-	CS              cloud.Client
-	reconcileDelete CloudStackReconcilerMethod
-	reconcile       CloudStackReconcilerMethod
+	BaseLogger logr.Logger
+	Scheme     *runtime.Scheme
+	Client     client.Client
+	CS         cloud.Client
 }
 
 // CloudStackBaseContext is the base CloudStack data structure created/copied for each reconciliation request to avoid
@@ -64,25 +64,33 @@ type ReconciliationRunner struct {
 	ReconcilerBase
 	CloudStackBaseContext
 	ReconciliationSubject client.Object // Underlying crd interface.
-	ConditionalResult     bool
+	ConditionalResult     bool          // Stores a conidtinal result for stringing if else type methods.
+	returnEarly           bool          // A signal that the reconcile should return early.
 }
 
-// UsingBaseReconciler sets the ReconciliationRunner to use the same base components as the passed base reconciler.
-func (runner *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *ReconciliationRunner {
-	runner.ReconcilerBase = base
+func NewRunner(concreteReconciliationSubject client.Object) ReconciliationRunner {
+	runner := ReconciliationRunner{}
+	runner.CSCluster = &infrav1.CloudStackCluster{}
+	runner.CAPICluster = &capiv1.Cluster{}
+	runner.ReconciliationSubject = concreteReconciliationSubject
 	return runner
+}
+
+func (r *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *ReconciliationRunner {
+	r.ReconcilerBase = base
+	return r
 }
 
 // ForRequest sets the reconciliation request.
-func (runner *ReconciliationRunner) ForRequest(req ctrl.Request) *ReconciliationRunner {
-	runner.Request = req
-	return runner
+func (r *ReconciliationRunner) ForRequest(req ctrl.Request) *ReconciliationRunner {
+	r.Request = req
+	return r
 }
 
 // WithRequestCtx sets the request context.
-func (runner *ReconciliationRunner) WithRequestCtx(ctx context.Context) *ReconciliationRunner {
-	runner.RequestCtx = ctx
-	return runner
+func (r *ReconciliationRunner) WithRequestCtx(ctx context.Context) *ReconciliationRunner {
+	r.RequestCtx = ctx
+	return r
 }
 
 // SetupLogger sets up the reconciler's logger to log with name and namespace values.
@@ -93,10 +101,9 @@ func (r *ReconciliationRunner) SetupLogger() (res ctrl.Result, retErr error) {
 
 func (r *ReconciliationRunner) IfDeletionTimestampIsZero(fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		if r.ReconciliationSubject.GetDeletionTimestamp().IsZero() {
+		if r.ConditionalResult = r.ReconciliationSubject.GetDeletionTimestamp().IsZero(); r.ConditionalResult {
 			return fn()
 		}
-		r.ConditionalResult = false
 		return ctrl.Result{}, nil
 	}
 }
@@ -110,12 +117,11 @@ func (r *ReconciliationRunner) Else(fn CloudStackReconcilerMethod) CloudStackRec
 	}
 }
 
-// Get the CAPI cluster the reconciliation subject belongs to.
+// GetCAPICluster gets the CAPI cluster the reconciliation subject belongs to.
 func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
 	name := r.ReconciliationSubject.GetLabels()[capiv1.ClusterLabelName]
-	fmt.Println(r.ReconciliationSubject.GetLabels())
 	if name == "" {
-		r.Log.Info("Reconciliation Subject is missing cluster label or cluster does not exist.",
+		r.Log.V(1).Info("Reconciliation Subject is missing cluster label or cluster does not exist.",
 			"SubjectKind", r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind)
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
@@ -125,38 +131,80 @@ func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
 		Name:      name,
 	}
 	if err := r.Client.Get(r.RequestCtx, key, r.CAPICluster); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get Cluster/%s", name)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get Cluster %s", name)
+	} else if r.CAPICluster.Name == "" {
+		r.RequeueWithMessage("Cluster not fetched.")
+	}
+	return ctrl.Result{}, nil
+}
+
+// GetCSCluster gets the CAPI cluster the reconciliation subject belongs to.
+func (r *ReconciliationRunner) GetCSCluster() (ctrl.Result, error) {
+	name := r.ReconciliationSubject.GetLabels()[capiv1.ClusterLabelName]
+	if name == "" {
+		r.Log.V(1).Info("Reconciliation Subject is missing cluster label or cluster does not exist.",
+			"SubjectKind", r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind)
+		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+	}
+	r.CSCluster = &infrav1.CloudStackCluster{}
+	key := client.ObjectKey{
+		Namespace: r.ReconciliationSubject.GetNamespace(),
+		Name:      name,
+	}
+	if err := r.Client.Get(r.RequestCtx, key, r.CSCluster); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get CloudStackCluster %s", name)
+	} else if r.CSCluster.Name == "" {
+		r.RequeueWithMessage("CloudStackCluster not fetched.")
 	}
 
 	return ctrl.Result{}, nil
 }
 
-// CheckOwnedCRDsForReadiness queries for the readiness of CRDs listed in ReconciliationSubject.
-func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness() (ctrl.Result, error) {
+// CheckOwnedCRDsForReadiness queries for the readiness of CRDs of GroupVersionKind passed.
+func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness(gvks ...schema.GroupVersionKind) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		// For each GroupVersionKind...
+		for _, gvk := range gvks {
+			// Query to find objects of this kind.
+			// TODO: Filter use owner label to filter. Will need to build generic owner labeling system too.
+			potentiallyOnwedObjs := &unstructured.UnstructuredList{}
+			potentiallyOnwedObjs.SetGroupVersionKind(gvk)
+			err := r.Client.List(r.RequestCtx, potentiallyOnwedObjs)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "encountered when requesting owned objects with gvk %s", gvk)
+			}
 
-	for _, ref := range r.ReconciliationSubject.GetOwnerReferences() {
-		gv, err := schema.ParseGroupVersion(ref.APIVersion)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "encountered when parsing group version %s of object ref", ref.APIVersion)
+			// Filter objects not actually owned by reconciliation subject via owner reference UID.
+			ownedObjs := []unstructured.Unstructured{}
+			for _, pOwned := range potentiallyOnwedObjs.Items {
+				refs := pOwned.GetOwnerReferences()
+				for _, ref := range refs {
+					if ref.UID == r.ReconciliationSubject.GetUID() {
+						ownedObjs = append(ownedObjs, pOwned)
+					}
+				}
+
+			}
+
+			// Check that found objects are ready.
+			for _, owned := range ownedObjs {
+				if ready, found, err := unstructured.NestedBool(owned.Object, "status", "ready"); err != nil {
+					return ctrl.Result{}, errors.Wrapf(err, "encountered when parsing ready for object %s", owned)
+				} else if !found || !ready {
+					if name, found, err := unstructured.NestedString(owned.Object, "metadata", "name"); err != nil {
+						return ctrl.Result{}, errors.Wrapf(err, "encountered when parsing name for object %s", owned)
+					} else if !found {
+						r.Log.Info(fmt.Sprintf("Owned object of kind %s not ready, requeueing", gvk.Kind))
+						return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+					} else {
+						r.Log.Info(fmt.Sprintf("Owned object %s of kind %s not ready, requeueing", name, gvk.Kind))
+						return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+					}
+				}
+			}
 		}
-		gvk := gv.WithKind(ref.Kind)
-
-		owned := &unstructured.Unstructured{}
-		owned.SetGroupVersionKind(gvk)
-
-		err = r.Client.Get(r.RequestCtx, client.ObjectKey{Namespace: r.ReconciliationSubject.GetNamespace(), Name: ref.Name}, owned)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "encountered when requesting owned object with ref %s", ref)
-		}
-
-		if ready, found, err := unstructured.NestedBool(owned.Object, "status", "ready"); !found || err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "encountered when parsing ready for object %s", owned)
-		} else if !ready {
-			r.Log.Info("Owned object of kind %s not ready, requeueing", ref.Kind)
-			return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
-		}
+		return ctrl.Result{}, nil
 	}
-	return ctrl.Result{}, nil
 }
 
 // RequeueIfCloudStackClusterNotReady requeues the reconciliation request if the CloudStackCluster is not ready.
@@ -189,6 +237,11 @@ func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...i
 	return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 }
 
+// RequeueWithMessage is a convenience method to log requeue message and then return a result with RequeueAfter set.
+func (r *ReconciliationRunner) ReturnWrappedError(err error, msg string) (ctrl.Result, error) {
+	return ctrl.Result{}, errors.Wrap(err, msg)
+}
+
 func (r *ReconciliationRunner) LogReconciliationSubject() (ctrl.Result, error) {
 	r.Log.Info("The subject", "subject", r.ReconciliationSubject)
 	return ctrl.Result{}, nil
@@ -214,16 +267,22 @@ func (runner *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackRec
 	for _, fn := range fns {
 		if rslt, err := fn(); err != nil {
 			return rslt, err
-		} else if rslt.Requeue == true || rslt.RequeueAfter != time.Duration(0) {
+		} else if rslt.Requeue == true || rslt.RequeueAfter != time.Duration(0) || runner.returnEarly {
 			return rslt, nil
 		}
 	}
 	return ctrl.Result{}, nil
 }
 
+// SetReturnEarly sets the runner to return early. This causes the runner to break from running further
+// reconciliation stages and return whatever result the current method returns.
+func (runner *ReconciliationRunner) SetReturnEarly() {
+	runner.returnEarly = true
+}
+
 // CheckIfPaused returns with reque later set if paused.
 func (r *ReconciliationRunner) CheckIfPaused() (ctrl.Result, error) {
-	if annotations.IsPaused(r.CAPICluster, r.CSCluster) {
+	if annotations.IsPaused(r.CAPICluster, r.ReconciliationSubject) {
 		return r.RequeueWithMessage("Cluster is paused. Refusing to reconcile.")
 	}
 	return reconcile.Result{}, nil
@@ -231,7 +290,12 @@ func (r *ReconciliationRunner) CheckIfPaused() (ctrl.Result, error) {
 
 // GetReconcilationSubject gets the reconciliation subject of type defined by the concrete reconciler.
 func (r *ReconciliationRunner) GetReconciliationSubject() (res ctrl.Result, reterr error) {
-	return ctrl.Result{}, r.Client.Get(r.RequestCtx, r.Request.NamespacedName, r.ReconciliationSubject)
+	r.Log.Info(fmt.Sprintf("Getting reconciliation subject %s/%s.", r.Request.Namespace, r.Request.Name))
+	err := client.IgnoreNotFound(r.Client.Get(r.RequestCtx, r.Request.NamespacedName, r.ReconciliationSubject))
+	if r.ReconciliationSubject.GetName() == "" {
+		r.SetReturnEarly()
+	}
+	return ctrl.Result{}, client.IgnoreNotFound(errors.Wrap(err, "error encountered while fetching reconciliation subject."))
 }
 
 // SetReconciliationSubjectToConcreteSubject sets reconciliation subject to passed concrete object.
@@ -258,9 +322,34 @@ func (r *ReconciliationRunner) GetParent(child client.Object, parent client.Obje
 	}
 }
 
-func (r *ReconciliationRunner) GetOwnerByKind(owner client.Object) CloudStackReconcilerMethod {
+// GetOwnerOfKind uses the ReconciliationSubject's owner references to get the owner object of kind passed.
+func (r *ReconciliationRunner) GetOwnerOfKind(owner client.Object) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		err := GetOwnerOfKind(r.RequestCtx, r.Client, r.ReconciliationSubject, owner)
 		return ctrl.Result{}, err
+	}
+}
+
+// NewChildObjectMeta creates a meta object with ownership reference and labels matching the current cluster.
+func (r *ReconciliationRunner) NewChildObjectMeta(name string) metav1.ObjectMeta {
+	ownerGVK := r.ReconciliationSubject.GetObjectKind().GroupVersionKind()
+	return metav1.ObjectMeta{
+		Name:      strings.ToLower(name),
+		Namespace: r.Request.Namespace,
+		Labels: map[string]string{capiv1.ClusterLabelName: r.CAPICluster.Name,
+			infrav1.CloudStackClusterLabelName: r.CSCluster.ClusterName},
+		OwnerReferences: []metav1.OwnerReference{
+			*metav1.NewControllerRef(r.ReconciliationSubject, ownerGVK),
+		},
+	}
+}
+
+// GetObjectByName gets an object by name and type of object. The namespace is assumed to be the same
+// as the ReconciliationSubject. Not found is not considered an error. Check the object after.
+func (r *ReconciliationRunner) GetObjectByName(name string, target client.Object) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		objectKey := client.ObjectKey{Name: strings.ToLower(name), Namespace: r.Request.Namespace}
+		return r.ReturnWrappedError(
+			client.IgnoreNotFound(r.Client.Get(r.RequestCtx, objectKey, target)), "failed to get object")
 	}
 }

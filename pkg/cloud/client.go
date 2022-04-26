@@ -33,6 +33,7 @@ type Client interface {
 	AffinityGroupIface
 	TagIface
 	ZoneIFace
+	IsoNetworkIface
 }
 
 type client struct {

@@ -22,9 +22,11 @@ import (
 )
 
 const (
-	// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
-	ClusterFinalizer       = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
-	defaultIdentityRefKind = "Secret"
+	ClusterFinalizer           = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
+	defaultIdentityRefKind     = "Secret"
+	CloudStackClusterLabelName = "cloudstackcluster.infrastructure.cluster.x-k8s.io/name"
+	NetworkTypeIsolated        = "Isolated"
+	NetworkTypeShared          = "Shared"
 )
 
 // CloudStackIdentityReference is a reference to an infrastructure
