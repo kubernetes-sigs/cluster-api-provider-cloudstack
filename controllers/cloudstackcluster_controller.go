@@ -61,12 +61,12 @@ type CloudStackClusterReconciler struct {
 // Initialize a new CloudStackCluster reconciliation runner with concrete types and initialized member fields.
 func NewCSClusterReconciliationRunner() *CloudStackClusterReconciliationRunner {
 	// Set concrete type and init pointers.
-	runner := &CloudStackClusterReconciliationRunner{}
-	runner.ReconciliationSubject = &infrav1.CloudStackCluster{}
-	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner.ReconciliationSubject) // Initializes base pointers.
+	runner := &CloudStackClusterReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackCluster{}}
 	runner.Zones = &infrav1.CloudStackZoneList{}
-
+	// Setup the base runner. Initializes pointers and links reconciliation methods.
+	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
 	// For the CloudStackCluster, the ReconciliationSubject is the CSCluster
+	// Have to do after
 	runner.CSCluster = runner.ReconciliationSubject
 
 	return runner
@@ -74,20 +74,11 @@ func NewCSClusterReconciliationRunner() *CloudStackClusterReconciliationRunner {
 
 // Reconcile is the method k8s will call upon a reconciliation request.
 func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	r := NewCSClusterReconciliationRunner()
-	return r.
+	return NewCSClusterReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
 		WithRequestCtx(ctx).
-		RunReconciliationStages(
-			r.SetupLogger,
-			r.GetReconciliationSubject,
-			r.GetCAPICluster,
-			r.SetupPatcher,
-			r.IfDeletionTimestampIsZero(r.Reconcile),
-			r.Else(r.ReconcileDelete),
-			r.PatchChangesBackToAPI,
-		)
+		RunBaseReconciliationStages()
 }
 
 // Reconcile actually reconciles the CloudStackCluster.
@@ -124,6 +115,11 @@ func (r *CloudStackClusterReconciliationRunner) VerifyZoneCRDs() (ctrl.Result, e
 	actual := len(r.Zones.Items)
 	if expected != actual {
 		return r.RequeueWithMessage(fmt.Sprintf("Expected %d Zones, but found %d", expected, actual))
+	}
+	for _, zone := range r.Zones.Items {
+		if !zone.Status.Ready {
+			return r.RequeueWithMessage(fmt.Sprintf("Zone %s/%s not ready, requeueing.", zone.Namespace, zone.Name))
+		}
 	}
 	return ctrl.Result{}, nil
 }
@@ -182,19 +178,15 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				r.BaseLogger.Info("Reoncile Update Event triggered.")
 				oldCluster := e.ObjectOld.(*capiv1.Cluster)
 				newCluster := e.ObjectNew.(*capiv1.Cluster)
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool {
-				r.BaseLogger.Info("Reoncile Delete Event triggered.")
 				_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
 				return ok
 			},
 			CreateFunc: func(e event.CreateEvent) bool {
-				//r.BaseLogger.V(1).Info("Reoncile Create Event triggered.")
-				r.BaseLogger.Info("Reoncile Create Event triggered.")
 				_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
 				return ok
 			}},

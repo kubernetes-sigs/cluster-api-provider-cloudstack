@@ -58,12 +58,14 @@ type CloudStackMachineReconciler struct {
 
 // Initialize a new CloudStackMachine reconciliation runner with concrete types and initialized member fields.
 func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
+	// Set concrete type and init pointers.
 	runner := &CloudStackMachineReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachine{}}
 	runner.CAPIMachine = &capiv1.Machine{}
-	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner.ReconciliationSubject) // Initializes base pointers.
 	runner.Zones = &infrav1.CloudStackZoneList{}
 	runner.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
 	runner.FailureDomain = &infrav1.CloudStackZone{}
+	// Setup the base runner. Initializes pointers and links reconciliation methods.
+	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
 	return runner
 }
 

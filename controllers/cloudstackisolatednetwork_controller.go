@@ -18,43 +18,23 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
-	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 )
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks/finalizers,verbs=update
 
-// CloudStackIsolatedNetworkReconciler reconciles a CloudStackIsolatedNetwork object
-type CloudStackIsolatedNetworkReconciler struct {
-	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
-	CS     cloud.Client
-}
-
-type IsoNetContext struct {
-	IsoNet *infrav1.CloudStackIsolatedNetwork
-	Zone   *infrav1.CloudStackZone
-}
-
-// Initialize a new CloudStackIsoNet reconciliation runner with concrete types and initialized member fields.
-func NewCSIsoNetReconciliationRunner() *CloudStackIsoNetReconciliationRunner {
-	runner := &CloudStackIsoNetReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackIsolatedNetwork{}}
-	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner.ReconciliationSubject) // Initializes base pointers.
-	runner.Zone = &infrav1.CloudStackZone{}
-	return runner
+// CloudStackIsoNetReconciler reconciles a CloudStackZone object
+type CloudStackIsoNetReconciler struct {
+	csCtrlrUtils.ReconcilerBase
 }
 
 // CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
@@ -65,65 +45,47 @@ type CloudStackIsoNetReconciliationRunner struct {
 	CSUser                cloud.Client
 }
 
-// CloudStackIsoNetReconciler reconciles a CloudStackZone object
-type CloudStackIsoNetReconciler struct {
-	csCtrlrUtils.ReconcilerBase
+// Initialize a new CloudStackIsoNet reconciliation runner with concrete types and initialized member fields.
+func NewCSIsoNetReconciliationRunner() *CloudStackIsoNetReconciliationRunner {
+	// Set concrete type and init pointers.
+	runner := &CloudStackIsoNetReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackIsolatedNetwork{}}
+	runner.Zone = &infrav1.CloudStackZone{}
+	// Setup the base runner. Initializes pointers and links reconciliation methods.
+	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
+	return runner
 }
 
 func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	r := NewCSIsoNetReconciliationRunner()
-	return r.
+	return NewCSIsoNetReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
 		WithRequestCtx(ctx).
-		RunReconciliationStages(
-			r.SetupLogger,
-			r.GetReconciliationSubject,
-			r.GetCAPICluster,
-			r.GetCSCluster,
-			r.GetParent(r.ReconciliationSubject, r.Zone),
-			r.CheckIfPaused,
-			r.SetupPatcher,
-			r.IfDeletionTimestampIsZero(r.Reconcile),
-			r.Else(r.ReconcileDelete),
-			r.PatchChangesBackToAPI)
+		RunBaseReconciliationStages()
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	// TODO: Add finalizers.
-	if err := r.CS.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject); err != nil {
-		return ctrl.Result{}, err
+	if res, err := r.GetParent(r.ReconciliationSubject, r.Zone)(); r.ShouldReturn(res, err) {
+		return res, err
 	}
-	r.ReconciliationSubject.Spec.ControlPlaneEndpoint = r.CSCluster.Spec.ControlPlaneEndpoint
+	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.IsolatedNetworkFinalizer)
 
-	// Setup isolated network endpoint, egress, and load balancing.
+	// Setup isolated network, endpoint, egress, and load balancing.
 	// Set endpoint of CloudStackCluster if it is not currently set. (uses patcher to do so)
 	if csClusterPatcher, err := patch.NewHelper(r.CSCluster, r.Client); err != nil {
 		return r.ReturnWrappedError(retErr, "error encountered while setting up CloudStackCluster patcher")
-	} else if err := r.CS.AssociatePublicIPAddress(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
-		return r.ReturnWrappedError(err, "error encountered when associating isolated network public IP address")
-	} else if r.ReconciliationSubject.Spec.ControlPlaneEndpoint.Host == "" {
-		return ctrl.Result{}, errors.New("Endpoint not set.")
-	} else if err := r.CS.GetOrCreateLoadBalancerRule(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
-		return r.ReturnWrappedError(err, "error encountered when setting up load balancer for isolated network")
-	} else {
-		r.CSCluster.Spec.ControlPlaneEndpoint.Host = r.ReconciliationSubject.Spec.ControlPlaneEndpoint.Host
-		if err := csClusterPatcher.Patch(r.RequestCtx, r.CSCluster); err != nil {
-			return r.ReturnWrappedError(err, "error encountered when patching endpoint update to CloudStackCluster")
-		}
+	} else if err := r.CS.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+		return ctrl.Result{}, err
+	} else if err := csClusterPatcher.Patch(r.RequestCtx, r.CSCluster); err != nil {
+		return r.ReturnWrappedError(err, "error encountered when patching endpoint update to CloudStackCluster")
 	}
-	fmt.Println("here")
-	if r.ReconciliationSubject.Spec.ID != "" && r.ReconciliationSubject.Status.LBRuleID != "" && r.ReconciliationSubject.Status.PublicIPID != "" {
-		r.ReconciliationSubject.Status.Ready = true
-	} else {
-		return r.RequeueWithMessage("network not yet ready")
-	}
+
+	r.ReconciliationSubject.Status.Ready = true
 	return ctrl.Result{}, nil
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
-	// TODO: Remove finalizers
 	// TODO: Cleanup any IsoNets tagged as created.
+	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.IsolatedNetworkFinalizer)
 	return ctrl.Result{}, nil
 }
 

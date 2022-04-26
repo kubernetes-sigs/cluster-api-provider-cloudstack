@@ -14,6 +14,8 @@ func (r *ReconciliationRunner) GenerateIsolatedNetwork(name string) CloudStackRe
 		csIsoNet := &infrav1.CloudStackIsolatedNetwork{}
 		csIsoNet.ObjectMeta = r.NewChildObjectMeta(lowerName)
 		csIsoNet.Spec.Name = strings.ToLower(lowerName)
+		csIsoNet.Spec.ControlPlaneEndpoint.Host = r.CSCluster.Spec.ControlPlaneEndpoint.Host
+		csIsoNet.Spec.ControlPlaneEndpoint.Port = r.CSCluster.Spec.ControlPlaneEndpoint.Port
 
 		if err := r.Client.Create(r.RequestCtx, csIsoNet); err != nil && !ContainsAlreadyExistsSubstring(err) {
 			return r.ReturnWrappedError(err, "error encountered when creating isolated network CRD")

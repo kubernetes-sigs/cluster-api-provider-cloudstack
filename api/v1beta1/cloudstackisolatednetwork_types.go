@@ -54,9 +54,6 @@ type CloudStackIsolatedNetworkStatus struct {
 	// The CS public IP ID to use for the k8s endpoint.
 	PublicIPID string `json:"publicIPID,omitempty"`
 
-	// The ID of the network the PublicIP is in.
-	PublicIPNetworkID string `json:"publicIPNetworkID,omitempty"`
-
 	// The ID of the lb rule used to assign VMs to the lb.
 	LBRuleID string `json:"loadBalancerRuleID,omitempty"`
 

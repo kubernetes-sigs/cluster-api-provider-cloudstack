@@ -20,6 +20,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ZoneFinalizer = "cloudstackzone.infrastructure.cluster.x-k8s.io"
+)
+
 // CloudStackZoneSpec defines the desired state of CloudStackZone
 type CloudStackZoneSpec struct {
 	// The name of the CloudStack zone.

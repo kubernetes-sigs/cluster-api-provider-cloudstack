@@ -1,17 +1,19 @@
 package cloud
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
 
 type IsoNetworkIface interface {
-	GetOrCreateIsolatedNetwork(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork) error
+	GetOrCreateIsolatedNetwork(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) error
 
 	AssociatePublicIPAddress(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) error
 	GetOrCreateLoadBalancerRule(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) error
@@ -39,12 +41,13 @@ func (c *client) AssociatePublicIPAddress(
 	isoNet *capcv1.CloudStackIsolatedNetwork,
 	csCluster *capcv1.CloudStackCluster,
 ) (retErr error) {
-	publicAddress, err := c.GetPublicIP(zone, csCluster)
+	// Check specified IP address is available or get an unused one if not specified.
+	publicAddress, err := c.GetPublicIP(zone, isoNet, csCluster)
 	if err != nil {
 		return errors.Wrapf(err, "error encountered while fetching a public IP address")
 	}
-
 	isoNet.Spec.ControlPlaneEndpoint.Host = publicAddress.Ipaddress
+	csCluster.Spec.ControlPlaneEndpoint.Host = publicAddress.Ipaddress
 	isoNet.Status.PublicIPID = publicAddress.Id
 
 	// Check if the address is already associated with the network.
@@ -60,13 +63,10 @@ func (c *client) AssociatePublicIPAddress(
 		return errors.Wrapf(err,
 			"error encountered while associating public IP address with ID: %s to netowrk with ID: %s",
 			publicAddress.Id, isoNet.Spec.ID)
-	}
-	if err := c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster); err != nil {
+	} else if err := c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster); err != nil {
 		return errors.Wrapf(err,
 			"error encountered while adding tag to public IP address with ID: %s", publicAddress.Id)
-	}
-	// Add created by CAPC tag to public IP.
-	if err := c.AddCreatedByCAPCTag(ResourceTypeIPAddress, isoNet.Status.PublicIPID); err != nil {
+	} else if err := c.AddCreatedByCAPCTag(ResourceTypeIPAddress, isoNet.Status.PublicIPID); err != nil {
 		return errors.Wrapf(err,
 			"error encountered while adding tag to public IP address with ID: %s", publicAddress.Id)
 	}
@@ -94,7 +94,7 @@ func (c *client) CreateIsolatedNetwork(zone *capcv1.CloudStackZone, isoNet *capc
 
 // OpenFirewallRules opens a CloudStack firewall for an isolated network.
 func (c *client) OpenFirewallRules(isoNet *capcv1.CloudStackIsolatedNetwork) (retErr error) {
-	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Status.PublicIPNetworkID, NetworkProtocolTCP)
+	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, NetworkProtocolTCP)
 	_, retErr = c.cs.Firewall.CreateEgressFirewallRule(p)
 	if retErr != nil && strings.Contains(strings.ToLower(retErr.Error()), "there is already") { // Already a firewall rule here.
 		retErr = nil
@@ -102,29 +102,12 @@ func (c *client) OpenFirewallRules(isoNet *capcv1.CloudStackIsolatedNetwork) (re
 	return retErr
 }
 
-// ResolveLoadBalancerRuleDetails resolves the details of a load balancer rule by PublicIPID and Port.
-func (c *client) ResolveLoadBalancerRuleDetails(
+// GetPublicIP gets a public IP with ID for cluster endpoint.
+func (c *client) GetPublicIP(
 	zone *capcv1.CloudStackZone,
 	isoNet *capcv1.CloudStackIsolatedNetwork,
 	csCluster *capcv1.CloudStackCluster,
-) (retErr error) {
-	p := c.cs.LoadBalancer.NewListLoadBalancerRulesParams()
-	p.SetPublicipid(isoNet.Status.PublicIPID)
-	loadBalancerRules, err := c.cs.LoadBalancer.ListLoadBalancerRules(p)
-	if err != nil {
-		return err
-	}
-	for _, rule := range loadBalancerRules.LoadBalancerRules {
-		if rule.Publicport == strconv.Itoa(int(csCluster.Spec.ControlPlaneEndpoint.Port)) {
-			isoNet.Status.LBRuleID = rule.Id
-			return nil
-		}
-	}
-	return errors.New("no load balancer rule found")
-}
-
-// GetPublicIP gets a public IP with ID for cluster endpoint.
-func (c *client) GetPublicIP(zone *capcv1.CloudStackZone, csCluster *capcv1.CloudStackCluster) (*cloudstack.PublicIpAddress, error) {
+) (*cloudstack.PublicIpAddress, error) {
 	ip := csCluster.Spec.ControlPlaneEndpoint.Host
 
 	p := c.cs.Address.NewListPublicIpAddressesParams()
@@ -138,6 +121,12 @@ func (c *client) GetPublicIP(zone *capcv1.CloudStackZone, csCluster *capcv1.Clou
 		// Ignore already allocated here since the IP was specified.
 		return publicAddresses.PublicIpAddresses[0], nil
 	} else if publicAddresses.Count > 0 { // Endpoint not specified.
+		// TODO: Use tags to prevent clash with this logic.
+		for _, v := range publicAddresses.PublicIpAddresses { // Pick first available address.
+			if v.Allocated != "" && v.Associatednetworkid == isoNet.Spec.ID && !v.Issourcenat { // IP Already allocated.
+				return v, nil
+			}
+		}
 		for _, v := range publicAddresses.PublicIpAddresses { // Pick first available address.
 			if v.Allocated == "" { // Found un-allocated Public IP.
 				return v, nil
@@ -173,6 +162,27 @@ func (c *client) GetIsolatedNetwork(isoNet *capcv1.CloudStackIsolatedNetwork) (r
 	return nil
 }
 
+// ResolveLoadBalancerRuleDetails resolves the details of a load balancer rule by PublicIPID and Port.
+func (c *client) ResolveLoadBalancerRuleDetails(
+	zone *capcv1.CloudStackZone,
+	isoNet *capcv1.CloudStackIsolatedNetwork,
+	csCluster *capcv1.CloudStackCluster,
+) error {
+	p := c.cs.LoadBalancer.NewListLoadBalancerRulesParams()
+	p.SetPublicipid(isoNet.Status.PublicIPID)
+	loadBalancerRules, err := c.cs.LoadBalancer.ListLoadBalancerRules(p)
+	if err != nil {
+		return errors.Wrap(err, "error encountered when listing load balancer rules")
+	}
+	for _, rule := range loadBalancerRules.LoadBalancerRules {
+		if rule.Publicport == strconv.Itoa(int(isoNet.Spec.ControlPlaneEndpoint.Port)) {
+			isoNet.Status.LBRuleID = rule.Id
+			return nil
+		}
+	}
+	return errors.New("no load balancer rule found")
+}
+
 // GetOrCreateLoadBalancerRule Create a load balancer rule that can be assigned to instances.
 func (c *client) GetOrCreateLoadBalancerRule(
 	zone *capcv1.CloudStackZone,
@@ -182,12 +192,12 @@ func (c *client) GetOrCreateLoadBalancerRule(
 	// Check if rule exists.
 	if err := c.ResolveLoadBalancerRuleDetails(zone, isoNet, csCluster); err == nil ||
 		!strings.Contains(strings.ToLower(err.Error()), "no load balancer rule found") {
-		return err
+		return errors.Wrap(err, "error encountered when resolving load balancer rule details.")
 	}
+	fmt.Printf("%+v", isoNet.Status)
 
 	p := c.cs.LoadBalancer.NewCreateLoadBalancerRuleParams(
 		"roundrobin", "Kubernetes_API_Server", K8sDefaultAPIPort, K8sDefaultAPIPort)
-
 	p.SetNetworkid(isoNet.Spec.ID)
 	if csCluster.Spec.ControlPlaneEndpoint.Port != 0 { // Override default public port if endpoint port specified.
 		p.SetPublicport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
@@ -203,14 +213,39 @@ func (c *client) GetOrCreateLoadBalancerRule(
 }
 
 // GetOrCreateIsolatedNetwork fetches or builds out the necessary structures for isolated network use.
-func (c *client) GetOrCreateIsolatedNetwork(zone *capcv1.CloudStackZone, isoNet *capcv1.CloudStackIsolatedNetwork) error {
+func (c *client) GetOrCreateIsolatedNetwork(
+	zone *capcv1.CloudStackZone,
+	isoNet *capcv1.CloudStackIsolatedNetwork,
+	csCluster *infrav1.CloudStackCluster,
+) error {
+	// Get or create the isolated network itself and resolve details into passed custom resources.
 	net := isoNet.Network()
-	if err := c.ResolveNetwork(net); err == nil { // Exists, move forward.
-		isoNet.Spec.ID = net.ID
-		isoNet.Spec.Type = net.Type
-		return nil
+	if err := c.ResolveNetwork(net); err != nil { // Doesn't exist, create isolated network.
+		if err = c.CreateIsolatedNetwork(zone, isoNet); err != nil {
+			return errors.Wrap(err, "error encountered while creating a new isolated network.")
+		}
 	}
-	return errors.Wrap(c.CreateIsolatedNetwork(zone, isoNet), "error encountered while creating a new isolated network.")
+	isoNet.Spec.ID = net.ID
+	isoNet.Spec.Type = net.Type
+
+	// Tag the created network.
+	networkID := isoNet.Spec.ID
+	if err := c.AddClusterTag(ResourceTypeNetwork, networkID, csCluster); err != nil {
+		return errors.Wrapf(err, "error encountered while tagging network with id: %s", networkID)
+	}
+
+	// Associate Public IP with CloudStackIsolatedNetwork
+	if err := c.AssociatePublicIPAddress(zone, isoNet, csCluster); err != nil {
+		return errors.Wrapf(err, "error encountered when associating public IP address to csCluster")
+	}
+
+	// Setup a load balancing rule to map VMs to Public IP.
+	if err := c.GetOrCreateLoadBalancerRule(zone, isoNet, csCluster); err != nil {
+		return errors.Wrap(err, "error encountered while getting or creating load balancing rule")
+	}
+
+	//  Open the Isolated Network on endopint port.
+	return errors.Wrap(c.OpenFirewallRules(isoNet), "error encountered while opening the isolated network's firewall")
 }
 
 // AssignVMToLoadBalancerRule assigns a VM instance to a load balancing rule (specifying lb membership).
