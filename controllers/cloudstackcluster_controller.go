@@ -210,7 +210,6 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 			util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				r.BaseLogger.Info("Reoncile Update Event triggered.")
 				oldCluster := e.ObjectOld.(*capiv1.Cluster)
 				newCluster := e.ObjectNew.(*capiv1.Cluster)
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused

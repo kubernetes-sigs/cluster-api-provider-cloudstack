@@ -95,6 +95,10 @@ func (r *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *Reconci
 	return r
 }
 
+func (r *ReconciliationRunner) GetReconcilationSubject() client.Object {
+	return r.ReconciliationSubject
+}
+
 func (r *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *ReconciliationRunner {
 	r.ReconcilerBase = base
 	return r
@@ -300,12 +304,27 @@ func (r *ReconciliationRunner) ShouldReturn(rslt ctrl.Result, err error) bool {
 func (r *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackReconcilerMethod) (ctrl.Result, error) {
 	for _, fn := range fns {
 		if rslt, err := fn(); err != nil {
+			_, err2 := runner.PatchChangesBackToAPI()
+			err = multierror.Append(err, err2)
 			return rslt, err
 		} else if rslt.Requeue || rslt.RequeueAfter != time.Duration(0) || r.returnEarly {
 			return rslt, nil
 		}
 	}
-	return ctrl.Result{}, nil
+	return runner.PatchChangesBackToAPI()
+}
+
+// RunBaseReconciliationStages runs the base reconciliation stages which are to setup the logger, get the reconciliation
+// subject, get CAPI and CloudStackClusters, and call either runner.Reconcile or runner.ReconcileDelete.
+func (r *ReconciliationRunner) RunBaseReconciliationStages() (ctrl.Result, error) {
+	return r.RunReconciliationStages(
+		r.SetupLogger,
+		r.GetReconciliationSubject,
+		r.GetCAPICluster,
+		r.GetCSCluster,
+		r.IfDeletionTimestampIsZero(r.Reconcile),
+		r.Else(r.ReconcileDelete),
+	)
 }
 
 // RunBaseReconciliationStages runs the base reconciliation stages which are to setup the logger, get the reconciliation
