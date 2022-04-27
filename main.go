@@ -176,6 +176,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&controllers.CloudStackAffinityGroupReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackAffinityGroup")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	// Add health and ready checks.
