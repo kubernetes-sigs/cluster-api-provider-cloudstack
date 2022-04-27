@@ -266,7 +266,12 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 
 	// Attempt deletion regardless of machine state.
 	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
+	volIDs, err := c.listVMInstanceVolumeIDs(*csMachine.Spec.InstanceID)
+	if err != nil {
+		return err
+	}
 	p.SetExpunge(true)
+	setArrayIfNotEmpty(volIDs, p.SetVolumeids)
 	if _, err := c.csAsync.VirtualMachine.DestroyVirtualMachine(p); err != nil &&
 		strings.Contains(strings.ToLower(err.Error()), "unable to find uuid for id") {
 		// VM doesn't exist. Success...
@@ -288,4 +293,22 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 	}
 
 	return errors.New("VM deletion in progress")
+}
+
+func (c *client) listVMInstanceVolumeIDs(instanceID string) ([]string, error) {
+	p := c.cs.Volume.NewListVolumesParams()
+	p.SetVirtualmachineid(instanceID)
+
+	listVOLResp, err := c.csAsync.Volume.ListVolumes(p)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []string
+	for _, vol := range listVOLResp.Volumes {
+		ret = append(ret, vol.Id)
+	}
+
+	return ret, nil
+
 }
