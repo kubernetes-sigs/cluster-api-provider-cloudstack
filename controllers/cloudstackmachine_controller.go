@@ -40,6 +40,13 @@ import (
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/finalizers,verbs=update
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
+
 // CloudStackMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
 type CloudStackMachineReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
@@ -69,57 +76,27 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 	return runner
 }
 
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/finalizers,verbs=update
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch
-// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
-
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	r := NewCSMachineReconciliationRunner()
-	return r.
+	return NewCSMachineReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
 		WithRequestCtx(ctx).
-		RunReconciliationStages(
-			r.SetupLogger,
-			r.GetReconciliationSubject,
-			r.GetCAPICluster,
-			r.GetCSCluster,
-			r.GetZones(r.Zones),
-			r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
-			r.RequeueIfCloudStackClusterNotReady,
-			r.CheckIfPaused,
-			r.SetupPatcher,
-			r.IfDeletionTimestampIsZero(r.Reconcile),
-			r.Else(r.ReconcileDelete),
-			r.PatchChangesBackToAPI)
+		RunBaseReconciliationStages()
 }
 
-func (runner *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-	return runner.RunReconciliationStages(
-		runner.SetFailureDomainOnCSMachine,
+func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+	return r.RunReconciliationStages(
+		r.GetZones(r.Zones),
+		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
+		r.RequeueIfCloudStackClusterNotReady,
+		r.SetFailureDomainOnCSMachine,
+		r.GetObjectByName("placeholder", r.IsoNet, func() string { return r.FailureDomain.Spec.Network.Name }),
 		// This can move to IsoNet controller with a nice watch someday.
-		runner.GetObjectByName(runner.FailureDomain.Spec.Network.Name, runner.IsoNet),
-		runner.GetOrCreateVMInstance,
-		runner.RequeueIfInstanceNotRunning,
-		runner.AddToLBIfNeeded)
-}
-
-func (runner *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
-	runner.Log.Info("Deleting instance", "instance-id", *&runner.ReconciliationSubject.Spec.InstanceID)
-	if err := runner.CS.DestroyVMInstance(runner.ReconciliationSubject); err != nil {
-		if err.Error() == "VM deletion in progress" {
-			runner.Log.Info(err.Error())
-			return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
-		}
-		return ctrl.Result{}, err
-	}
-	controllerutil.RemoveFinalizer(runner.ReconciliationSubject, infrav1.MachineFinalizer)
-	return ctrl.Result{}, nil
+		r.GetOrCreateVMInstance,
+		r.RequeueIfInstanceNotRunning,
+		r.AddToLBIfNeeded)
 }
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
@@ -145,6 +122,10 @@ func (runner *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine
 			runner.ReconciliationSubject.Status.ZoneID = runner.Zones.Items[randNum].Spec.ID
 		}
 	}
+	for _, zone := range runner.Zones.Items {
+		runner.FailureDomain = &zone
+	}
+	fmt.Printf("%+v\n", runner.FailureDomain.Spec.Network)
 	return ctrl.Result{}, nil
 }
 
@@ -207,8 +188,7 @@ func (runner *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning
 
 // AddToLBIfNeeded adds instance to load balancer if it is a control plane in an isolated network.
 func (runner *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.Result, reterr error) {
-	zone := runner.CSCluster.Status.Zones[runner.ReconciliationSubject.Status.ZoneID]
-	if util.IsControlPlaneMachine(runner.CAPIMachine) && zone.Network.Type == cloud.NetworkTypeIsolated {
+	if util.IsControlPlaneMachine(runner.CAPIMachine) && runner.FailureDomain.Spec.Network.Type == cloud.NetworkTypeIsolated {
 		runner.Log.Info("Assigning VM to load balancer rule.")
 		if runner.IsoNet.Spec.Name == "" {
 			return runner.RequeueWithMessage("Could not get required Isolated Network for VM, requeueing.")
@@ -218,6 +198,19 @@ func (runner *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes c
 			return ctrl.Result{}, err
 		}
 	}
+	return ctrl.Result{}, nil
+}
+
+func (runner *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
+	runner.Log.Info("Deleting instance", "instance-id", *&runner.ReconciliationSubject.Spec.InstanceID)
+	if err := runner.CS.DestroyVMInstance(runner.ReconciliationSubject); err != nil {
+		if err.Error() == "VM deletion in progress" {
+			runner.Log.Info(err.Error())
+			return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
+		}
+		return ctrl.Result{}, err
+	}
+	controllerutil.RemoveFinalizer(runner.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
 

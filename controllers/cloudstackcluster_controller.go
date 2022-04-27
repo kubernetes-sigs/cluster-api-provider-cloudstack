@@ -66,7 +66,7 @@ func NewCSClusterReconciliationRunner() *CloudStackClusterReconciliationRunner {
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
 	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
 	// For the CloudStackCluster, the ReconciliationSubject is the CSCluster
-	// Have to do after
+	// Have to do after or the setup method will overwrite the link.
 	runner.CSCluster = runner.ReconciliationSubject
 
 	return runner
@@ -104,6 +104,9 @@ func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Re
 		r.Log.V(1).Info("Post fetch cluster status.", "clusterStatus", r.ReconciliationSubject.Status)
 
 		// Set cluster to ready to indicate readiness to CAPI.
+		if len(r.ReconciliationSubject.Status.FailureDomains) == 0 {
+			return r.RequeueWithMessage("blah")
+		}
 		r.ReconciliationSubject.Status.Ready = true
 	}
 	return ctrl.Result{}, err
@@ -126,9 +129,9 @@ func (r *CloudStackClusterReconciliationRunner) VerifyZoneCRDs() (ctrl.Result, e
 
 // SetFailureDomains sets failure domains to be used for CAPI machine placement.
 func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result, error) {
-	r.CSCluster.Status.FailureDomains = capiv1.FailureDomains{}
+	r.ReconciliationSubject.Status.FailureDomains = capiv1.FailureDomains{}
 	for _, zone := range r.Zones.Items {
-		r.CSCluster.Status.FailureDomains[zone.Spec.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
+		r.ReconciliationSubject.Status.FailureDomains[zone.Spec.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
 	}
 	return ctrl.Result{}, nil
 }
