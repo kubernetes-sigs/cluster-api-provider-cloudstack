@@ -46,7 +46,7 @@ type CloudStackZoneReconciler struct {
 }
 
 // Initialize a new CloudStackZone reconciliation runner with concrete types and initialized member fields.
-func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
+func NewCSMachineHCReconciliationRunner() *CloudStackZoneReconciliationRunner {
 	// Set concrete type and init pointers.
 	runner := &CloudStackZoneReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackZone{}}
 	runner.Zones = &infrav1.CloudStackZoneList{}
@@ -57,7 +57,7 @@ func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
 }
 
 func (reconciler *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	return NewCSZoneReconciliationRunner().
+	return NewCSMachineHCReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
 		WithRequestCtx(ctx).

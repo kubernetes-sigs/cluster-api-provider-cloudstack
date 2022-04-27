@@ -24,6 +24,9 @@ import (
 const (
 	// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
 	MachineFinalizer = "cloudstackmachine.infrastructure.cluster.x-k8s.io"
+	ProAffinity      = "pro"
+	AntiAffinity     = "anti"
+	NoAffinity       = "no"
 )
 
 // CloudStackMachineSpec defines the desired state of CloudStackMachine

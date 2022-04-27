@@ -28,6 +28,7 @@ import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/pkg/errors"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -146,7 +147,7 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 	return ctrl.Result{}, nil
 }
 
-// Called in main, this registers the cluster reconciler to the CAPI controller manager.
+// SetupWithManager sets up the controller with the Manager.
 func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackCluster{}).
@@ -173,9 +174,11 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		).Build(r)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error encountered while building CloudStackCluster controller")
 	}
-	return controller.Watch( // Add a watch on CAPI Cluster objects for unpause and ready events.
+
+	// Add a watch on CAPI Cluster objects for unpause and ready events.
+	err = controller.Watch(
 		&source.Kind{Type: &capiv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(
 			util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))),
@@ -185,13 +188,7 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				newCluster := e.ObjectNew.(*capiv1.Cluster)
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
-			DeleteFunc: func(e event.DeleteEvent) bool {
-				_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
-				return ok
-			},
-			CreateFunc: func(e event.CreateEvent) bool {
-				_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
-				return ok
-			}},
-	)
+			DeleteFunc: func(e event.DeleteEvent) bool { return false },
+			CreateFunc: func(e event.CreateEvent) bool { return false }})
+	return errors.Wrap(err, "error encountered while building CloudStackCluster controller")
 }
