@@ -239,8 +239,8 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 		return err
 	}
 
-	if err := c.ResolveVMInstanceDetails(csMachine); err == nil && csMachine.Status.InstanceState == "Expunging" ||
-		csMachine.Status.InstanceState == "Expunged" {
+	if err := c.ResolveVMInstanceDetails(csMachine); err == nil && (csMachine.Status.InstanceState == "Expunging" ||
+		csMachine.Status.InstanceState == "Expunged") {
 		// VM is stopped and getting expunged.  So the desired state is getting satisfied.  Let's move on.
 		return nil
 	} else if err != nil {

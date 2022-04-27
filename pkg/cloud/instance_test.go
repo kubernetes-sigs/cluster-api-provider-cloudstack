@@ -362,7 +362,19 @@ var _ = Describe("Instance", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
 				Return(&cloudstack.VirtualMachinesMetric{
 					State: "Expunging",
-			}, 1, nil)
+				}, 1, nil)
+			Ω(client.DestroyVMInstance(dummies.CSMachine1)).
+				Should(Succeed())
+		})
+
+		It("calls destroy without error and identifies it as expunged", func() {
+			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
+				Return(expungeDestroyParams)
+			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
+			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
+				Return(&cloudstack.VirtualMachinesMetric{
+					State: "Expunged",
+				}, 1, nil)
 			Ω(client.DestroyVMInstance(dummies.CSMachine1)).
 				Should(Succeed())
 		})
