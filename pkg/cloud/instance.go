@@ -18,7 +18,6 @@ package cloud
 
 import (
 	"fmt"
-
 	"strings"
 
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -239,5 +238,18 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 	} else if err != nil {
 		return err
 	}
+
+	if err := c.ResolveVMInstanceDetails(csMachine); err == nil && (csMachine.Status.InstanceState == "Expunging" ||
+		csMachine.Status.InstanceState == "Expunged") {
+		// VM is stopped and getting expunged.  So the desired state is getting satisfied.  Let's move on.
+		return nil
+	} else if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "no match found") {
+			// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
+			return nil
+		}
+		return err
+	}
+
 	return errors.New("VM deletion in progress")
 }
