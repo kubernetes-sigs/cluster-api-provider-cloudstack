@@ -106,6 +106,9 @@ func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Re
 		r.Log.V(1).Info("Post fetch cluster status.", "clusterStatus", r.ReconciliationSubject.Status)
 
 		// Set cluster to ready to indicate readiness to CAPI.
+		if len(r.ReconciliationSubject.Status.FailureDomains) == 0 {
+			return r.RequeueWithMessage("blah")
+		}
 		r.ReconciliationSubject.Status.Ready = true
 	}
 	return ctrl.Result{}, err

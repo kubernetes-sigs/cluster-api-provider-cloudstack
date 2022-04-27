@@ -304,19 +304,25 @@ func (r *ReconciliationRunner) ShouldReturn(rslt ctrl.Result, err error) bool {
 func (r *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackReconcilerMethod) (ctrl.Result, error) {
 	for _, fn := range fns {
 		if rslt, err := fn(); err != nil {
-			_, err2 := runner.PatchChangesBackToAPI()
-			err = multierror.Append(err, err2)
 			return rslt, err
 		} else if rslt.Requeue || rslt.RequeueAfter != time.Duration(0) || r.returnEarly {
 			return rslt, nil
 		}
 	}
-	return runner.PatchChangesBackToAPI()
+	return ctrl.Result{}, nil
 }
 
 // RunBaseReconciliationStages runs the base reconciliation stages which are to setup the logger, get the reconciliation
 // subject, get CAPI and CloudStackClusters, and call either runner.Reconcile or runner.ReconcileDelete.
-func (r *ReconciliationRunner) RunBaseReconciliationStages() (ctrl.Result, error) {
+func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, retErr error) {
+	defer func() {
+		if err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject); err != nil {
+			if !strings.Contains(err.Error(), "is invalid: status.ready") {
+				err = errors.Wrapf(err, "error patching reconciliation subject")
+				retErr = multierror.Append(retErr, err)
+			}
+		}
+	}()
 	return r.RunReconciliationStages(
 		r.SetupLogger,
 		r.GetReconciliationSubject,
