@@ -40,10 +40,8 @@ rules:
   - machines
   - machines/status
   verbs:
-  - delete
   - get
   - list
-  - patch
   - watch
 - apiGroups:
   - cluster.x-k8s.io
@@ -136,32 +134,6 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - cloudstackisolatednetworks/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackmachinehealthcheckers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackmachinehealthcheckers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackmachinehealthcheckers/status
   verbs:
   - get
   - patch
