@@ -19,7 +19,7 @@ spec:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: CloudStackMachineStateChecker is the Schema for the cloudstackMachineStateCheckers
+        description: CloudStackMachineStateChecker is the Schema for the cloudstackmachinestatecheckers
           API
         properties:
           apiVersion:
