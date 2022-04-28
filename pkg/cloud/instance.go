@@ -30,8 +30,6 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-const antiAffinityValue = "anti"
-
 type VMIface interface {
 	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, *infrav1.CloudStackAffinityGroup, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error

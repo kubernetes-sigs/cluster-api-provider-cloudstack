@@ -146,8 +146,11 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 			r.ReconciliationSubject.Status.ZoneID = r.Zones.Items[randNum].Spec.ID
 		}
 	}
-	for _, zone := range r.Zones.Items {
-		r.FailureDomain = &zone
+	for idx, zone := range r.Zones.Items {
+		if zone.Spec.ID == r.ReconciliationSubject.Status.ZoneID {
+			r.FailureDomain = &r.Zones.Items[idx]
+			break
+		}
 	}
 	return ctrl.Result{}, nil
 }

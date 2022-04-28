@@ -147,7 +147,7 @@ func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
 	if err := r.Client.Get(r.RequestCtx, key, r.CAPICluster); err != nil {
 		return ctrl.Result{}, errors.Wrap(client.IgnoreNotFound(err), "error encountered while getting CAPI Cluster "+name)
 	} else if r.CAPICluster.Name == "" {
-		r.RequeueWithMessage("Cluster not fetched.")
+		return r.RequeueWithMessage("Cluster not fetched.")
 	}
 	return ctrl.Result{}, nil
 }
