@@ -45,6 +45,9 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			dummies.CSMachine1.Spec.DiskOffering = v1beta1.CloudStackResourceDiskOffering{
 				CloudStackResourceIdentifier: v1beta1.CloudStackResourceIdentifier{ID: "", Name: "medium"},
 				MountPath:                    "/data",
+				Device:                       "/dev/vdb",
+				Filesystem:                   "ext4",
+				Label:                        "data_disk",
 			}
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 		})
@@ -89,6 +92,9 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			dummies.CSMachine1.Spec.DiskOffering = v1beta1.CloudStackResourceDiskOffering{
 				CloudStackResourceIdentifier: v1beta1.CloudStackResourceIdentifier{Name: "ArbitraryUpdateDiskOffering"},
 				MountPath:                    "/data",
+				Device:                       "/dev/vdb",
+				Filesystem:                   "ext4",
+				Label:                        "data_disk",
 			}
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "diskOffering")))

@@ -65,8 +65,17 @@ spec:
                       diskOffering:
                         description: CloudStack disk offering to use.
                         properties:
+                          device:
+                            description: device name of data disk
+                            type: string
+                          filesystem:
+                            description: filesystem used by data disk
+                            type: string
                           id:
                             description: Cloudstack resource ID.
+                            type: string
+                          label:
+                            description: label of data disk
                             type: string
                           mountPath:
                             description: mount point the data disk uses to mount.
@@ -77,6 +86,9 @@ spec:
                             description: Cloudstack resource Name
                             type: string
                         required:
+                        - device
+                        - filesystem
+                        - label
                         - mountPath
                         type: object
                       identityRef:
