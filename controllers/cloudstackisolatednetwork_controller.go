@@ -87,7 +87,7 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
-	// TODO: Cleanup any IsoNets tagged as created.
+	r.CS.DisposeIsoNetResources(r.Zone, r.CSCluster)
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.IsolatedNetworkFinalizer)
 	return ctrl.Result{}, nil
 }
