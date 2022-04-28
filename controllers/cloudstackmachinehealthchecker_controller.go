@@ -45,7 +45,7 @@ type CloudStackMachineHealthCheckerReconciler struct {
 }
 
 // Initialize a new CloudStackMachineHealthChecker reconciliation runner with concrete types and initialized member fields.
-func NewCSMachineHealthCheckerReconciliationRunner() *CloudStackMachineHealthCheckerReconciliationRunner {
+func NewCSMachineHCReconciliationRunner() *CloudStackMachineHealthCheckerReconciliationRunner {
 	// Set concrete type and init pointers.
 	runner := &CloudStackMachineHealthCheckerReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachineHealthChecker{}}
 	runner.CSInstance = &infrav1.CloudStackMachine{}

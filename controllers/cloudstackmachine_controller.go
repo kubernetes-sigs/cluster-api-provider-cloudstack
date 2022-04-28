@@ -123,6 +123,27 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 	return ctrl.Result{}, nil
 }
 
+// ConsiderAffinity sets machine affinity if needed. It also creates or gets an affinity group CRD if required and
+// checks it for readiness.
+func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result, error) {
+	if r.ReconciliationSubject.Spec.Affinity == infrav1.NoAffinity { // No managed affinity.
+		return ctrl.Result{}, nil
+	}
+
+	agName, err := csCtrlrUtils.AffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
+	if err != nil {
+		r.Log.Info("encountered error getting affinity group name", err)
+	}
+
+	if res, err := r.GetOrCreateAffinityGroup(agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup)(); r.ShouldReturn(res, err) {
+		return res, err
+	}
+	if !r.AffinityGroup.Status.Ready {
+		return r.RequeueWithMessage("Required afinity group not ready.")
+	}
+	return ctrl.Result{}, nil
+}
+
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
 	// Set ZoneID on csMachine.
@@ -159,7 +180,6 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 	for _, zone := range runner.Zones.Items {
 		runner.FailureDomain = &zone
 	}
-	fmt.Printf("%+v\n", runner.FailureDomain.Spec.Network)
 	return ctrl.Result{}, nil
 }
 
