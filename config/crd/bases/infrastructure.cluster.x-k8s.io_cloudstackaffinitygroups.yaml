@@ -38,24 +38,16 @@ spec:
             description: CloudStackAffinityGroupSpec defines the desired state of
               CloudStackAffinityGroup
             properties:
-              identityRef:
-                description: CloudStackIdentityReference is a reference to an infrastructure
-                  provider identity to be used to provision cluster resources.
-                properties:
-                  kind:
-                    description: Kind of the identity. Must be supported by the infrastructure
-                      provider and may be either cluster or namespace-scoped.
-                    minLength: 1
-                    type: string
-                  name:
-                    description: Name of the infrastructure identity to be used.
-                    type: string
-                required:
-                - kind
-                - name
-                type: object
+              id:
+                description: ID.
+                type: string
               name:
                 description: Name.
+                type: string
+              type:
+                description: Mutually exclusive parameter with AffinityGroupIDs. Can
+                  be "host affinity" or "host anti-affinity". Will create an affinity
+                  group per machine set.
                 type: string
             type: object
           status:

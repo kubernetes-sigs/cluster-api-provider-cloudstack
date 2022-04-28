@@ -20,6 +20,7 @@ import (
 	"context"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
@@ -46,12 +47,12 @@ type CloudStackZoneReconciler struct {
 // Initialize a new CloudStackZone reconciliation runner with concrete types and initialized member fields.
 func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
 	// Set concrete type and init pointers.
-	runner := &CloudStackZoneReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackZone{}}
-	runner.Zones = &infrav1.CloudStackZoneList{}
-	runner.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
-	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
-	return runner
+	r := &CloudStackZoneReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackZone{}}
+	r.Zones = &infrav1.CloudStackZoneList{}
+	r.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
+	// Setup the base r. Initializes pointers and links reconciliation methods.
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	return r
 }
 
 func (reconciler *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
@@ -63,15 +64,18 @@ func (reconciler *CloudStackZoneReconciler) Reconcile(ctx context.Context, req c
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (reconciler *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackZone{}).
-		Complete(r)
+		Complete(reconciler)
 }
 
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-	// // Prevent premature deletion.
-	// controllerutil.AddFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
+	if res, err := r.RequeueIfMissingBaseCRDs(); r.ShouldReturn(res, err) {
+		return res, err
+	}
+	// Prevent premature deletion.
+	controllerutil.AddFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
 
 	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.ReconciliationSubject.Spec)
 	// Start by purely data fetching information about the zone and specified network.
@@ -108,11 +112,7 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 // The CloudStackZone only fetches information, and in some cases creates CloudStackIsolatedNetwork CRDs.
 // Deletion does not require cleanup, but should not occur until any owned CRDs are deleted.
 func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
-	// netName := r.ReconciliationSubject.Spec.Network.Name
-	// if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
-	// 	return res, err
-	// } else if r.IsoNet.Name == "" { // Owned isolated network is missing, deletion can now proceed.
-	// 	controllerutil.RemoveFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
-	// }
+	//TODO: Check owned are deleted.
+	controllerutil.RemoveFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
 	return ctrl.Result{}, nil
 }

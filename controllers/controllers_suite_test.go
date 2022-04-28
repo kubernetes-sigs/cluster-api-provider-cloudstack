@@ -42,6 +42,7 @@ import (
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csReconcilers "github.com/aws/cluster-api-provider-cloudstack/controllers"
+	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	//+kubebuilder:scaffold:imports
@@ -159,12 +160,12 @@ var _ = BeforeSuite(func() {
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 
-	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
-		CS:     CS,
-		Log:    logf.NullLogger{},
-	}
+	base := csCtrlrUtils.ReconcilerBase{
+		Client:     k8sManager.GetClient(),
+		Scheme:     k8sManager.GetScheme(),
+		CS:         CS,
+		BaseLogger: logf.NullLogger{}}
+	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())
 
 	go func() {

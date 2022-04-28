@@ -34,7 +34,7 @@ type AffinityGroup struct {
 
 type AffinityGroupIface interface {
 	FetchAffinityGroup(*AffinityGroup) error
-	GetOrCreateAffinityGroup(*infrav1.CloudStackCluster, *AffinityGroup) error
+	GetOrCreateAffinityGroup(*AffinityGroup) error
 	DeleteAffinityGroup(*AffinityGroup) error
 	AssociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
 	DisassociateAffinityGroup(*infrav1.CloudStackMachine, AffinityGroup) error
@@ -72,11 +72,9 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 	return errors.Errorf(`could not fetch AffinityGroup by name "%s" or id "%s"`, group.Name, group.ID)
 }
 
-func (c *client) GetOrCreateAffinityGroup(csCluster *infrav1.CloudStackCluster, group *AffinityGroup) (retErr error) {
+func (c *client) GetOrCreateAffinityGroup(group *AffinityGroup) (retErr error) {
 	if err := c.FetchAffinityGroup(group); err != nil { // Group not found?
 		p := c.cs.AffinityGroup.NewCreateAffinityGroupParams(group.Name, group.Type)
-		setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
-		setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 		resp, err := c.cs.AffinityGroup.CreateAffinityGroup(p)
 		if err != nil {
 			return err

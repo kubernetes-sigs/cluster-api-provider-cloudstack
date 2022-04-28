@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,13 +20,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	AffinityGroupFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
+)
+
 // CloudStackAffinityGroupSpec defines the desired state of CloudStackAffinityGroup
 type CloudStackAffinityGroupSpec struct {
+	// Mutually exclusive parameter with AffinityGroupIDs.
+	// Can be "host affinity" or "host anti-affinity". Will create an affinity group per machine set.
+	Type string `json:"type,omitempty"`
+
 	// Name.
 	Name string `json:"name,omitempty"`
-	// +optional
-	// +k8s:conversion-gen=false
-	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
+
+	// ID.
+	//+optional
+	ID string `json:"id,omitempty"`
 }
 
 // CloudStackAffinityGroupStatus defines the observed state of CloudStackAffinityGroup

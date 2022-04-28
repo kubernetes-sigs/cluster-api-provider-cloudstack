@@ -56,6 +56,11 @@ type CloudStackMachineSpec struct {
 	// +optional
 	Affinity string `json:"affinity,omitempty"`
 
+	// Mutually exclusive parameter with AffinityGroupIDs.
+	// Is a reference to a CloudStack affiniity group CRD.
+	// +optional
+	AffinityGroupRef *corev1.ObjectReference `json:"cloudstackaffinityref,omitempty"`
+
 	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine ID)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`

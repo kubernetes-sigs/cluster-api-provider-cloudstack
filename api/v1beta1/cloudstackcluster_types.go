@@ -69,8 +69,8 @@ func (zones ZoneStatusMap) GetOne() *Zone {
 // GetByName fetches a zone by name if present in the map of zone statuses.
 // Needed as there's no short way to do this.
 func (zones ZoneStatusMap) GetByName(name string) *Zone {
-	for zoneName, zone := range zones {
-		if zoneName == name {
+	for _, zone := range zones {
+		if zone.Name == name {
 			return &zone
 		}
 	}

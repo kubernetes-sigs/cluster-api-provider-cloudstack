@@ -52,7 +52,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		dummies.AffinityGroup.ID = "" // Force name fetching.
 		ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name).Return(&cloudstack.AffinityGroup{}, 1, nil)
 
-		Ω(client.GetOrCreateAffinityGroup(dummies.CSCluster, dummies.AffinityGroup)).Should(Succeed())
+		Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 	})
 	It("creates an affinity group", func() {
 		dummies.SetDummyDomainAndAccount()
@@ -64,7 +64,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 			And(AccountEquals(dummies.Account), DomainIDEquals(dummies.DomainID)))).
 			Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
-		Ω(client.GetOrCreateAffinityGroup(dummies.CSCluster, dummies.AffinityGroup)).Should(Succeed())
+		Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 	})
 
 	Context("AffinityGroup Integ Tests", func() {
@@ -81,16 +81,18 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		})
 
 		It("Creates an affinity group.", func() {
-			Ω(client.GetOrCreateAffinityGroup(dummies.CSCluster, dummies.AffinityGroup)).Should(Succeed())
+			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 		})
 		It("Associates an affinity group.", func() {
 			if err := client.GetOrCreateCluster(dummies.CSCluster); err != nil {
 				Skip("Could not flesh out Cluster." + err.Error())
 			}
-			if err := client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, ""); err != nil {
+			if err := client.GetOrCreateVMInstance(
+				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "",
+			); err != nil {
 				Skip("Could not create VM." + err.Error())
 			}
-			Ω(client.GetOrCreateAffinityGroup(dummies.CSCluster, dummies.AffinityGroup)).Should(Succeed())
+			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 			Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
 		})
 		It("Deletes an affinity group.", func() {

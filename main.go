@@ -28,6 +28,8 @@ import (
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 
+	goflag "flag"
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
@@ -117,8 +119,9 @@ func setFlags() *managerOpts {
 }
 
 func main() {
-	opts := setFlags()  // Add our options to flag set.
-	klog.InitFlags(nil) // Add klog options to flag set.
+	opts := setFlags()                                // Add our options to flag set.
+	klog.InitFlags(nil)                               // Add klog options to flag set.
+	flag.CommandLine.AddGoFlagSet(goflag.CommandLine) // Merge klog's gofloag flags into the pflags.
 	flag.Parse()
 
 	ctrl.SetLogger(klogr.New())
@@ -179,7 +182,10 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsoNetReconciler")
 		os.Exit(1)
 	}
-
+	if err = (&controllers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackAffinityGroup")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	// Add health and ready checks.

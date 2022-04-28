@@ -18,7 +18,6 @@ package cloud
 
 import (
 	"fmt"
-
 	"strings"
 
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -34,7 +33,7 @@ import (
 const antiAffinityValue = "anti"
 
 type VMIface interface {
-	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, string) error
+	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, *infrav1.CloudStackAffinityGroup, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
 	DestroyVMInstance(*infrav1.CloudStackMachine) error
 }
@@ -145,6 +144,7 @@ func (c *client) GetOrCreateVMInstance(
 	capiMachine *capiv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
 	zone *infrav1.CloudStackZone,
+	affinity *infrav1.CloudStackAffinityGroup,
 	userData string) error {
 
 	// Check if VM instance already exists.
@@ -179,22 +179,11 @@ func (c *client) GetOrCreateVMInstance(
 	if len(csMachine.Spec.AffinityGroupIDs) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIDs)
 	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
-		//affinityType := AffinityGroupType
-		// if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
-		// 	affinityType = AntiAffinityGroupType
-		// }
-		//name, err := csMachine.AffinityGroupName(capiMachine)
+		p.SetAffinitygroupids([]string{affinity.Spec.ID})
 		if err != nil {
 			return err
 		}
-		// group := &AffinityGroup{Name: name, Type: affinityType}
-		// if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
-		// 	return err
-		// }
-		// p.SetAffinitygroupids([]string{group.ID})
 	}
-	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
-	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 
 	if csMachine.Spec.Details != nil {
 		p.SetDetails(csMachine.Spec.Details)
@@ -202,6 +191,19 @@ func (c *client) GetOrCreateVMInstance(
 
 	deployVMResp, err := c.cs.VirtualMachine.DeployVirtualMachine(p)
 	if err != nil {
+		// Just because an error was returned doesn't mean a (failed) VM wasn't created and will need to be dealt with.
+		// Regretfully the deployVMResp may be nil, so we need to get the VM ID with a separate query, so we
+		// can return it to the caller, so they can clean it up.
+		listVirtualMachineParams := c.cs.VirtualMachine.NewListVirtualMachinesParams()
+		listVirtualMachineParams.SetTemplateid(templateID)
+		listVirtualMachineParams.SetZoneid(csMachine.Status.ZoneID)
+		listVirtualMachineParams.SetNetworkid(zone.Spec.Network.ID)
+		listVirtualMachineParams.SetName(csMachine.Name)
+		setIfNotEmpty(csCluster.Status.DomainID, listVirtualMachineParams.SetDomainid)
+		setIfNotEmpty(csCluster.Spec.Account, listVirtualMachineParams.SetAccount)
+		if listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams); err2 == nil && listVirtualMachinesResponse.Count > 0 {
+			csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)
+		}
 		return err
 	}
 	csMachine.Spec.InstanceID = pointer.StringPtr(deployVMResp.Id)
@@ -224,5 +226,18 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 	} else if err != nil {
 		return err
 	}
-	return nil // errors.New("VM deletion in progress")
+
+	if err := c.ResolveVMInstanceDetails(csMachine); err == nil && (csMachine.Status.InstanceState == "Expunging" ||
+		csMachine.Status.InstanceState == "Expunged") {
+		// VM is stopped and getting expunged.  So the desired state is getting satisfied.  Let's move on.
+		return nil
+	} else if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "no match found") {
+			// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
+			return nil
+		}
+		return err
+	}
+
+	return errors.New("VM deletion in progress")
 }

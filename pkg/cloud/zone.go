@@ -13,7 +13,7 @@ type ZoneIFace interface {
 
 func (c *client) ResolveZone(zone *infrav1.CloudStackZone) (retErr error) {
 	if zoneID, count, err := c.cs.Zone.GetZoneID(zone.Name); err != nil {
-		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %s", zone))
+		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %v", zone))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
 			"expected 1 Zone with name %s, but got %d", zone.Name, count))
@@ -22,7 +22,7 @@ func (c *client) ResolveZone(zone *infrav1.CloudStackZone) (retErr error) {
 	}
 
 	if resp, count, err := c.cs.Zone.GetZoneByID(zone.Spec.ID); err != nil {
-		return multierror.Append(retErr, errors.Wrapf(err, "could not get Zone by ID %s", zone.Spec.ID))
+		return multierror.Append(retErr, errors.Wrapf(err, "could not get Zone by ID %v", zone.Spec.ID))
 	} else if count != 1 {
 		return multierror.Append(retErr, errors.Errorf(
 			"expected 1 Zone with UUID %s, but got %d", zone.Spec.ID, count))
@@ -40,7 +40,7 @@ func (c *client) ResolveNetworkForZone(zone *infrav1.CloudStackZone) (retErr err
 	netName := zone.Spec.Network.Name
 	netDetails, count, err := c.cs.Network.GetNetworkByName(netName)
 	if err != nil {
-		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Network ID from %s", netName))
+		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Network ID from %v", netName))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
 			"expected 1 Network with name %s, but got %d", netName, count))
@@ -55,7 +55,7 @@ func (c *client) ResolveNetworkForZone(zone *infrav1.CloudStackZone) (retErr err
 	if err != nil {
 		return multierror.Append(retErr, errors.Wrapf(err, "could not get Network by ID %s", zone.Spec.Network.ID))
 	} else if count != 1 {
-		return multierror.Append(retErr, errors.Errorf("expected 1 Network with UUID %s, but got %d", zone.Spec.Network.ID, count))
+		return multierror.Append(retErr, errors.Errorf("expected 1 Network with UUID %v, but got %d", zone.Spec.Network.ID, count))
 	}
 	zone.Spec.Network.Name = netDetails.Name
 	zone.Spec.Network.ID = netDetails.Id

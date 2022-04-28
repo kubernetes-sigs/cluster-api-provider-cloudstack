@@ -62,15 +62,15 @@ type CloudStackClusterReconciler struct {
 // Initialize a new CloudStackCluster reconciliation runner with concrete types and initialized member fields.
 func NewCSClusterReconciliationRunner() *CloudStackClusterReconciliationRunner {
 	// Set concrete type and init pointers.
-	runner := &CloudStackClusterReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackCluster{}}
-	runner.Zones = &infrav1.CloudStackZoneList{}
+	r := &CloudStackClusterReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackCluster{}}
+	r.Zones = &infrav1.CloudStackZoneList{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
 	// For the CloudStackCluster, the ReconciliationSubject is the CSCluster
 	// Have to do after or the setup method will overwrite the link.
-	runner.CSCluster = runner.ReconciliationSubject
+	r.CSCluster = r.ReconciliationSubject
 
-	return runner
+	return r
 }
 
 // Reconcile is the method k8s will call upon a reconciliation request.
@@ -85,6 +85,7 @@ func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, re
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
+		r.RequeueIfMissingBaseCRDs,
 		r.CreateZones(r.CSCluster.Spec.Zones),
 		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackZone")),
 		r.GetZones(r.Zones),
@@ -147,8 +148,8 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+// Called in main, this registers the cluster reconciler to the CAPI controller manager.
+func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackCluster{}).
 		WithEventFilter(
@@ -172,7 +173,7 @@ func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					return !reflect.DeepEqual(oldCluster, newCluster)
 				},
 			},
-		).Build(r)
+		).Build(reconciler)
 	if err != nil {
 		return errors.Wrap(err, "error encountered while building CloudStackCluster controller")
 	}
