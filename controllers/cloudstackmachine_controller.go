@@ -56,6 +56,7 @@ type CloudStackMachineReconciliationRunner struct {
 	Zones                 *infrav1.CloudStackZoneList
 	FailureDomain         *infrav1.CloudStackZone
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
+	AffinityGroup         *infrav1.CloudStackAffinityGroup
 }
 
 // CloudStackMachineReconciler reconciles a CloudStackMachine object
@@ -70,6 +71,7 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 	runner.CAPIMachine = &capiv1.Machine{}
 	runner.Zones = &infrav1.CloudStackZoneList{}
 	runner.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
+	runner.AffinityGroup = &infrav1.CloudStackAffinityGroup{}
 	runner.FailureDomain = &infrav1.CloudStackZone{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
 	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
@@ -91,12 +93,34 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		r.GetZones(r.Zones),
 		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
 		r.RequeueIfCloudStackClusterNotReady,
+		r.ConsiderAffinity,
 		r.SetFailureDomainOnCSMachine,
 		r.GetObjectByName("placeholder", r.IsoNet, func() string { return r.FailureDomain.Spec.Network.Name }),
 		// This can move to IsoNet controller with a nice watch someday.
 		r.GetOrCreateVMInstance,
 		r.RequeueIfInstanceNotRunning,
 		r.AddToLBIfNeeded)
+}
+
+// ConsiderAffinity sets machine affinity if needed. It also creates or gets an affinity group CRD if required and
+// checks it for readiness.
+func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result, error) {
+	if r.ReconciliationSubject.Spec.Affinity == infrav1.NoAffinity { // No managed affinity.
+		return ctrl.Result{}, nil
+	}
+
+	agName, err := csCtrlrUtils.AffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
+	if err != nil {
+		r.Log.Info("encountered error getting affinity group name", err)
+	}
+
+	if res, err := r.GetOrCreateAffinityGroup(agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup)(); r.ShouldReturn(res, err) {
+		return res, err
+	}
+	if !r.AffinityGroup.Status.Ready {
+		return r.RequeueWithMessage("Required afinity group not ready.")
+	}
+	return ctrl.Result{}, nil
 }
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
@@ -125,7 +149,6 @@ func (runner *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine
 	for _, zone := range runner.Zones.Items {
 		runner.FailureDomain = &zone
 	}
-	fmt.Printf("%+v\n", runner.FailureDomain.Spec.Network)
 	return ctrl.Result{}, nil
 }
 
@@ -154,7 +177,7 @@ func (runner *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (re
 	}
 	if data, isPresent := secret.Data["value"]; isPresent {
 		if err := runner.CS.GetOrCreateVMInstance(
-			runner.ReconciliationSubject, runner.CAPIMachine, runner.CSCluster, &machineZone, string(data)); err == nil {
+			runner.ReconciliationSubject, runner.CAPIMachine, runner.CSCluster, &machineZone, runner.AffinityGroup, string(data)); err == nil {
 			if !controllerutil.ContainsFinalizer(runner.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 				runner.Log.Info("CloudStack instance Created", "instanceStatus", runner.ReconciliationSubject.Status)
 				controllerutil.AddFinalizer(runner.ReconciliationSubject, infrav1.MachineFinalizer)

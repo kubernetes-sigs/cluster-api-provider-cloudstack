@@ -85,6 +85,7 @@ func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, re
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
+		r.RequeueIfMissingBaseCRDs,
 		r.CreateZones(r.CSCluster.Spec.Zones),
 		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackZone")),
 		r.GetZones(r.Zones),
@@ -147,7 +148,7 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager sets up the controller with the Manager.
+// Called in main, this registers the cluster reconciler to the CAPI controller manager.
 func (r *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackCluster{}).

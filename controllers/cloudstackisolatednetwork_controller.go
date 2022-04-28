@@ -64,6 +64,9 @@ func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
+	if res, err := r.RequeueIfMissingBaseCRDs(); r.ShouldReturn(res, err) {
+		return res, err
+	}
 	if res, err := r.GetParent(r.ReconciliationSubject, r.Zone)(); r.ShouldReturn(res, err) {
 		return res, err
 	}

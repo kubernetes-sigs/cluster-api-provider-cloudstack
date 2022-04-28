@@ -46,7 +46,7 @@ type CloudStackZoneReconciler struct {
 }
 
 // Initialize a new CloudStackZone reconciliation runner with concrete types and initialized member fields.
-func NewCSMachineHCReconciliationRunner() *CloudStackZoneReconciliationRunner {
+func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
 	// Set concrete type and init pointers.
 	runner := &CloudStackZoneReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackZone{}}
 	runner.Zones = &infrav1.CloudStackZoneList{}
@@ -57,7 +57,7 @@ func NewCSMachineHCReconciliationRunner() *CloudStackZoneReconciliationRunner {
 }
 
 func (reconciler *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	return NewCSMachineHCReconciliationRunner().
+	return NewCSZoneReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
 		WithRequestCtx(ctx).
@@ -72,6 +72,9 @@ func (r *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+	if res, err := r.RequeueIfMissingBaseCRDs(); r.ShouldReturn(res, err) {
+		return res, err
+	}
 	// // Prevent premature deletion.
 	// controllerutil.AddFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
 

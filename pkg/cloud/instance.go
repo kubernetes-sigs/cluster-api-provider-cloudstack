@@ -34,7 +34,7 @@ import (
 const antiAffinityValue = "anti"
 
 type VMIface interface {
-	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, string) error
+	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, *infrav1.CloudStackAffinityGroup, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
 	DestroyVMInstance(*infrav1.CloudStackMachine) error
 }
@@ -145,6 +145,7 @@ func (c *client) GetOrCreateVMInstance(
 	capiMachine *capiv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
 	zone *infrav1.CloudStackZone,
+	affinity *infrav1.CloudStackAffinityGroup,
 	userData string) error {
 
 	// Check if VM instance already exists.
@@ -179,22 +180,11 @@ func (c *client) GetOrCreateVMInstance(
 	if len(csMachine.Spec.AffinityGroupIDs) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIDs)
 	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
-		//affinityType := AffinityGroupType
-		// if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
-		// 	affinityType = AntiAffinityGroupType
-		// }
-		//name, err := csMachine.AffinityGroupName(capiMachine)
+		p.SetAffinitygroupids([]string{affinity.Spec.ID})
 		if err != nil {
 			return err
 		}
-		// group := &AffinityGroup{Name: name, Type: affinityType}
-		// if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
-		// 	return err
-		// }
-		// p.SetAffinitygroupids([]string{group.ID})
 	}
-	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
-	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 
 	if csMachine.Spec.Details != nil {
 		p.SetDetails(csMachine.Spec.Details)

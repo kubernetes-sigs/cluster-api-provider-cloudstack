@@ -1,7 +1,6 @@
 package cloud
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -194,7 +193,6 @@ func (c *client) GetOrCreateLoadBalancerRule(
 		!strings.Contains(strings.ToLower(err.Error()), "no load balancer rule found") {
 		return errors.Wrap(err, "error encountered when resolving load balancer rule details.")
 	}
-	fmt.Printf("%+v", isoNet.Status)
 
 	p := c.cs.LoadBalancer.NewCreateLoadBalancerRuleParams(
 		"roundrobin", "Kubernetes_API_Server", K8sDefaultAPIPort, K8sDefaultAPIPort)

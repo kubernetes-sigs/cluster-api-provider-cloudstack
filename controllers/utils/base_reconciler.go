@@ -135,9 +135,9 @@ func (r *ReconciliationRunner) Else(fn CloudStackReconcilerMethod) CloudStackRec
 func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
 	name := r.ReconciliationSubject.GetLabels()[capiv1.ClusterLabelName]
 	if name == "" {
-		r.Log.V(1).Info("Reconciliation Subject is missing cluster label or cluster does not exist.",
+		r.Log.V(1).Info("Reconciliation Subject is missing cluster label or cluster does not exist. Skipping CAPI Cluster fetch.",
 			"SubjectKind", r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind)
-		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+		return ctrl.Result{}, nil
 	}
 	r.CAPICluster = &capiv1.Cluster{}
 	key := client.ObjectKey{
@@ -156,9 +156,9 @@ func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
 func (r *ReconciliationRunner) GetCSCluster() (ctrl.Result, error) {
 	name := r.ReconciliationSubject.GetLabels()[capiv1.ClusterLabelName]
 	if name == "" {
-		r.Log.V(1).Info("Reconciliation Subject is missing cluster label or cluster does not exist.",
+		r.Log.V(1).Info("Reconciliation Subject is missing cluster label or cluster does not exist. Skipping CloudStackCluster fetch.",
 			"SubjectKind", r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind)
-		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+		return ctrl.Result{}, nil
 	}
 	r.CSCluster = &infrav1.CloudStackCluster{}
 	key := client.ObjectKey{
@@ -378,6 +378,19 @@ func (r *ReconciliationRunner) NewChildObjectMeta(name string) metav1.ObjectMeta
 			*metav1.NewControllerRef(r.ReconciliationSubject, ownerGVK),
 		},
 	}
+}
+
+// RequeueIfMissingBaseCRDs checks that the ReconciliationSubject, CAPI Cluster, and CloudStackCluster objects were
+// actually fetched and reques if not. The base reconciliation stages will continue even if not so as to allow deletion.
+func (r *ReconciliationRunner) RequeueIfMissingBaseCRDs() (ctrl.Result, error) {
+	if r.ReconciliationSubject.GetName() == "" {
+		return r.RequeueWithMessage("Reconciliation subject wasn't found. Requeueing.")
+	} else if r.CSCluster.GetName() == "" {
+		return r.RequeueWithMessage("CloudStackCluster wasn't found. Requeueing.")
+	} else if r.CAPICluster.GetName() == "" {
+		return r.RequeueWithMessage("CAPI Cluster wasn't found. Requeueing.")
+	}
+	return ctrl.Result{}, nil
 }
 
 // GetObjectByName gets an object by name and type of object. The namespace is assumed to be the same
