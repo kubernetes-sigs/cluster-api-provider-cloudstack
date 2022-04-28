@@ -74,7 +74,7 @@ resources:
   controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
-  kind: CloudStackMachineHealthChecker
+  kind: CloudStackMachineStateChecker
   path: github.com/aws/cluster-api-provider-cloudstack/api/v1beta1
   version: v1beta1
 version: "3"

@@ -38,6 +38,15 @@ rules:
   - cluster.x-k8s.io
   resources:
   - machines
+  verbs:
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machines
   - machines/status
   verbs:
   - get
@@ -141,32 +150,6 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - cloudstackmachinehealthcheckers
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackmachinehealthcheckers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackmachinehealthcheckers/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - cloudstackmachines
   verbs:
   - create
@@ -186,6 +169,32 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - cloudstackmachines/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackmachinestatecheckers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackmachinestatecheckers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackmachinestatecheckers/status
   verbs:
   - get
   - patch

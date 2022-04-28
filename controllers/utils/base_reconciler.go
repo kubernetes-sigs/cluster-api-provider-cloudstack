@@ -242,11 +242,11 @@ func (r *ReconciliationRunner) PatchChangesBackToAPI() (res ctrl.Result, retErr 
 
 // RequeueWithMessage is a convenience method to log requeue message and then return a result with RequeueAfter set.
 func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...interface{}) (ctrl.Result, error) {
-	r.Log.Info(msg)
+	r.Log.Info(msg, keysAndValues...)
 	return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 }
 
-// RequeueWithMessage is a convenience method to log requeue message and then return a result with RequeueAfter set.
+// ReturnWrappedError is a convenience method to log requeue message and then return a result with RequeueAfter set.
 func (r *ReconciliationRunner) ReturnWrappedError(err error, msg string) (ctrl.Result, error) {
 	return ctrl.Result{}, errors.Wrap(err, msg)
 }

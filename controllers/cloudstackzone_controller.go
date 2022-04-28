@@ -23,7 +23,6 @@ import (
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/pkg/errors"
 )
 
@@ -36,7 +35,6 @@ type CloudStackZoneReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	Zones                 *infrav1.CloudStackZoneList
 	ReconciliationSubject *infrav1.CloudStackZone
-	CSUser                cloud.Client
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
 }
 
@@ -46,7 +44,7 @@ type CloudStackZoneReconciler struct {
 }
 
 // Initialize a new CloudStackZone reconciliation runner with concrete types and initialized member fields.
-func NewCSMachineHCReconciliationRunner() *CloudStackZoneReconciliationRunner {
+func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
 	// Set concrete type and init pointers.
 	runner := &CloudStackZoneReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackZone{}}
 	runner.Zones = &infrav1.CloudStackZoneList{}
@@ -57,7 +55,7 @@ func NewCSMachineHCReconciliationRunner() *CloudStackZoneReconciliationRunner {
 }
 
 func (reconciler *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	return NewCSMachineHCReconciliationRunner().
+	return NewCSZoneReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
 		WithRequestCtx(ctx).

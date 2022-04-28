@@ -52,10 +52,10 @@ type CloudStackMachineReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackMachine
 	CAPIMachine           *capiv1.Machine
-	CSUser                cloud.Client
 	Zones                 *infrav1.CloudStackZoneList
 	FailureDomain         *infrav1.CloudStackZone
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
+	StateChecker          *infrav1.CloudStackMachineStateChecker
 }
 
 // CloudStackMachineReconciler reconciles a CloudStackMachine object
@@ -71,6 +71,7 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 	runner.Zones = &infrav1.CloudStackZoneList{}
 	runner.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
 	runner.FailureDomain = &infrav1.CloudStackZone{}
+	runner.StateChecker = &infrav1.CloudStackMachineStateChecker{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
 	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
 	return runner
@@ -96,7 +97,9 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		// This can move to IsoNet controller with a nice watch someday.
 		r.GetOrCreateVMInstance,
 		r.RequeueIfInstanceNotRunning,
-		r.AddToLBIfNeeded)
+		r.AddToLBIfNeeded,
+		r.GetOrCreateMachineStateChecker,
+	)
 }
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
@@ -201,8 +204,24 @@ func (runner *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes c
 	return ctrl.Result{}, nil
 }
 
+// GetOrCreateMachineStateChecker creates or gets CloudStackMachineStateChecker object.
+func (runner *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker() (retRes ctrl.Result, reterr error) {
+	checkerName := runner.ReconciliationSubject.Spec.InstanceID
+	csMachineStateChecker := &infrav1.CloudStackMachineStateChecker{
+		ObjectMeta: runner.NewChildObjectMeta(*checkerName),
+		Spec:       infrav1.CloudStackMachineStateCheckerSpec{InstanceID: *checkerName},
+		Status:     infrav1.CloudStackMachineStateCheckerStatus{Ready: false},
+	}
+
+	if err := runner.Client.Create(runner.RequestCtx, csMachineStateChecker); err != nil && !csCtrlrUtils.ContainsAlreadyExistsSubstring(err) {
+		return runner.ReturnWrappedError(err, "error encountered when creating CloudStackMachineStateChecker")
+	}
+
+	return runner.GetObjectByName(*checkerName, runner.StateChecker)()
+}
+
 func (runner *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
-	runner.Log.Info("Deleting instance", "instance-id", *&runner.ReconciliationSubject.Spec.InstanceID)
+	runner.Log.Info("Deleting instance", "instance-id", runner.ReconciliationSubject.Spec.InstanceID)
 	if err := runner.CS.DestroyVMInstance(runner.ReconciliationSubject); err != nil {
 		if err.Error() == "VM deletion in progress" {
 			runner.Log.Info(err.Error())

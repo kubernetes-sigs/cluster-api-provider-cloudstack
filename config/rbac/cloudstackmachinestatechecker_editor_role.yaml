@@ -1,20 +1,24 @@
-# permissions for end users to view cloudstackmachinehealthcheckers.
+# permissions for end users to edit cloudstackmachinestatecheckers.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cloudstackmachinehealthchecker-viewer-role
+  name: cloudstackmachinestatechecker-editor-role
 rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - cloudstackmachinehealthcheckers
+  - cloudstackmachinestatecheckers
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - cloudstackmachinehealthcheckers/status
+  - cloudstackmachinestatecheckers/status
   verbs:
   - get

@@ -6,20 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.1
   creationTimestamp: null
-  name: cloudstackmachinehealthcheckers.infrastructure.cluster.x-k8s.io
+  name: cloudstackmachinestatecheckers.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
-    kind: CloudStackMachineHealthChecker
-    listKind: CloudStackMachineHealthCheckerList
-    plural: cloudstackmachinehealthcheckers
-    singular: cloudstackmachinehealthchecker
+    kind: CloudStackMachineStateChecker
+    listKind: CloudStackMachineStateCheckerList
+    plural: cloudstackmachinestatecheckers
+    singular: cloudstackmachinestatechecker
   scope: Namespaced
   versions:
   - name: v1beta1
     schema:
       openAPIV3Schema:
-        description: CloudStackMachineHealthChecker is the Schema for the cloudstackmachinehealthcheckers
+        description: CloudStackMachineStateChecker is the Schema for the cloudstackMachineStateCheckers
           API
         properties:
           apiVersion:
@@ -35,16 +35,22 @@ spec:
           metadata:
             type: object
           spec:
-            description: CloudStackMachineHealthCheckerSpec defines the desired state
-              of CloudStackMachineHealthChecker
+            description: CloudStackMachineStateCheckerSpec defines the desired state
+              of CloudStackMachineStateChecker
             properties:
               instanceID:
                 description: Give better description.
                 type: string
             type: object
           status:
-            description: CloudStackMachineHealthCheckerStatus defines the observed
-              state of CloudStackMachineHealthChecker
+            description: CloudStackMachineStateCheckerStatus defines the observed
+              state of CloudStackMachineStateChecker
+            properties:
+              ready:
+                description: Reflects the readiness of the Machine State Checker.
+                type: boolean
+            required:
+            - ready
             type: object
         type: object
     served: true
