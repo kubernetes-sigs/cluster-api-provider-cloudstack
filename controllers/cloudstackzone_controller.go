@@ -137,8 +137,8 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 	if res, err := r.RequeueIfMissingBaseCRDs(); r.ShouldReturn(res, err) {
 		return res, err
 	}
-	// // Prevent premature deletion.
-	// controllerutil.AddFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
+	// Prevent premature deletion.
+	controllerutil.AddFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
 
 	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.ReconciliationSubject.Spec)
 	// Start by purely data fetching information about the zone and specified network.
@@ -175,11 +175,7 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 // The CloudStackZone only fetches information, and in some cases creates CloudStackIsolatedNetwork CRDs.
 // Deletion does not require cleanup, but should not occur until any owned CRDs are deleted.
 func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
-	// netName := r.ReconciliationSubject.Spec.Network.Name
-	// if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
-	// 	return res, err
-	// } else if r.IsoNet.Name == "" { // Owned isolated network is missing, deletion can now proceed.
-	// 	controllerutil.RemoveFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
-	// }
+	//TODO: Check owned are deleted.
+	controllerutil.RemoveFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
 	return ctrl.Result{}, nil
 }

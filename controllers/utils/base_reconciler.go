@@ -313,7 +313,7 @@ func (r *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackReconcil
 }
 
 // RunBaseReconciliationStages runs the base reconciliation stages which are to setup the logger, get the reconciliation
-// subject, get CAPI and CloudStackClusters, and call either runner.Reconcile or runner.ReconcileDelete.
+// subject, get CAPI and CloudStackClusters, and call either r.Reconcile or r.ReconcileDelete.
 func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, retErr error) {
 	defer func() {
 		if err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject); err != nil {

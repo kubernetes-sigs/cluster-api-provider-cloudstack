@@ -177,8 +177,8 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 			break
 		}
 	}
-	for _, zone := range runner.Zones.Items {
-		runner.FailureDomain = &zone
+	for _, zone := range r.Zones.Items {
+		r.FailureDomain = &zone
 	}
 	return ctrl.Result{}, nil
 }

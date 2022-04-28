@@ -47,6 +47,8 @@ func (runner *ReconciliationRunner) CreateZones2(zoneSpecs []infrav1.Zone) (ctrl
 	}()
 }
 
+// controllers/utils/zones.go:19:15: S1016: should convert zoneSpec (type Zone) to CloudStackZoneSpec instead of using struct literal (gosimple)
+// Spec:       infrav1.CloudStackZoneSpec{Name: zoneSpec.Name, ID: zoneSpec.ID, Network: zoneSpec.Network},
 // CreateZones generates a CloudStackClusterZone CRD for each of the ReconcilationSubject's Zones.
 // Returns a CloudStackReconcilerMethod to curry zoneSpecs.
 func (r *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudStackReconcilerMethod {

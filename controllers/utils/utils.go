@@ -191,7 +191,7 @@ func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned client.Object
 		}
 		return nil
 	}
-	return errors.Errorf("couldn't find owner of kind % %s/%s",
+	return errors.Errorf("couldn't find owner of kind %s %s/%s",
 		owner.GetObjectKind().GroupVersionKind().Kind, owner.GetNamespace(), owner.GetName())
 }
 
