@@ -127,6 +127,10 @@ var _ = Describe("Network", func() {
 				PublicIpAddresses: []*csapi.PublicIpAddress{{Id: dummies.PublicIPID, Ipaddress: "fakeIP"}}}, nil)
 		as.EXPECT().NewAssociateIpAddressParams().Return(&csapi.AssociateIpAddressParams{})
 		as.EXPECT().AssociateIpAddress(gomock.Any())
+		fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, cloud.NetworkProtocolTCP).
+			Return(&csapi.CreateEgressFirewallRuleParams{})
+		fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
+			Return(&csapi.CreateEgressFirewallRuleResponse{}, nil)
 
 		// Will add cluster tag once to Network and once to PublicIP.
 		createdByResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: cloud.CreatedByCAPCTagName, Value: "1"}}}
@@ -159,7 +163,7 @@ var _ = Describe("Network", func() {
 			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
 				Return(&csapi.CreateEgressFirewallRuleResponse{}, nil)
 
-			Ω(client.OpenFirewallRules(dummies.CSCluster)).Should(Succeed())
+			Ω(client.OpenFirewallRules(dummies.ISONet1.ID)).Should(Succeed())
 		})
 	})
 
@@ -174,7 +178,7 @@ var _ = Describe("Network", func() {
 			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
 				Return(&csapi.CreateEgressFirewallRuleResponse{}, errors.New("there is already a rule like this"))
 
-			Ω(client.OpenFirewallRules(dummies.CSCluster)).Should(Succeed())
+			Ω(client.OpenFirewallRules(dummies.ISONet1.ID)).Should(Succeed())
 		})
 	})
 

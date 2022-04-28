@@ -18,7 +18,6 @@ package cloud
 
 import (
 	"fmt"
-
 	"strings"
 
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -192,6 +191,19 @@ func (c *client) GetOrCreateVMInstance(
 
 	deployVMResp, err := c.cs.VirtualMachine.DeployVirtualMachine(p)
 	if err != nil {
+		// Just because an error was returned doesn't mean a (failed) VM wasn't created and will need to be dealt with.
+		// Regretfully the deployVMResp may be nil, so we need to get the VM ID with a separate query, so we
+		// can return it to the caller, so they can clean it up.
+		listVirtualMachineParams := c.cs.VirtualMachine.NewListVirtualMachinesParams()
+		listVirtualMachineParams.SetTemplateid(templateID)
+		listVirtualMachineParams.SetZoneid(csMachine.Status.ZoneID)
+		listVirtualMachineParams.SetNetworkid(zone.Spec.Network.ID)
+		listVirtualMachineParams.SetName(csMachine.Name)
+		setIfNotEmpty(csCluster.Status.DomainID, listVirtualMachineParams.SetDomainid)
+		setIfNotEmpty(csCluster.Spec.Account, listVirtualMachineParams.SetAccount)
+		if listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams); err2 == nil && listVirtualMachinesResponse.Count > 0 {
+			csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)
+		}
 		return err
 	}
 	csMachine.Spec.InstanceID = pointer.StringPtr(deployVMResp.Id)
@@ -203,16 +215,17 @@ func (c *client) GetOrCreateVMInstance(
 
 // DestroyVMInstance Destroys a VM instance. Assumes machine has been fetched prior and has an instance ID.
 func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
-
-	// Attempt deletion regardless of machine state.
-	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
-	p.SetExpunge(true)
-	if _, err := c.csAsync.VirtualMachine.DestroyVirtualMachine(p); err != nil &&
-		strings.Contains(strings.ToLower(err.Error()), "unable to find uuid for id") {
-		// VM doesn't exist. Success...
+	if err := c.ResolveVMInstanceDetails(csMachine); err == nil && (csMachine.Status.InstanceState == "Expunging" ||
+		csMachine.Status.InstanceState == "Expunged") {
+		// VM is stopped and getting expunged.  So the desired state is getting satisfied.  Let's move on.
 		return nil
 	} else if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "no match found") {
+			// VM doesn't exist.  So the desired state is in effect.  Our work is done here.
+			return nil
+		}
 		return err
 	}
-	return nil // errors.New("VM deletion in progress")
+
+	return errors.New("VM deletion in progress")
 }

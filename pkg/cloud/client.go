@@ -60,8 +60,12 @@ func NewClient(ccPath string) (Client, error) {
 		return nil, errors.Wrapf(err, "error encountered while parsing [Global] section from config at path: %s", ccPath)
 	}
 
+	// The client returned from NewAsyncClient works in a synchronous way. On the other hand,
+	// a client returned from NewClient works in an asynchronous way. Dive into the constructor definition
+	// comments for more details
 	c.cs = cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
 	c.csAsync = cloudstack.NewClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+	
 	_, err := c.cs.APIDiscovery.ListApis(c.cs.APIDiscovery.NewListApisParams())
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
 		return c, errors.Wrap(err, "timeout while checking CloudStack API Client connectivity")
@@ -70,6 +74,6 @@ func NewClient(ccPath string) (Client, error) {
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
-	c := &client{cs: cs}
+	c := &client{cs: cs, csAsync: cs}
 	return c
 }

@@ -1,0 +1,1 @@
+4a61d056085cf929377ff56fe1ceeeb189d43a7d  cluster-api-provider-cloudstack-v0.4.2.tar.gz

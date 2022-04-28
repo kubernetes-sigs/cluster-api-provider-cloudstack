@@ -40,8 +40,10 @@ rules:
   - machines
   - machines/status
   verbs:
+  - delete
   - get
   - list
+  - patch
   - watch
 - apiGroups:
   - cluster.x-k8s.io

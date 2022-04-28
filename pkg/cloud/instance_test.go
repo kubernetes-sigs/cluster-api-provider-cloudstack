@@ -131,14 +131,14 @@ var _ = Describe("Instance", func() {
 				Should(MatchError(unknownErrorMessage))
 		})
 
-		It("returns errors occuring while fetching sevice offering information", func() {
+		It("returns errors occurring while fetching service offering information", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return("", -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				ShouldNot(Succeed())
 		})
 
-		It("returns errors if more than one sevice offering found", func() {
+		It("returns errors if more than one service offering found", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return("", 2, nil)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
@@ -174,7 +174,8 @@ var _ = Describe("Instance", func() {
 			vms.EXPECT().NewDeployVirtualMachineParams(offeringFakeID, templateFakeID, dummies.Zone1.ID).
 				Return(&cloudstack.DeployVirtualMachineParams{})
 			vms.EXPECT().DeployVirtualMachine(gomock.Any()).Return(nil, unknownError)
-
+			vms.EXPECT().NewListVirtualMachinesParams().Return(&cloudstack.ListVirtualMachinesParams{})
+			vms.EXPECT().ListVirtualMachines(gomock.Any()).Return(&cloudstack.ListVirtualMachinesResponse{}, nil)
 			Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).
 				Should(MatchError(unknownErrorMessage))
 		})
@@ -322,6 +323,71 @@ var _ = Describe("Instance", func() {
 				Ω(client.GetOrCreateVMInstance(dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, "")).Should(MatchError(MatchRegexp(requiredRegexp, dummies.CSMachine1.Spec.Template.Name, "template-not-match", templateFakeID)))
 
 			})
+		})
+	})
+
+	Context("when destroying a VM instance", func() {
+		expungeDestroyParams := &cloudstack.DestroyVirtualMachineParams{}
+		expungeDestroyParams.SetExpunge(true)
+
+		It("calls destroy and finds VM doesn't exist, then returns nil", func() {
+			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
+				Return(expungeDestroyParams)
+			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, fmt.Errorf("unable to find uuid for id"))
+			Ω(client.DestroyVMInstance(dummies.CSMachine1)).
+				Should(Succeed())
+		})
+
+		It("calls destroy and returns unexpected error", func() {
+			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
+				Return(expungeDestroyParams)
+			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, fmt.Errorf("new error"))
+			Ω(client.DestroyVMInstance(dummies.CSMachine1)).Should(MatchError("new error"))
+		})
+
+		It("calls destroy without error but cannot resolve VM after", func() {
+			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
+				Return(expungeDestroyParams)
+			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
+			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).Return(nil, -1, notFoundError)
+			vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(nil, -1, notFoundError)
+			Ω(client.DestroyVMInstance(dummies.CSMachine1)).
+				Should(Succeed())
+		})
+
+		It("calls destroy without error and identifies it as expunging", func() {
+			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
+				Return(expungeDestroyParams)
+			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
+			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
+				Return(&cloudstack.VirtualMachinesMetric{
+					State: "Expunging",
+				}, 1, nil)
+			Ω(client.DestroyVMInstance(dummies.CSMachine1)).
+				Should(Succeed())
+		})
+
+		It("calls destroy without error and identifies it as expunged", func() {
+			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
+				Return(expungeDestroyParams)
+			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
+			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
+				Return(&cloudstack.VirtualMachinesMetric{
+					State: "Expunged",
+				}, 1, nil)
+			Ω(client.DestroyVMInstance(dummies.CSMachine1)).
+				Should(Succeed())
+		})
+
+		It("calls destroy without error and identifies it as stopping", func() {
+			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
+				Return(expungeDestroyParams)
+			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
+			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
+				Return(&cloudstack.VirtualMachinesMetric{
+					State: "Stopping",
+				}, 1, nil)
+			Ω(client.DestroyVMInstance(dummies.CSMachine1)).Should(MatchError("VM deletion in progress"))
 		})
 	})
 })
