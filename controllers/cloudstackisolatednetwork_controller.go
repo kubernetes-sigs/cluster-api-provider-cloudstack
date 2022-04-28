@@ -48,11 +48,11 @@ type CloudStackIsoNetReconciliationRunner struct {
 // Initialize a new CloudStackIsoNet reconciliation runner with concrete types and initialized member fields.
 func NewCSIsoNetReconciliationRunner() *CloudStackIsoNetReconciliationRunner {
 	// Set concrete type and init pointers.
-	runner := &CloudStackIsoNetReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackIsolatedNetwork{}}
-	runner.Zone = &infrav1.CloudStackZone{}
+	r := &CloudStackIsoNetReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackIsolatedNetwork{}}
+	r.Zone = &infrav1.CloudStackZone{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
-	return runner
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	return r
 }
 
 func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
@@ -93,8 +93,8 @@ func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Re
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudStackIsoNetReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (reconciler *CloudStackIsoNetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackIsolatedNetwork{}).
-		Complete(r)
+		Complete(reconciler)
 }

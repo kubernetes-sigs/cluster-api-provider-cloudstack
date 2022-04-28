@@ -16,12 +16,14 @@ import (
 func (r *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
 	csZone := &infrav1.CloudStackZone{
 		ObjectMeta: r.NewChildObjectMeta(zoneSpec.Name),
-		Spec:       infrav1.CloudStackZoneSpec{Name: zoneSpec.Name, ID: zoneSpec.ID, Network: zoneSpec.Network},
+		Spec:       infrav1.CloudStackZoneSpec(zoneSpec),
 		Status:     infrav1.CloudStackZoneStatus{Ready: false},
 	}
 	return errors.Wrap(r.Client.Create(r.RequestCtx, csZone), "error encountered when creating CloudStackZone")
 }
 
+// controllers/utils/zones.go:19:15: S1016: should convert zoneSpec (type Zone) to CloudStackZoneSpec instead of using struct literal (gosimple)
+// Spec:       infrav1.CloudStackZoneSpec{Name: zoneSpec.Name, ID: zoneSpec.ID, Network: zoneSpec.Network},
 // CreateZones generates a CloudStackClusterZone CRD for each of the ReconcilationSubject's Zones.
 // Returns a CloudStackReconcilerMethod to curry zoneSpecs.
 func (runner *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudStackReconcilerMethod {

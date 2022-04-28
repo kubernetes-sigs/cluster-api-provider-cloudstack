@@ -66,47 +66,17 @@ var _ = Describe("Network", func() {
 			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(nil, 0, nil)
 			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
 
-			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
+			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 		})
 
 		It("resolves network by Name", func() {
 			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
 
-			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
+			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 		})
 
-		It("resolves network details in cluster status", func() {
-			// Gets Net1 by Name.
-			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
-
-			// Trys to get Net2 by name and doesn't find it. Then finds Net2 via ID.
-			ns.EXPECT().GetNetworkByName(dummies.Net2.Name).Return(nil, 0, nil)
-			ns.EXPECT().GetNetworkByID(dummies.Net2.ID).Return(dummies.CAPCNetToCSAPINet(&dummies.Net2), 1, nil)
-
-			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
-			Ω(dummies.CSCluster.Status.Zones[dummies.Zone1.ID].Network).Should(Equal(dummies.Net1))
-			Ω(dummies.CSCluster.Status.Zones[dummies.Zone2.ID].Network).Should(Equal(dummies.Net2))
-		})
-
-		It("correctly identifies the shared network use case", func() {
-			Ω(cloud.UsesIsolatedNetwork(dummies.CSCluster)).Should(BeFalse())
-		})
-		It("correctly identifies the isolated network use case", func() {
-			dummies.Zone1.Network = dummies.ISONet1
-			dummies.CSCluster.Status.Zones = map[string]capcv1.Zone{dummies.Zone1.ID: dummies.Zone1}
-			Ω(cloud.UsesIsolatedNetwork(dummies.CSCluster)).Should(BeTrue())
-		})
 		It("correctly identifies an existing network from a network status", func() {
 			Ω(cloud.NetworkExists(dummies.CSCluster.Status.Zones.GetOne().Network)).Should(BeTrue())
-		})
-	})
-
-	Context("for a non-existent network", func() {
-		It("when ResolveNetworkStatuses is called it does not create a network", func() {
-			ns.EXPECT().GetNetworkByName(gomock.Any()).Return(nil, -1, errors.New("no match found for blah"))
-			ns.EXPECT().GetNetworkByID(gomock.Any()).Return(nil, -1, errors.New("no match found for blah"))
-
-			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).ShouldNot(Succeed())
 		})
 	})
 
@@ -150,7 +120,7 @@ var _ = Describe("Network", func() {
 			&csapi.ListLoadBalancerRulesResponse{LoadBalancerRules: []*csapi.LoadBalancerRule{
 				{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
 
-		Ω(client.GetOrCreateIsolatedNetwork(dummies.CSCluster)).Should(Succeed())
+		Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 	})
 
 	Context("for a closed firewall", func() {
@@ -163,7 +133,7 @@ var _ = Describe("Network", func() {
 			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
 				Return(&csapi.CreateEgressFirewallRuleResponse{}, nil)
 
-			Ω(client.OpenFirewallRules(dummies.ISONet1.ID)).Should(Succeed())
+			Ω(client.OpenFirewallRules(dummies.CSISONet1)).Should(Succeed())
 		})
 	})
 
@@ -178,7 +148,7 @@ var _ = Describe("Network", func() {
 			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
 				Return(&csapi.CreateEgressFirewallRuleResponse{}, errors.New("there is already a rule like this"))
 
-			Ω(client.OpenFirewallRules(dummies.ISONet1.ID)).Should(Succeed())
+			Ω(client.OpenFirewallRules(dummies.CSISONet1)).Should(Succeed())
 		})
 	})
 
@@ -191,7 +161,7 @@ var _ = Describe("Network", func() {
 					Count:             1,
 					PublicIpAddresses: []*csapi.PublicIpAddress{{Id: "PublicIPID", Ipaddress: ipAddress}},
 				}, nil)
-			publicIPAddress, err := client.FetchPublicIP(dummies.CSCluster)
+			publicIPAddress, err := client.GetPublicIP(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)
 			Ω(err).Should(Succeed())
 			Ω(publicIPAddress).ShouldNot(BeNil())
 			Ω(publicIPAddress.Ipaddress).Should(Equal(ipAddress))
@@ -206,7 +176,7 @@ var _ = Describe("Network", func() {
 					{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
 
 			dummies.CSCluster.Status.LBRuleID = ""
-			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSCluster.Status.LBRuleID).Should(Equal(dummies.LBRuleID))
 		})
 
@@ -217,7 +187,7 @@ var _ = Describe("Network", func() {
 					LoadBalancerRules: []*csapi.LoadBalancerRule{
 						{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
 
-			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSCluster.Status.LBRuleID).Should(Equal(dummies.LBRuleID))
 		})
 	})
@@ -233,7 +203,7 @@ var _ = Describe("Network", func() {
 			lbs.EXPECT().CreateLoadBalancerRule(gomock.Any()).
 				Return(&csapi.CreateLoadBalancerRuleResponse{Id: "2ndLBRuleID"}, nil)
 
-			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSCluster.Status.LBRuleID).Should(Equal("2ndLBRuleID"))
 		})
 	})
@@ -245,7 +215,7 @@ var _ = Describe("Network", func() {
 			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
 				Skip("Could not connect to ACS instance.")
 			}
-			if err := client.ResolveNetwork(dummies.CSCluster, &dummies.Net1); err != nil {
+			if err := client.ResolveNetwork(&dummies.Net1); err != nil {
 				Skip("Could not find network.")
 			}
 
@@ -266,7 +236,7 @@ var _ = Describe("Network", func() {
 			dummies.SetDummyIsoNetToNameOnly()
 			dummies.SetClusterSpecToNet(&dummies.ISONet1)
 
-			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
+			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 			Ω(dummies.ISONet1.ID).ShouldNot(BeEmpty())
 			Ω(dummies.ISONet1.Type).Should(Equal(cloud.NetworkTypeIsolated))
 		})
@@ -277,7 +247,7 @@ var _ = Describe("Network", func() {
 			dummies.SetClusterSpecToNet(&dummies.ISONet1)
 			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""
 			Ω(client.ResolveZones(dummies.CSCluster)).Should(Succeed())
-			Ω(client.ResolveNetwork(dummies.CSCluster, &dummies.ISONet1)).Should(Succeed())
+			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 		})
 	})
 
@@ -295,26 +265,24 @@ var _ = Describe("Network", func() {
 			dummies.CSCluster.Spec.Zones = []capcv1.Zone{{Name: "zone1", Network: dummies.ISONet1}}
 			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
 
-			Ω(client.ResolveZones(dummies.CSCluster)).Should(Succeed())
-			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
 			if dummies.CSCluster.Status.Zones.GetOne().Network.ID != "" { // Delete current test network.
 				Ω(client.DeleteNetwork(dummies.CSCluster.Status.Zones.GetOne().Network)).Should(Succeed())
 			}
 			// Reset status.
 			dummies.CSCluster.Spec.Zones = []capcv1.Zone{{Name: "zone1", Network: dummies.ISONet1}}
-			Ω(client.ResolveZones(dummies.CSCluster)).Should(Succeed())
-			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveZone(dummies.CSZone1)).Should(Succeed())
+			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 		})
 
 		It("adds an isolated network and doesn't fail when asked to GetOrCreateIsolatedNetwork multiple times", func() {
-			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSCluster)).Should(Succeed())
-			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 			// Reset status.
 			dummies.CSCluster.Spec.Zones = []capcv1.Zone{{Name: "zone1", Network: dummies.ISONet1}}
 			Ω(client.ResolveZones(dummies.CSCluster)).Should(Succeed())
-			Ω(client.ResolveNetworkStatuses(dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 			// Do once more.
-			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 		})
 	})
 })

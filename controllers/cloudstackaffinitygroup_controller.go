@@ -48,10 +48,10 @@ type CloudStackAffinityGroupReconciler struct {
 // Initialize a new CloudStackZone reconciliation runner with concrete types and initialized member fields.
 func NewCSAGReconciliationRunner() *CloudStackAGReconciliationRunner {
 	// Set concrete type and init pointers.
-	runner := &CloudStackAGReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackAffinityGroup{}}
+	r := &CloudStackAGReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackAffinityGroup{}}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
-	return runner
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	return r
 }
 
 func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -87,8 +87,8 @@ func (r *CloudStackAGReconciliationRunner) ReconcileDelete() (ctrl.Result, error
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudStackAffinityGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (reconciler *CloudStackAffinityGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackAffinityGroup{}).
-		Complete(r)
+		Complete(reconciler)
 }

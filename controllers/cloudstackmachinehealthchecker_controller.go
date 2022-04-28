@@ -47,11 +47,11 @@ type CloudStackMachineHealthCheckerReconciler struct {
 // Initialize a new CloudStackMachineHealthChecker reconciliation runner with concrete types and initialized member fields.
 func NewCSMachineHCReconciliationRunner() *CloudStackMachineHealthCheckerReconciliationRunner {
 	// Set concrete type and init pointers.
-	runner := &CloudStackMachineHealthCheckerReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachineHealthChecker{}}
-	runner.CSInstance = &infrav1.CloudStackMachine{}
-	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
-	return runner
+	r := &CloudStackMachineHealthCheckerReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachineHealthChecker{}}
+	r.CSInstance = &infrav1.CloudStackMachine{}
+	// Setup the base r. Initializes pointers and links reconciliation methods.
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	return r
 }
 
 func (reconciler *CloudStackMachineHealthCheckerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -75,8 +75,8 @@ func (r *CloudStackMachineHealthCheckerReconciliationRunner) ReconcileDelete() (
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudStackMachineHealthCheckerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (reconciler *CloudStackMachineHealthCheckerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackMachineHealthChecker{}).
-		Complete(r)
+		Complete(reconciler)
 }

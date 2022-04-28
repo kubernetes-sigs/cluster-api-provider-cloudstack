@@ -77,13 +77,13 @@ type ConcreteRunner interface {
 }
 
 func NewRunner(concreteRunner ConcreteRunner, subject client.Object) ReconciliationRunner {
-	runner := ReconciliationRunner{}
-	runner.CSCluster = &infrav1.CloudStackCluster{}
-	runner.CAPICluster = &capiv1.Cluster{}
-	runner.ReconciliationSubject = subject
-	runner.Reconcile = concreteRunner.Reconcile
-	runner.ReconcileDelete = concreteRunner.ReconcileDelete
-	return runner
+	r := ReconciliationRunner{}
+	r.CSCluster = &infrav1.CloudStackCluster{}
+	r.CAPICluster = &capiv1.Cluster{}
+	r.ReconciliationSubject = subject
+	r.Reconcile = concreteRunner.Reconcile
+	r.ReconcileDelete = concreteRunner.ReconcileDelete
+	return r
 }
 
 func (r *ReconciliationRunner) GetReconcilationSubject() client.Object {
@@ -262,10 +262,10 @@ type CloudStackReconcilerMethod func() (ctrl.Result, error)
 
 // RunReconciliationStage runs a CloudStackReconcilerMethod and returns a boolean to indicate whether that stage would
 // have returned a result that cuts the process short or not.
-func (runner *ReconciliationRunner) ShouldReturn(rslt ctrl.Result, err error) bool {
+func (r *ReconciliationRunner) ShouldReturn(rslt ctrl.Result, err error) bool {
 	if err != nil {
 		return true
-	} else if rslt.Requeue == true || rslt.RequeueAfter != time.Duration(0) {
+	} else if rslt.Requeue || rslt.RequeueAfter != time.Duration(0) {
 		return true
 	}
 	return false
@@ -273,11 +273,11 @@ func (runner *ReconciliationRunner) ShouldReturn(rslt ctrl.Result, err error) bo
 
 // RunReconciliationStages runs CloudStackReconcilerMethods in order and exits if an error or requeue condition is set.
 // On exit patches changes back to API.
-func (runner *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackReconcilerMethod) (ctrl.Result, error) {
+func (r *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackReconcilerMethod) (ctrl.Result, error) {
 	for _, fn := range fns {
 		if rslt, err := fn(); err != nil {
 			return rslt, err
-		} else if rslt.Requeue == true || rslt.RequeueAfter != time.Duration(0) || runner.returnEarly {
+		} else if rslt.Requeue || rslt.RequeueAfter != time.Duration(0) || r.returnEarly {
 			return rslt, nil
 		}
 	}
@@ -285,7 +285,7 @@ func (runner *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackRec
 }
 
 // RunBaseReconciliationStages runs the base reconciliation stages which are to setup the logger, get the reconciliation
-// subject, get CAPI and CloudStackClusters, and call either runner.Reconcile or runner.ReconcileDelete.
+// subject, get CAPI and CloudStackClusters, and call either r.Reconcile or r.ReconcileDelete.
 func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, retErr error) {
 	defer func() {
 		if err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject); err != nil {
@@ -307,8 +307,8 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 
 // SetReturnEarly sets the runner to return early. This causes the runner to break from running further
 // reconciliation stages and return whatever result the current method returns.
-func (runner *ReconciliationRunner) SetReturnEarly() {
-	runner.returnEarly = true
+func (r *ReconciliationRunner) SetReturnEarly() {
+	r.returnEarly = true
 }
 
 // CheckIfPaused returns with reque later set if paused.

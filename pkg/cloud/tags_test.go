@@ -35,7 +35,7 @@ var _ = Describe("Tag Unit Tests", func() {
 			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
 				Skip("Could not connect to ACS instance.")
 			}
-			if err := client.ResolveNetwork(dummies.CSCluster, &dummies.Net1); err != nil {
+			if err := client.ResolveNetwork(&dummies.Net1); err != nil {
 				Skip("Could not find network.")
 			}
 
