@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -107,7 +108,8 @@ func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
 		return WithTransform(
 			func(x interface{}) string {
 				meth := reflect.ValueOf(x).MethodByName(fetchFunc)
-				meth.Call(nil)
+				fmt.Println(meth.Call(nil)[0])
+
 				return meth.Call(nil)[0].String()
 			}, Equal(expected))
 	})
@@ -116,4 +118,6 @@ func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
 var (
 	DomainIDEquals = FieldMatcherGenerator("GetDomainid")
 	AccountEquals  = FieldMatcherGenerator("GetAccount")
+	IDEquals       = FieldMatcherGenerator("GetId")
+	NameEquals     = FieldMatcherGenerator("GetName")
 )

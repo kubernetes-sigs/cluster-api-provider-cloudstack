@@ -28,11 +28,11 @@ type ZoneIFace interface {
 }
 
 func (c *client) ResolveZone(zone *infrav1.CloudStackZone) (retErr error) {
-	if zoneID, count, err := c.cs.Zone.GetZoneID(zone.Name); err != nil {
+	if zoneID, count, err := c.cs.Zone.GetZoneID(zone.Spec.Name); err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %v", zone))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
-			"expected 1 Zone with name %s, but got %d", zone.Name, count))
+			"expected 1 Zone with name %s, but got %d", zone.Spec.Name, count))
 	} else {
 		zone.Spec.ID = zoneID
 	}

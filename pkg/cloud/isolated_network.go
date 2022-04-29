@@ -99,10 +99,10 @@ func (c *client) CreateIsolatedNetwork(zone *capcv1.CloudStackZone, isoNet *capc
 	}
 
 	// Do isolated network creation.
-	p := c.cs.Network.NewCreateNetworkParams(isoNet.Name, isoNet.Name, offeringID, zone.Spec.ID)
+	p := c.cs.Network.NewCreateNetworkParams(isoNet.Spec.Name, isoNet.Spec.Name, offeringID, zone.Spec.ID)
 	resp, err := c.cs.Network.CreateNetwork(p)
 	if err != nil {
-		return errors.Wrapf(err, "error encountered when creating network with name: %s", isoNet.Name)
+		return errors.Wrapf(err, "error encountered when creating network with name: %s", isoNet.Spec.Name)
 	}
 	isoNet.Spec.ID = resp.Id
 	isoNet.Spec.Type = resp.Type
@@ -193,6 +193,7 @@ func (c *client) ResolveLoadBalancerRuleDetails(
 	}
 	for _, rule := range loadBalancerRules.LoadBalancerRules {
 		if rule.Publicport == strconv.Itoa(int(isoNet.Spec.ControlPlaneEndpoint.Port)) {
+
 			isoNet.Status.LBRuleID = rule.Id
 			return nil
 		}
@@ -206,6 +207,17 @@ func (c *client) GetOrCreateLoadBalancerRule(
 	isoNet *capcv1.CloudStackIsolatedNetwork,
 	csCluster *capcv1.CloudStackCluster,
 ) (retErr error) {
+	// Check/set ports.
+	// Prefer control plane endpoint. Take iso net port if CP missing. Set to default if both missing.
+	if csCluster.Spec.ControlPlaneEndpoint.Port != 0 {
+		isoNet.Spec.ControlPlaneEndpoint.Port = csCluster.Spec.ControlPlaneEndpoint.Port
+	} else if isoNet.Spec.ControlPlaneEndpoint.Port != 0 { // Override default public port if endpoint port specified.
+		csCluster.Spec.ControlPlaneEndpoint.Port = isoNet.Spec.ControlPlaneEndpoint.Port
+	} else {
+		csCluster.Spec.ControlPlaneEndpoint.Port = 6443
+		isoNet.Spec.ControlPlaneEndpoint.Port = 6443
+	}
+
 	// Check if rule exists.
 	if err := c.ResolveLoadBalancerRuleDetails(zone, isoNet, csCluster); err == nil ||
 		!strings.Contains(strings.ToLower(err.Error()), "no load balancer rule found") {
@@ -214,10 +226,9 @@ func (c *client) GetOrCreateLoadBalancerRule(
 
 	p := c.cs.LoadBalancer.NewCreateLoadBalancerRuleParams(
 		"roundrobin", "Kubernetes_API_Server", K8sDefaultAPIPort, K8sDefaultAPIPort)
+	p.SetPublicport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
 	p.SetNetworkid(isoNet.Spec.ID)
-	if csCluster.Spec.ControlPlaneEndpoint.Port != 0 { // Override default public port if endpoint port specified.
-		p.SetPublicport(int(csCluster.Spec.ControlPlaneEndpoint.Port))
-	}
+
 	p.SetPublicipid(isoNet.Status.PublicIPID)
 	p.SetProtocol(NetworkProtocolTCP)
 	resp, err := c.cs.LoadBalancer.CreateLoadBalancerRule(p)

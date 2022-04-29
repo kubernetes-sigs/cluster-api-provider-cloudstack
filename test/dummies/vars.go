@@ -208,9 +208,6 @@ func SetDummyCAPCClusterVars() {
 	Net1 = capcv1.Network{Name: "SharedGuestNet1", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID1"}
 	Net2 = capcv1.Network{Name: "SharedGuestNet2", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID2"}
 	ISONet1 = capcv1.Network{Name: "IsoGuestNet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
-	CSISONet1 = &capcv1.CloudStackIsolatedNetwork{Spec: capcv1.CloudStackIsolatedNetworkSpec{
-		Name: ISONet1.Name, Type: ISONet1.Type, ID: ISONet1.ID}}
-
 	CSCluster = &capcv1.CloudStackCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,
@@ -231,6 +228,10 @@ func SetDummyCAPCClusterVars() {
 		},
 		Status: capcv1.CloudStackClusterStatus{Zones: map[string]capcv1.Zone{}},
 	}
+	CSISONet1 = &capcv1.CloudStackIsolatedNetwork{
+		Spec: capcv1.CloudStackIsolatedNetworkSpec{
+			ControlPlaneEndpoint: CSCluster.Spec.ControlPlaneEndpoint,
+			Name:                 ISONet1.Name, Type: ISONet1.Type, ID: ISONet1.ID}}
 }
 
 // SetDummyDomainAndAccount sets domain and account in the CSCluster Spec. This is not the default.

@@ -162,6 +162,8 @@ func (c *client) GetOrCreateVMInstance(
 
 	// Create VM instance.
 	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csMachine.Status.ZoneID)
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	p.SetNetworkids([]string{zone.Spec.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)

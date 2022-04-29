@@ -30,10 +30,13 @@ import (
 
 // CreateZone generates a specified CloudStackZone CRD owned by the ReconcilationSubject.
 func (r *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
+	metaName := zoneSpec.Name
+	if metaName == "" {
+		metaName = zoneSpec.ID
+	}
 	csZone := &infrav1.CloudStackZone{
-		ObjectMeta: r.NewChildObjectMeta(zoneSpec.Name),
+		ObjectMeta: r.NewChildObjectMeta(metaName),
 		Spec:       infrav1.CloudStackZoneSpec(zoneSpec),
-		Status:     infrav1.CloudStackZoneStatus{Ready: false},
 	}
 	return errors.Wrap(r.Client.Create(r.RequestCtx, csZone), "error encountered when creating CloudStackZone")
 }
