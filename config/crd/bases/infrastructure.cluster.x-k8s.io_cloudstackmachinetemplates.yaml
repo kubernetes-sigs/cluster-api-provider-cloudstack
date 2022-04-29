@@ -66,16 +66,18 @@ spec:
                         description: CloudStack disk offering to use.
                         properties:
                           device:
-                            description: device name of data disk
+                            description: device name of data disk, for example /dev/vdb
                             type: string
                           filesystem:
-                            description: filesystem used by data disk
+                            description: filesystem used by data disk, for example,
+                              ext4, xfs
                             type: string
                           id:
                             description: Cloudstack resource ID.
                             type: string
                           label:
-                            description: label of data disk
+                            description: label of data disk, used by mkfs as label
+                              parameter
                             type: string
                           mountPath:
                             description: mount point the data disk uses to mount.
