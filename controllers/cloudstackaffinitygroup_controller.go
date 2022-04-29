@@ -33,19 +33,19 @@ import (
 // Need to watch machine templates for creation of an affinity group.
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplate,verbs=get;list;watch;
 
-// CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+// CloudStackAGReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
 type CloudStackAGReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackAffinityGroup
 	CSUser                cloud.Client
 }
 
-// CloudStackZoneReconciler reconciles a CloudStackZone object
+// CloudStackAGReconciler is the base reconciler to adapt to k8s.
 type CloudStackAffinityGroupReconciler struct {
 	csCtrlrUtils.ReconcilerBase
 }
 
-// Initialize a new CloudStackZone reconciliation runner with concrete types and initialized member fields.
+// Initialize a new CloudStackAffinityGroup reconciliation runner with concrete types and initialized member fields.
 func NewCSAGReconciliationRunner() *CloudStackAGReconciliationRunner {
 	// Set concrete type and init pointers.
 	r := &CloudStackAGReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackAffinityGroup{}}
@@ -64,11 +64,11 @@ func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Conte
 
 func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.AffinityGroupFinalizer)
-	group := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Spec.Name, Type: "host affinity"}
-	if err := r.CS.GetOrCreateAffinityGroup(group); err != nil {
+	affinityGroup := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Spec.Name, Type: "host affinity"}
+	if err := r.CS.GetOrCreateAffinityGroup(affinityGroup); err != nil {
 		return ctrl.Result{}, err
 	}
-	r.ReconciliationSubject.Spec.ID = group.ID
+	r.ReconciliationSubject.Spec.ID = affinityGroup.ID
 	r.ReconciliationSubject.Status.Ready = true
 	return ctrl.Result{}, nil
 }

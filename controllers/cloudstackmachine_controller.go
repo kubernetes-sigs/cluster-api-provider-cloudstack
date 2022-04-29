@@ -96,10 +96,9 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		r.ConsiderAffinity,
 		r.SetFailureDomainOnCSMachine,
 		r.GetObjectByName("placeholder", r.IsoNet, func() string { return r.FailureDomain.Spec.Network.Name }),
-		// This can move to IsoNet controller with a nice watch someday.
 		r.GetOrCreateVMInstance,
 		r.RequeueIfInstanceNotRunning,
-		r.AddToLBIfNeeded)
+		r.AddToLBIfNeeded) // AddToLBIfNeeded can move to IsoNet controller with a nice watch someday.
 }
 
 // ConsiderAffinity sets machine affinity if needed. It also creates or gets an affinity group CRD if required and
@@ -109,7 +108,7 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 		return ctrl.Result{}, nil
 	}
 
-	agName, err := csCtrlrUtils.AffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
+	agName, err := csCtrlrUtils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
 	if err != nil {
 		r.Log.Info("encountered error getting affinity group name", err)
 	}
@@ -182,20 +181,18 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	if err := r.Client.Get(context.TODO(), key, secret); err != nil {
 		return ctrl.Result{}, err
 	}
-	if data, isPresent := secret.Data["value"]; isPresent {
-		if err := r.CS.GetOrCreateVMInstance(
-			r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data)); err == nil {
-			if !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
-				r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
-				controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
-			}
-		} else if err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
+	data, present := secret.Data["value"]
+	if !present {
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
-	return ctrl.Result{}, nil
+
+	err := r.CS.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data))
+
+	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
+		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
+		controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
+	}
+	return ctrl.Result{}, err
 }
 
 // ConfirmVMStatus checks the Instance's status for running state and requeues otherwise.

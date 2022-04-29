@@ -38,12 +38,14 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 			return ctrl.Result{}, err
 		} else if ag.Name != "" {
 			return ctrl.Result{}, nil
-		} // Didn't find a group.
+		} // Didn't find a group, so create instead.
 
 		if affinityType == infrav1.ProAffinity {
 			ag.Spec.Type = "host affinity"
-		} else {
+		} else if affinityType == infrav1.AntiAffinity {
 			ag.Spec.Type = "host anti-affinity"
+		} else {
+			return ctrl.Result{}, errors.Errorf("unrecognized affinity type %s", affinityType)
 		}
 		ag.Spec.Name = name
 
@@ -54,7 +56,6 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 			}
 		}
 
-		// Create if fetch didn't work.
 		ag.Name = name
 		ag.Spec.Name = name
 		ag.ObjectMeta = r.NewChildObjectMeta(lowerName)
@@ -66,7 +67,7 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 }
 
 // The computed affinity group name relevant to this machine.
-func AffinityGroupName(csm infrav1.CloudStackMachine, capiMachine *capiv1.Machine) (string, error) {
+func GenerateAffinityGroupName(csm infrav1.CloudStackMachine, capiMachine *capiv1.Machine) (string, error) {
 	managerOwnerRef := GetManagementOwnerRef(capiMachine)
 	if managerOwnerRef == nil {
 		return "", errors.Errorf("could not find owner UID for %s/%s", csm.Namespace, csm.Name)

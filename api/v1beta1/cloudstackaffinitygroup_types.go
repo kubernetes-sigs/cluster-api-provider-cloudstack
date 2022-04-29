@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	AffinityGroupFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
+	AffinityGroupFinalizer = "affinitygroup.infrastructure.cluster.x-k8s.io"
 )
 
 // CloudStackAffinityGroupSpec defines the desired state of CloudStackAffinityGroup
@@ -40,7 +40,7 @@ type CloudStackAffinityGroupSpec struct {
 
 // CloudStackAffinityGroupStatus defines the observed state of CloudStackAffinityGroup
 type CloudStackAffinityGroupStatus struct {
-	// Reflects the readiness of the CS cluster.
+	// Reflects the readiness of the CS Affinity Group.
 	Ready bool `json:"ready"`
 }
 

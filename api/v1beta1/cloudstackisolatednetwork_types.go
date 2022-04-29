@@ -28,25 +28,10 @@ const (
 
 // CloudStackIsolatedNetworkSpec defines the desired state of CloudStackIsolatedNetwork
 type CloudStackIsolatedNetworkSpec struct {
-	// Cloudstack Network ID the cluster is built in.
-	// +optional
-	ID string `json:"id,omitempty"`
-
-	// Cloudstack Network Type the cluster is built in.
-	// + optional
-	Type string `json:"type,omitempty"`
-
-	// Cloudstack Network Name the cluster is built in.
-	// +optional
-	Name string `json:"name"`
+	CloudStackResourceIdentifier
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
-
-	// IdentityRef is a reference to a identity to be used when reconciling this cluster
-	// +optional
-	// +k8s:conversion-gen=false
-	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
 // CloudStackIsolatedNetworkStatus defines the observed state of CloudStackIsolatedNetwork
@@ -64,7 +49,7 @@ type CloudStackIsolatedNetworkStatus struct {
 func (n *CloudStackIsolatedNetwork) Network() *Network {
 	return &Network{
 		Name: n.Spec.Name,
-		Type: n.Spec.Type,
+		Type: "IsolatedNetwork",
 		ID:   n.Spec.ID}
 }
 

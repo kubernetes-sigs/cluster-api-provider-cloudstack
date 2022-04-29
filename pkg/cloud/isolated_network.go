@@ -105,7 +105,6 @@ func (c *client) CreateIsolatedNetwork(zone *capcv1.CloudStackZone, isoNet *capc
 		return errors.Wrapf(err, "error encountered when creating network with name: %s", isoNet.Spec.Name)
 	}
 	isoNet.Spec.ID = resp.Id
-	isoNet.Spec.Type = resp.Type
 	return c.AddCreatedByCAPCTag(ResourceTypeNetwork, isoNet.Spec.ID)
 }
 
@@ -164,7 +163,6 @@ func (c *client) GetIsolatedNetwork(isoNet *capcv1.CloudStackIsolatedNetwork) (r
 			"expected 1 Network with name %s, but got %d", isoNet.Name, count))
 	} else { // Got netID from the network's name.
 		isoNet.Spec.ID = netDetails.Id
-		isoNet.Spec.Type = netDetails.Type
 		return nil
 	}
 
@@ -175,7 +173,6 @@ func (c *client) GetIsolatedNetwork(isoNet *capcv1.CloudStackIsolatedNetwork) (r
 		return multierror.Append(retErr, errors.Errorf("expected 1 Network with UUID %s, but got %d", isoNet.Spec.ID, count))
 	}
 	isoNet.Name = netDetails.Name
-	isoNet.Spec.Type = netDetails.Type
 	return nil
 }
 
@@ -253,7 +250,6 @@ func (c *client) GetOrCreateIsolatedNetwork(
 		}
 	}
 	isoNet.Spec.ID = net.ID
-	isoNet.Spec.Type = net.Type
 
 	// Tag the created network.
 	networkID := isoNet.Spec.ID

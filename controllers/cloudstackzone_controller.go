@@ -81,14 +81,12 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 	// Prevent premature deletion.
 	controllerutil.AddFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
 
-	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.ReconciliationSubject.Spec)
+	r.Log.V(1).Info("Reconciling CloudStackZone.", "zoneSpec", r.ReconciliationSubject.Spec)
 	// Start by purely data fetching information about the zone and specified network.
-	var res ctrl.Result
 	if err := r.CS.ResolveZone(r.ReconciliationSubject); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error encountered when resolving CloudStack zone information")
-	} else if res, err = r.PatchChangesBackToAPI(); r.ShouldReturn(res, err) { // Persist found zone ID.
-		return res, err
-	} else if err = r.CS.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
+	}
+	if err := r.CS.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
 		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
 		return ctrl.Result{}, errors.Wrap(err, "error encountered when resolving Cloudstack network information")
 	}
@@ -102,7 +100,8 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 			return res, err
 		} else if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
 			return res, err
-		} else if r.IsoNet.Name == "" {
+		}
+		if r.IsoNet.Name == "" {
 			return r.RequeueWithMessage("Couldn't find isolated network.")
 		}
 		if !r.IsoNet.Status.Ready {

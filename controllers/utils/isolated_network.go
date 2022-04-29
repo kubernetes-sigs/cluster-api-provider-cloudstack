@@ -29,7 +29,7 @@ func (r *ReconciliationRunner) GenerateIsolatedNetwork(name string) CloudStackRe
 		lowerName := strings.ToLower(name)
 		csIsoNet := &infrav1.CloudStackIsolatedNetwork{}
 		csIsoNet.ObjectMeta = r.NewChildObjectMeta(lowerName)
-		csIsoNet.Spec.Name = strings.ToLower(lowerName)
+		csIsoNet.Spec.Name = lowerName
 		csIsoNet.Spec.ControlPlaneEndpoint.Host = r.CSCluster.Spec.ControlPlaneEndpoint.Host
 		csIsoNet.Spec.ControlPlaneEndpoint.Port = r.CSCluster.Spec.ControlPlaneEndpoint.Port
 
