@@ -57,6 +57,7 @@ func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
 	return r
 }
 
+// Reconciler Reconcile adapts the runner to the runner to what k8s expects.
 func (reconciler *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
 	return NewCSZoneReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
@@ -72,6 +73,7 @@ func (reconciler *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) e
 		Complete(reconciler)
 }
 
+// Reconcile attempts to move the state of CRs to the requested state.
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
 	if res, err := r.RequeueIfMissingBaseCRDs(); r.ShouldReturn(res, err) {
 		return res, err

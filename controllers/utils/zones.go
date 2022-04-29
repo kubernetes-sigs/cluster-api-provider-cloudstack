@@ -59,7 +59,6 @@ func (r *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudStackR
 // GetZones gets CloudStackZones owned by a CloudStackCluster via an ownership label.
 func (r *ReconciliationRunner) GetZones(zones *infrav1.CloudStackZoneList) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		// labels := map[string]string{"OwnedBy": r.Request.Name}
 		capiClusterLabel := map[string]string{
 			capiv1.ClusterLabelName: r.CSCluster.GetLabels()[capiv1.ClusterLabelName]}
 		if err := r.Client.List(

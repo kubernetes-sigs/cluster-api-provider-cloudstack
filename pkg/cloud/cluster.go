@@ -50,8 +50,10 @@ func (c *client) ResolveZones(csCluster *infrav1.CloudStackCluster) (retErr erro
 			return multierror.Append(retErr, errors.Errorf(
 				"expected 1 Zone with UUID %s, but got %d", specZone.ID, count))
 		} else {
-			csCluster.Status.Zones[resp.Id] = infrav1.Zone{
-				Name: resp.Name, ID: resp.Id, Network: specZone.Network}
+			zone := infrav1.Zone{Network: specZone.Network}
+			zone.Name = resp.Name
+			zone.ID = resp.Id
+			csCluster.Status.Zones[resp.Id] = zone
 		}
 	}
 

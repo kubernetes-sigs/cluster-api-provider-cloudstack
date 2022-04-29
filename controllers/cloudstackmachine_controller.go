@@ -136,9 +136,13 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 				return ctrl.Result{}, errors.Errorf("could not find zone by zoneID: %s", r.ReconciliationSubject.Spec.ZoneID)
 			}
 		} else if r.ReconciliationSubject.Spec.ZoneName != "" {
-			if zone := r.CSCluster.Status.Zones.GetByName(r.ReconciliationSubject.Spec.ZoneName); zone != nil { // ZoneName Specified.
-				r.ReconciliationSubject.Status.ZoneID = zone.ID
-			} else {
+			for _, zone := range r.Zones.Items {
+				if zone.Spec.Name == r.ReconciliationSubject.Spec.ZoneName {
+					r.ReconciliationSubject.Status.ZoneID = zone.Spec.ID
+					break
+				}
+			}
+			if r.ReconciliationSubject.Status.ZoneID == "" {
 				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", r.ReconciliationSubject.Spec.ZoneName)
 			}
 		} else { // No Zone Specified, pick a Random Zone.
