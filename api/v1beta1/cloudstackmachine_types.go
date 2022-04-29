@@ -79,6 +79,8 @@ type CloudStackMachineSpec struct {
 	// Optionally settable Zone Name to land the machine in.
 	ZoneName string `json:"zoneName,omitempty"`
 
+	CloudStackResourceIdentifier
+
 	// IdentityRef is a reference to a identity to be used when reconciling this cluster
 	// +optional
 	// +k8s:conversion-gen=false
