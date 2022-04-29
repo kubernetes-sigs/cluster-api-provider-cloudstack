@@ -18,9 +18,8 @@ package cloud_test
 
 import (
 	"fmt"
-	"github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
@@ -47,6 +46,7 @@ var _ = Describe("Instance", func() {
 		sos        *cloudstack.MockServiceOfferingServiceIface
 		dos        *cloudstack.MockDiskOfferingServiceIface
 		ts         *cloudstack.MockTemplateServiceIface
+		vs         *cloudstack.MockVolumeServiceIface
 		client     cloud.Client
 	)
 
@@ -57,6 +57,7 @@ var _ = Describe("Instance", func() {
 		sos = mockClient.ServiceOffering.(*cloudstack.MockServiceOfferingServiceIface)
 		dos = mockClient.DiskOffering.(*cloudstack.MockDiskOfferingServiceIface)
 		ts = mockClient.Template.(*cloudstack.MockTemplateServiceIface)
+		vs = mockClient.Volume.(*cloudstack.MockVolumeServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 
 		dummies.SetDummyVars()
@@ -355,26 +356,46 @@ var _ = Describe("Instance", func() {
 	Context("when destroying a VM instance", func() {
 		expungeDestroyParams := &cloudstack.DestroyVirtualMachineParams{}
 		expungeDestroyParams.SetExpunge(true)
+		listVolumesParams := &cloudstack.ListVolumesParams{}
+		listVolumesResponse := &cloudstack.ListVolumesResponse{
+			Volumes: []*cloudstack.Volume{
+				{
+					Id: "123",
+				},
+				{
+					Id: "456",
+				},
+			},
+		}
 
 		It("calls destroy and finds VM doesn't exist, then returns nil", func() {
+			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, fmt.Errorf("unable to find uuid for id"))
+			vs.EXPECT().NewListVolumesParams().Return(listVolumesParams)
+			vs.EXPECT().ListVolumes(listVolumesParams).Return(listVolumesResponse, nil)
 			Ω(client.DestroyVMInstance(dummies.CSMachine1)).
 				Should(Succeed())
 		})
 
 		It("calls destroy and returns unexpected error", func() {
+			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, fmt.Errorf("new error"))
+			vs.EXPECT().NewListVolumesParams().Return(listVolumesParams)
+			vs.EXPECT().ListVolumes(listVolumesParams).Return(listVolumesResponse, nil)
 			Ω(client.DestroyVMInstance(dummies.CSMachine1)).Should(MatchError("new error"))
 		})
 
 		It("calls destroy without error but cannot resolve VM after", func() {
+			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
+			vs.EXPECT().NewListVolumesParams().Return(listVolumesParams)
+			vs.EXPECT().ListVolumes(listVolumesParams).Return(listVolumesResponse, nil)
 			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(nil, -1, notFoundError)
 			Ω(client.DestroyVMInstance(dummies.CSMachine1)).
@@ -382,9 +403,12 @@ var _ = Describe("Instance", func() {
 		})
 
 		It("calls destroy without error and identifies it as expunging", func() {
+			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
+			vs.EXPECT().NewListVolumesParams().Return(listVolumesParams)
+			vs.EXPECT().ListVolumes(listVolumesParams).Return(listVolumesResponse, nil)
 			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
 				Return(&cloudstack.VirtualMachinesMetric{
 					State: "Expunging",
@@ -394,9 +418,12 @@ var _ = Describe("Instance", func() {
 		})
 
 		It("calls destroy without error and identifies it as expunged", func() {
+			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
+			vs.EXPECT().NewListVolumesParams().Return(listVolumesParams)
+			vs.EXPECT().ListVolumes(listVolumesParams).Return(listVolumesResponse, nil)
 			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
 				Return(&cloudstack.VirtualMachinesMetric{
 					State: "Expunged",
@@ -406,9 +433,12 @@ var _ = Describe("Instance", func() {
 		})
 
 		It("calls destroy without error and identifies it as stopping", func() {
+			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
+			vs.EXPECT().NewListVolumesParams().Return(listVolumesParams)
+			vs.EXPECT().ListVolumes(listVolumesParams).Return(listVolumesResponse, nil)
 			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
 				Return(&cloudstack.VirtualMachinesMetric{
 					State: "Stopping",
