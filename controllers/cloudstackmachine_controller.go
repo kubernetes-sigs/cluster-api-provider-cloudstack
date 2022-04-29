@@ -130,7 +130,7 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 		return ctrl.Result{}, nil
 	}
 
-	agName, err := csCtrlrUtils.AffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
+	agName, err := csCtrlrUtils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
 	if err != nil {
 		r.Log.Info("encountered error getting affinity group name", err)
 	}
@@ -210,7 +210,14 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	if !present {
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
-	return ctrl.Result{}, nil
+
+	err := r.CS.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data))
+
+	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
+		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
+		controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
+	}
+	return ctrl.Result{}, err
 }
 
 	err := r.CSClient.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data))
