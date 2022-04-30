@@ -175,10 +175,14 @@ func SetDummyCSMachineVars() {
 }
 
 func SetDummyZoneVars() {
-	Zone1 = capcv1.Zone{Name: "Zone1", ID: "FakeZone1ID", Network: Net1}
-	Zone2 = capcv1.Zone{Name: "Zone2", ID: "FakeZone2ID", Network: Net2}
-	CSZone1 = &capcv1.CloudStackZone{Spec: capcv1.CloudStackZoneSpec{Name: Zone1.Name, ID: Zone1.ID, Network: Zone1.Network}}
-	CSZone1 = &capcv1.CloudStackZone{Spec: capcv1.CloudStackZoneSpec{Name: Zone1.Name, ID: Zone1.ID, Network: Zone1.Network}}
+	Zone1 = capcv1.Zone{Network: Net1}
+	Zone1.Name = "Zone1"
+	Zone1.ID = "FakeZone1ID"
+	Zone2 = capcv1.Zone{Network: Net2}
+	Zone2.Name = "Zone2"
+	Zone2.ID = "FakeZone2ID"
+	CSZone1 = &capcv1.CloudStackZone{Spec: capcv1.CloudStackZoneSpec(Zone1)}
+	CSZone2 = &capcv1.CloudStackZone{Spec: capcv1.CloudStackZoneSpec(Zone2)}
 }
 
 // SetDummyCAPCClusterVars resets the values in each of the exported CloudStackCluster related dummy variables.
@@ -230,8 +234,9 @@ func SetDummyCAPCClusterVars() {
 	}
 	CSISONet1 = &capcv1.CloudStackIsolatedNetwork{
 		Spec: capcv1.CloudStackIsolatedNetworkSpec{
-			ControlPlaneEndpoint: CSCluster.Spec.ControlPlaneEndpoint,
-			Name:                 ISONet1.Name, Type: ISONet1.Type, ID: ISONet1.ID}}
+			ControlPlaneEndpoint: CSCluster.Spec.ControlPlaneEndpoint}}
+	CSISONet1.Spec.Name = ISONet1.Name
+	CSISONet1.Spec.ID = ISONet1.ID
 }
 
 // SetDummyDomainAndAccount sets domain and account in the CSCluster Spec. This is not the default.

@@ -60,9 +60,5 @@ var _ = Describe("Network", func() {
 
 			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 		})
-
-		It("correctly identifies an existing network from a network status", func() {
-			Ω(cloud.NetworkExists(dummies.CSCluster.Status.Zones.GetOne().Network)).Should(BeTrue())
-		})
 	})
 })
