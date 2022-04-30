@@ -55,7 +55,7 @@ spec:
               of CloudStackAffinityGroup
             properties:
               ready:
-                description: Reflects the readiness of the CS cluster.
+                description: Reflects the readiness of the CS Affinity Group.
                 type: boolean
             required:
             - ready

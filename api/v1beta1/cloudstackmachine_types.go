@@ -31,6 +31,14 @@ const (
 
 // CloudStackMachineSpec defines the desired state of CloudStackMachine
 type CloudStackMachineSpec struct {
+	// Name.
+	//+optional
+	Name string `json:"name,omitempty"`
+
+	// ID.
+	//+optional
+	ID string `json:"id,omitempty"`
+
 	// Instance ID. Should only be useful to modify an existing instance.
 	InstanceID *string `json:"instanceID,omitempty"`
 
@@ -70,8 +78,6 @@ type CloudStackMachineSpec struct {
 
 	// Optionally settable Zone Name to land the machine in.
 	ZoneName string `json:"zoneName,omitempty"`
-
-	CloudStackResourceIdentifier
 
 	// IdentityRef is a reference to a identity to be used when reconciling this cluster
 	// +optional

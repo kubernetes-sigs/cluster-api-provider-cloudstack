@@ -104,7 +104,8 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 // ConsiderAffinity sets machine affinity if needed. It also creates or gets an affinity group CRD if required and
 // checks it for readiness.
 func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result, error) {
-	if r.ReconciliationSubject.Spec.Affinity == infrav1.NoAffinity { // No managed affinity.
+	if r.ReconciliationSubject.Spec.Affinity == infrav1.NoAffinity ||
+		r.ReconciliationSubject.Spec.Affinity == "" { // No managed affinity.
 		return ctrl.Result{}, nil
 	}
 

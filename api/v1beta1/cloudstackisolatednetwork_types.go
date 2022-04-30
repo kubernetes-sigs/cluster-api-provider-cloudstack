@@ -28,7 +28,13 @@ const (
 
 // CloudStackIsolatedNetworkSpec defines the desired state of CloudStackIsolatedNetwork
 type CloudStackIsolatedNetworkSpec struct {
-	CloudStackResourceIdentifier
+	// Name.
+	//+optional
+	Name string `json:"name,omitempty"`
+
+	// ID.
+	//+optional
+	ID string `json:"id,omitempty"`
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`

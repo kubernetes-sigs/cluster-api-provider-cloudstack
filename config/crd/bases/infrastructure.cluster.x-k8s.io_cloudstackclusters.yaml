@@ -76,10 +76,10 @@ spec:
                 items:
                   properties:
                     id:
-                      description: The CS zone ID the cluster is built in.
+                      description: ID.
                       type: string
                     name:
-                      description: The Zone name.
+                      description: Name.
                       type: string
                     network:
                       description: The network within the Zone to use.
@@ -147,10 +147,10 @@ spec:
                 additionalProperties:
                   properties:
                     id:
-                      description: The CS zone ID the cluster is built in.
+                      description: ID.
                       type: string
                     name:
-                      description: The Zone name.
+                      description: Name.
                       type: string
                     network:
                       description: The network within the Zone to use.

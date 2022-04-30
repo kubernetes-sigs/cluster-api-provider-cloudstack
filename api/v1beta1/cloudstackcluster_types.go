@@ -60,7 +60,13 @@ type Network struct {
 type ZoneStatusMap map[string]Zone
 
 type Zone struct {
-	CloudStackResourceIdentifier
+	// Name.
+	//+optional
+	Name string `json:"name,omitempty"`
+
+	// ID.
+	//+optional
+	ID string `json:"id,omitempty"`
 
 	// The network within the Zone to use.
 	Network Network `json:"network"`

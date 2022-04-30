@@ -26,7 +26,13 @@ const (
 
 // CloudStackZoneSpec defines the desired state of CloudStackZone
 type CloudStackZoneSpec struct {
-	CloudStackResourceIdentifier
+	// Name.
+	//+optional
+	Name string `json:"name,omitempty"`
+
+	// ID.
+	//+optional
+	ID string `json:"id,omitempty"`
 
 	// The network within the Zone to use.
 	Network Network `json:"network"`
