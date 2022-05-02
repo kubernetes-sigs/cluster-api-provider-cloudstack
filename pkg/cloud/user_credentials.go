@@ -19,205 +19,165 @@ package cloud
 import (
 	"strings"
 
-	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"
 )
 
 type UserCredIFace interface {
-	FindDomain(string) (*string, error)
-	GetOrCreateDomain(*Domain) error
-	GetOrCreateAccount(*Account) error
-	DeleteDomain(*Domain) error
-	DeleteAccount(*Account) error
-	GetOrCreateUser(*User) (*cloudstack.GetUserResponse, error)
-	// GetUser(string, string) (*cloudstack.GetUserResponse, error)
-	GetUserKeys(*User) error
-	GetOrCreateUserKeys(*User) error
+	ResolveDomain(*Domain) error
+	ResolveAccount(*Account) error
+	ResolveUser(*User) error
+	ResolveUserKeys(*User) error
 }
 
 // Domain contains specifications that identify a domain.
 type Domain struct {
 	Name string
 	Path string
-	Id   string
+	ID   string
 }
 
 // Account contains specifications that identify an account.
 type Account struct {
 	Name   string
 	Domain Domain
-	Id     string
+	ID     string
 }
 
-// Scope details the scope a user is limited to. (Account and Domain)
-type Scope struct {
-	Account Account
-	Domain  Domain
+// User contains information uniquely identifying and scoping a user.
+type User struct {
+	ID        string
+	Name      string
+	APIKey    string
+	SecretKey string
+	Account
 }
 
-// ResolveScope queries CloudStack to fill in scope fields.
-func (c *client) ResolveScope() error {
-	return nil
-}
-
-func (c *client) GetDomain(domain *Domain) error {
-	// Parse name from path if name is missing.
-	tokens := strings.Split(domain.Path, "/")
-	if domain.Name == "" {
-		domain.Name = tokens[len(tokens)-1]
+// ResolveDomain resolves a domain's information.
+func (c *client) ResolveDomain(domain *Domain) error {
+	// A domain can be specified by Id, Name, and or Path.
+	// Parse path and use it to set name if not present.
+	tokens := []string{}
+	if domain.Path != "" {
+		// Split path and get name.
+		tokens = strings.Split(domain.Path, domainDelimiter)
+		if domain.Name == "" {
+			domain.Name = tokens[len(tokens)-1]
+		}
+		// Ensure the path begins with ROOT.
+		if !strings.EqualFold(tokens[0], "root") {
+			tokens = append([]string{"ROOT"}, tokens...)
+		} else {
+			tokens[0] = "ROOT"
+			domain.Path = strings.Join(tokens, domainDelimiter)
+		}
 	}
 
-	// List Domains.
+	// Set present search/list parameters.
 	p := c.cs.Domain.NewListDomainsParams()
 	p.SetListall(true)
-	p.SetName(domain.Name)
+	setIfNotEmpty(domain.Name, p.SetName)
+	setIfNotEmpty(domain.ID, p.SetId)
+
+	// If path was provided also use level to search for domain.
+	if level := len(tokens) - 1; level >= 0 {
+		p.SetLevel(level)
+	}
+
 	resp, retErr := c.cs.Domain.ListDomains(p)
 	if retErr != nil {
-		return errors.Wrapf(retErr, "error encountered while listing domains in attempt to find domain %s", domain.Name)
+		return retErr
 	}
 
-	// Prepend ROOT if missing from path.
-	if strings.ToUpper(tokens[0]) != rootDomain {
-		tokens = append([]string{rootDomain}, tokens...)
+	// If the Id was provided.
+	if domain.ID != "" {
+		if resp.Count != 1 {
+			return errors.Errorf("domain ID %s provided, expected exactly one domain, got %d", domain.ID, resp.Count)
+		}
+		if domain.Path != "" && !strings.EqualFold(resp.Domains[0].Path, domain.Path) {
+			return errors.Errorf("domain Path %s did not match domain ID %s", domain.Path, domain.ID)
+		}
+		domain.Path = resp.Domains[0].Path
+		domain.Name = resp.Domains[0].Name
+		return nil
 	}
 
-	// Search list for desired domain.
-	domain.Path = strings.Join([]string{rootDomain, domain.Path}, domainDelimiter)
-	for _, foundDomain := range resp.Domains {
-		if domain.Path == foundDomain.Path {
-			domain.Id = foundDomain.Id
-			domain.Name = foundDomain.Name
+	// Consider the case where only the domain name is provided.
+	if domain.Path == "" && domain.Name != "" {
+		if resp.Count != 1 {
+			return errors.Errorf(
+				"only domain name: %s provided, expected exactly one domain, got %d", domain.Name, resp.Count)
+		}
+	}
+
+	// Finally, search for the domain by Path.
+	for _, possibleDomain := range resp.Domains {
+		if possibleDomain.Path == domain.Path {
+			domain.ID = possibleDomain.Id
 			return nil
 		}
 	}
-	return errors.Errorf("domain not found for domain path %s", domain)
+
+	return errors.Errorf("domain not found for domain path %s", domain.Path)
 }
 
-func (c *client) GetOrCreateDomain(domain *Domain) error {
-	// Attempt get.
-	if err := c.GetDomain(domain); err != nil {
-		if !strings.Contains(err.Error(), "not found") {
-			return err
-		}
+// ResolveAccount resolves an account's information.
+func (c *client) ResolveAccount(account *Account) error {
+	// Resolve domain prior to any account resolution activity.
+	if err := c.ResolveDomain(&account.Domain); err != nil {
+		return errors.Wrap(err, "error encountered when resolving domain details")
 	}
-	// Not found, attempt create.
-	p := c.cs.Domain.NewCreateDomainParams(domain.Name)
-	p.SetParentdomainid()
-	//c.cs.Domain.
 
-	return nil
-}
-
-func (c *client) GetOrCreateAccount(domain *Domain) error {
-	return nil
-}
-func (c *client) GetAccount(domain *Domain) error {
-	return nil
-}
-func (c *client) GetOrCreateUser(domain *Domain) error {
-	return nil
-}
-func (c *client) GetUser(domain *Domain) error {
-	return nil
-}
-func (c *client) GetAnyDomainUser(domain *Domain) error {
-	return nil
-}
-func (c *client) GetDomainUsers(domain *Domain) error {
-	return nil
-}
-func (c *client) CreateDomainCAPCUser(domain *Domain) error {
-	return nil
-}
-func (c *client) GetDomainCAPCUser(domain *Domain) error {
-	return nil
-}
-
-type User struct {
-	Id        string
-	ApiKey    string
-	ApiSecret string
-	Scope
-}
-
-// func (c *client) GetUser(account string, domainID string, user *User) (*cloudstack.GetUserResponse, error) {
-// 	// p := c.cs.User.NewListUsersParams()
-// 	// p.SetAccount(account)
-// 	// p.SetDomainid(domainID)
-// 	// p.SetListall(true)
-// 	// resp, err := c.cs.User.ListUsers(p)
-// 	// if err != nil {
-// 	// 	return nil, err
-// 	// } else if resp.Count != 1 {
-// 	// 	return nil, errors.Errorf("expected 1 Account with account name %s in domain ID %s, but got %d",
-// 	// 		account, domainID, resp.Count)
-// 	// }
-
-// 	// p2 := c.cs.User.NewGetUserParams(resp.Users[0].Apikey)
-// 	// user.Id, err := c.cs.User.GetUser(p2)
-// 	// if err != nil {
-// 	// 	return nil, err
-// 	// }
-
-// 	return nil, nil
-// }
-
-// func (c *client) GetDomainAndAccount(scope *Scope) {
-// 	c.CS
-// }
-
-// // GetOrCreateUserKeys gets user's keys from CloudStack or creates them and fills the relevant fields.
-// func (c *client) GetOrCreateUserKeys(user *User) error {
-
-// 	// Return if User key found on first try.
-// 	if err := c.GetUserKeys(user); err == nil && user.apiKey != "" {
-// 		return nil
-// 	}
-
-// 	// Create keys instead.
-// 	p := c.cs.User.NewRegisterUserKeysParams(user.id)
-// 	resp, err := c.cs.User.RegisterUserKeys(p)
-// 	if err != nil {
-// 		return errors.Wrap(err, "error encountered while registering user keys")
-// 	}
-// 	user.apiKey = resp.Apikey
-// 	user.apiSecret = resp.Secretkey
-// 	return nil
-// }
-
-// // GetOrCreateUserKeys gets user's keys from CloudStack and fills the relevant fields.
-// func (c *client) GetUserKeys(user *User) error {
-// 	p := c.cs.User.NewGetUserKeysParams(user.id)
-// 	resp, err := c.cs.User.GetUserKeys(p)
-// 	if err == nil && resp != nil {
-// 		user.apiKey = resp.Apikey
-// 		user.apiSecret = resp.Secretkey
-// 	}
-// 	return err
-// }
-
-func (c *client) FindDomain(domain string) (*string, error) {
-	p := c.cs.Domain.NewListDomainsParams()
-	tokens := strings.Split(domain, "/")
-	domainName := tokens[len(tokens)-1]
-	p.SetListall(true)
-	p.SetName(domainName)
-
-	resp, retErr := c.cs.Domain.ListDomains(p)
+	p := c.cs.Account.NewListAccountsParams()
+	p.SetDomainid(account.Domain.ID)
+	setIfNotEmpty(account.ID, p.SetId)
+	setIfNotEmpty(account.Name, p.SetName)
+	resp, retErr := c.cs.Account.ListAccounts(p)
 	if retErr != nil {
-		return nil, retErr
+		return retErr
+	} else if resp.Count != 1 {
+		return errors.Errorf("expected 1 Account with account name %s in domain ID %s, but got %d",
+			account.Name, account.Domain.ID, resp.Count)
+	}
+	return nil
+}
+
+// ResolveUser resolves a user's information.
+func (c *client) ResolveUser(user *User) error {
+	// Resolve account prior to any user resolution activity.
+	if err := c.ResolveAccount(&user.Account); err != nil {
+		return errors.Wrap(err, "error encountered when resolving account details")
 	}
 
-	var domainPath string
-	if domain == rootDomain {
-		domainPath = rootDomain
-	} else {
-		domainPath = strings.Join([]string{rootDomain, domain}, "/")
+	p := c.cs.User.NewListUsersParams()
+	p.SetAccount(user.Account.Name)
+	p.SetDomainid(user.Domain.ID)
+	p.SetListall(true)
+	resp, err := c.cs.User.ListUsers(p)
+	if err != nil {
+		return err
+	} else if resp.Count != 1 {
+		return errors.Errorf("expected 1 User with username %s but got %d", user.Name, resp.Count)
 	}
-	for _, domain := range resp.Domains {
-		if domain.Path == domainPath {
-			return &domain.Id, nil
-		}
+
+	user.ID = resp.Users[0].Id
+	user.Name = resp.Users[0].Username
+
+	return nil
+}
+
+// ResolveUserKeys resolves a user's api keys.
+func (c *client) ResolveUserKeys(user *User) error {
+	// Resolve user prior to any api key resolution activity.
+	if err := c.ResolveUser(user); err != nil {
+		return errors.Wrap(err, "error encountered when resolving user details")
 	}
-	return nil, errors.Errorf("domain not found for domain path %s", domain)
+
+	p := c.cs.User.NewGetUserKeysParams(user.ID)
+	resp, err := c.cs.User.GetUserKeys(p)
+	if err != nil {
+		return errors.Errorf("error encountered when resolving user api keys for user %s", user.Name)
+	}
+	user.APIKey = resp.Apikey
+	user.SecretKey = resp.Secretkey
+	return nil
 }

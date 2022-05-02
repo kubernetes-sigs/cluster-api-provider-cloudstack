@@ -17,8 +17,6 @@ limitations under the License.
 package cloud_test
 
 import (
-	"fmt"
-
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo"
@@ -48,22 +46,16 @@ var _ = Describe("User Credentials", func() {
 		})
 
 		It("can get sub-domain user's credentials", func() {
-			client.GetOrCreateDomain()
-			//id, err := client.FindDomain("blah/blah/subsub")
-			//Ω(err).ShouldNot(HaveOccurred())
-			////user, err := client.GetUser("SuperNested", *id)
-			//Ω(err).ShouldNot(HaveOccurred())
+			domain := cloud.Domain{Path: "ROOT/blah/blah/subsub"}
+			account := cloud.Account{Name: "SuperNested", Domain: domain}
+			user := cloud.User{Name: "SubSub", Account: account}
+			// Ω(client.ResolveDomain(&domain)).Should(Succeed())
+			// Ω(client.ResolveAccount(&account)).Should(Succeed())
+			// Ω(client.ResolveUser(&user)).Should(Succeed())
+			Ω(client.ResolveUserKeys(&user)).Should(Succeed())
 
-			fmt.Println(user)
-			fmt.Println(user.Apikey)
-			fmt.Println(user.Apikey)
-			fmt.Println(user.Apikey)
-			fmt.Println(user.Secretkey)
-			fmt.Println(user.Secretkey)
-			fmt.Println(user.Secretkey)
-
-			//Ω(client.ChangeUser(user.Apikey, user.Secretkey)).Should(Succeed())
-			//Ω(client.SetUserToOriginal()).Should(Succeed())
+			Ω(user.APIKey).ShouldNot(BeEmpty())
+			Ω(user.SecretKey).ShouldNot(BeEmpty())
 		})
 	})
 })
