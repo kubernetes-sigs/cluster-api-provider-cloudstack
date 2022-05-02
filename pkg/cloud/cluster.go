@@ -129,9 +129,12 @@ func (c *client) ResolveDomainAndAccount(csCluster *infrav1.CloudStackCluster) e
 		listAccountResp, retErr := c.cs.Account.ListAccounts(listAccountParams)
 		if retErr != nil {
 			return retErr
-		} else if listAccountResp.Count != 1 {
+		} else if listAccountResp.Count == 0 {
+			return errors.Errorf("could not find account %s in domain ID %s",
+				csCluster.Spec.Account, csCluster.Status.DomainID)
+		} else if listAccountResp.Count > 1 {
 			return errors.Errorf("expected 1 Account with account name %s in domain ID %s, but got %d",
-				csCluster.Spec.Account, csCluster.Status.DomainID, resp.Count)
+				csCluster.Spec.Account, csCluster.Status.DomainID, listAccountResp.Count)
 		}
 	}
 	return nil
