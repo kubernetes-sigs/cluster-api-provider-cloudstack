@@ -138,6 +138,8 @@ func (c *client) ResolveAccount(account *Account) error {
 		return errors.Errorf("expected 1 Account with account name %s in domain ID %s, but got %d",
 			account.Name, account.Domain.ID, resp.Count)
 	}
+	account.ID = resp.Accounts[0].Id
+	account.Name = resp.Accounts[0].Name
 	return nil
 }
 
@@ -180,4 +182,33 @@ func (c *client) ResolveUserKeys(user *User) error {
 	user.APIKey = resp.Apikey
 	user.SecretKey = resp.Secretkey
 	return nil
+}
+
+// GetUserWithKeys will search a domain and account for the first user that has api keys.
+// Returns true if a user is found and false otherwise.
+func (c *client) GetUserWithKeys(user *User) (error, bool) {
+	// Resolve account prior to any user resolution activity.
+	if err := c.ResolveAccount(&user.Account); err != nil {
+		return errors.Wrap(err, "error encountered when resolving account details"), false
+	}
+
+	// List users and take first user that has already has api keys.
+	p := c.cs.User.NewListUsersParams()
+	p.SetAccount(user.Account.Name)
+	p.SetDomainid(user.Domain.ID)
+	p.SetListall(true)
+	resp, err := c.cs.User.ListUsers(p)
+	if err != nil {
+		return err, false
+	}
+
+	// Return first user with keys.
+	for _, possibleUser := range resp.Users {
+		user.ID = possibleUser.Id
+		if err := c.ResolveUserKeys(user); err == nil {
+			return nil, true
+		}
+	}
+	user.ID = ""
+	return nil, false
 }

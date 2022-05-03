@@ -38,24 +38,46 @@ var _ = Describe("User Credentials", func() {
 
 	Context("UserCred Semi-Integ Tests", func() {
 		client, connectionErr := cloud.NewClient("../../cloud-config")
+		var domain cloud.Domain
+		var account cloud.Account
+		var user cloud.User
 
 		BeforeEach(func() {
 			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
 				Skip(errors.Wrapf(connectionErr, "Could not connect to ACS instance.").Error())
 			}
+
+			// Settup dummies.
+			// TODO: move these to the test dummies package.
+			domain = cloud.Domain{Path: "ROOT/blah/blah/subsub"}
+			account = cloud.Account{Name: "SuperNested", Domain: domain}
+			user = cloud.User{Name: "SubSub", Account: account}
+		})
+
+		It("can resolve a domain from the path", func() {
+			Ω(client.ResolveDomain(&domain)).Should(Succeed())
+			Ω(domain.ID).ShouldNot(BeEmpty())
+		})
+
+		It("can resolve an account from the domain path and account name", func() {
+			Ω(client.ResolveAccount(&account)).Should(Succeed())
+			Ω(account.ID).ShouldNot(BeEmpty())
+		})
+
+		It("can resolve a user from the domain path, account name, and user name", func() {
+			Ω(client.ResolveUser(&user)).Should(Succeed())
+			Ω(user.ID).ShouldNot(BeEmpty())
 		})
 
 		It("can get sub-domain user's credentials", func() {
-			domain := cloud.Domain{Path: "ROOT/blah/blah/subsub"}
-			account := cloud.Account{Name: "SuperNested", Domain: domain}
-			user := cloud.User{Name: "SubSub", Account: account}
-			// Ω(client.ResolveDomain(&domain)).Should(Succeed())
-			// Ω(client.ResolveAccount(&account)).Should(Succeed())
-			// Ω(client.ResolveUser(&user)).Should(Succeed())
 			Ω(client.ResolveUserKeys(&user)).Should(Succeed())
 
 			Ω(user.APIKey).ShouldNot(BeEmpty())
 			Ω(user.SecretKey).ShouldNot(BeEmpty())
+		})
+
+		It("can get an arbitrary user with keys from domain and account specifications alone", func() {
+			Ω(client.ResolveUserKeys(&user)).Should(Succeed())
 		})
 	})
 })
