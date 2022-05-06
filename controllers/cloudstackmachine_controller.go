@@ -21,265 +21,229 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
-	"time"
 
-	"github.com/go-logr/logr"
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// CloudStackMachineReconciler reconciles a CloudStackMachine object
-type CloudStackMachineReconciler struct {
-	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
-	CS     cloud.Client
-}
-
-const requeueTimeout = 5 * time.Second
-const destoryVMRequeueInterval = 10 * time.Second
-
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/finalizers,verbs=update
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
-func (r *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	log := r.Log.WithValues("cloudstackmachine", req.Name, "namespace", req.Namespace)
-	log.V(1).Info("Reconcile CloudStackMachine")
-
-	// Fetch the CloudStackMachine.
-	csMachine := &infrav1.CloudStackMachine{}
-	if err := r.Client.Get(ctx, req.NamespacedName, csMachine); err != nil {
-		if client.IgnoreNotFound(err) == nil {
-			log.Info("CloudStackMachine not found.")
-		}
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	// Setup patcher. This ensures modifications to the csMachine copy fetched above are patched into the origin.
-	patchHelper, err := patch.NewHelper(csMachine, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	defer func() { // If there was no error on return, but the patch fails, set the error accordingly.
-		if err = patchHelper.Patch(ctx, csMachine); err != nil {
-			msg := "error patching CloudStackMachine %s/%s"
-			err = errors.Wrapf(err, msg, csMachine.Namespace, csMachine.Name)
-			retErr = multierror.Append(retErr, err)
-		}
-	}()
-
-	// Fetch the CAPI Machine.
-	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, csMachine.ObjectMeta)
-	if err != nil {
-		return ctrl.Result{}, err
-	} else if capiMachine == nil {
-		log.Info("Waiting for CAPI cluster controller to set owner reference on CloudStack machine.")
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
-	}
-
-	// Fetch the CAPI Cluster.
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
-	if err != nil {
-		log.Info("Machine is missing cluster label or cluster does not exist.")
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
-	}
-
-	// Check if the machine is paused.
-	if annotations.IsPaused(cluster, csMachine) {
-		log.Info("CloudStackMachine or linked Cluster is paused. Requeuing reconcile.")
-		return reconcile.Result{}, nil
-	}
-
-	// Delete VM instance if deletion timestamp present.
-	if !csMachine.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, log, csMachine, capiMachine)
-	}
-
-	// Fetch the CloudStack cluster associated with this machine.
-	csCluster := &infrav1.CloudStackCluster{}
-	if err := r.Client.Get(
-		ctx,
-		client.ObjectKey{
-			Namespace: csMachine.Namespace,
-			Name:      cluster.Spec.InfrastructureRef.Name},
-		csCluster); err != nil {
-		if client.IgnoreNotFound(err) == nil {
-			log.Info("CloudStackCluster not found.")
-			return ctrl.Result{RequeueAfter: requeueTimeout}, nil
-		}
-	}
-
-	if !csCluster.Status.Ready {
-		log.Info("CloudStackCluster not ready. Requeuing.")
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
-	}
-
-	if util.IsControlPlaneMachine(capiMachine) &&
-		(capiMachine.Spec.FailureDomain == nil || *capiMachine.Spec.FailureDomain == "") {
-		log.Info("CAPI zone placement specification not yet set. Requeuing.")
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
-	}
-
-	// Reconcile a VM instance for creates/updates
-	return r.reconcile(ctx, log, csMachine, capiMachine, csCluster)
+// CloudStackMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+type CloudStackMachineReconciliationRunner struct {
+	csCtrlrUtils.ReconciliationRunner
+	ReconciliationSubject *infrav1.CloudStackMachine
+	CAPIMachine           *capiv1.Machine
+	CSUser                cloud.Client
+	Zones                 *infrav1.CloudStackZoneList
+	FailureDomain         *infrav1.CloudStackZone
+	IsoNet                *infrav1.CloudStackIsolatedNetwork
+	AffinityGroup         *infrav1.CloudStackAffinityGroup
 }
 
-// Actually reconcile/Create a VM instance.
-func (r *CloudStackMachineReconciler) reconcile(
-	ctx context.Context,
-	log logr.Logger,
-	csMachine *infrav1.CloudStackMachine,
-	capiMachine *capiv1.Machine,
-	csCluster *infrav1.CloudStackCluster) (ctrl.Result, error) {
+// CloudStackMachineReconciler reconciles a CloudStackMachine object
+type CloudStackMachineReconciler struct {
+	csCtrlrUtils.ReconcilerBase
+}
 
-	log.V(1).Info("reconcile CloudStackMachine")
-	// Make sure bootstrap data is available in CAPI machine.
-	if capiMachine.Spec.Bootstrap.DataSecretName == nil {
-		log.Info("Bootstrap DataSecretName not yet available.")
+// Initialize a new CloudStackMachine reconciliation runner with concrete types and initialized member fields.
+func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
+	// Set concrete type and init pointers.
+	r := &CloudStackMachineReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachine{}}
+	r.CAPIMachine = &capiv1.Machine{}
+	r.Zones = &infrav1.CloudStackZoneList{}
+	r.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
+	r.AffinityGroup = &infrav1.CloudStackAffinityGroup{}
+	r.FailureDomain = &infrav1.CloudStackZone{}
+	// Setup the base runner. Initializes pointers and links reconciliation methods.
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	return r
+}
+
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+	return NewCSMachineReconciliationRunner().
+		UsingBaseReconciler(reconciler.ReconcilerBase).
+		ForRequest(req).
+		WithRequestCtx(ctx).
+		RunBaseReconciliationStages()
+}
+
+func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+	return r.RunReconciliationStages(
+		r.GetZones(r.Zones),
+		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
+		r.RequeueIfCloudStackClusterNotReady,
+		r.ConsiderAffinity,
+		r.SetFailureDomainOnCSMachine,
+		r.GetObjectByName("placeholder", r.IsoNet, func() string { return r.FailureDomain.Spec.Network.Name }),
+		r.GetOrCreateVMInstance,
+		r.RequeueIfInstanceNotRunning,
+		r.AddToLBIfNeeded) // AddToLBIfNeeded can move to IsoNet controller with a nice watch someday.
+}
+
+// ConsiderAffinity sets machine affinity if needed. It also creates or gets an affinity group CRD if required and
+// checks it for readiness.
+func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result, error) {
+	if r.ReconciliationSubject.Spec.Affinity == infrav1.NoAffinity ||
+		r.ReconciliationSubject.Spec.Affinity == "" { // No managed affinity.
 		return ctrl.Result{}, nil
 	}
-	log.Info("Got Bootstrap DataSecretName.")
 
+	agName, err := csCtrlrUtils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
+	if err != nil {
+		r.Log.Info("getting affinity group name:", err)
+	}
+
+	if res, err := r.GetOrCreateAffinityGroup(agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup)(); r.ShouldReturn(res, err) {
+		return res, err
+	}
+	if !r.AffinityGroup.Status.Ready {
+		return r.RequeueWithMessage("Required afinity group not ready.")
+	}
+	return ctrl.Result{}, nil
+}
+
+// SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
+func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
 	// Set ZoneID on csMachine.
-	if util.IsControlPlaneMachine(capiMachine) { // Use failure domain zone.
-		csMachine.Status.ZoneID = *capiMachine.Spec.FailureDomain
+	if util.IsControlPlaneMachine(r.CAPIMachine) { // Use failure domain zone.
+		r.ReconciliationSubject.Status.ZoneID = *r.CAPIMachine.Spec.FailureDomain
 	} else { // Specified by Machine Template or Random zone.
-		if csMachine.Spec.ZoneID != "" {
-			if zone, foundZone := csCluster.Status.Zones[csMachine.Spec.ZoneID]; foundZone { // ZoneID Specified.
-				csMachine.Status.ZoneID = zone.ID
+		if r.ReconciliationSubject.Spec.ZoneID != "" {
+			if zone, foundZone := r.CSCluster.Status.Zones[r.ReconciliationSubject.Spec.ZoneID]; foundZone { // ZoneID Specified.
+				r.ReconciliationSubject.Status.ZoneID = zone.ID
 			} else {
-				return ctrl.Result{}, errors.Errorf("could not find zone by zoneID: %s", csMachine.Spec.ZoneID)
+				return ctrl.Result{}, errors.Errorf("could not find zone by zoneID: %s", r.ReconciliationSubject.Spec.ZoneID)
 			}
-		} else if csMachine.Spec.ZoneName != "" {
-			if zone := csCluster.Status.Zones.GetByName(csMachine.Spec.ZoneName); zone != nil { // ZoneName Specified.
-				csMachine.Status.ZoneID = zone.ID
-			} else {
-				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", csMachine.Spec.ZoneName)
+		} else if r.ReconciliationSubject.Spec.ZoneName != "" {
+			for _, zone := range r.Zones.Items {
+				if zone.Spec.Name == r.ReconciliationSubject.Spec.ZoneName {
+					r.ReconciliationSubject.Status.ZoneID = zone.Spec.ID
+					break
+				}
+			}
+			if r.ReconciliationSubject.Status.ZoneID == "" {
+				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", r.ReconciliationSubject.Spec.ZoneName)
 			}
 		} else { // No Zone Specified, pick a Random Zone.
-			zones := make([]string, len(csCluster.Status.Zones))
-			zidx := 0
-			for zoneID := range csCluster.Status.Zones {
-				zones[zidx] = zoneID
-				zidx++
-			}
-			randNum := (rand.Int() % len(csCluster.Spec.Zones)) // #nosec G404 -- weak crypt rand doesn't matter here.
-			csMachine.Status.ZoneID = zones[randNum]
+			randNum := (rand.Int() % len(r.Zones.Items)) // #nosec G404 -- weak crypt rand doesn't matter here.
+			r.ReconciliationSubject.Status.ZoneID = r.Zones.Items[randNum].Spec.ID
+		}
+	}
+	for idx, zone := range r.Zones.Items {
+		if zone.Spec.ID == r.ReconciliationSubject.Status.ZoneID {
+			r.FailureDomain = &r.Zones.Items[idx]
+			break
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+// GetOrCreateVMInstance creates or gets a VM instance.
+// Implicitly it also fetches its bootstrap secret in order to create said instance.
+func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes ctrl.Result, reterr error) {
+	if r.CAPIMachine.Spec.Bootstrap.DataSecretName == nil {
+		return r.RequeueWithMessage("Bootstrap DataSecretName not yet available.")
+	}
+	r.Log.Info("Got Bootstrap DataSecretName.")
+
+	// Get the CloudStackZone for the Machine.
+	var machineZone infrav1.CloudStackZone
+	for _, zone := range r.Zones.Items {
+		machineZone = zone
+		if zone.Spec.ID == r.ReconciliationSubject.Status.ZoneID {
+			break
 		}
 	}
 
+	// Get the kubeadm bootstrap secret for this machine.
 	secret := &corev1.Secret{}
-	key := types.NamespacedName{Namespace: capiMachine.Namespace, Name: *capiMachine.Spec.Bootstrap.DataSecretName}
-	if err := r.Client.Get(context.TODO(), key, secret); err != nil {
+	key := types.NamespacedName{Namespace: r.CAPIMachine.Namespace, Name: *r.CAPIMachine.Spec.Bootstrap.DataSecretName}
+	if err := r.K8sClient.Get(context.TODO(), key, secret); err != nil {
 		return ctrl.Result{}, err
 	}
-
-	// Create VM (or Fetch if present).
-	if data, isPresent := secret.Data["value"]; isPresent {
-		if err := r.CS.GetOrCreateVMInstance(csMachine, capiMachine, csCluster, string(data)); err == nil {
-			if !controllerutil.ContainsFinalizer(csMachine, infrav1.MachineFinalizer) { // Fetched or Created?
-				log.Info("CloudStack instance Created", "instanceStatus", csMachine.Status)
-				controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
-			}
-		} else if err != nil {
-			if csMachine.Spec.InstanceID != nil {
-				// Despite the failed VM Creation call, a VM has been created, and will need to be properly destroyed.
-				controllerutil.AddFinalizer(csMachine, infrav1.MachineFinalizer)
-			}
-			return ctrl.Result{}, err
-		}
-	} else {
+	data, present := secret.Data["value"]
+	if !present {
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
-	// Check status of machine.
-	if csMachine.Status.InstanceState == "Running" {
-		log.Info("Machine instance is Running...")
-		csMachine.Status.Ready = true
-	} else if csMachine.Status.InstanceState == "Error" {
-		log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "capiMachine", capiMachine, "csMachine", csMachine)
-		if err := r.Client.Delete(ctx, capiMachine); err != nil {
+	err := r.CSClient.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data))
+
+	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
+		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
+		controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
+	}
+	return ctrl.Result{}, err
+}
+
+// ConfirmVMStatus checks the Instance's status for running state and requeues otherwise.
+func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (retRes ctrl.Result, reterr error) {
+	if r.ReconciliationSubject.Status.InstanceState == "Running" {
+		r.Log.Info("Machine instance is Running...")
+		r.ReconciliationSubject.Status.Ready = true
+	} else if r.ReconciliationSubject.Status.InstanceState == "Error" {
+		r.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", r.ReconciliationSubject)
+		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
 			return ctrl.Result{}, err
 		}
-		log.Info("CAPI machine deletion requested.")
-		return ctrl.Result{}, nil // We're done.  CAPI Machine will take it from here.
+		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	} else {
-		log.Info(fmt.Sprintf("Instance not ready, is %s.", csMachine.Status.InstanceState))
-		return ctrl.Result{RequeueAfter: requeueTimeout}, nil
+		r.Log.Info(fmt.Sprintf("Instance not ready, is %s.", r.ReconciliationSubject.Status.InstanceState))
+		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	}
+	return ctrl.Result{}, nil
+}
 
-	// Add machine to load balancer if it is a control plane in an isolated network.
-	zone := csCluster.Status.Zones[csMachine.Status.ZoneID]
-	if util.IsControlPlaneMachine(capiMachine) && zone.Network.Type == cloud.NetworkTypeIsolated {
-		log.Info("Assigning VM to load balancer rule.")
-		err := r.CS.AssignVMToLoadBalancerRule(csCluster, *csMachine.Spec.InstanceID)
+// AddToLBIfNeeded adds instance to load balancer if it is a control plane in an isolated network.
+func (r *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.Result, reterr error) {
+	if util.IsControlPlaneMachine(r.CAPIMachine) && r.FailureDomain.Spec.Network.Type == cloud.NetworkTypeIsolated {
+		r.Log.Info("Assigning VM to load balancer rule.")
+		if r.IsoNet.Spec.Name == "" {
+			return r.RequeueWithMessage("Could not get required Isolated Network for VM, requeueing.")
+		}
+		err := r.CSClient.AssignVMToLoadBalancerRule(r.IsoNet, *r.ReconciliationSubject.Spec.InstanceID)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
-
 	return ctrl.Result{}, nil
 }
 
-// Reconcile/Destroy a deleted VM instance.
-func (r *CloudStackMachineReconciler) reconcileDelete(
-	ctx context.Context,
-	log logr.Logger,
-	csMachine *infrav1.CloudStackMachine,
-	capiMachine *capiv1.Machine,
-) (ctrl.Result, error) {
-
-	// Remove any CAPC managed Affinity groups if owner references a deleted object.
-	if deleted, err := csCtrlrUtils.IsOwnerDeleted(ctx, r.Client, capiMachine); err != nil {
-		return ctrl.Result{}, err
-	} else if deleted {
-		if err := r.RemoveManagedAffinity(log, capiMachine, csMachine); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "error encountered when removing affinity group")
-		}
-	}
-
-	log.Info("Deleting instance", "instance-id", *csMachine.Spec.InstanceID)
-	if err := r.CS.DestroyVMInstance(csMachine); err != nil {
+func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
+	r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
+	if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
 		if err.Error() == "VM deletion in progress" {
-			log.Info(err.Error())
-			return ctrl.Result{RequeueAfter: destoryVMRequeueInterval}, nil
+			r.Log.Info(err.Error())
+			return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
 		}
 		return ctrl.Result{}, err
 	}
-	controllerutil.RemoveFinalizer(csMachine, infrav1.MachineFinalizer)
+	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
 
-// Called in main, this registers the machine reconciler to the CAPI controller manager.
-func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
+// SetupWithManager registers the machine reconciler to the CAPI controller manager.
+func (reconciler *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackMachine{}).
@@ -313,7 +277,7 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					return !reflect.DeepEqual(oldMachine, newMachine)
 				},
 			},
-		).Build(r)
+		).Build(reconciler)
 	if err != nil {
 		return err
 	}
@@ -338,7 +302,7 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	// Used below, this maps CAPI clusters to CAPC machines
-	csMachineMapper, err := util.ClusterToObjectsMapper(r.Client, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
+	csMachineMapper, err := util.ClusterToObjectsMapper(reconciler.K8sClient, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
 	}
@@ -359,31 +323,4 @@ func (r *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		},
 	)
-}
-
-// RemoveManagedAffinity considers a machine's affinity management strategy and removes the created affinity group
-// if it exists.
-func (r *CloudStackMachineReconciler) RemoveManagedAffinity(
-	log logr.Logger,
-	capiMachine *capiv1.Machine,
-	csMachine *infrav1.CloudStackMachine,
-) error {
-
-	ownerRef := csCtrlrUtils.GetManagementOwnerRef(capiMachine)
-	if ownerRef == nil {
-		return errors.Errorf("Could not find management owner reference for %s/%s", csMachine.Namespace, csMachine.Name)
-	}
-	name, err := csMachine.AffinityGroupName(capiMachine)
-	if err != nil {
-		return err
-	}
-	group := &cloud.AffinityGroup{Name: name}
-	_ = r.CS.FetchAffinityGroup(group)
-	if group.ID == "" { // Affinity group not found, must have been deleted.
-		return nil
-	}
-
-	log.Info(fmt.Sprintf("Deleting affinity group '%s'", name))
-
-	return r.CS.DeleteAffinityGroup(group)
 }

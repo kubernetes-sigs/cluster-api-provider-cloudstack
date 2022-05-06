@@ -23,11 +23,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+
 	goflag "flag"
+
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
@@ -38,9 +40,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+
+	infrastructurev1beta1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/controllers"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -54,6 +59,7 @@ func init() {
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(controlplanev1.AddToScheme(scheme))
+	utilruntime.Must(infrastructurev1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -150,26 +156,33 @@ func main() {
 	// Set a random seed for randomly placing CloudStackMachines in Zones.
 	rand.Seed(time.Now().Unix())
 
-	// Register machine and cluster reconcilers with the controller manager.
-	if err = (&controllers.CloudStackClusterReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Cluster"),
-		Scheme: mgr.GetScheme(),
-		CS:     client,
-	}).SetupWithManager(mgr); err != nil {
+	// Register reconcilers with the controller manager.
+	base := csCtrlrUtils.ReconcilerBase{
+		K8sClient:  mgr.GetClient(),
+		BaseLogger: ctrl.Log.WithName("controllers"),
+		Scheme:     mgr.GetScheme(),
+		CSClient:   client}
+	if err = (&controllers.CloudStackClusterReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err = (&controllers.CloudStackMachineReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Machine"),
-		Scheme: mgr.GetScheme(),
-		CS:     client,
-	}).SetupWithManager(mgr); err != nil {
+	if err = (&controllers.CloudStackZoneReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackZone")
+		os.Exit(1)
+	}
+	if err = (&controllers.CloudStackMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
 		os.Exit(1)
 	}
-	//+kubebuilder:scaffold:builder
+	if err = (&controllers.CloudStackIsoNetReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsoNetReconciler")
+		os.Exit(1)
+	}
+	if err = (&controllers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackAffinityGroup")
+		os.Exit(1)
+	}
+	// +kubebuilder:scaffold:builder
 
 	// Add health and ready checks.
 	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

@@ -40,10 +40,8 @@ rules:
   - machines
   - machines/status
   verbs:
-  - delete
   - get
   - list
-  - patch
   - watch
 - apiGroups:
   - cluster.x-k8s.io
@@ -61,6 +59,32 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackaffinitygroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackaffinitygroups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackaffinitygroups/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
@@ -83,6 +107,33 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - cloudstackclusters/status
+  verbs:
+  - create
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackisolatednetworks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackisolatednetworks/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackisolatednetworks/status
   verbs:
   - get
   - patch
@@ -110,6 +161,41 @@ rules:
   resources:
   - cloudstackmachines/status
   verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackmachinetemplate
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackzones
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackzones/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackzones/status
+  verbs:
+  - create
   - get
   - patch
   - update

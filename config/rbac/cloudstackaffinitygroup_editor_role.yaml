@@ -1,0 +1,24 @@
+# permissions for end users to edit cloudstackaffinitygroups.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cloudstackaffinitygroup-editor-role
+rules:
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackaffinitygroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackaffinitygroups/status
+  verbs:
+  - get
