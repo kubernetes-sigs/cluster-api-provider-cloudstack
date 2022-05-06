@@ -203,7 +203,7 @@ func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness(gvks ...schema.GroupVe
 					if name, found, err := unstructured.NestedString(owned.Object, "metadata", "name"); err != nil {
 						return ctrl.Result{}, errors.Wrapf(err, "parsing name for object %s:", owned)
 					} else if !found {
-						r.RequeueWithMessage(
+						return r.RequeueWithMessage(
 							fmt.Sprintf(
 								"Owned object of kind %s with name %s not found, requeueing.",
 								gvk.Kind,
