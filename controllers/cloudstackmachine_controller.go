@@ -53,6 +53,7 @@ type CloudStackMachineReconciliationRunner struct {
 	ReconciliationSubject *infrav1.CloudStackMachine
 	CAPIMachine           *capiv1.Machine
 	StateChecker          *infrav1.CloudStackMachineStateChecker
+	CSUser                cloud.Client
 	Zones                 *infrav1.CloudStackZoneList
 	FailureDomain         *infrav1.CloudStackZone
 	IsoNet                *infrav1.CloudStackIsolatedNetwork

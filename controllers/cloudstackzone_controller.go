@@ -24,6 +24,7 @@ import (
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/pkg/errors"
 )
 
@@ -36,6 +37,7 @@ type CloudStackZoneReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	Zones                 *infrav1.CloudStackZoneList
 	ReconciliationSubject *infrav1.CloudStackZone
+	CSUser                cloud.Client
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
 }
 
