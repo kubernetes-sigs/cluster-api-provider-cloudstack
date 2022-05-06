@@ -75,6 +75,7 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 func (c *client) GetOrCreateAffinityGroup(group *AffinityGroup) (retErr error) {
 	if err := c.FetchAffinityGroup(group); err != nil { // Group not found?
 		p := c.cs.AffinityGroup.NewCreateAffinityGroupParams(group.Name, group.Type)
+		p.SetName(group.Name)
 		resp, err := c.cs.AffinityGroup.CreateAffinityGroup(p)
 		if err != nil {
 			return err

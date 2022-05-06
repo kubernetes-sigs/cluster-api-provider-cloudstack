@@ -1,3 +1,19 @@
+/*
+Copyright 2022 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package cloud
 
 import (
@@ -12,11 +28,11 @@ type ZoneIFace interface {
 }
 
 func (c *client) ResolveZone(zone *infrav1.CloudStackZone) (retErr error) {
-	if zoneID, count, err := c.cs.Zone.GetZoneID(zone.Name); err != nil {
+	if zoneID, count, err := c.cs.Zone.GetZoneID(zone.Spec.Name); err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %v", zone))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
-			"expected 1 Zone with name %s, but got %d", zone.Name, count))
+			"expected 1 Zone with name %s, but got %d", zone.Spec.Name, count))
 	} else {
 		zone.Spec.ID = zoneID
 	}

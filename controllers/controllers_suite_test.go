@@ -161,9 +161,9 @@ var _ = BeforeSuite(func() {
 	Ω(err).ShouldNot(HaveOccurred())
 
 	base := csCtrlrUtils.ReconcilerBase{
-		Client:     k8sManager.GetClient(),
+		K8sClient:  k8sManager.GetClient(),
 		Scheme:     k8sManager.GetScheme(),
-		CS:         CS,
+		CSClient:   CS,
 		BaseLogger: logf.NullLogger{}}
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())

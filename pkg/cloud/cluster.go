@@ -19,8 +19,6 @@ package cloud
 import (
 	"strings"
 
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -52,8 +50,10 @@ func (c *client) ResolveZones(csCluster *infrav1.CloudStackCluster) (retErr erro
 			return multierror.Append(retErr, errors.Errorf(
 				"expected 1 Zone with UUID %s, but got %d", specZone.ID, count))
 		} else {
-			csCluster.Status.Zones[resp.Id] = infrav1.Zone{
-				Name: resp.Name, ID: resp.Id, Network: specZone.Network}
+			zone := infrav1.Zone{Network: specZone.Network}
+			zone.Name = resp.Name
+			zone.ID = resp.Id
+			csCluster.Status.Zones[resp.Id] = zone
 		}
 	}
 
@@ -61,28 +61,8 @@ func (c *client) ResolveZones(csCluster *infrav1.CloudStackCluster) (retErr erro
 }
 
 func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retErr error) {
-	// If provided, translate Domain name to Domain ID.
-	if csCluster.Spec.Domain != "" {
-		domainID, count, retErr := c.cs.Domain.GetDomainID(csCluster.Spec.Domain)
-		if retErr != nil {
-			return retErr
-		} else if count != 1 {
-			return errors.Errorf("expected 1 Domain with name %s, but got %d", csCluster.Spec.Domain, count)
-		} else {
-			csCluster.Status.DomainID = domainID
-		}
-	}
-
 	if csCluster.Status.Zones == nil {
 		csCluster.Status.Zones = make(map[string]infrav1.Zone)
-	}
-	if retErr = c.ResolveZones(csCluster); retErr != nil {
-		return errors.Wrapf(retErr, "error resolving Zone details for Cluster %s", csCluster.Name)
-	}
-
-	csCluster.Status.FailureDomains = capiv1.FailureDomains{}
-	for _, zone := range csCluster.Status.Zones {
-		csCluster.Status.FailureDomains[zone.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
 	}
 
 	if retErr := c.ResolveDomainAndAccount(csCluster); retErr != nil {

@@ -1,3 +1,19 @@
+/*
+Copyright 2022 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package utils
 
 import (
@@ -14,24 +30,25 @@ import (
 
 // CreateZone generates a specified CloudStackZone CRD owned by the ReconcilationSubject.
 func (r *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
-	csZone := &infrav1.CloudStackZone{
-		ObjectMeta: r.NewChildObjectMeta(zoneSpec.Name),
-		Spec:       infrav1.CloudStackZoneSpec(zoneSpec),
-		Status:     infrav1.CloudStackZoneStatus{Ready: false},
+	metaName := zoneSpec.Name
+	if metaName == "" {
+		metaName = zoneSpec.ID
 	}
-	return errors.Wrap(r.Client.Create(r.RequestCtx, csZone), "error encountered when creating CloudStackZone")
+	csZone := &infrav1.CloudStackZone{
+		ObjectMeta: r.NewChildObjectMeta(metaName),
+		Spec:       infrav1.CloudStackZoneSpec(zoneSpec),
+	}
+	return errors.Wrap(r.K8sClient.Create(r.RequestCtx, csZone), "creating CloudStackZone:")
 }
 
-// controllers/utils/zones.go:19:15: S1016: should convert zoneSpec (type Zone) to CloudStackZoneSpec instead of using struct literal (gosimple)
-// Spec:       infrav1.CloudStackZoneSpec{Name: zoneSpec.Name, ID: zoneSpec.ID, Network: zoneSpec.Network},
 // CreateZones generates a CloudStackClusterZone CRD for each of the ReconcilationSubject's Zones.
 // Returns a CloudStackReconcilerMethod to curry zoneSpecs.
-func (runner *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudStackReconcilerMethod {
+func (r *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		for _, zone := range zoneSpecs {
-			if err := runner.CreateZone(zone); err != nil {
+			if err := r.CreateZone(zone); err != nil {
 				if !strings.Contains(strings.ToLower(err.Error()), "already exists") {
-					return reconcile.Result{}, errors.Wrap(err, "error encountered when creating CloudStackZone")
+					return reconcile.Result{}, errors.Wrap(err, "creating CloudStackZone:")
 				}
 			}
 		}
@@ -40,15 +57,14 @@ func (runner *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudS
 }
 
 // GetZones gets CloudStackZones owned by a CloudStackCluster via an ownership label.
-func (runner *ReconciliationRunner) GetZones(zones *infrav1.CloudStackZoneList) CloudStackReconcilerMethod {
+func (r *ReconciliationRunner) GetZones(zones *infrav1.CloudStackZoneList) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		// labels := map[string]string{"OwnedBy": runner.Request.Name}
 		capiClusterLabel := map[string]string{
-			capiv1.ClusterLabelName: runner.CSCluster.GetLabels()[capiv1.ClusterLabelName]}
-		if err := runner.Client.List(
-			runner.RequestCtx,
+			capiv1.ClusterLabelName: r.CSCluster.GetLabels()[capiv1.ClusterLabelName]}
+		if err := r.K8sClient.List(
+			r.RequestCtx,
 			zones,
-			client.InNamespace(runner.Request.Namespace),
+			client.InNamespace(r.Request.Namespace),
 			client.MatchingLabels(capiClusterLabel),
 		); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to list zones")

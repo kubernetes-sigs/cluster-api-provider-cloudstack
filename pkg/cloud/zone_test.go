@@ -13,52 +13,59 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package cloud_test
 
 import (
+	"fmt"
+
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 )
 
-var _ = Describe("Network", func() {
-	var ( // Declare shared vars.
+var _ = Describe("Cluster", func() {
+	var (
+		client     cloud.Client
 		mockCtrl   *gomock.Controller
 		mockClient *csapi.CloudStackClient
-		ns         *csapi.MockNetworkServiceIface
-		client     cloud.Client
+		zs         *csapi.MockZoneServiceIface
 	)
 
 	BeforeEach(func() {
-		// Setup new mock services.
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = csapi.NewMockClient(mockCtrl)
-		ns = mockClient.Network.(*csapi.MockNetworkServiceIface)
+		zs = mockClient.Zone.(*csapi.MockZoneServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
-		dummies.SetDummyClusterStatus()
+		dummies.SetDummyDomainAndAccount()
+		dummies.SetDummyCSApiResponse()
 	})
 
 	AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
-	Context("for an existing network", func() {
-		It("resolves network by ID", func() {
-			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(nil, 0, nil)
-			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
+	Context("an existing abstract dummies.CSCluster", func() {
+		It("handles zone not found.", func() {
+			expectedErr := fmt.Errorf("Not found")
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return("", -1, expectedErr)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(nil, -1, expectedErr)
 
-			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
+			err := client.ResolveZone(dummies.CSZone1)
+			Expect(errors.Cause(err)).To(MatchError(expectedErr))
 		})
 
-		It("resolves network by Name", func() {
-			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
+		It("handles multiple zone IDs returned", func() {
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 2, nil)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(nil, -1, fmt.Errorf("Not found"))
 
-			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
+			Ω(client.ResolveZone(dummies.CSZone1)).Should(MatchError(And(
+				ContainSubstring("expected 1 Zone with name "+dummies.Zone1.Name+", but got 2"),
+				ContainSubstring("could not get Zone by ID "+dummies.Zone1.ID+": Not found"))))
 		})
 	})
 })

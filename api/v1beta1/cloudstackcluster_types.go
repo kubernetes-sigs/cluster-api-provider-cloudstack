@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -57,37 +59,27 @@ type Network struct {
 
 type ZoneStatusMap map[string]Zone
 
-// GetOne just returns a Zone from the map of zone statuses
-// Needed as there's no short way to do this.
-func (zones ZoneStatusMap) GetOne() *Zone {
-	for _, zone := range zones {
-		return &zone
-	}
-	return nil
-}
-
-// GetByName fetches a zone by name if present in the map of zone statuses.
-// Needed as there's no short way to do this.
-func (zones ZoneStatusMap) GetByName(name string) *Zone {
-	for _, zone := range zones {
-		if zone.Name == name {
-			return &zone
-		}
-	}
-	return nil
-}
-
 type Zone struct {
-	// The Zone name.
-	// + optional
+	// Name.
+	//+optional
 	Name string `json:"name,omitempty"`
 
-	// The CS zone ID the cluster is built in.
-	// + optional
+	// ID.
+	//+optional
 	ID string `json:"id,omitempty"`
 
 	// The network within the Zone to use.
 	Network Network `json:"network"`
+}
+
+// MetaName returns a lower cased name to be used in a k8s object meta.
+// It prefers the zone's name, but will use the ID if that's the only present identifier.
+func (z *Zone) MetaName() string {
+	s := z.Name
+	if s == "" {
+		s = z.ID
+	}
+	return strings.ToLower(s)
 }
 
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.

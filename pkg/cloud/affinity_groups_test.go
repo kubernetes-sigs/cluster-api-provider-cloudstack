@@ -60,8 +60,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(nil, -1, errors.New("FakeError"))
 		ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
 			Return(&cloudstack.CreateAffinityGroupParams{})
-		ags.EXPECT().CreateAffinityGroup(ParamMatch(
-			And(AccountEquals(dummies.Account), DomainIDEquals(dummies.DomainID)))).
+		ags.EXPECT().CreateAffinityGroup(ParamMatch(And(NameEquals(dummies.AffinityGroup.Name)))).
 			Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
 		Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())

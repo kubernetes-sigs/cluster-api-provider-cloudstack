@@ -53,29 +53,10 @@ spec:
                 - port
                 type: object
               id:
-                description: Cloudstack Network ID the cluster is built in.
+                description: ID.
                 type: string
-              identityRef:
-                description: IdentityRef is a reference to a identity to be used when
-                  reconciling this cluster
-                properties:
-                  kind:
-                    description: Kind of the identity. Must be supported by the infrastructure
-                      provider and may be either cluster or namespace-scoped.
-                    minLength: 1
-                    type: string
-                  name:
-                    description: Name of the infrastructure identity to be used.
-                    type: string
-                required:
-                - kind
-                - name
-                type: object
               name:
-                description: Cloudstack Network Name the cluster is built in.
-                type: string
-              type:
-                description: Cloudstack Network Type the cluster is built in.
+                description: Name.
                 type: string
             required:
             - controlPlaneEndpoint

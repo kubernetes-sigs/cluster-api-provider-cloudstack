@@ -113,6 +113,9 @@ spec:
                   type: string
                 description: Optional details map for deployVirtualMachine
                 type: object
+              id:
+                description: ID.
+                type: string
               identityRef:
                 description: IdentityRef is a reference to a identity to be used when
                   reconciling this cluster
@@ -132,6 +135,9 @@ spec:
               instanceID:
                 description: Instance ID. Should only be useful to modify an existing
                   instance.
+                type: string
+              name:
+                description: Name.
                 type: string
               offering:
                 description: CloudStack compute offering.

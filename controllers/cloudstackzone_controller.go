@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -55,6 +55,7 @@ func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
 	return r
 }
 
+// Reconciler Reconcile adapts the runner to the runner to what k8s expects.
 func (reconciler *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
 	return NewCSZoneReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
@@ -70,23 +71,22 @@ func (reconciler *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) e
 		Complete(reconciler)
 }
 
+// Reconcile attempts to move the state of CRs to the requested state.
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-	if res, err := r.RequeueIfMissingBaseCRDs(); r.ShouldReturn(res, err) {
+	if res, err := r.RequeueIfMissingBaseCRs(); r.ShouldReturn(res, err) {
 		return res, err
 	}
 	// Prevent premature deletion.
-	controllerutil.AddFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
+	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.ZoneFinalizer)
 
-	r.Log.V(1).Info("Reconciling CloudStackCluster.", "clusterSpec", r.ReconciliationSubject.Spec)
+	r.Log.V(1).Info("Reconciling CloudStackZone.", "zoneSpec", r.ReconciliationSubject.Spec)
 	// Start by purely data fetching information about the zone and specified network.
-	var res ctrl.Result
-	if err := r.CS.ResolveZone(r.ReconciliationSubject); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "error encountered when resolving CloudStack zone information")
-	} else if res, err = r.PatchChangesBackToAPI(); r.ShouldReturn(res, err) { // Persist found zone ID.
-		return res, err
-	} else if err = r.CS.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
+	if err := r.CSClient.ResolveZone(r.ReconciliationSubject); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information:")
+	}
+	if err := r.CSClient.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
 		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
-		return ctrl.Result{}, errors.Wrap(err, "error encountered when resolving Cloudstack network information")
+		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information:")
 	}
 
 	// Address Isolated Networks.
@@ -98,7 +98,8 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 			return res, err
 		} else if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
 			return res, err
-		} else if r.IsoNet.Name == "" {
+		}
+		if r.IsoNet.Name == "" {
 			return r.RequeueWithMessage("Couldn't find isolated network.")
 		}
 		if !r.IsoNet.Status.Ready {
@@ -112,7 +113,20 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 // The CloudStackZone only fetches information, and in some cases creates CloudStackIsolatedNetwork CRDs.
 // Deletion does not require cleanup, but should not occur until any owned CRDs are deleted.
 func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
-	//TODO: Check owned are deleted.
-	controllerutil.RemoveFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
+	r.Log.Info("Deleting CloudStackZone")
+	// Address Isolated Networks.
+	if r.ReconciliationSubject.Spec.Network.Type == infrav1.NetworkTypeIsolated {
+		netName := r.ReconciliationSubject.Spec.Network.Name
+		if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
+			return res, err
+		}
+		if r.IsoNet.Name != "" {
+			if err := r.K8sClient.Delete(r.RequestCtx, r.IsoNet); err != nil {
+				return ctrl.Result{}, err
+			}
+			return r.RequeueWithMessage("Child IsolatedNetwork still present, requeueing.")
+		}
+	}
+	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ZoneFinalizer)
 	return ctrl.Result{}, nil
 }

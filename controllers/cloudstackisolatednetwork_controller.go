@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"strings"
 
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,6 +27,7 @@ import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/pkg/errors"
 )
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks,verbs=get;list;watch;create;update;patch;delete
@@ -64,7 +66,7 @@ func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	if res, err := r.RequeueIfMissingBaseCRDs(); r.ShouldReturn(res, err) {
+	if res, err := r.RequeueIfMissingBaseCRs(); r.ShouldReturn(res, err) {
 		return res, err
 	}
 	if res, err := r.GetParent(r.ReconciliationSubject, r.Zone)(); r.ShouldReturn(res, err) {
@@ -74,12 +76,19 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 
 	// Setup isolated network, endpoint, egress, and load balancing.
 	// Set endpoint of CloudStackCluster if it is not currently set. (uses patcher to do so)
-	if csClusterPatcher, err := patch.NewHelper(r.CSCluster, r.Client); err != nil {
-		return r.ReturnWrappedError(retErr, "error encountered while setting up CloudStackCluster patcher")
-	} else if err := r.CS.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+	csClusterPatcher, err := patch.NewHelper(r.CSCluster, r.K8sClient)
+	if err != nil {
+		return r.ReturnWrappedError(retErr, "setting up CloudStackCluster patcher:")
+	}
+	if err := r.CSClient.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
 		return ctrl.Result{}, err
-	} else if err := csClusterPatcher.Patch(r.RequestCtx, r.CSCluster); err != nil {
-		return r.ReturnWrappedError(err, "error encountered when patching endpoint update to CloudStackCluster")
+	}
+	// Tag the created network.
+	if err := r.CSClient.AddClusterTag(cloud.ResourceTypeNetwork, r.ReconciliationSubject.Spec.ID, r.CSCluster); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "tagging network with id %s:", r.ReconciliationSubject.Spec.ID)
+	}
+	if err := csClusterPatcher.Patch(r.RequestCtx, r.CSCluster); err != nil {
+		return r.ReturnWrappedError(err, "patching endpoint update to CloudStackCluster:")
 	}
 
 	r.ReconciliationSubject.Status.Ready = true
@@ -87,7 +96,12 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
-	r.CS.DisposeIsoNetResources(r.Zone, r.CSCluster)
+	r.Log.Info("Deleting IsolatedNetwork.")
+	if err := r.CSClient.DisposeIsoNetResources(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+		if !strings.Contains(strings.ToLower(err.Error()), "no match found") {
+			return ctrl.Result{}, err
+		}
+	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.IsolatedNetworkFinalizer)
 	return ctrl.Result{}, nil
 }

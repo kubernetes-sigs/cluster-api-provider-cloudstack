@@ -37,10 +37,10 @@ spec:
             description: CloudStackZoneSpec defines the desired state of CloudStackZone
             properties:
               id:
-                description: The ID of the CloudStack zone.
+                description: ID.
                 type: string
               name:
-                description: The name of the CloudStack zone.
+                description: Name.
                 type: string
               network:
                 description: The network within the Zone to use.

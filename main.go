@@ -158,10 +158,10 @@ func main() {
 
 	// Register reconcilers with the controller manager.
 	base := csCtrlrUtils.ReconcilerBase{
-		Client:     mgr.GetClient(),
+		K8sClient:  mgr.GetClient(),
 		BaseLogger: ctrl.Log.WithName("controllers"),
 		Scheme:     mgr.GetScheme(),
-		CS:         client}
+		CSClient:   client}
 	if err = (&controllers.CloudStackClusterReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
