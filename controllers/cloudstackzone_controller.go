@@ -79,7 +79,7 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 		return res, err
 	}
 	// Prevent premature deletion.
-	controllerutil.AddFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
+	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.ZoneFinalizer)
 
 	r.Log.V(1).Info("Reconciling CloudStackZone.", "zoneSpec", r.ReconciliationSubject.Spec)
 	// Start by purely data fetching information about the zone and specified network.
@@ -129,6 +129,6 @@ func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Resu
 			return r.RequeueWithMessage("Child IsolatedNetwork still present, requeueing.")
 		}
 	}
-	controllerutil.RemoveFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
+	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ZoneFinalizer)
 	return ctrl.Result{}, nil
 }
