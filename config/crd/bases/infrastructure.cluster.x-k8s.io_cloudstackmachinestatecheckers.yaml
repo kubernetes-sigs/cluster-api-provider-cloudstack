@@ -39,7 +39,7 @@ spec:
               of CloudStackMachineStateChecker
             properties:
               instanceID:
-                description: Give better description.
+                description: CloudStack machine instance ID
                 type: string
             type: object
           status:

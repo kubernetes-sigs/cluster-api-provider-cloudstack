@@ -20,9 +20,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CloudStackMachineStateCheckerSpec defines the desired state of CloudStackMachineStateChecker
+// CloudStackMachineStateCheckerSpec
 type CloudStackMachineStateCheckerSpec struct {
-	// Give better description.
+	// CloudStack machine instance ID
 	InstanceID string `json:"instanceID,omitempty"`
 }
 
