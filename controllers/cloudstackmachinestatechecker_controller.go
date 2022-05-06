@@ -32,7 +32,7 @@ import (
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinestatecheckers/finalizers,verbs=update
 //+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch;delete
 
-// CloudStackMachineStateCheckerReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+// CloudStackMachineStateCheckerReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack machine state checker reconciliation.
 type CloudStackMachineStateCheckerReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	MachineStateCheckers  *infrav1.CloudStackMachineStateCheckerList
