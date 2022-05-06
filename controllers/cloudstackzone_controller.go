@@ -32,7 +32,7 @@ import (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones/status,verbs=create;get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackzones/finalizers,verbs=update
 
-// CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+// CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack zone reconciliation.
 type CloudStackZoneReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	Zones                 *infrav1.CloudStackZoneList

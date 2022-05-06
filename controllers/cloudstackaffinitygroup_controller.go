@@ -33,7 +33,7 @@ import (
 // Need to watch machine templates for creation of an affinity group.
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplate,verbs=get;list;watch;
 
-// CloudStackAGReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+// CloudStackAGReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack affinity group reconciliation.
 type CloudStackAGReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackAffinityGroup
