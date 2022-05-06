@@ -138,6 +138,9 @@ func (c *client) ResolveTemplate(
 	return templateID, nil
 }
 
+// ResolveDiskOffering Retrieves diskOffering by using disk offering ID if ID is provided and confirm returned
+// disk offering name matches name provided in spec.
+// If disk offering ID is not provided, the disk offering name is used to retrieve disk offering ID.
 func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine) (diskOfferingID string, retErr error) {
 	if len(csMachine.Spec.DiskOffering.ID) > 0 {
 		csDiskOffering, count, err := c.cs.DiskOffering.GetDiskOfferingByID(csMachine.Spec.DiskOffering.ID)
@@ -151,7 +154,8 @@ func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine) (disk
 
 		if len(csMachine.Spec.DiskOffering.Name) > 0 && csMachine.Spec.DiskOffering.Name != csDiskOffering.Name {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"diskOffering name %s does not match name %s returned using UUID %s", csMachine.Spec.DiskOffering.Name, csDiskOffering.Name, csMachine.Spec.DiskOffering.ID))
+				"diskOffering name %s does not match name %s returned using UUID %s",
+				csMachine.Spec.DiskOffering.Name, csDiskOffering.Name, csMachine.Spec.DiskOffering.ID))
 		}
 		return csMachine.Spec.DiskOffering.ID, nil
 	}
