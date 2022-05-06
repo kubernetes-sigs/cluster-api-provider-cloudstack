@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"strings"
 
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,6 +27,7 @@ import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/pkg/errors"
 )
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks,verbs=get;list;watch;create;update;patch;delete
@@ -74,11 +76,18 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 
 	// Setup isolated network, endpoint, egress, and load balancing.
 	// Set endpoint of CloudStackCluster if it is not currently set. (uses patcher to do so)
-	if csClusterPatcher, err := patch.NewHelper(r.CSCluster, r.Client); err != nil {
+	csClusterPatcher, err := patch.NewHelper(r.CSCluster, r.Client)
+	if err != nil {
 		return r.ReturnWrappedError(retErr, "error encountered while setting up CloudStackCluster patcher")
-	} else if err := r.CS.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+	}
+	if err := r.CS.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
 		return ctrl.Result{}, err
-	} else if err := csClusterPatcher.Patch(r.RequestCtx, r.CSCluster); err != nil {
+	}
+	// Tag the created network.
+	if err := r.CS.AddClusterTag(cloud.ResourceTypeNetwork, r.ReconciliationSubject.Spec.ID, r.CSCluster); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "error encountered while tagging network with id: %s", r.ReconciliationSubject.Spec.ID)
+	}
+	if err := csClusterPatcher.Patch(r.RequestCtx, r.CSCluster); err != nil {
 		return r.ReturnWrappedError(err, "error encountered when patching endpoint update to CloudStackCluster")
 	}
 
@@ -87,8 +96,11 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
-	if err := r.CS.DisposeIsoNetResources(r.Zone, r.CSCluster); err != nil {
-		return ctrl.Result{}, err
+	r.Log.Info("Deleting IsolatedNetwork.")
+	if err := r.CS.DisposeIsoNetResources(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+		if !strings.Contains(strings.ToLower(err.Error()), "no match found") {
+			return ctrl.Result{}, err
+		}
 	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.IsolatedNetworkFinalizer)
 	return ctrl.Result{}, nil

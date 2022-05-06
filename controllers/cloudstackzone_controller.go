@@ -115,7 +115,20 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 // The CloudStackZone only fetches information, and in some cases creates CloudStackIsolatedNetwork CRDs.
 // Deletion does not require cleanup, but should not occur until any owned CRDs are deleted.
 func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
-	//TODO: Check owned are deleted.
+	r.Log.Info("Deleting CloudStackZone")
+	// Address Isolated Networks.
+	if r.ReconciliationSubject.Spec.Network.Type == infrav1.NetworkTypeIsolated {
+		netName := r.ReconciliationSubject.Spec.Network.Name
+		if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
+			return res, err
+		}
+		if r.IsoNet.Name != "" {
+			if err := r.Client.Delete(r.RequestCtx, r.IsoNet); err != nil {
+				return ctrl.Result{}, err
+			}
+			return r.RequeueWithMessage("Child IsolatedNetwork still present, requeueing.")
+		}
+	}
 	controllerutil.RemoveFinalizer(r.CSCluster, infrav1.ZoneFinalizer)
 	return ctrl.Result{}, nil
 }

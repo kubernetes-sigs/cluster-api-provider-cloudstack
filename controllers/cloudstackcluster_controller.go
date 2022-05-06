@@ -89,7 +89,7 @@ func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, re
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
 		r.RequeueIfMissingBaseCRDs,
-		r.CreateZones(r.CSCluster.Spec.Zones),
+		r.CreateZones(r.ReconciliationSubject.Spec.Zones),
 		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackZone")),
 		r.GetZones(r.Zones),
 		r.VerifyZoneCRDs,
@@ -100,10 +100,10 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 // ResolveClusterDetails fetches cluster specific details like domain and account IDs.
 func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Result, error) {
 	// Ensure that CAPI won't prematurely delete this CloudStackCluster.
-	controllerutil.AddFinalizer(r.CSCluster, infrav1.ClusterFinalizer)
+	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
 
 	// Create and or fetch cluster components.
-	err := r.CS.GetOrCreateCluster(r.CSCluster)
+	err := r.CS.GetOrCreateCluster(r.ReconciliationSubject)
 	if err == nil {
 		r.Log.Info("Fetched cluster info successfully.")
 		r.Log.V(1).Info("Post fetch cluster status.", "clusterStatus", r.ReconciliationSubject.Status)
@@ -116,7 +116,7 @@ func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Re
 
 // CheckZoneDetails verifies the Zone CRDs found match against those requested.
 func (r *CloudStackClusterReconciliationRunner) VerifyZoneCRDs() (ctrl.Result, error) {
-	expected := len(r.CSCluster.Spec.Zones)
+	expected := len(r.ReconciliationSubject.Spec.Zones)
 	actual := len(r.Zones.Items)
 	if expected != actual {
 		return r.RequeueWithMessage(fmt.Sprintf("Expected %d Zones, but found %d", expected, actual))
@@ -140,7 +140,18 @@ func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result
 
 // ReconcileDelete cleans up resources used by the cluster and finaly removes the CloudStackCluster's finalizers.
 func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
-	r.Log.V(1).Info("Deleting CloudStackCluster.")
+	r.Log.Info("Deleting CloudStackCluster.")
+	if res, err := r.GetZones(r.Zones)(); r.ShouldReturn(res, err) {
+		return res, err
+	}
+	if len(r.Zones.Items) > 0 {
+		for idx := range r.Zones.Items {
+			if err := r.Client.Delete(r.RequestCtx, &r.Zones.Items[idx]); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return r.RequeueWithMessage("Child Zones still present, requeueing.")
+	}
 	if err := r.CS.DisposeClusterResources(r.ReconciliationSubject); err != nil {
 		return ctrl.Result{}, err
 	}

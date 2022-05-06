@@ -38,7 +38,7 @@ type IsoNetworkIface interface {
 
 	AssignVMToLoadBalancerRule(isoNet *capcv1.CloudStackIsolatedNetwork, instanceID string) error
 	DeleteNetwork(capcv1.Network) error
-	DisposeIsoNetResources(*capcv1.CloudStackZone, *infrav1.CloudStackCluster) error
+	DisposeIsoNetResources(*capcv1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
 }
 
 // getOfferingID fetches an offering id.
@@ -300,23 +300,26 @@ func (c *client) DeleteNetwork(net capcv1.Network) error {
 }
 
 // DisposeIsoNetResources cleans up isolated network resources.
-func (c *client) DisposeIsoNetResources(zone *infrav1.CloudStackZone, csCluster *infrav1.CloudStackCluster) (retError error) {
-	if csCluster.Status.PublicIPID != "" {
+func (c *client) DisposeIsoNetResources(
+	zone *infrav1.CloudStackZone,
+	isoNet *infrav1.CloudStackIsolatedNetwork,
+	csCluster *infrav1.CloudStackCluster,
+) (retError error) {
+	if isoNet.Status.PublicIPID != "" {
 		if err := c.DeleteClusterTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID, csCluster); err != nil {
 			return err
 		}
-		if err := c.DisassociatePublicIPAddressIfNotInUse(csCluster); err != nil {
+		if err := c.DisassociatePublicIPAddressIfNotInUse(isoNet); err != nil {
 			return err
 		}
 	}
-	for _, zone := range csCluster.Status.Zones {
-		if err := c.RemoveClusterTagFromNetwork(csCluster, zone.Network); err != nil {
-			return err
-		}
-		if err := c.DeleteNetworkIfNotInUse(csCluster, zone.Network); err != nil {
-			return err
-		}
+	if err := c.RemoveClusterTagFromNetwork(csCluster, *isoNet.Network()); err != nil {
+		return err
 	}
+	if err := c.DeleteNetworkIfNotInUse(csCluster, *isoNet.Network()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -343,28 +346,28 @@ func (c *client) DeleteNetworkIfNotInUse(csCluster *capcv1.CloudStackCluster, ne
 
 // DisassociatePublicIPAddressIfNotInUse removes a CloudStack public IP association from passed isolated network
 // if it is no longer in use (indicated by in use tags).
-func (c *client) DisassociatePublicIPAddressIfNotInUse(csCluster *capcv1.CloudStackCluster) (retError error) {
-	if tagsAllowDisposal, err := c.DoClusterTagsAllowDisposal(ResourceTypeIPAddress, csCluster.Status.PublicIPID); err != nil {
+func (c *client) DisassociatePublicIPAddressIfNotInUse(isoNet *capcv1.CloudStackIsolatedNetwork) (retError error) {
+	if tagsAllowDisposal, err := c.DoClusterTagsAllowDisposal(ResourceTypeIPAddress, isoNet.Status.PublicIPID); err != nil {
 		return err
-	} else if publicIP, _, err := c.cs.Address.GetPublicIpAddressByID(csCluster.Status.PublicIPID); err != nil {
+	} else if publicIP, _, err := c.cs.Address.GetPublicIpAddressByID(isoNet.Status.PublicIPID); err != nil {
 		return err
 	} else if publicIP == nil || publicIP.Issourcenat { // Can't disassociate an address if it's the source NAT address.
 		return nil
 	} else if tagsAllowDisposal {
-		return c.DisassociatePublicIPAddress(csCluster)
+		return c.DisassociatePublicIPAddress(isoNet)
 	}
 	return nil
 }
 
 // DisassociatePublicIPAddress removes a CloudStack public IP association from passed isolated network.
-func (c *client) DisassociatePublicIPAddress(csCluster *capcv1.CloudStackCluster) (retErr error) {
+func (c *client) DisassociatePublicIPAddress(isoNet *capcv1.CloudStackIsolatedNetwork) (retErr error) {
 	// Remove the CAPC creation tag, so it won't be there the next time this address is associated.
-	retErr = c.DeleteCreatedByCAPCTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID)
+	retErr = c.DeleteCreatedByCAPCTag(ResourceTypeIPAddress, isoNet.Status.PublicIPID)
 	if retErr != nil {
 		return retErr
 	}
 
-	p := c.cs.Address.NewDisassociateIpAddressParams(csCluster.Status.PublicIPID)
+	p := c.cs.Address.NewDisassociateIpAddressParams(isoNet.Status.PublicIPID)
 	_, retErr = c.cs.Address.DisassociateIpAddress(p)
 	return retErr
 }
