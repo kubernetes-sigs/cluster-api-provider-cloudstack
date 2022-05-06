@@ -65,7 +65,7 @@ func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Conte
 func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.AffinityGroupFinalizer)
 	affinityGroup := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Spec.Name, Type: "host affinity"}
-	if err := r.CS.GetOrCreateAffinityGroup(affinityGroup); err != nil {
+	if err := r.CSClient.GetOrCreateAffinityGroup(affinityGroup); err != nil {
 		return ctrl.Result{}, err
 	}
 	r.ReconciliationSubject.Spec.ID = affinityGroup.ID
@@ -75,11 +75,11 @@ func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {
 
 func (r *CloudStackAGReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
 	group := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Name}
-	_ = r.CS.FetchAffinityGroup(group)
+	_ = r.CSClient.FetchAffinityGroup(group)
 	if group.ID == "" { // Affinity group not found, must have been deleted.
 		return ctrl.Result{}, nil
 	}
-	if err := r.CS.DeleteAffinityGroup(group); err != nil {
+	if err := r.CSClient.DeleteAffinityGroup(group); err != nil {
 		return ctrl.Result{}, err
 	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.AffinityGroupFinalizer)

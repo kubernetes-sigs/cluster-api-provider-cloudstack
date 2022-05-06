@@ -33,8 +33,8 @@ func (r *ReconciliationRunner) GenerateIsolatedNetwork(name string) CloudStackRe
 		csIsoNet.Spec.ControlPlaneEndpoint.Host = r.CSCluster.Spec.ControlPlaneEndpoint.Host
 		csIsoNet.Spec.ControlPlaneEndpoint.Port = r.CSCluster.Spec.ControlPlaneEndpoint.Port
 
-		if err := r.Client.Create(r.RequestCtx, csIsoNet); err != nil && !ContainsAlreadyExistsSubstring(err) {
-			return r.ReturnWrappedError(err, "error encountered when creating isolated network CRD")
+		if err := r.K8sClient.Create(r.RequestCtx, csIsoNet); err != nil && !ContainsAlreadyExistsSubstring(err) {
+			return r.ReturnWrappedError(err, "creating isolated network CRD:")
 		}
 		return ctrl.Result{}, nil
 	}

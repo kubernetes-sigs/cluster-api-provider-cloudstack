@@ -88,7 +88,7 @@ func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, re
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
-		r.RequeueIfMissingBaseCRDs,
+		r.RequeueIfMissingBaseCRs,
 		r.CreateZones(r.ReconciliationSubject.Spec.Zones),
 		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackZone")),
 		r.GetZones(r.Zones),
@@ -103,7 +103,7 @@ func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Re
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
 
 	// Create and or fetch cluster components.
-	err := r.CS.GetOrCreateCluster(r.ReconciliationSubject)
+	err := r.CSClient.GetOrCreateCluster(r.ReconciliationSubject)
 	if err == nil {
 		r.Log.Info("Fetched cluster info successfully.")
 		r.Log.V(1).Info("Post fetch cluster status.", "clusterStatus", r.ReconciliationSubject.Status)
@@ -146,13 +146,13 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 	}
 	if len(r.Zones.Items) > 0 {
 		for idx := range r.Zones.Items {
-			if err := r.Client.Delete(r.RequestCtx, &r.Zones.Items[idx]); err != nil {
+			if err := r.K8sClient.Delete(r.RequestCtx, &r.Zones.Items[idx]); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 		return r.RequeueWithMessage("Child Zones still present, requeueing.")
 	}
-	if err := r.CS.DisposeClusterResources(r.ReconciliationSubject); err != nil {
+	if err := r.CSClient.DisposeClusterResources(r.ReconciliationSubject); err != nil {
 		return ctrl.Result{}, err
 	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
@@ -186,7 +186,7 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 			},
 		).Build(reconciler)
 	if err != nil {
-		return errors.Wrap(err, "error encountered while building CloudStackCluster controller")
+		return errors.Wrap(err, "building CloudStackCluster controller:")
 	}
 
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
@@ -202,5 +202,5 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool { return false },
 			CreateFunc: func(e event.CreateEvent) bool { return false }})
-	return errors.Wrap(err, "error encountered while building CloudStackCluster controller")
+	return errors.Wrap(err, "building CloudStackCluster controller:")
 }

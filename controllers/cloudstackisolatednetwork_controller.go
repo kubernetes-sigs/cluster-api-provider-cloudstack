@@ -66,7 +66,7 @@ func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	if res, err := r.RequeueIfMissingBaseCRDs(); r.ShouldReturn(res, err) {
+	if res, err := r.RequeueIfMissingBaseCRs(); r.ShouldReturn(res, err) {
 		return res, err
 	}
 	if res, err := r.GetParent(r.ReconciliationSubject, r.Zone)(); r.ShouldReturn(res, err) {
@@ -76,19 +76,19 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 
 	// Setup isolated network, endpoint, egress, and load balancing.
 	// Set endpoint of CloudStackCluster if it is not currently set. (uses patcher to do so)
-	csClusterPatcher, err := patch.NewHelper(r.CSCluster, r.Client)
+	csClusterPatcher, err := patch.NewHelper(r.CSCluster, r.K8sClient)
 	if err != nil {
-		return r.ReturnWrappedError(retErr, "error encountered while setting up CloudStackCluster patcher")
+		return r.ReturnWrappedError(retErr, "setting up CloudStackCluster patcher:")
 	}
-	if err := r.CS.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+	if err := r.CSClient.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
 		return ctrl.Result{}, err
 	}
 	// Tag the created network.
-	if err := r.CS.AddClusterTag(cloud.ResourceTypeNetwork, r.ReconciliationSubject.Spec.ID, r.CSCluster); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "error encountered while tagging network with id: %s", r.ReconciliationSubject.Spec.ID)
+	if err := r.CSClient.AddClusterTag(cloud.ResourceTypeNetwork, r.ReconciliationSubject.Spec.ID, r.CSCluster); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "tagging network with id %s:", r.ReconciliationSubject.Spec.ID)
 	}
 	if err := csClusterPatcher.Patch(r.RequestCtx, r.CSCluster); err != nil {
-		return r.ReturnWrappedError(err, "error encountered when patching endpoint update to CloudStackCluster")
+		return r.ReturnWrappedError(err, "patching endpoint update to CloudStackCluster:")
 	}
 
 	r.ReconciliationSubject.Status.Ready = true
@@ -97,7 +97,7 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 
 func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
 	r.Log.Info("Deleting IsolatedNetwork.")
-	if err := r.CS.DisposeIsoNetResources(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+	if err := r.CSClient.DisposeIsoNetResources(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
 		if !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			return ctrl.Result{}, err
 		}

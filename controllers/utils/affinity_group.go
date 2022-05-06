@@ -34,7 +34,7 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 		lowerName := strings.ToLower(name)
 		namespace := r.ReconciliationSubject.GetNamespace()
 		objKey := client.ObjectKey{Namespace: namespace, Name: lowerName}
-		if err := r.Client.Get(r.RequestCtx, objKey, ag); client.IgnoreNotFound(err) != nil {
+		if err := r.K8sClient.Get(r.RequestCtx, objKey, ag); client.IgnoreNotFound(err) != nil {
 			return ctrl.Result{}, err
 		} else if ag.Name != "" {
 			return ctrl.Result{}, nil
@@ -59,8 +59,8 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 		ag.Name = name
 		ag.Spec.Name = name
 		ag.ObjectMeta = r.NewChildObjectMeta(lowerName)
-		if err := r.Client.Create(r.RequestCtx, ag); err != nil && !ContainsAlreadyExistsSubstring(err) {
-			return r.ReturnWrappedError(err, "error encountered when creating affinity group CRD")
+		if err := r.K8sClient.Create(r.RequestCtx, ag); err != nil && !ContainsAlreadyExistsSubstring(err) {
+			return r.ReturnWrappedError(err, "creating affinity group CRD:")
 		}
 		return ctrl.Result{}, nil
 	}

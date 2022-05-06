@@ -75,7 +75,7 @@ func (reconciler *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) e
 
 // Reconcile attempts to move the state of CRs to the requested state.
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-	if res, err := r.RequeueIfMissingBaseCRDs(); r.ShouldReturn(res, err) {
+	if res, err := r.RequeueIfMissingBaseCRs(); r.ShouldReturn(res, err) {
 		return res, err
 	}
 	// Prevent premature deletion.
@@ -83,12 +83,12 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 
 	r.Log.V(1).Info("Reconciling CloudStackZone.", "zoneSpec", r.ReconciliationSubject.Spec)
 	// Start by purely data fetching information about the zone and specified network.
-	if err := r.CS.ResolveZone(r.ReconciliationSubject); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "error encountered when resolving CloudStack zone information")
+	if err := r.CSClient.ResolveZone(r.ReconciliationSubject); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information:")
 	}
-	if err := r.CS.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
+	if err := r.CSClient.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
 		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
-		return ctrl.Result{}, errors.Wrap(err, "error encountered when resolving Cloudstack network information")
+		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information:")
 	}
 
 	// Address Isolated Networks.
@@ -123,7 +123,7 @@ func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Resu
 			return res, err
 		}
 		if r.IsoNet.Name != "" {
-			if err := r.Client.Delete(r.RequestCtx, r.IsoNet); err != nil {
+			if err := r.K8sClient.Delete(r.RequestCtx, r.IsoNet); err != nil {
 				return ctrl.Result{}, err
 			}
 			return r.RequeueWithMessage("Child IsolatedNetwork still present, requeueing.")

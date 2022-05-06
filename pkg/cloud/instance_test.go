@@ -126,7 +126,7 @@ var _ = Describe("Instance", func() {
 				Should(Succeed())
 		})
 
-		It("returns unknown errors encountered while fetching VM instance", func() {
+		It("returns unknown error while fetching VM instance", func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).Return(nil, -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(
 				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
@@ -150,7 +150,7 @@ var _ = Describe("Instance", func() {
 		})
 
 		const allFilter = "all"
-		It("returns errors encountered while fetching template", func() {
+		It("returns errors while fetching template", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
 				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
