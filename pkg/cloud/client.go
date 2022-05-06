@@ -34,6 +34,7 @@ type Client interface {
 	TagIface
 	ZoneIFace
 	IsoNetworkIface
+	UserCredIFace
 }
 
 type client struct {
