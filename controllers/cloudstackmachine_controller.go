@@ -241,7 +241,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 		Status:     infrav1.CloudStackMachineStateCheckerStatus{Ready: false},
 	}
 
-	if err := r.Client.Create(r.RequestCtx, csMachineStateChecker); err != nil && !csCtrlrUtils.ContainsAlreadyExistsSubstring(err) {
+	if err := r.K8sClient.Create(r.RequestCtx, csMachineStateChecker); err != nil && !csCtrlrUtils.ContainsAlreadyExistsSubstring(err) {
 		return r.ReturnWrappedError(err, "error encountered when creating CloudStackMachineStateChecker")
 	}
 

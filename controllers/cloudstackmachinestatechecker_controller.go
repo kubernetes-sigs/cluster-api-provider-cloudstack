@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -57,9 +57,9 @@ func NewCSMachineStateCheckerReconciliationRunner() *CloudStackMachineStateCheck
 	return runner
 }
 
-func (reconciler *CloudStackMachineStateCheckerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *CloudStackMachineStateCheckerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	return NewCSMachineStateCheckerReconciliationRunner().
-		UsingBaseReconciler(reconciler.ReconcilerBase).
+		UsingBaseReconciler(r.ReconcilerBase).
 		ForRequest(req).
 		WithRequestCtx(ctx).
 		RunBaseReconciliationStages()
@@ -73,13 +73,13 @@ func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Re
 		return res, err
 	}
 
-	if err := r.CS.ResolveVMInstanceDetails(r.CSMachine); err != nil {
+	if err := r.CSClient.ResolveVMInstanceDetails(r.CSMachine); err != nil {
 		return r.ReturnWrappedError(err, "failed to resolve VM instance details")
 	}
 	if r.CSMachine.Status.InstanceState == "Running" {
 		r.ReconciliationSubject.Status.Ready = true
 	} else {
-		if err := r.Client.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
+		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
 			return r.ReturnWrappedError(err, "failed to delete CAPI machine")
 		}
 	}
