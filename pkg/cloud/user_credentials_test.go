@@ -77,7 +77,21 @@ var _ = Describe("User Credentials", func() {
 		})
 
 		It("can get an arbitrary user with keys from domain and account specifications alone", func() {
-			Ω(client.ResolveUserKeys(&user)).Should(Succeed())
+			found, err := client.GetUserWithKeys(&user)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
+			Ω(user.APIKey).ShouldNot(BeEmpty())
+		})
+
+		It("can get create a new client as another user", func() {
+			found, err := client.GetUserWithKeys(&user)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
+			Ω(user.APIKey).ShouldNot(BeEmpty())
+			cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
+			newClient, err := client.NewClientFromSpec(cfg)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(newClient).ShouldNot(BeNil())
 		})
 	})
 })

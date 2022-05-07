@@ -27,6 +27,7 @@ type UserCredIFace interface {
 	ResolveAccount(*Account) error
 	ResolveUser(*User) error
 	ResolveUserKeys(*User) error
+	GetUserWithKeys(*User) (bool, error)
 }
 
 // Domain contains specifications that identify a domain.
@@ -186,10 +187,10 @@ func (c *client) ResolveUserKeys(user *User) error {
 
 // GetUserWithKeys will search a domain and account for the first user that has api keys.
 // Returns true if a user is found and false otherwise.
-func (c *client) GetUserWithKeys(user *User) (error, bool) {
+func (c *client) GetUserWithKeys(user *User) (bool, error) {
 	// Resolve account prior to any user resolution activity.
 	if err := c.ResolveAccount(&user.Account); err != nil {
-		return errors.Wrap(err, "error encountered when resolving account details"), false
+		return false, errors.Wrap(err, "error encountered when resolving account details")
 	}
 
 	// List users and take first user that has already has api keys.
@@ -199,16 +200,43 @@ func (c *client) GetUserWithKeys(user *User) (error, bool) {
 	p.SetListall(true)
 	resp, err := c.cs.User.ListUsers(p)
 	if err != nil {
-		return err, false
+		return false, err
 	}
 
 	// Return first user with keys.
 	for _, possibleUser := range resp.Users {
 		user.ID = possibleUser.Id
 		if err := c.ResolveUserKeys(user); err == nil {
-			return nil, true
+			return true, nil
 		}
 	}
 	user.ID = ""
-	return nil, false
+	return false, nil
+}
+
+// GetOrCreateUserWithKeys will search a domain and account for the first user that has api keys.
+// Creates a CAPC user if no such user is found.
+func (c *client) GetOrCreateUserWithKeys(user *User) error {
+	return nil
+}
+
+// CreateUserWithKeys will create a CloudStack user in the specified domain and account and generate API keyes for
+// said user.
+func (c *client) CreateUserWithKeys(user *User) error {
+	return nil
+}
+
+// SetupUserAPIKeys adds api keys to a specified user.
+func SetupUserAPIKeys() error {
+	return nil
+}
+
+// Create user creates a user in the specified account and domain.
+func (c *client) CreateUser(user *User) error {
+	return nil
+}
+
+// DeleteUser removes a user from CloudStack.
+func (c *client) DeleteUser(user *User) error {
+	return nil
 }
