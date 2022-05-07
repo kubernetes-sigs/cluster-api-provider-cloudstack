@@ -37,7 +37,6 @@ import (
 type CloudStackAGReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackAffinityGroup
-	CSUser                cloud.Client
 }
 
 // CloudStackAGReconciler is the base reconciler to adapt to k8s.
@@ -65,7 +64,7 @@ func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Conte
 func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.AffinityGroupFinalizer)
 	affinityGroup := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Spec.Name, Type: "host affinity"}
-	if err := r.CSClient.GetOrCreateAffinityGroup(affinityGroup); err != nil {
+	if err := r.CSUser.GetOrCreateAffinityGroup(affinityGroup); err != nil {
 		return ctrl.Result{}, err
 	}
 	r.ReconciliationSubject.Spec.ID = affinityGroup.ID
@@ -75,11 +74,11 @@ func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {
 
 func (r *CloudStackAGReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
 	group := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Name}
-	_ = r.CSClient.FetchAffinityGroup(group)
+	_ = r.CSUser.FetchAffinityGroup(group)
 	if group.ID == "" { // Affinity group not found, must have been deleted.
 		return ctrl.Result{}, nil
 	}
-	if err := r.CSClient.DeleteAffinityGroup(group); err != nil {
+	if err := r.CSUser.DeleteAffinityGroup(group); err != nil {
 		return ctrl.Result{}, err
 	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.AffinityGroupFinalizer)

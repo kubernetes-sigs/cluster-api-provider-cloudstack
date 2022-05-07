@@ -30,7 +30,6 @@ import (
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/pkg/errors"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -53,7 +52,6 @@ type CloudStackClusterReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	Zones                 *infrav1.CloudStackZoneList
 	ReconciliationSubject *infrav1.CloudStackCluster
-	CSUser                cloud.Client
 }
 
 // CloudStackClusterReconciler is the k8s controller manager's interface to reconcile a CloudStackCluster.
@@ -103,7 +101,7 @@ func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Re
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
 
 	// Create and or fetch cluster components.
-	err := r.CSClient.GetOrCreateCluster(r.ReconciliationSubject)
+	err := r.CSUser.GetOrCreateCluster(r.ReconciliationSubject)
 	if err == nil {
 		r.Log.Info("Fetched cluster info successfully.")
 		r.Log.V(1).Info("Post fetch cluster status.", "clusterStatus", r.ReconciliationSubject.Status)
@@ -152,7 +150,7 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 		}
 		return r.RequeueWithMessage("Child Zones still present, requeueing.")
 	}
-	if err := r.CSClient.DisposeClusterResources(r.ReconciliationSubject); err != nil {
+	if err := r.CSUser.DisposeClusterResources(r.ReconciliationSubject); err != nil {
 		return ctrl.Result{}, err
 	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
