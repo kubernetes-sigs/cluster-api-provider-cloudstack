@@ -26,7 +26,7 @@ case $1 in
         # Use grep to prevent double addition of ginkgo recover statements.
         grep -i ginkgo ${FILES} 2>&1> /dev/null \
             || (sed -i.bak '/Reconcile(/a\'$'\n'$'\t''defer ginkgo.GinkgoRecover()'$'\n''' ${FILES} && \
-                sed -i.bak '/^import (/a\'$'\n'$'\t''"github.com/onsi/ginkgo"'$'\n''' ${FILES} && \
+                sed -i.bak '/^import (/a\'$'\n'$'\t''"github.com/onsi/ginkgo/v2"'$'\n''' ${FILES} && \
                 rm ${CONTROLLER_DIR}/*.bak)
         ;;
     --remove)

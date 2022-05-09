@@ -21,7 +21,7 @@ import (
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

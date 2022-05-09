@@ -21,7 +21,7 @@ package e2e
 
 import (
 	"context"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("When testing multiple CPs in a shared network with kubevip", func() {

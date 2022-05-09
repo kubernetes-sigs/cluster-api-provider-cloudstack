@@ -29,7 +29,7 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/blang/semver"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 

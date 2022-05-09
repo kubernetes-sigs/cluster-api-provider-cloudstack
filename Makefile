@@ -143,7 +143,7 @@ bin/controller-gen: ## Install controller-gen to bin.
 bin/golangci-lint: ## Install golangci-lint to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
 bin/ginkgo: ## Install ginkgo to bin.
-	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/ginkgo@v1.16.5
+	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.4
 bin/mockgen:
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golang/mock/mockgen@v1.6.0
 bin/kustomize: ## Install kustomize to bin.
@@ -171,7 +171,7 @@ export KUBEBUILDER_ASSETS=$(PROJECT_DIR)/bin
 test: generate-mocks lint bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
-	@ginkgo -v ./api/... ./controllers/... ./pkg/... -coverprofile cover.out; EXIT_STATUS=$$?;\
+	@ginkgo -v ./api/... ./controllers/... ./pkg/... --cover -coverprofile cover.out; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 	
 .PHONY: generate-mocks

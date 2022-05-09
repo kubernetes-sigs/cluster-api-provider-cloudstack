@@ -21,7 +21,7 @@ package e2e
 
 import (
 	"context"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("When the specified resource does not exist", func() {
