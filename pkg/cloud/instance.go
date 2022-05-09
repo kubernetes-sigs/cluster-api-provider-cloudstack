@@ -30,13 +30,10 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-const antiAffinityValue = "anti"
-
 type VMIface interface {
-	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, string) error
+	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, *infrav1.CloudStackAffinityGroup, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
 	DestroyVMInstance(*infrav1.CloudStackMachine) error
-	AssignVMToLoadBalancerRule(*infrav1.CloudStackCluster, string) error
 }
 
 // Set infrastructure spec and status from the CloudStack API's virtual machine metrics type.
@@ -179,6 +176,8 @@ func (c *client) GetOrCreateVMInstance(
 	csMachine *infrav1.CloudStackMachine,
 	capiMachine *capiv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
+	zone *infrav1.CloudStackZone,
+	affinity *infrav1.CloudStackAffinityGroup,
 	userData string) error {
 
 	// Check if VM instance already exists.
@@ -202,8 +201,9 @@ func (c *client) GetOrCreateVMInstance(
 
 	// Create VM instance.
 	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csMachine.Status.ZoneID)
-	zone := csCluster.Status.Zones[csMachine.Status.ZoneID]
-	p.SetNetworkids([]string{zone.Network.ID})
+	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
+	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
+	p.SetNetworkids([]string{zone.Spec.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
@@ -219,22 +219,11 @@ func (c *client) GetOrCreateVMInstance(
 	if len(csMachine.Spec.AffinityGroupIDs) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIDs)
 	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
-		affinityType := AffinityGroupType
-		if strings.ToLower(csMachine.Spec.Affinity) == antiAffinityValue {
-			affinityType = AntiAffinityGroupType
-		}
-		name, err := csMachine.AffinityGroupName(capiMachine)
+		p.SetAffinitygroupids([]string{affinity.Spec.ID})
 		if err != nil {
 			return err
 		}
-		group := &AffinityGroup{Name: name, Type: affinityType}
-		if err := c.GetOrCreateAffinityGroup(csCluster, group); err != nil {
-			return err
-		}
-		p.SetAffinitygroupids([]string{group.ID})
 	}
-	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
-	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 
 	if csMachine.Spec.Details != nil {
 		p.SetDetails(csMachine.Spec.Details)
@@ -248,7 +237,7 @@ func (c *client) GetOrCreateVMInstance(
 		listVirtualMachineParams := c.cs.VirtualMachine.NewListVirtualMachinesParams()
 		listVirtualMachineParams.SetTemplateid(templateID)
 		listVirtualMachineParams.SetZoneid(csMachine.Status.ZoneID)
-		listVirtualMachineParams.SetNetworkid(zone.Network.ID)
+		listVirtualMachineParams.SetNetworkid(zone.Spec.Network.ID)
 		listVirtualMachineParams.SetName(csMachine.Name)
 		setIfNotEmpty(csCluster.Status.DomainID, listVirtualMachineParams.SetDomainid)
 		setIfNotEmpty(csCluster.Spec.Account, listVirtualMachineParams.SetAccount)
@@ -262,7 +251,6 @@ func (c *client) GetOrCreateVMInstance(
 	// Resolve uses a VM metrics request response to fill cloudstack machine status.
 	// The deployment response is insufficient.
 	return c.ResolveVMInstanceDetails(csMachine)
-
 }
 
 // DestroyVMInstance Destroys a VM instance. Assumes machine has been fetched prior and has an instance ID.

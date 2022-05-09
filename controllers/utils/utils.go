@@ -25,8 +25,9 @@ import (
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	capiControlPlanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientPkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -66,7 +67,7 @@ func getKubeadmControlPlaneFromCAPIMachine(
 	ctx context.Context,
 	client clientPkg.Client,
 	capiMachine *capiv1.Machine,
-) (*controlplanev1.KubeadmControlPlane, error) {
+) (*capiControlPlanev1.KubeadmControlPlane, error) {
 
 	ref := GetManagementOwnerRef(capiMachine)
 	if ref == nil {
@@ -76,13 +77,13 @@ func getKubeadmControlPlaneFromCAPIMachine(
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	if gv.Group == controlplanev1.GroupVersion.Group {
+	if gv.Group == capiControlPlanev1.GroupVersion.Group {
 		key := clientPkg.ObjectKey{
 			Namespace: capiMachine.Namespace,
 			Name:      ref.Name,
 		}
 
-		controlPlane := &controlplanev1.KubeadmControlPlane{}
+		controlPlane := &capiControlPlanev1.KubeadmControlPlane{}
 		if err := client.Get(ctx, key, controlPlane); err != nil {
 			return nil, err
 		}
@@ -132,4 +133,37 @@ func GetManagementOwnerRef(capiMachine *capiv1.Machine) *meta.OwnerReference {
 		return ref
 	}
 	return fetchOwnerRef(capiMachine.OwnerReferences, "EtcdadmCluster")
+}
+
+// GetOwnerOfKind returns the Cluster object owning the current resource of passed kind.
+func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned client.Object, owner client.Object) error {
+	gvks, _, err := c.Scheme().ObjectKinds(owner)
+	if err != nil {
+		return errors.Wrapf(err, "finding owner kind for %s/%s:", owned.GetName(), owned.GetNamespace())
+	} else if len(gvks) != 1 {
+		return errors.Errorf(
+			"found more than one GVK for owner when finding owner kind for %s/%s", owned.GetName(), owned.GetNamespace())
+	}
+	kind := gvks[0].Kind
+	for _, ref := range owned.GetOwnerReferences() {
+		if ref.Kind != kind {
+			continue
+		}
+		key := client.ObjectKey{Name: ref.Name, Namespace: owned.GetNamespace()}
+		if err := c.Get(ctx, key, owner); err != nil {
+			return errors.Wrapf(err, "finding owner of kind %s %s/%s:",
+				owner.GetObjectKind().GroupVersionKind().Kind, owner.GetNamespace(), owner.GetName())
+		}
+		return nil
+	}
+	return errors.Errorf("couldn't find owner of kind %s %s/%s",
+		owner.GetObjectKind().GroupVersionKind().Kind, owner.GetNamespace(), owner.GetName())
+}
+
+func ContainsNoMatchSubstring(err error) bool {
+	return strings.Contains(strings.ToLower(err.Error()), "no match")
+}
+
+func ContainsAlreadyExistsSubstring(err error) bool {
+	return strings.Contains(strings.ToLower(err.Error()), "already exists")
 }

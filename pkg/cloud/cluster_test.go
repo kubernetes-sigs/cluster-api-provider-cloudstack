@@ -16,8 +16,6 @@ limitations under the License.
 package cloud_test
 
 import (
-	"fmt"
-
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
@@ -25,7 +23,6 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 )
 
 var _ = Describe("Cluster", func() {
@@ -33,19 +30,15 @@ var _ = Describe("Cluster", func() {
 		client     cloud.Client
 		mockCtrl   *gomock.Controller
 		mockClient *csapi.CloudStackClient
-		zs         *csapi.MockZoneServiceIface
 		ds         *csapi.MockDomainServiceIface
 		as         *csapi.MockAccountServiceIface
-		ns         *csapi.MockNetworkServiceIface
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = csapi.NewMockClient(mockCtrl)
-		zs = mockClient.Zone.(*csapi.MockZoneServiceIface)
 		ds = mockClient.Domain.(*csapi.MockDomainServiceIface)
 		as = mockClient.Account.(*csapi.MockAccountServiceIface)
-		ns = mockClient.Network.(*csapi.MockNetworkServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
 		dummies.SetDummyDomainAndAccount()
@@ -57,32 +50,12 @@ var _ = Describe("Cluster", func() {
 	})
 
 	Context("an existing abstract dummies.CSCluster", func() {
-		It("handles zone not found.", func() {
-			expectedErr := fmt.Errorf("Not found")
-			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return("", -1, expectedErr)
-			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(nil, -1, expectedErr)
-
-			err := client.GetOrCreateCluster(dummies.CSCluster)
-			Expect(errors.Cause(err)).To(MatchError(expectedErr))
-		})
-
-		It("handles multiple zone IDs returned", func() {
-			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 2, nil)
-			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(nil, -1, fmt.Errorf("Not found"))
-
-			Ω(client.GetOrCreateCluster(dummies.CSCluster)).Should(MatchError(And(
-				ContainSubstring("expected 1 Zone with name "+dummies.Zone1.Name+", but got 2"),
-				ContainSubstring("could not get Zone by ID "+dummies.Zone1.ID+": Not found"))))
-		})
 
 		It("resolves domain and account when both are specified", func() {
-			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
-			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
 			ds.EXPECT().NewListDomainsParams().Return(dummies.ListDomainsParams)
 			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainsResp, nil)
 			as.EXPECT().NewListAccountsParams().Return(dummies.ListAccountsParams)
 			as.EXPECT().ListAccounts(dummies.ListAccountsParams).Return(dummies.ListAccountsResp, nil)
-			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
 			// Limit test to single zone.
 			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
 			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
@@ -92,13 +65,10 @@ var _ = Describe("Cluster", func() {
 		})
 
 		It("resolves domain when ROOT domain is specified", func() {
-			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
-			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
 			ds.EXPECT().NewListDomainsParams().Return(dummies.ListDomainsParams)
 			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainsResp, nil)
 			as.EXPECT().NewListAccountsParams().Return(dummies.ListAccountsParams)
 			as.EXPECT().ListAccounts(dummies.ListAccountsParams).Return(dummies.ListAccountsResp, nil)
-			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
 
 			// Limit test to single zone.
 			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
@@ -111,17 +81,10 @@ var _ = Describe("Cluster", func() {
 		})
 
 		It("resolves domain when domain is a fully qualified name", func() {
-			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
-			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
 			ds.EXPECT().NewListDomainsParams().Return(dummies.ListDomainsParams)
 			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainsResp, nil)
 			as.EXPECT().NewListAccountsParams().Return(dummies.ListAccountsParams)
 			as.EXPECT().ListAccounts(dummies.ListAccountsParams).Return(dummies.ListAccountsResp, nil)
-			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
-
-			// Limit test to single zone.
-			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
-			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
 
 			dummies.CSCluster.Spec.Domain = dummies.Level2Domain
 
@@ -130,17 +93,10 @@ var _ = Describe("Cluster", func() {
 		})
 
 		It("fails to resolve domain when domain path does not match", func() {
-			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
-			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
 			ds.EXPECT().NewListDomainsParams().Return(dummies.ListDomainsParams)
 			ds.EXPECT().ListDomains(dummies.ListDomainsParams).Return(dummies.ListDomainsResp, nil)
 			as.EXPECT().NewListAccountsParams().Return(dummies.ListAccountsParams)
 			as.EXPECT().ListAccounts(dummies.ListAccountsParams).Return(dummies.ListAccountsResp, nil)
-			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
-
-			// Limit test to single zone.
-			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
-			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
 
 			dummies.CSCluster.Spec.Domain = dummies.Level2Domain
 
@@ -148,15 +104,7 @@ var _ = Describe("Cluster", func() {
 			Ω(dummies.CSCluster.Status.DomainID).Should(Equal(dummies.Level2DomainID))
 		})
 
-		It("resolves domain and account when none are specified", func() {
-			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil)
-			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil)
-			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil)
-
-			// Limit test to single zone.
-			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
-			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
-
+		It("doesn't fail when none are specified", func() {
 			dummies.CSCluster.Spec.Domain = ""
 			dummies.CSCluster.Spec.Account = ""
 
@@ -165,14 +113,6 @@ var _ = Describe("Cluster", func() {
 		})
 
 		It("fails when only one of domain or account is specified", func() {
-			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 1, nil).AnyTimes()
-			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(dummies.CAPCZoneToCSAPIZone(&dummies.Zone1), 1, nil).AnyTimes()
-			ns.EXPECT().GetNetworkByName(dummies.Net1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.Net1), 1, nil).AnyTimes()
-
-			// Limit test to single zone.
-			dummies.CSCluster.Spec.Zones = []capcv1.Zone{dummies.Zone1}
-			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
-
 			domainBackup := dummies.CSCluster.Spec.Domain
 			dummies.CSCluster.Spec.Domain = ""
 

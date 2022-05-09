@@ -22,7 +22,6 @@ import (
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const rootDomain = "ROOT"
@@ -51,8 +50,10 @@ func (c *client) ResolveZones(csCluster *infrav1.CloudStackCluster) (retErr erro
 			return multierror.Append(retErr, errors.Errorf(
 				"expected 1 Zone with UUID %s, but got %d", specZone.ID, count))
 		} else {
-			csCluster.Status.Zones[resp.Id] = infrav1.Zone{
-				Name: resp.Name, ID: resp.Id, Network: specZone.Network}
+			zone := infrav1.Zone{Network: specZone.Network}
+			zone.Name = resp.Name
+			zone.ID = resp.Id
+			csCluster.Status.Zones[resp.Id] = zone
 		}
 	}
 
@@ -63,27 +64,9 @@ func (c *client) GetOrCreateCluster(csCluster *infrav1.CloudStackCluster) (retEr
 	if csCluster.Status.Zones == nil {
 		csCluster.Status.Zones = make(map[string]infrav1.Zone)
 	}
-	if retErr = c.ResolveZones(csCluster); retErr != nil {
-		return errors.Wrapf(retErr, "error resolving Zone details for Cluster %s", csCluster.Name)
-	}
-
-	csCluster.Status.FailureDomains = capiv1.FailureDomains{}
-	for _, zone := range csCluster.Status.Zones {
-		csCluster.Status.FailureDomains[zone.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
-	}
 
 	if retErr := c.ResolveDomainAndAccount(csCluster); retErr != nil {
 		return retErr
-	}
-
-	// Get current network statuses.
-	// CAPC only modifies networks in the single isolated network case.
-	if retErr = c.ResolveNetworkStatuses(csCluster); retErr != nil {
-		return retErr
-	}
-
-	if UsesIsolatedNetwork(csCluster) {
-		return c.GetOrCreateIsolatedNetwork(csCluster)
 	}
 
 	return nil
@@ -129,30 +112,17 @@ func (c *client) ResolveDomainAndAccount(csCluster *infrav1.CloudStackCluster) e
 		listAccountResp, retErr := c.cs.Account.ListAccounts(listAccountParams)
 		if retErr != nil {
 			return retErr
-		} else if listAccountResp.Count != 1 {
+		} else if listAccountResp.Count == 0 {
+			return errors.Errorf("could not find account %s in domain ID %s",
+				csCluster.Spec.Account, csCluster.Status.DomainID)
+		} else if listAccountResp.Count > 1 {
 			return errors.Errorf("expected 1 Account with account name %s in domain ID %s, but got %d",
-				csCluster.Spec.Account, csCluster.Status.DomainID, resp.Count)
+				csCluster.Spec.Account, csCluster.Status.DomainID, listAccountResp.Count)
 		}
 	}
 	return nil
 }
 
 func (c *client) DisposeClusterResources(csCluster *infrav1.CloudStackCluster) (retError error) {
-	if csCluster.Status.PublicIPID != "" {
-		if err := c.DeleteClusterTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID, csCluster); err != nil {
-			return err
-		}
-		if err := c.DisassociatePublicIPAddressIfNotInUse(csCluster); err != nil {
-			return err
-		}
-	}
-	for _, zone := range csCluster.Status.Zones {
-		if err := c.RemoveClusterTagFromNetwork(csCluster, zone.Network); err != nil {
-			return err
-		}
-		if err := c.DeleteNetworkIfNotInUse(csCluster, zone.Network); err != nil {
-			return err
-		}
-	}
 	return nil
 }
