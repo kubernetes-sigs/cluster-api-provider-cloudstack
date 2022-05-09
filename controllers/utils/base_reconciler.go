@@ -234,11 +234,11 @@ func (r *ReconciliationRunner) SetCSUser() (ctrl.Result, error) {
 				r.CSCluster.Spec.Domain, r.CSCluster.Spec.Account)
 		}
 		cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
-		if client, err := r.CSClient.NewClientFromSpec(cfg); err != nil {
+		client, err := r.CSClient.NewClientFromSpec(cfg)
+		if err != nil {
 			return ctrl.Result{}, err
-		} else {
-			r.CSUser = client
 		}
+		r.CSUser = client
 	}
 	return ctrl.Result{}, nil
 }

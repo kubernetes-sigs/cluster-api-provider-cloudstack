@@ -235,6 +235,5 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 		return err
 	}
 
-	return nil
 	return errors.New("VM deletion in progress")
 }

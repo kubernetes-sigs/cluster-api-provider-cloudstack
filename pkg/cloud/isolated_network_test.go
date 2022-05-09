@@ -229,7 +229,6 @@ var _ = Describe("Network", func() {
 			dummies.SetDummyIsoNetToNameOnly()
 			dummies.SetClusterSpecToNet(&dummies.ISONet1)
 			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""
-			Ω(client.ResolveZones(dummies.CSCluster)).Should(Succeed())
 			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 		})
 	})
