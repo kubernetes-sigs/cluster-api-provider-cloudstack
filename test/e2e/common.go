@@ -440,3 +440,18 @@ func IsClusterReady(ctx context.Context, mgmtClient client.Client, cluster *clus
 	Expect(err).To(BeNil(), "Failed to get cluster status")
 	return c.Status.ControlPlaneReady && c.Status.InfrastructureReady
 }
+
+func CheckDiskOfferingOfVmInstances(clusterName string, diskOfferingName string) {
+	client := createCloudStackClient()
+
+	Byf("Listing machines with %q", clusterName)
+	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+	if err != nil {
+		Fail("Failed to list machines")
+	}
+	for _, vm := range listResp.VirtualMachines {
+		if strings.Contains(vm.Name, clusterName) {
+			Expect(vm.Diskofferingname).To(Equal(diskOfferingName))
+		}
+	}
+}

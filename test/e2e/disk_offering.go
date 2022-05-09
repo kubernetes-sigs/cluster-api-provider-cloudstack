@@ -39,6 +39,7 @@ func DiskOfferingSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
+		diskOfferingName = "Small"
 	)
 
 	BeforeEach(func() {
@@ -80,6 +81,8 @@ func DiskOfferingSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		}, clusterResources)
 
 		By("PASSED!")
+
+		CheckDiskOfferingOfVmInstances(clusterResources.Cluster.Name, diskOfferingName)
 	})
 
 	AfterEach(func() {
