@@ -5,8 +5,8 @@ go 1.16
 require (
 	github.com/apache/cloudstack-go/v2 v2.12.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.17.0
+	github.com/onsi/ginkgo/v2 v2.1.4
+	github.com/onsi/gomega v1.19.0
 	gopkg.in/ini.v1 v1.63.2
 	k8s.io/api v0.23.0
 	k8s.io/apimachinery v0.23.0
