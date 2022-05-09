@@ -27,22 +27,24 @@ import (
 //go:generate mockgen -destination=../mocks/mock_client.go -package=mocks github.com/aws/cluster-api-provider-cloudstack/pkg/cloud Client
 
 type Client interface {
-	ClusterIface
 	VMIface
 	NetworkIface
 	AffinityGroupIface
 	TagIface
 	ZoneIFace
 	IsoNetworkIface
+	UserCredIFace
+	NewClientFromSpec(Config) (Client, error)
 }
 
 type client struct {
 	cs      *cloudstack.CloudStackClient
 	csAsync *cloudstack.CloudStackClient
+	config  Config
 }
 
 // cloud-config ini structure.
-type config struct {
+type Config struct {
 	APIURL    string `ini:"api-url"`
 	APIKey    string `ini:"api-key"`
 	SecretKey string `ini:"secret-key"`
@@ -50,27 +52,49 @@ type config struct {
 }
 
 func NewClient(ccPath string) (Client, error) {
-	c := &client{}
-	cfg := &config{VerifySSL: true}
+	c := &client{config: Config{VerifySSL: true}}
 	if rawCfg, err := ini.Load(ccPath); err != nil {
 		return nil, errors.Wrapf(err, "reading config at path %s:", ccPath)
 	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
 		return nil, errors.New("section Global not found")
-	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
+	} else if err = rawCfg.Section("Global").StrictMapTo(&c.config); err != nil {
 		return nil, errors.Wrapf(err, "parsing [Global] section from config at path %s:", ccPath)
 	}
 
 	// The client returned from NewAsyncClient works in a synchronous way. On the other hand,
 	// a client returned from NewClient works in an asynchronous way. Dive into the constructor definition
 	// comments for more details
-	c.cs = cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
-	c.csAsync = cloudstack.NewClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+	c.cs = cloudstack.NewAsyncClient(c.config.APIURL, c.config.APIKey, c.config.SecretKey, c.config.VerifySSL)
+	c.csAsync = cloudstack.NewClient(c.config.APIURL, c.config.APIKey, c.config.SecretKey, c.config.VerifySSL)
 
 	_, err := c.cs.APIDiscovery.ListApis(c.cs.APIDiscovery.NewListApisParams())
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
 		return c, errors.Wrap(err, "timeout while checking CloudStack API Client connectivity")
 	}
 	return c, errors.Wrap(err, "checking CloudStack API Client connectivity:")
+}
+
+// NewClientFromSpec generates a new client from an existing client.
+// Unless the passed config contains a new API URL the original one will be used.
+// VerifySSL will be set to true if either the old or new configs is true.
+func (origC *client) NewClientFromSpec(cfg Config) (Client, error) {
+	newC := &client{config: cfg}
+	newC.config.VerifySSL = cfg.VerifySSL || origC.config.VerifySSL // Prefer the most secure setting given.
+	if newC.config.APIURL == "" {
+		newC.config.APIURL = origC.config.APIURL
+	}
+
+	// The client returned from NewAsyncClient works in a synchronous way. On the other hand,
+	// a client returned from NewClient works in an asynchronous way. Dive into the constructor definition
+	// comments for more details
+	newC.cs = cloudstack.NewAsyncClient(newC.config.APIURL, newC.config.APIKey, newC.config.SecretKey, newC.config.VerifySSL)
+	newC.csAsync = cloudstack.NewClient(newC.config.APIURL, newC.config.APIKey, newC.config.SecretKey, newC.config.VerifySSL)
+
+	_, err := newC.cs.APIDiscovery.ListApis(newC.cs.APIDiscovery.NewListApisParams())
+	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
+		return newC, errors.Wrap(err, "timeout while checking CloudStack API Client connectivity")
+	}
+	return newC, errors.Wrap(err, "checking CloudStack API Client connectivity:")
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {

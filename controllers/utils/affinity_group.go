@@ -22,6 +22,7 @@ import (
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,6 +41,7 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 			return ctrl.Result{}, nil
 		} // Didn't find a group, so create instead.
 
+		// Set affinity group type.
 		if affinityType == infrav1.ProAffinity {
 			ag.Spec.Type = "host affinity"
 		} else if affinityType == infrav1.AntiAffinity {
@@ -47,18 +49,22 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 		} else {
 			return ctrl.Result{}, errors.Errorf("unrecognized affinity type %s", affinityType)
 		}
-		ag.Spec.Name = name
 
+		// Setup basic metadata.
+		ag.Name = name
+		ag.Spec.Name = name
+		ag.ObjectMeta = r.NewChildObjectMeta(lowerName)
+
+		// Replace owner reference with controller of CAPI and CloudStack machines.
 		for _, ref := range r.ReconciliationSubject.GetOwnerReferences() {
-			if ref.Kind == "EtcdadmCluster" || ref.Kind == "KubeadmControlPlane" || ref.Kind == "MachineSet" {
-				ag.OwnerReferences = append(ag.OwnerReferences, ref)
+			if strings.EqualFold(ref.Kind, "EtcdadmCluster") ||
+				strings.EqualFold(ref.Kind, "KubeadmControlPlane") ||
+				strings.EqualFold(ref.Kind, "MachineSet") {
+				ag.OwnerReferences = []metav1.OwnerReference{ref}
 				break
 			}
 		}
 
-		ag.Name = name
-		ag.Spec.Name = name
-		ag.ObjectMeta = r.NewChildObjectMeta(lowerName)
 		if err := r.K8sClient.Create(r.RequestCtx, ag); err != nil && !ContainsAlreadyExistsSubstring(err) {
 			return r.ReturnWrappedError(err, "creating affinity group CRD:")
 		}
