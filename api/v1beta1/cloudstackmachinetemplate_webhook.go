@@ -97,6 +97,7 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 
 	errorList := field.ErrorList(nil)
 	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.Offering.ID, spec.Offering.Name, oldSpec.Offering.ID, oldSpec.Offering.Name, "offering", errorList)
+	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.DiskOffering.ID, spec.DiskOffering.Name, oldSpec.DiskOffering.ID, oldSpec.DiskOffering.Name, "diskOffering", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
 	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.Template.ID, spec.Template.Name, oldSpec.Template.ID, oldSpec.Template.Name, "template", errorList)
 	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&spec.Details, &oldSpec.Details, "details", errorList)

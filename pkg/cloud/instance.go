@@ -135,6 +135,41 @@ func (c *client) ResolveTemplate(
 	return templateID, nil
 }
 
+// ResolveDiskOffering Retrieves diskOffering by using disk offering ID if ID is provided and confirm returned
+// disk offering name matches name provided in spec.
+// If disk offering ID is not provided, the disk offering name is used to retrieve disk offering ID.
+func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine) (diskOfferingID string, retErr error) {
+	if len(csMachine.Spec.DiskOffering.ID) > 0 {
+		csDiskOffering, count, err := c.cs.DiskOffering.GetDiskOfferingByID(csMachine.Spec.DiskOffering.ID)
+		if err != nil {
+			return "", multierror.Append(retErr, errors.Wrapf(
+				err, "could not get DiskOffering by ID %s", csMachine.Spec.DiskOffering.ID))
+		} else if count != 1 {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"expected 1 DiskOffering with UUID %s, but got %d", csMachine.Spec.DiskOffering.ID, count))
+		}
+
+		if len(csMachine.Spec.DiskOffering.Name) > 0 && csMachine.Spec.DiskOffering.Name != csDiskOffering.Name {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"diskOffering name %s does not match name %s returned using UUID %s",
+				csMachine.Spec.DiskOffering.Name, csDiskOffering.Name, csMachine.Spec.DiskOffering.ID))
+		}
+		return csMachine.Spec.DiskOffering.ID, nil
+	}
+	if len(csMachine.Spec.DiskOffering.Name) == 0 {
+		return "", nil
+	}
+	diskID, count, err := c.cs.DiskOffering.GetDiskOfferingID(csMachine.Spec.DiskOffering.Name)
+	if err != nil {
+		return "", multierror.Append(retErr, errors.Wrapf(
+			err, "could not get DiskOffering ID from %s", csMachine.Spec.DiskOffering.Name))
+	} else if count != 1 {
+		return "", multierror.Append(retErr, errors.Errorf(
+			"expected 1 DiskOffering with name %s, but got %d", csMachine.Spec.DiskOffering.Name, count))
+	}
+	return diskID, nil
+}
+
 // GetOrCreateVMInstance CreateVMInstance will fetch or create a VM instance, and
 // sets the infrastructure machine spec and status accordingly.
 func (c *client) GetOrCreateVMInstance(
@@ -159,6 +194,10 @@ func (c *client) GetOrCreateVMInstance(
 	if err != nil {
 		return err
 	}
+	diskOfferingID, err := c.ResolveDiskOffering(csMachine)
+	if err != nil {
+		return err
+	}
 
 	// Create VM instance.
 	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csMachine.Status.ZoneID)
@@ -167,6 +206,7 @@ func (c *client) GetOrCreateVMInstance(
 	p.SetNetworkids([]string{zone.Spec.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
+	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
 
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
@@ -218,7 +258,12 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 
 	// Attempt deletion regardless of machine state.
 	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
+	volIDs, err := c.listVMInstanceVolumeIDs(*csMachine.Spec.InstanceID)
+	if err != nil {
+		return err
+	}
 	p.SetExpunge(true)
+	setArrayIfNotEmpty(volIDs, p.SetVolumeids)
 	if _, err := c.csAsync.VirtualMachine.DestroyVirtualMachine(p); err != nil &&
 		strings.Contains(strings.ToLower(err.Error()), "unable to find uuid for id") {
 		// VM doesn't exist. Success...
@@ -240,4 +285,22 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 	}
 
 	return errors.New("VM deletion in progress")
+}
+
+func (c *client) listVMInstanceVolumeIDs(instanceID string) ([]string, error) {
+	p := c.cs.Volume.NewListVolumesParams()
+	p.SetVirtualmachineid(instanceID)
+
+	listVOLResp, err := c.csAsync.Volume.ListVolumes(p)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []string
+	for _, vol := range listVOLResp.Volumes {
+		ret = append(ret, vol.Id)
+	}
+
+	return ret, nil
+
 }
