@@ -31,10 +31,10 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// SharedNetworkKubevipSpec implements a test that verifies that multiple ControlPlanes work in a shared network with kubevip.
-func SharedNetworkKubevipSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
+// DiskOfferingSpec implements a test that verifies creating a cluster with a disk offering
+func DiskOfferingSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
-		specName         = "shared-network-kubevip"
+		specName         = "disk-offering"
 		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
@@ -56,7 +56,7 @@ func SharedNetworkKubevipSpec(ctx context.Context, inputGetter func() CommonSpec
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should successfully create a cluster with multiple CPs in a shared network", func() {
+	It("Should successfully create a cluster with disk offering", func() {
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -71,7 +71,7 @@ func SharedNetworkKubevipSpec(ctx context.Context, inputGetter func() CommonSpec
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64Ptr(3),
+				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),

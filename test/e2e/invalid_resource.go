@@ -81,6 +81,10 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 		testInvalidResource(ctx, input, "invalid-zone", "No match found for "+input.E2EConfig.GetVariable(InvalidZoneName))
 	})
 
+	It("Should fail due to the specified disk offering is not found", func() {
+		testInvalidResource(ctx, input, "invalid-disk-offering", "could not get DiskOffering ID from "+input.E2EConfig.GetVariable(InvalidDiskOfferingName))
+	})
+
 	It("Should fail due to the compute resources are not sufficient for the specified offering [TC8]", func() {
 		testInvalidResource(ctx, input, "insufficient-compute-resources", "Unable to create a deployment for VM")
 	})
