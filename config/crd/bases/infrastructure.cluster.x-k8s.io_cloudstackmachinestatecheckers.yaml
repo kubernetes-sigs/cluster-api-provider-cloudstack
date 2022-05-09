@@ -35,8 +35,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: CloudStackMachineStateCheckerSpec defines the desired state
-              of CloudStackMachineStateChecker
+            description: CloudStackMachineStateCheckerSpec
             properties:
               instanceID:
                 description: CloudStack machine instance ID

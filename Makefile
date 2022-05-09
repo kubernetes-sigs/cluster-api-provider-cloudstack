@@ -114,10 +114,11 @@ vet: ## Run go vet on the whole project.
 	go vet ./...
 
 .PHONY: lint
-lint: bin/golangci-lint generate-mocks ## Run linting for the project.
+lint: bin/golangci-lint bin/staticcheck generate-mocks ## Run linting for the project.
 	go fmt ./...
 	go vet ./...
 	golangci-lint run -v --timeout 360s ./...
+	staticcheck ./...
 	@ # The below string of commands checks that ginkgo isn't present in the controllers.
 	@(grep ginkgo ${PROJECT_DIR}/controllers/cloudstack*_controller.go && \
 		echo "Remove ginkgo from controllers. This is probably an artifact of testing." \
@@ -137,11 +138,13 @@ undeploy: bin/kustomize ## Undeploy controller from the K8s cluster specified in
 ##@ Binaries
 
 .PHONY: binaries
-binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/mockgen bin/kubectl ## Locally install all needed bins.
+binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/staticcheck bin/mockgen bin/kubectl ## Locally install all needed bins.
 bin/controller-gen: ## Install controller-gen to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
 bin/golangci-lint: ## Install golangci-lint to bin.
-	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
+	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+bin/staticcheck: ## Install staticcheck to bin.
+	GOBIN=$(PROJECT_DIR)/bin go install honnef.co/go/tools/cmd/staticcheck@latest
 bin/ginkgo: ## Install ginkgo to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/ginkgo@v1.16.5
 bin/mockgen:

@@ -138,7 +138,7 @@ func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result
 	return ctrl.Result{}, nil
 }
 
-// ReconcileDelete cleans up resources used by the cluster and finaly removes the CloudStackCluster's finalizers.
+// ReconcileDelete cleans up resources used by the cluster and finally removes the CloudStackCluster's finalizers.
 func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
 	r.Log.Info("Deleting CloudStackCluster.")
 	if res, err := r.GetZones(r.Zones)(); r.ShouldReturn(res, err) {

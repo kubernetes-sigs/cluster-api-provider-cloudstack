@@ -35,7 +35,6 @@ import (
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
-	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -49,7 +48,7 @@ import (
 
 // CloudStackMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack machine reconciliation.
 type CloudStackMachineReconciliationRunner struct {
-	csCtrlrUtils.ReconciliationRunner
+	utils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackMachine
 	CAPIMachine           *capiv1.Machine
 	StateChecker          *infrav1.CloudStackMachineStateChecker
@@ -62,7 +61,7 @@ type CloudStackMachineReconciliationRunner struct {
 
 // CloudStackMachineReconciler reconciles a CloudStackMachine object
 type CloudStackMachineReconciler struct {
-	csCtrlrUtils.ReconcilerBase
+	utils.ReconcilerBase
 }
 
 // Initialize a new CloudStackMachine reconciliation runner with concrete types and initialized member fields.
@@ -76,7 +75,7 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 	r.AffinityGroup = &infrav1.CloudStackAffinityGroup{}
 	r.FailureDomain = &infrav1.CloudStackZone{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	r.ReconciliationRunner = utils.NewRunner(r, r.ReconciliationSubject)
 	return r
 }
 
@@ -113,7 +112,7 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 		return ctrl.Result{}, nil
 	}
 
-	agName, err := csCtrlrUtils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
+	agName, err := utils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
 	if err != nil {
 		r.Log.Info("getting affinity group name:", err)
 	}
@@ -242,7 +241,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 		Status:     infrav1.CloudStackMachineStateCheckerStatus{Ready: false},
 	}
 
-	if err := r.K8sClient.Create(r.RequestCtx, csMachineStateChecker); err != nil && !csCtrlrUtils.ContainsAlreadyExistsSubstring(err) {
+	if err := r.K8sClient.Create(r.RequestCtx, csMachineStateChecker); err != nil && !utils.ContainsAlreadyExistsSubstring(err) {
 		return r.ReturnWrappedError(err, "error encountered when creating CloudStackMachineStateChecker")
 	}
 
