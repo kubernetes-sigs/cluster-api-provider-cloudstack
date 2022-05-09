@@ -130,7 +130,7 @@ func (c *client) ResolveDomain(domain *Domain) error {
 func (c *client) ResolveAccount(account *Account) error {
 	// Resolve domain prior to any account resolution activity.
 	if err := c.ResolveDomain(&account.Domain); err != nil {
-		return errors.Wrap(err, "error encountered when resolving domain details")
+		return errors.Wrapf(err, "resolving domain %s details:", account.Domain.Name)
 	}
 
 	p := c.cs.Account.NewListAccountsParams()
@@ -153,7 +153,7 @@ func (c *client) ResolveAccount(account *Account) error {
 func (c *client) ResolveUser(user *User) error {
 	// Resolve account prior to any user resolution activity.
 	if err := c.ResolveAccount(&user.Account); err != nil {
-		return errors.Wrap(err, "error encountered when resolving account details")
+		return errors.Wrapf(err, "resolving account %s details", user.Account.Name)
 	}
 
 	p := c.cs.User.NewListUsersParams()
@@ -195,7 +195,7 @@ func (c *client) ResolveUserKeys(user *User) error {
 func (c *client) GetUserWithKeys(user *User) (bool, error) {
 	// Resolve account prior to any user resolution activity.
 	if err := c.ResolveAccount(&user.Account); err != nil {
-		return false, errors.Wrap(err, "error encountered when resolving account details")
+		return false, errors.Wrapf(err, "resolving account %s details", user.Account.Name)
 	}
 
 	// List users and take first user that has already has api keys.
