@@ -22,6 +22,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	rootDomain      = "ROOT"
+	domainDelimiter = "/"
+)
+
 type UserCredIFace interface {
 	ResolveDomain(*Domain) error
 	ResolveAccount(*Account) error
@@ -65,10 +70,10 @@ func (c *client) ResolveDomain(domain *Domain) error {
 			domain.Name = tokens[len(tokens)-1]
 		}
 		// Ensure the path begins with ROOT.
-		if !strings.EqualFold(tokens[0], "root") {
-			tokens = append([]string{"ROOT"}, tokens...)
+		if !strings.EqualFold(tokens[0], rootDomain) {
+			tokens = append([]string{rootDomain}, tokens...)
 		} else {
-			tokens[0] = "ROOT"
+			tokens[0] = rootDomain
 			domain.Path = strings.Join(tokens, domainDelimiter)
 		}
 	}
@@ -79,7 +84,7 @@ func (c *client) ResolveDomain(domain *Domain) error {
 	setIfNotEmpty(domain.Name, p.SetName)
 	setIfNotEmpty(domain.ID, p.SetId)
 
-	// If path was provided also use level to search for domain.
+	// If path was provided also use level narrow the search for domain.
 	if level := len(tokens) - 1; level >= 0 {
 		p.SetLevel(level)
 	}
@@ -196,7 +201,7 @@ func (c *client) GetUserWithKeys(user *User) (bool, error) {
 	// List users and take first user that has already has api keys.
 	p := c.cs.User.NewListUsersParams()
 	p.SetAccount(user.Account.Name)
-	p.SetDomainid(user.Domain.ID)
+	setIfNotEmpty(user.Account.Domain.ID, p.SetDomainid)
 	p.SetListall(true)
 	resp, err := c.cs.User.ListUsers(p)
 	if err != nil {
@@ -212,31 +217,4 @@ func (c *client) GetUserWithKeys(user *User) (bool, error) {
 	}
 	user.ID = ""
 	return false, nil
-}
-
-// GetOrCreateUserWithKeys will search a domain and account for the first user that has api keys.
-// Creates a CAPC user if no such user is found.
-func (c *client) GetOrCreateUserWithKeys(user *User) error {
-	return nil
-}
-
-// CreateUserWithKeys will create a CloudStack user in the specified domain and account and generate API keyes for
-// said user.
-func (c *client) CreateUserWithKeys(user *User) error {
-	return nil
-}
-
-// SetupUserAPIKeys adds api keys to a specified user.
-func SetupUserAPIKeys() error {
-	return nil
-}
-
-// Create user creates a user in the specified account and domain.
-func (c *client) CreateUser(user *User) error {
-	return nil
-}
-
-// DeleteUser removes a user from CloudStack.
-func (c *client) DeleteUser(user *User) error {
-	return nil
 }

@@ -27,7 +27,6 @@ import (
 //go:generate mockgen -destination=../mocks/mock_client.go -package=mocks github.com/aws/cluster-api-provider-cloudstack/pkg/cloud Client
 
 type Client interface {
-	ClusterIface
 	VMIface
 	NetworkIface
 	AffinityGroupIface

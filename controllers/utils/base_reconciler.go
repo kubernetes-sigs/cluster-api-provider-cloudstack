@@ -225,15 +225,13 @@ func (r *ReconciliationRunner) SetCSUser() (ctrl.Result, error) {
 	r.CSUser = r.CSClient
 	if r.CSCluster.Spec.Account != "" {
 		user := &cloud.User{}
-		user.Account.Domain.Name = r.CSCluster.Spec.Domain
-		user.Account.Domain.ID = r.CSCluster.Spec.Domain
+		user.Account.Domain.Path = r.CSCluster.Spec.Domain
 		user.Account.Name = r.CSCluster.Spec.Account
-		user.Account.ID = r.CSCluster.Spec.Account
 		if found, err := r.CSClient.GetUserWithKeys(user); err != nil {
 			return ctrl.Result{}, err
 		} else if !found {
 			return ctrl.Result{}, errors.Errorf("could not find sufficient user (with API keys) in domain/account %s/%s",
-				r.CSCluster.Spec.Account, r.CSCluster.Spec.Domain)
+				r.CSCluster.Spec.Domain, r.CSCluster.Spec.Account)
 		}
 		cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
 		if client, err := r.CSClient.NewClientFromSpec(cfg); err != nil {

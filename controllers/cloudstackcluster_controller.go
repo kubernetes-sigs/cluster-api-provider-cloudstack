@@ -92,24 +92,14 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 		r.GetZones(r.Zones),
 		r.VerifyZoneCRDs,
 		r.SetFailureDomains,
-		r.ResolveClusterDetails)
+		r.SetReady)
 }
 
-// ResolveClusterDetails fetches cluster specific details like domain and account IDs.
-func (r *CloudStackClusterReconciliationRunner) ResolveClusterDetails() (ctrl.Result, error) {
-	// Ensure that CAPI won't prematurely delete this CloudStackCluster.
+// SetReady adds a finalizer and sets the cluster status to ready.
+func (r *CloudStackClusterReconciliationRunner) SetReady() (ctrl.Result, error) {
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
-
-	// Create and or fetch cluster components.
-	err := r.CSUser.GetOrCreateCluster(r.ReconciliationSubject)
-	if err == nil {
-		r.Log.Info("Fetched cluster info successfully.")
-		r.Log.V(1).Info("Post fetch cluster status.", "clusterStatus", r.ReconciliationSubject.Status)
-
-		// Set cluster to ready to indicate readiness to CAPI.
-		r.ReconciliationSubject.Status.Ready = true
-	}
-	return ctrl.Result{}, err
+	r.ReconciliationSubject.Status.Ready = true
+	return ctrl.Result{}, nil
 }
 
 // CheckZoneDetails verifies the Zone CRDs found match against those requested.
@@ -149,9 +139,6 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 			}
 		}
 		return r.RequeueWithMessage("Child Zones still present, requeueing.")
-	}
-	if err := r.CSUser.DisposeClusterResources(r.ReconciliationSubject); err != nil {
-		return ctrl.Result{}, err
 	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
 	return ctrl.Result{}, nil

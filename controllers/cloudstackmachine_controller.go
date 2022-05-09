@@ -117,7 +117,7 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 		return res, err
 	}
 	if !r.AffinityGroup.Status.Ready {
-		return r.RequeueWithMessage("Required afinity group not ready.")
+		return r.RequeueWithMessage("Required affinity group not ready.")
 	}
 	return ctrl.Result{}, nil
 }
@@ -230,7 +230,10 @@ func (r *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.R
 
 func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
 	r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
-	if err := r.CSUser.DestroyVMInstance(r.ReconciliationSubject); err != nil {
+	// Use CSClient instead of CSUser here to expunge as admin.
+	// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
+	// non-domain admin user.
+	if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
 		if err.Error() == "VM deletion in progress" {
 			r.Log.Info(err.Error())
 			return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
