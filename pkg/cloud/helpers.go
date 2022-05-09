@@ -23,10 +23,17 @@ import (
 )
 
 type set func(string)
+type setArray func([]string)
 
 func setIfNotEmpty(str string, setFn set) {
 	if str != "" {
 		setFn(str)
+	}
+}
+
+func setArrayIfNotEmpty(strArray []string, setFn setArray) {
+	if len(strArray) > 0 {
+		setFn(strArray)
 	}
 }
 

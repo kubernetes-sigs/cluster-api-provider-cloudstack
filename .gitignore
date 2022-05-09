@@ -11,6 +11,7 @@ nginx.conf
 nginx.conf.bak
 
 pkg/mocks/*
+pkg/cloud/gomock_reflect_*
 !pkg/mocks/.keep
 
 # Various build/test artifacts.

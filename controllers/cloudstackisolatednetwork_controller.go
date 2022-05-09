@@ -39,7 +39,7 @@ type CloudStackIsoNetReconciler struct {
 	csCtrlrUtils.ReconcilerBase
 }
 
-// CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+// CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack isolated network reconciliation.
 type CloudStackIsoNetReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	Zone                  *infrav1.CloudStackZone

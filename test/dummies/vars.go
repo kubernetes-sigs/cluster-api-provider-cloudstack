@@ -59,6 +59,24 @@ var ( // Declare exported dummy vars.
 	ListDomainsResp    *csapi.ListDomainsResponse
 	ListAccountsParams *csapi.ListAccountsParams
 	ListAccountsResp   *csapi.ListAccountsResponse
+	DiskOffering1      = capcv1.CloudStackResourceDiskOffering{
+		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
+			Name: "Small",
+		},
+		MountPath:  "/data",
+		Device:     "/dev/vdb",
+		Filesystem: "ext4",
+		Label:      "data_disk",
+	}
+	DiskOffering2 = capcv1.CloudStackResourceDiskOffering{
+		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
+			Name: "Medium",
+		},
+		MountPath:  "/data",
+		Device:     "/dev/vdb",
+		Filesystem: "ext4",
+		Label:      "data_disk",
+	}
 )
 
 // SetDummyVars sets/resets all dummy vars.
@@ -133,6 +151,15 @@ func SetDummyCSMachineTemplateVars() {
 					Offering: capcv1.CloudStackResourceIdentifier{
 						Name: "Offering",
 					},
+					DiskOffering: capcv1.CloudStackResourceDiskOffering{
+						CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
+							Name: "DiskOffering",
+						},
+						MountPath:  "/data",
+						Device:     "/dev/vdb",
+						Filesystem: "ext4",
+						Label:      "data_disk",
+					},
 					Details: map[string]string{
 						"memoryOvercommitRatio": "1.2",
 					},
@@ -164,6 +191,15 @@ func SetDummyCSMachineVars() {
 			},
 			Offering: capcv1.CloudStackResourceIdentifier{
 				Name: "Offering",
+			},
+			DiskOffering: capcv1.CloudStackResourceDiskOffering{
+				CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
+					Name: "DiskOffering",
+				},
+				MountPath:  "/data",
+				Device:     "/dev/vdb",
+				Filesystem: "ext4",
+				Label:      "data_disk",
 			},
 			AffinityGroupIDs: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
 			Details: map[string]string{

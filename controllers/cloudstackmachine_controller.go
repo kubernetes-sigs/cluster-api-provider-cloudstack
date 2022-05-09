@@ -47,11 +47,12 @@ import (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
 
-// CloudStackMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackCluster reconciliation.
+// CloudStackMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack machine reconciliation.
 type CloudStackMachineReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackMachine
 	CAPIMachine           *capiv1.Machine
+	StateChecker          *infrav1.CloudStackMachineStateChecker
 	Zones                 *infrav1.CloudStackZoneList
 	FailureDomain         *infrav1.CloudStackZone
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
@@ -68,6 +69,7 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 	// Set concrete type and init pointers.
 	r := &CloudStackMachineReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachine{}}
 	r.CAPIMachine = &capiv1.Machine{}
+	r.StateChecker = &infrav1.CloudStackMachineStateChecker{}
 	r.Zones = &infrav1.CloudStackZoneList{}
 	r.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
 	r.AffinityGroup = &infrav1.CloudStackAffinityGroup{}
@@ -97,7 +99,9 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		r.GetObjectByName("placeholder", r.IsoNet, func() string { return r.FailureDomain.Spec.Network.Name }),
 		r.GetOrCreateVMInstance,
 		r.RequeueIfInstanceNotRunning,
-		r.AddToLBIfNeeded) // AddToLBIfNeeded can move to IsoNet controller with a nice watch someday.
+		r.AddToLBIfNeeded,
+		r.GetOrCreateMachineStateChecker,
+	)
 }
 
 // ConsiderAffinity sets machine affinity if needed. It also creates or gets an affinity group CRD if required and
@@ -226,6 +230,22 @@ func (r *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.R
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+// GetOrCreateMachineStateChecker creates or gets CloudStackMachineStateChecker object.
+func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker() (retRes ctrl.Result, reterr error) {
+	checkerName := r.ReconciliationSubject.Spec.InstanceID
+	csMachineStateChecker := &infrav1.CloudStackMachineStateChecker{
+		ObjectMeta: r.NewChildObjectMeta(*checkerName),
+		Spec:       infrav1.CloudStackMachineStateCheckerSpec{InstanceID: *checkerName},
+		Status:     infrav1.CloudStackMachineStateCheckerStatus{Ready: false},
+	}
+
+	if err := r.K8sClient.Create(r.RequestCtx, csMachineStateChecker); err != nil && !csCtrlrUtils.ContainsAlreadyExistsSubstring(err) {
+		return r.ReturnWrappedError(err, "error encountered when creating CloudStackMachineStateChecker")
+	}
+
+	return r.GetObjectByName(*checkerName, r.StateChecker)()
 }
 
 func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
