@@ -20,4 +20,4 @@ jobs:
       - name: Codecov upload
         uses: codecov/codecov-action@v3.1.0
         with:
-          files: ./coverage.txt
+          files: ./cover.out
