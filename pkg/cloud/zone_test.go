@@ -42,7 +42,6 @@ var _ = Describe("Cluster", func() {
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
 		dummies.SetDummyDomainAndAccount()
-		dummies.SetDummyCSApiResponse()
 	})
 
 	AfterEach(func() {

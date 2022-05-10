@@ -27,13 +27,20 @@ var ( // Declare exported dummy vars.
 	Net2               capcv1.Network
 	ISONet1            capcv1.Network
 	CSISONet1          *capcv1.CloudStackIsolatedNetwork
-	Domain             string
+	Domain             cloud.Domain
+	DomainPath         string
+	DomainName         string
 	DomainID           string
-	RootDomain         string
-	RootDomainID       string
-	Level2Domain       string
+	Level2Domain       cloud.Domain
+	Level2DomainPath   string
+	Level2DomainName   string
 	Level2DomainID     string
-	Account            string
+	Account            cloud.Account
+	AccountName        string
+	AccountID          string
+	Level2Account      cloud.Account
+	Level2AccountName  string
+	Level2AccountID    string
 	Tags               map[string]string
 	Tag1               map[string]string
 	Tag2               map[string]string
@@ -55,10 +62,6 @@ var ( // Declare exported dummy vars.
 	PublicIPID         string
 	EndPointHost       string
 	EndPointPort       int32
-	ListDomainsParams  *csapi.ListDomainsParams
-	ListDomainsResp    *csapi.ListDomainsResponse
-	ListAccountsParams *csapi.ListAccountsParams
-	ListAccountsResp   *csapi.ListAccountsResponse
 	DiskOffering1      = capcv1.CloudStackResourceDiskOffering{
 		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
 			Name: "Small",
@@ -224,13 +227,16 @@ func SetDummyZoneVars() {
 // SetDummyCAPCClusterVars resets the values in each of the exported CloudStackCluster related dummy variables.
 // It is intended to be called in BeforeEach() functions.
 func SetDummyCAPCClusterVars() {
-	Domain = "FakeDomainName"
+	DomainName = "FakeDomainName"
 	DomainID = "FakeDomainID"
-	Level2Domain = "foo/FakeDomainName"
+	Domain = cloud.Domain{Name: DomainName, ID: DomainID}
+	Level2DomainName = "foo/FakeDomainName"
 	Level2DomainID = "FakeLevel2DomainID"
-	RootDomain = "ROOT"
-	RootDomainID = "FakeRootDomainID"
-	Account = "FakeAccountName"
+	Level2Domain = cloud.Domain{Name: Level2DomainName, ID: Level2DomainID}
+	AccountName = "FakeAccountName"
+	Account = cloud.Account{Name: AccountName, Domain: Domain}
+	AccountName = "FakeLevel2AccountName"
+	Level2Account = cloud.Account{Name: Level2AccountName, Domain: Level2Domain}
 	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta1"
 	CSClusterKind = "CloudStackCluster"
 	CSClusterName = "test-cluster"
@@ -275,10 +281,16 @@ func SetDummyCAPCClusterVars() {
 	CSISONet1.Spec.ID = ISONet1.ID
 }
 
-// SetDummyDomainAndAccount sets domain and account in the CSCluster Spec. This is not the default.
+// SetClusterDummyDomainAndAccount sets domain and account in the CSCluster Spec. This is not the default.
+func SetClusterDummyDomainAndAccount() {
+	CSCluster.Spec.Account = AccountName
+	CSCluster.Spec.Domain = DomainPath
+}
+
+// SetClusterDummyDomainAndAccount sets domain and account in the CSCluster Spec. This is not the default.
 func SetDummyDomainAndAccount() {
-	CSCluster.Spec.Account = Account
-	CSCluster.Spec.Domain = Domain
+	CSCluster.Spec.Account = AccountName
+	CSCluster.Spec.Domain = DomainPath
 }
 
 // SetDummyDomainAndAccount sets domainID in the CSCluster Status. This is not the default.
@@ -329,16 +341,4 @@ func SetDummyCAPIMachineVars() {
 
 func SetDummyCSMachineStatuses() {
 	CSMachine1.Status = capcv1.CloudStackMachineStatus{ZoneID: Zone1.ID}
-}
-
-func SetDummyCSApiResponse() {
-	ListDomainsParams = &csapi.ListDomainsParams{}
-	ListDomainsResp = &csapi.ListDomainsResponse{}
-	ListDomainsResp.Count = 1
-	ListDomainsResp.Domains = []*csapi.Domain{{Id: DomainID, Path: "ROOT/" + Domain}, {Id: RootDomainID, Path: "ROOT"}, {Id: Level2DomainID, Path: "ROOT/" + Level2Domain}}
-
-	ListAccountsParams = &csapi.ListAccountsParams{}
-	ListAccountsResp = &csapi.ListAccountsResponse{}
-	ListAccountsResp.Count = 1
-	ListAccountsResp.Accounts = []*csapi.Account{{Name: Account}}
 }
