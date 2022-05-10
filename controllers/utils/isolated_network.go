@@ -24,6 +24,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+func (r *ReconciliationRunner) IsoNetMetaName(name string) string {
+	return fmt.Sprintf("%s-%s", r.CSCluster.Name, strings.ToLower(name))
+}
+
 // GenerateIsolatedNetwork of the passed name that's owned by the ReconciliationSubject.
 func (r *ReconciliationRunner) GenerateIsolatedNetwork(name string) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
