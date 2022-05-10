@@ -52,7 +52,6 @@ type CloudStackMachineReconciliationRunner struct {
 	ReconciliationSubject *infrav1.CloudStackMachine
 	CAPIMachine           *capiv1.Machine
 	StateChecker          *infrav1.CloudStackMachineStateChecker
-	CSUser                cloud.Client
 	Zones                 *infrav1.CloudStackZoneList
 	FailureDomain         *infrav1.CloudStackZone
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
@@ -121,7 +120,7 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 		return res, err
 	}
 	if !r.AffinityGroup.Status.Ready {
-		return r.RequeueWithMessage("Required afinity group not ready.")
+		return r.RequeueWithMessage("Required affinity group not ready.")
 	}
 	return ctrl.Result{}, nil
 }
@@ -190,7 +189,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
-	err := r.CSClient.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data))
+	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data))
 
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
@@ -224,7 +223,7 @@ func (r *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.R
 		if r.IsoNet.Spec.Name == "" {
 			return r.RequeueWithMessage("Could not get required Isolated Network for VM, requeueing.")
 		}
-		err := r.CSClient.AssignVMToLoadBalancerRule(r.IsoNet, *r.ReconciliationSubject.Spec.InstanceID)
+		err := r.CSUser.AssignVMToLoadBalancerRule(r.IsoNet, *r.ReconciliationSubject.Spec.InstanceID)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -250,6 +249,9 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 
 func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
 	r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
+	// Use CSClient instead of CSUser here to expunge as admin.
+	// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
+	// non-domain admin user.
 	if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
 		if err.Error() == "VM deletion in progress" {
 			r.Log.Info(err.Error())

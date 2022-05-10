@@ -68,6 +68,7 @@ type ReconciliationRunner struct {
 	returnEarly           bool          // A signal that the reconcile should return early.
 	ReconcileDelete       CloudStackReconcilerMethod
 	Reconcile             CloudStackReconcilerMethod
+	CSUser                cloud.Client
 }
 
 type ConcreteRunner interface {
@@ -219,6 +220,29 @@ func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness(gvks ...schema.GroupVe
 	}
 }
 
+// SetCSUser sets the CSUser client to any user that can operate in specified domain and account if specified.
+func (r *ReconciliationRunner) SetCSUser() (ctrl.Result, error) {
+	r.CSUser = r.CSClient
+	if r.CSCluster.Spec.Account != "" {
+		user := &cloud.User{}
+		user.Account.Domain.Path = r.CSCluster.Spec.Domain
+		user.Account.Name = r.CSCluster.Spec.Account
+		if found, err := r.CSClient.GetUserWithKeys(user); err != nil {
+			return ctrl.Result{}, err
+		} else if !found {
+			return ctrl.Result{}, errors.Errorf("could not find sufficient user (with API keys) in domain/account %s/%s",
+				r.CSCluster.Spec.Domain, r.CSCluster.Spec.Account)
+		}
+		cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
+		client, err := r.CSClient.NewClientFromSpec(cfg)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		r.CSUser = client
+	}
+	return ctrl.Result{}, nil
+}
+
 // RequeueIfCloudStackClusterNotReady requeues the reconciliation request if the CloudStackCluster is not ready.
 func (r *ReconciliationRunner) RequeueIfCloudStackClusterNotReady() (ctrl.Result, error) {
 	if !r.CSCluster.Status.Ready {
@@ -303,6 +327,8 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 		r.GetReconciliationSubject,
 		r.GetCAPICluster,
 		r.GetCSCluster,
+		r.RequeueIfMissingBaseCRs,
+		r.SetCSUser,
 		r.IfDeletionTimestampIsZero(r.Reconcile),
 		r.Else(r.ReconcileDelete),
 	)

@@ -44,7 +44,6 @@ type CloudStackIsoNetReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	Zone                  *infrav1.CloudStackZone
 	ReconciliationSubject *infrav1.CloudStackIsolatedNetwork
-	CSUser                cloud.Client
 }
 
 // Initialize a new CloudStackIsoNet reconciliation runner with concrete types and initialized member fields.
@@ -80,11 +79,11 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 	if err != nil {
 		return r.ReturnWrappedError(retErr, "setting up CloudStackCluster patcher")
 	}
-	if err := r.CSClient.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+	if err := r.CSUser.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
 		return ctrl.Result{}, err
 	}
 	// Tag the created network.
-	if err := r.CSClient.AddClusterTag(cloud.ResourceTypeNetwork, r.ReconciliationSubject.Spec.ID, r.CSCluster); err != nil {
+	if err := r.CSUser.AddClusterTag(cloud.ResourceTypeNetwork, r.ReconciliationSubject.Spec.ID, r.CSCluster); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "tagging network with id %s", r.ReconciliationSubject.Spec.ID)
 	}
 	if err := csClusterPatcher.Patch(r.RequestCtx, r.CSCluster); err != nil {
@@ -97,7 +96,7 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 
 func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
 	r.Log.Info("Deleting IsolatedNetwork.")
-	if err := r.CSClient.DisposeIsoNetResources(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+	if err := r.CSUser.DisposeIsoNetResources(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
 		if !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			return ctrl.Result{}, err
 		}
