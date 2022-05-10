@@ -83,9 +83,6 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 		})
 		It("Associates an affinity group.", func() {
-			if err := client.GetOrCreateCluster(dummies.CSCluster); err != nil {
-				Skip("Could not flesh out Cluster." + err.Error())
-			}
 			if err := client.GetOrCreateVMInstance(
 				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "",
 			); err != nil {

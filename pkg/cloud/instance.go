@@ -109,7 +109,7 @@ func (c *client) ResolveTemplate(
 	zoneID string,
 ) (templateID string, retErr error) {
 	if len(csMachine.Spec.Template.ID) > 0 {
-		csTemplate, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template.ID, "all")
+		csTemplate, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template.ID, "executable")
 		if err != nil {
 			return "", multierror.Append(retErr, errors.Wrapf(
 				err, "could not get Template by ID %s", csMachine.Spec.Template.ID))
@@ -124,7 +124,7 @@ func (c *client) ResolveTemplate(
 		}
 		return csMachine.Spec.Template.ID, nil
 	}
-	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template.Name, "all", zoneID)
+	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template.Name, "executable", zoneID)
 	if err != nil {
 		return "", multierror.Append(retErr, errors.Wrapf(
 			err, "could not get Template ID from %s", csMachine.Spec.Template.Name))
@@ -201,8 +201,6 @@ func (c *client) GetOrCreateVMInstance(
 
 	// Create VM instance.
 	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csMachine.Status.ZoneID)
-	setIfNotEmpty(csCluster.Spec.Account, p.SetAccount)
-	setIfNotEmpty(csCluster.Status.DomainID, p.SetDomainid)
 	p.SetNetworkids([]string{zone.Spec.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
@@ -239,8 +237,6 @@ func (c *client) GetOrCreateVMInstance(
 		listVirtualMachineParams.SetZoneid(csMachine.Status.ZoneID)
 		listVirtualMachineParams.SetNetworkid(zone.Spec.Network.ID)
 		listVirtualMachineParams.SetName(csMachine.Name)
-		setIfNotEmpty(csCluster.Status.DomainID, listVirtualMachineParams.SetDomainid)
-		setIfNotEmpty(csCluster.Spec.Account, listVirtualMachineParams.SetAccount)
 		if listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams); err2 == nil && listVirtualMachinesResponse.Count > 0 {
 			csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)
 		}
@@ -255,9 +251,8 @@ func (c *client) GetOrCreateVMInstance(
 
 // DestroyVMInstance Destroys a VM instance. Assumes machine has been fetched prior and has an instance ID.
 func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
-
 	// Attempt deletion regardless of machine state.
-	p := c.cs.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
+	p := c.csAsync.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
 	volIDs, err := c.listVMInstanceVolumeIDs(*csMachine.Spec.InstanceID)
 	if err != nil {
 		return err

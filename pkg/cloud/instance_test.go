@@ -18,6 +18,7 @@ package cloud_test
 
 import (
 	"fmt"
+
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
@@ -31,11 +32,15 @@ import (
 )
 
 var _ = Describe("Instance", func() {
+	const (
+		unknownErrorMessage = "unknown err"
+		offeringFakeID      = "123"
+		templateFakeID      = "456"
+		executableFilter    = "executable"
+		diskOfferingFakeID  = "789"
+	)
+
 	notFoundError := errors.New("no match found")
-	const unknownErrorMessage = "unknown err"
-	const offeringFakeID = "123"
-	const templateFakeID = "456"
-	const diskOfferingFakeID = "789"
 	unknownError := errors.New(unknownErrorMessage)
 
 	var (
@@ -153,12 +158,11 @@ var _ = Describe("Instance", func() {
 				ShouldNot(Succeed())
 		})
 
-		const allFilter = "all"
 		It("returns errors while fetching template", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
 				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
-			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
+			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).
 				Return("", -1, unknownError)
 			Ω(client.GetOrCreateVMInstance(
 				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
@@ -169,7 +173,7 @@ var _ = Describe("Instance", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
 				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
-			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).Return("", 2, nil)
+			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return("", 2, nil)
 			Ω(client.GetOrCreateVMInstance(
 				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
 				ShouldNot(Succeed())
@@ -179,7 +183,7 @@ var _ = Describe("Instance", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
 				Return(offeringFakeID, 1, nil)
-			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
+			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).
 				Return(templateFakeID, 1, nil)
 			dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).
 				Return(diskOfferingFakeID, 1, nil)
@@ -192,38 +196,6 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
 				Should(MatchError(unknownErrorMessage))
 		})
-
-		// The folloing test checks that DomainID and Account are set (or not) in the DeployVirtualMachineParams
-		// interface passed to DeployVirtualMachine.
-		describeDomainAccountTest := func(desc string) func(string, string) string {
-			return func(account string, domainID string) string {
-				return fmt.Sprintf(`"%s" and "%s", %s`, account, domainID, desc)
-			}
-		}
-		DescribeTable("DomainID and Account test table.",
-			func(account string, domainID string) {
-				dummies.CSCluster.Spec.Account = account
-				dummies.CSCluster.Status.DomainID = domainID
-				vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).Return(nil, -1, notFoundError)
-				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
-					Return(templateFakeID, 1, nil)
-				vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
-					Return(&cloudstack.VirtualMachinesMetric{}, 1, nil)
-				vms.EXPECT().NewDeployVirtualMachineParams(offeringFakeID, templateFakeID, dummies.Zone1.ID).
-					Return(&cloudstack.DeployVirtualMachineParams{})
-				vms.EXPECT().DeployVirtualMachine(ParamMatch(And(AccountEquals(account), DomainIDEquals(domainID)))).
-					Return(&cloudstack.DeployVirtualMachineResponse{Id: *dummies.CSMachine1.Spec.InstanceID}, nil)
-				vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(nil, -1, notFoundError)
-
-				Ω(client.GetOrCreateVMInstance(
-					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
-					Should(Succeed())
-			},
-			Entry(describeDomainAccountTest("all set case"), "FakeAccount", "FakeDomainID"),
-			Entry(describeDomainAccountTest("empty case"), "", ""),
-		)
 
 		Context("when using UUIDs and/or names to locate service offerings and templates", func() {
 			BeforeEach(func() {
@@ -256,7 +228,7 @@ var _ = Describe("Instance", func() {
 
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
 				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
 
 				ActionAndAssert()
@@ -270,7 +242,7 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.DiskOffering = v1beta1.CloudStackResourceDiskOffering{}
 
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
 
 				ActionAndAssert()
@@ -283,9 +255,9 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = "template"
 
 				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: ""}, 1, nil)
-				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, allFilter, dummies.Zone1.ID).
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
 
 				ActionAndAssert()
 			})
@@ -297,8 +269,8 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = ""
 
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, executableFilter).Return(&cloudstack.Template{Name: ""}, 1, nil)
 				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: ""}, 1, nil)
 
 				ActionAndAssert()
 			})
@@ -309,9 +281,12 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Offering.Name = ""
 				dummies.CSMachine1.Spec.Template.Name = ""
 
-				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
-				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: "template"}, 1, nil)
+				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).
+					Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).
+					Return(diskOfferingFakeID, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, executableFilter).
+					Return(&cloudstack.Template{Name: "template"}, 1, nil)
 
 				ActionAndAssert()
 			})
@@ -323,8 +298,8 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = "template"
 
 				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, executableFilter).Return(&cloudstack.Template{Name: "template"}, 1, nil)
 				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: "template"}, 1, nil)
 
 				ActionAndAssert()
 			})
@@ -357,7 +332,7 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.Name = "template"
 
 				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
-				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, allFilter).Return(&cloudstack.Template{Name: "template-not-match"}, 1, nil)
+				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, executableFilter).Return(&cloudstack.Template{Name: "template-not-match"}, 1, nil)
 				requiredRegexp := "template name %s does not match name %s returned using UUID %s"
 				Ω(client.GetOrCreateVMInstance(
 					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
