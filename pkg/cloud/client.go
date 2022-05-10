@@ -94,7 +94,7 @@ func (origC *client) NewClientFromSpec(cfg Config) (Client, error) {
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
 		return newC, errors.Wrap(err, "timeout while checking CloudStack API Client connectivity")
 	}
-	return newC, errors.Wrap(err, "checking CloudStack API Client connectivity:")
+	return newC, errors.Wrap(err, "checking CloudStack API Client connectivity")
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {

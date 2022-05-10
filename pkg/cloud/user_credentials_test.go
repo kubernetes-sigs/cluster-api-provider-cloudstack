@@ -44,7 +44,7 @@ var _ = Describe("User Credentials", func() {
 
 		BeforeEach(func() {
 			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
-				Skip(errors.Wrapf(connectionErr, "Could not connect to ACS instance.").Error())
+				Skip(errors.Wrapf(connectionErr, "Could not connect to ACS instance").Error())
 			}
 
 			// Settup dummies.
