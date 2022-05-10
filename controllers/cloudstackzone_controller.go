@@ -96,7 +96,7 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 		netName := r.ReconciliationSubject.Spec.Network.Name
 		if res, err := r.GenerateIsolatedNetwork(netName)(); r.ShouldReturn(res, err) {
 			return res, err
-		} else if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
+		} else if res, err := r.GetObjectByName(r.IsoNetMetaName(netName), r.IsoNet)(); r.ShouldReturn(res, err) {
 			return res, err
 		}
 		if r.IsoNet.Name == "" {
