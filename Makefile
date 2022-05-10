@@ -142,7 +142,7 @@ binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/stat
 bin/controller-gen: ## Install controller-gen to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
 bin/golangci-lint: ## Install golangci-lint to bin.
-	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.0
 bin/staticcheck: ## Install staticcheck to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install honnef.co/go/tools/cmd/staticcheck@latest
 bin/ginkgo: ## Install ginkgo to bin.
