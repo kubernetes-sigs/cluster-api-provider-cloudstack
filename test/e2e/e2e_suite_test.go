@@ -93,8 +93,7 @@ func TestE2E(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 
-	junitReporter := framework.CreateJUnitReporterForProw(artifactFolder)
-	RunSpecsWithDefaultAndCustomReporters(t, "capi-e2e", []Reporter{junitReporter})
+	RunSpecs(t, "capi-e2e")
 }
 
 // Using a SynchronizedBeforeSuite for controlling how to create resources shared across ParallelNodes (~ginkgo threads).
