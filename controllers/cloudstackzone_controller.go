@@ -84,11 +84,11 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 	r.Log.V(1).Info("Reconciling CloudStackZone.", "zoneSpec", r.ReconciliationSubject.Spec)
 	// Start by purely data fetching information about the zone and specified network.
 	if err := r.CSClient.ResolveZone(r.ReconciliationSubject); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information:")
+		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information")
 	}
 	if err := r.CSClient.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
 		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
-		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information:")
+		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information")
 	}
 
 	// Address Isolated Networks.

@@ -138,7 +138,7 @@ func GetManagementOwnerRef(capiMachine *capiv1.Machine) *meta.OwnerReference {
 func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned clientPkg.Object, owner clientPkg.Object) error {
 	gvks, _, err := c.Scheme().ObjectKinds(owner)
 	if err != nil {
-		return errors.Wrapf(err, "finding owner kind for %s/%s:", owned.GetName(), owned.GetNamespace())
+		return errors.Wrapf(err, "finding owner kind for %s/%s", owned.GetName(), owned.GetNamespace())
 	} else if len(gvks) != 1 {
 		return errors.Errorf(
 			"found more than one GVK for owner when finding owner kind for %s/%s", owned.GetName(), owned.GetNamespace())
@@ -150,7 +150,7 @@ func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned clientPkg.Obj
 		}
 		key := clientPkg.ObjectKey{Name: ref.Name, Namespace: owned.GetNamespace()}
 		if err := c.Get(ctx, key, owner); err != nil {
-			return errors.Wrapf(err, "finding owner of kind %s %s/%s:",
+			return errors.Wrapf(err, "finding owner of kind %s %s/%s",
 				owner.GetObjectKind().GroupVersionKind().Kind, owner.GetNamespace(), owner.GetName())
 		}
 		return nil

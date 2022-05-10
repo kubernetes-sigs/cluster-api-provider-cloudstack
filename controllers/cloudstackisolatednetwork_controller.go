@@ -78,17 +78,17 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 	// Set endpoint of CloudStackCluster if it is not currently set. (uses patcher to do so)
 	csClusterPatcher, err := patch.NewHelper(r.CSCluster, r.K8sClient)
 	if err != nil {
-		return r.ReturnWrappedError(retErr, "setting up CloudStackCluster patcher:")
+		return r.ReturnWrappedError(retErr, "setting up CloudStackCluster patcher")
 	}
 	if err := r.CSClient.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
 		return ctrl.Result{}, err
 	}
 	// Tag the created network.
 	if err := r.CSClient.AddClusterTag(cloud.ResourceTypeNetwork, r.ReconciliationSubject.Spec.ID, r.CSCluster); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "tagging network with id %s:", r.ReconciliationSubject.Spec.ID)
+		return ctrl.Result{}, errors.Wrapf(err, "tagging network with id %s", r.ReconciliationSubject.Spec.ID)
 	}
 	if err := csClusterPatcher.Patch(r.RequestCtx, r.CSCluster); err != nil {
-		return r.ReturnWrappedError(err, "patching endpoint update to CloudStackCluster:")
+		return r.ReturnWrappedError(err, "patching endpoint update to CloudStackCluster")
 	}
 
 	r.ReconciliationSubject.Status.Ready = true

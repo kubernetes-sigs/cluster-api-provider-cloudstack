@@ -53,11 +53,11 @@ func NewClient(ccPath string) (Client, error) {
 	c := &client{}
 	cfg := &config{VerifySSL: true}
 	if rawCfg, err := ini.Load(ccPath); err != nil {
-		return nil, errors.Wrapf(err, "reading config at path %s:", ccPath)
+		return nil, errors.Wrapf(err, "reading config at path %s", ccPath)
 	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
 		return nil, errors.New("section Global not found")
 	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
-		return nil, errors.Wrapf(err, "parsing [Global] section from config at path %s:", ccPath)
+		return nil, errors.Wrapf(err, "parsing [Global] section from config at path %s", ccPath)
 	}
 
 	// The client returned from NewAsyncClient works in a synchronous way. On the other hand,
@@ -70,7 +70,7 @@ func NewClient(ccPath string) (Client, error) {
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
 		return c, errors.Wrap(err, "timeout while checking CloudStack API Client connectivity")
 	}
-	return c, errors.Wrap(err, "checking CloudStack API Client connectivity:")
+	return c, errors.Wrap(err, "checking CloudStack API Client connectivity")
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {

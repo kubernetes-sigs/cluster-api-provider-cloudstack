@@ -145,7 +145,7 @@ func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
 		Name:      name,
 	}
 	if err := r.K8sClient.Get(r.RequestCtx, key, r.CAPICluster); err != nil {
-		return ctrl.Result{}, errors.Wrapf(client.IgnoreNotFound(err), "getting CAPI Cluster %s:", name)
+		return ctrl.Result{}, errors.Wrapf(client.IgnoreNotFound(err), "getting CAPI Cluster %s", name)
 	} else if r.CAPICluster.Name == "" {
 		return r.RequeueWithMessage("Cluster not fetched.")
 	}
@@ -166,7 +166,7 @@ func (r *ReconciliationRunner) GetCSCluster() (ctrl.Result, error) {
 		Name:      name,
 	}
 	err := r.K8sClient.Get(r.RequestCtx, key, r.CSCluster)
-	return ctrl.Result{}, errors.Wrapf(client.IgnoreNotFound(err), "getting CAPI Cluster %s:", name)
+	return ctrl.Result{}, errors.Wrapf(client.IgnoreNotFound(err), "getting CAPI Cluster %s", name)
 }
 
 // CheckOwnedCRDsForReadiness queries for the readiness of CRDs of GroupVersionKind passed.
@@ -180,7 +180,7 @@ func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness(gvks ...schema.GroupVe
 			potentiallyOnwedObjs.SetGroupVersionKind(gvk)
 			err := r.K8sClient.List(r.RequestCtx, potentiallyOnwedObjs)
 			if err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "requesting owned objects with gvk %s:", gvk)
+				return ctrl.Result{}, errors.Wrapf(err, "requesting owned objects with gvk %s", gvk)
 			}
 
 			// Filter objects not actually owned by reconciliation subject via owner reference UID.
@@ -198,10 +198,10 @@ func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness(gvks ...schema.GroupVe
 			// Check that found objects are ready.
 			for _, owned := range ownedObjs {
 				if ready, found, err := unstructured.NestedBool(owned.Object, "status", "ready"); err != nil {
-					return ctrl.Result{}, errors.Wrapf(err, "parsing ready for object %s:", owned)
+					return ctrl.Result{}, errors.Wrapf(err, "parsing ready for object %s", owned)
 				} else if !found || !ready {
 					if name, found, err := unstructured.NestedString(owned.Object, "metadata", "name"); err != nil {
-						return ctrl.Result{}, errors.Wrapf(err, "parsing name for object %s:", owned)
+						return ctrl.Result{}, errors.Wrapf(err, "parsing name for object %s", owned)
 					} else if !found {
 						return r.RequeueWithMessage(
 							fmt.Sprintf(
@@ -233,14 +233,14 @@ func (r *ReconciliationRunner) RequeueIfCloudStackClusterNotReady() (ctrl.Result
 func (r *ReconciliationRunner) SetupPatcher() (res ctrl.Result, retErr error) {
 	r.Log.V(1).Info("Setting up patcher.")
 	r.Patcher, retErr = patch.NewHelper(r.ReconciliationSubject, r.K8sClient)
-	return res, errors.Wrapf(retErr, "setting up patcher:")
+	return res, errors.Wrapf(retErr, "setting up patcher")
 }
 
 // PatchChangesBackToAPI patches changes to the ReconciliationSubject back to the appropriate API.
 func (r *ReconciliationRunner) PatchChangesBackToAPI() (res ctrl.Result, retErr error) {
 	r.Log.V(1).Info("Patching changes back to api.")
 	err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject)
-	return res, errors.Wrapf(err, "patching reconciliation subject:")
+	return res, errors.Wrapf(err, "patching reconciliation subject")
 }
 
 // RequeueWithMessage is a convenience method to log requeue message and then return a result with RequeueAfter set.
@@ -332,7 +332,7 @@ func (r *ReconciliationRunner) GetReconciliationSubject() (res ctrl.Result, rete
 		r.SetReturnEarly()
 	}
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "fetching reconciliation subject:")
+		return ctrl.Result{}, errors.Wrap(err, "fetching reconciliation subject")
 	}
 	return r.SetupPatcher()
 }
