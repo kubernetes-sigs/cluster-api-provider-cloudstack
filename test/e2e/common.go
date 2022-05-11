@@ -52,6 +52,7 @@ const (
 	CNIResources                 = "CNI_RESOURCES"
 	IPFamily                     = "IP_FAMILY"
 	InvalidZoneName              = "CLOUDSTACK_INVALID_ZONE_NAME"
+	InvalidDiskOfferingName      = "CLOUDSTACK_INVALID_DISK_OFFERING_NAME"
 	InvalidNetworkName           = "CLOUDSTACK_INVALID_NETWORK_NAME"
 	InvalidAccountName           = "CLOUDSTACK_INVALID_ACCOUNT_NAME"
 	InvalidDomainName            = "CLOUDSTACK_INVALID_DOMAIN_NAME"
@@ -438,4 +439,19 @@ func IsClusterReady(ctx context.Context, mgmtClient client.Client, cluster *clus
 	}
 	Expect(err).To(BeNil(), "Failed to get cluster status")
 	return c.Status.ControlPlaneReady && c.Status.InfrastructureReady
+}
+
+func CheckDiskOfferingOfVmInstances(clusterName string, diskOfferingName string) {
+	client := createCloudStackClient()
+
+	Byf("Listing machines with %q", clusterName)
+	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+	if err != nil {
+		Fail("Failed to list machines")
+	}
+	for _, vm := range listResp.VirtualMachines {
+		if strings.Contains(vm.Name, clusterName) {
+			Expect(vm.Diskofferingname).To(Equal(diskOfferingName))
+		}
+	}
 }
