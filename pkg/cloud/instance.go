@@ -72,6 +72,11 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 			return nil
 		}
 	}
+
+	// Testing decreasing code coverage
+	if csMachine.Name == "FAKE_MACHINE" {
+		return errors.New("fake machine, lowers code coverage")
+	}
 	return errors.New("no match found")
 }
 
