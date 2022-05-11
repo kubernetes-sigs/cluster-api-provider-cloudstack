@@ -17,6 +17,7 @@ limitations under the License.
 package utils
 
 import (
+	"fmt"
 	"strings"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
@@ -28,12 +29,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// CreateZone generates a specified CloudStackZone CRD owned by the ReconcilationSubject.
-func (r *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
+// ZoneMetaName creates a meta name for a zone based on the cluster and zone information.
+func (r *ReconciliationRunner) ZoneMetaName(zoneSpec infrav1.Zone) string {
 	metaName := zoneSpec.Name
 	if metaName == "" {
 		metaName = zoneSpec.ID
 	}
+	return fmt.Sprintf("%s-%s", r.CSCluster.Name, metaName)
+}
+
+// CreateZone generates a specified CloudStackZone CRD owned by the ReconcilationSubject.
+func (r *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
+	metaName := r.ZoneMetaName(zoneSpec)
 	csZone := &infrav1.CloudStackZone{
 		ObjectMeta: r.NewChildObjectMeta(metaName),
 		Spec:       infrav1.CloudStackZoneSpec(zoneSpec),

@@ -17,18 +17,24 @@ limitations under the License.
 package utils
 
 import (
+	"fmt"
 	"strings"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+func (r *ReconciliationRunner) IsoNetMetaName(name string) string {
+	return fmt.Sprintf("%s-%s", r.CSCluster.Name, strings.ToLower(name))
+}
+
 // GenerateIsolatedNetwork of the passed name that's owned by the ReconciliationSubject.
 func (r *ReconciliationRunner) GenerateIsolatedNetwork(name string) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		lowerName := strings.ToLower(name)
+		metaName := fmt.Sprintf("%s-%s", r.CSCluster.Name, lowerName)
 		csIsoNet := &infrav1.CloudStackIsolatedNetwork{}
-		csIsoNet.ObjectMeta = r.NewChildObjectMeta(lowerName)
+		csIsoNet.ObjectMeta = r.NewChildObjectMeta(metaName)
 		csIsoNet.Spec.Name = lowerName
 		csIsoNet.Spec.ControlPlaneEndpoint.Host = r.CSCluster.Spec.ControlPlaneEndpoint.Host
 		csIsoNet.Spec.ControlPlaneEndpoint.Port = r.CSCluster.Spec.ControlPlaneEndpoint.Port
