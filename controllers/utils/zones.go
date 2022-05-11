@@ -45,7 +45,7 @@ func (r *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
 		ObjectMeta: r.NewChildObjectMeta(metaName),
 		Spec:       infrav1.CloudStackZoneSpec(zoneSpec),
 	}
-	return errors.Wrap(r.K8sClient.Create(r.RequestCtx, csZone), "creating CloudStackZone:")
+	return errors.Wrap(r.K8sClient.Create(r.RequestCtx, csZone), "creating CloudStackZone")
 }
 
 // CreateZones generates a CloudStackClusterZone CRD for each of the ReconcilationSubject's Zones.
@@ -55,7 +55,7 @@ func (r *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudStackR
 		for _, zone := range zoneSpecs {
 			if err := r.CreateZone(zone); err != nil {
 				if !strings.Contains(strings.ToLower(err.Error()), "already exists") {
-					return reconcile.Result{}, errors.Wrap(err, "creating CloudStackZone:")
+					return reconcile.Result{}, errors.Wrap(err, "creating CloudStackZone")
 				}
 			}
 		}
