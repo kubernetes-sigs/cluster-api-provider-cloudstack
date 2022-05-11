@@ -107,8 +107,10 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 
+	projectDir := os.Getenv("PROJECT_DIR")
+
 	// Check for ginkgo recover statements.
-	cmd := exec.Command("../hack/testing_ginkgo_recover_statements.sh", "--contains")
+	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--contains")
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		fmt.Println("Refusing to run tests without ginkgo recover set.")
@@ -124,7 +126,7 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint
-	root := path.Join(path.Dir(filename), "..")
+	root := path.Join(path.Dir(filename), "../../../")
 	fmt.Println(root)
 
 	crdPaths := []string{
