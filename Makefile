@@ -144,6 +144,10 @@ bin/golangci-lint: ## Install golangci-lint to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
 bin/ginkgo: ## Install ginkgo to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.4
+	mv $(PROJECT_DIR)/bin/ginkgo $(PROJECT_DIR)/bin/ginkgo_v2
+bin/ginkgo_v1: ## Install ginkgo to bin.
+	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/ginkgo@v1.16.5
+	mv $(PROJECT_DIR)/bin/ginkgo $(PROJECT_DIR)/bin/ginkgo_v1
 bin/mockgen:
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golang/mock/mockgen@v1.6.0
 bin/kustomize: ## Install kustomize to bin.
@@ -171,7 +175,7 @@ export KUBEBUILDER_ASSETS=$(PROJECT_DIR)/bin
 test: generate-mocks lint bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
-	@ginkgo --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
+	@ginkgo_v2 --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 	
 .PHONY: generate-mocks
@@ -204,14 +208,14 @@ e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster tem
 cluster-template%yaml: bin/kustomize $(CLUSTER_TEMPLATES_INPUT_FILES)
 	kustomize build --load-restrictor LoadRestrictionsNone $(basename $@) > $@
 
-e2e-essentials: bin/ginkgo e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
+e2e-essentials: bin/ginkgo_v1 e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
 	IMG=$(IMG_LOCAL) make manifests docker-build docker-push
 
 JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
 	cd test/e2e && \
-	ginkgo -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 --no-color=false ./... -- \
+	ginkgo_v1 -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
 	    -e2e.artifacts-folder=${PROJECT_DIR}/_artifacts \
 	    -e2e.config=${PROJECT_DIR}/test/e2e/config/cloudstack.yaml \
-	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	    -e2e.skip-resource-cleanup=true -e2e.use-existing-cluster=true
 	kind delete clusters capi-test

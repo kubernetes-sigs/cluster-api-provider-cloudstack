@@ -21,7 +21,7 @@ package e2e
 
 import (
 	"context"
-	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("When testing app deployment to the workload cluster [TC1][PR-Blocking]", func() {

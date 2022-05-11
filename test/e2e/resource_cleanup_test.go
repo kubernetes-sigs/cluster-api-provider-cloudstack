@@ -21,7 +21,7 @@ package e2e
 
 import (
 	"context"
-	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("When testing resource cleanup", func() {

@@ -21,7 +21,7 @@ package e2e
 
 import (
 	"context"
-	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo"
 )
 
 var _ = Describe("When testing horizontal scale out/in [TC17][TC18][TC20][TC21]", func() {
