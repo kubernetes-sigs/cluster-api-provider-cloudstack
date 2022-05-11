@@ -22,7 +22,6 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )
@@ -38,7 +37,7 @@ type IsoNetworkIface interface {
 
 	AssignVMToLoadBalancerRule(isoNet *capcv1.CloudStackIsolatedNetwork, instanceID string) error
 	DeleteNetwork(capcv1.Network) error
-	DisposeIsoNetResources(*capcv1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
+	DisposeIsoNetResources(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) error
 }
 
 // getOfferingID fetches an offering id.
@@ -78,7 +77,7 @@ func (c *client) AssociatePublicIPAddress(
 	p.SetNetworkid(isoNet.Spec.ID)
 	if _, err := c.cs.Address.AssociateIpAddress(p); err != nil {
 		return errors.Wrapf(err,
-			"associating public IP address with ID %s to netowrk with ID %s",
+			"associating public IP address with ID %s to network with ID %s",
 			publicAddress.Id, isoNet.Spec.ID)
 	} else if err := c.AddClusterTag(ResourceTypeIPAddress, publicAddress.Id, csCluster); err != nil {
 		return errors.Wrapf(err,
@@ -240,7 +239,7 @@ func (c *client) GetOrCreateLoadBalancerRule(
 func (c *client) GetOrCreateIsolatedNetwork(
 	zone *capcv1.CloudStackZone,
 	isoNet *capcv1.CloudStackIsolatedNetwork,
-	csCluster *infrav1.CloudStackCluster,
+	csCluster *capcv1.CloudStackCluster,
 ) error {
 	// Get or create the isolated network itself and resolve details into passed custom resources.
 	net := isoNet.Network()
@@ -301,9 +300,9 @@ func (c *client) DeleteNetwork(net capcv1.Network) error {
 
 // DisposeIsoNetResources cleans up isolated network resources.
 func (c *client) DisposeIsoNetResources(
-	zone *infrav1.CloudStackZone,
-	isoNet *infrav1.CloudStackIsolatedNetwork,
-	csCluster *infrav1.CloudStackCluster,
+	zone *capcv1.CloudStackZone,
+	isoNet *capcv1.CloudStackIsolatedNetwork,
+	csCluster *capcv1.CloudStackCluster,
 ) (retError error) {
 	if isoNet.Status.PublicIPID != "" {
 		if err := c.DeleteClusterTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID, csCluster); err != nil {

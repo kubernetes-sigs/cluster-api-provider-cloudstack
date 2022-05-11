@@ -67,7 +67,7 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 		}
 
 		if err := r.K8sClient.Create(r.RequestCtx, ag); err != nil && !ContainsAlreadyExistsSubstring(err) {
-			return r.ReturnWrappedError(err, "creating affinity group CRD:")
+			return r.ReturnWrappedError(err, "creating affinity group CRD")
 		}
 		return ctrl.Result{}, nil
 	}
