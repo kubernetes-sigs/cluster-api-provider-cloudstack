@@ -58,7 +58,7 @@ func NewClient(ccPath string) (Client, error) {
 	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
 		return nil, errors.New("section Global not found")
 	} else if err = rawCfg.Section("Global").StrictMapTo(&c.config); err != nil {
-		return nil, errors.Wrapf(err, "parsing [Global] section from config at path %s:", ccPath)
+		return nil, errors.Wrapf(err, "parsing [Global] section from config at path %s", ccPath)
 	}
 
 	// The client returned from NewAsyncClient works in a synchronous way. On the other hand,
