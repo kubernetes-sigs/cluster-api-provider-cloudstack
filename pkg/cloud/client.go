@@ -54,7 +54,7 @@ type Config struct {
 func NewClient(ccPath string) (Client, error) {
 	c := &client{config: Config{VerifySSL: true}}
 	if rawCfg, err := ini.Load(ccPath); err != nil {
-		return nil, errors.Wrapf(err, "reading config at path %s:", ccPath)
+		return nil, errors.Wrapf(err, "reading config at path %s", ccPath)
 	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
 		return nil, errors.New("section Global not found")
 	} else if err = rawCfg.Section("Global").StrictMapTo(&c.config); err != nil {
@@ -71,7 +71,7 @@ func NewClient(ccPath string) (Client, error) {
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
 		return c, errors.Wrap(err, "timeout while checking CloudStack API Client connectivity")
 	}
-	return c, errors.Wrap(err, "checking CloudStack API Client connectivity:")
+	return c, errors.Wrap(err, "checking CloudStack API Client connectivity")
 }
 
 // NewClientFromSpec generates a new client from an existing client.
@@ -94,7 +94,7 @@ func (origC *client) NewClientFromSpec(cfg Config) (Client, error) {
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
 		return newC, errors.Wrap(err, "timeout while checking CloudStack API Client connectivity")
 	}
-	return newC, errors.Wrap(err, "checking CloudStack API Client connectivity:")
+	return newC, errors.Wrap(err, "checking CloudStack API Client connectivity")
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {

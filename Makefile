@@ -217,5 +217,5 @@ run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select 
 	ginkgo_v1 -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
 	    -e2e.artifacts-folder=${PROJECT_DIR}/_artifacts \
 	    -e2e.config=${PROJECT_DIR}/test/e2e/config/cloudstack.yaml \
-	    -e2e.skip-resource-cleanup=true -e2e.use-existing-cluster=true
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
 	kind delete clusters capi-test
