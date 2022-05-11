@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"go/build"
+	"k8s.io/client-go/rest"
 	"os"
 	"os/exec"
 	"path"
@@ -143,8 +144,15 @@ var _ = BeforeSuite(func() {
 	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
 	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
 
-	cfg, err := testEnv.Start()
-	cfg.Timeout = time.Minute
+	var cfg *rest.Config
+	var err error
+	done := make(chan interface{})
+	go func() {
+		defer GinkgoRecover()
+		cfg, err = testEnv.Start()
+		close(done)
+	}()
+	Eventually(done).WithTimeout(time.Minute).Should(BeClosed())
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(cfg).ShouldNot(BeNil())
 

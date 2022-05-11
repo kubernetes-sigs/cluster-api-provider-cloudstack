@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"k8s.io/client-go/rest"
 	"net"
 	"path/filepath"
 	"testing"
@@ -63,8 +64,15 @@ var _ = BeforeSuite(func() {
 		},
 	}
 
-	cfg, err := testEnv.Start()
-	cfg.Timeout = time.Minute
+	var cfg *rest.Config
+	var err error
+	done := make(chan interface{})
+	go func() {
+		defer GinkgoRecover()
+		cfg, err = testEnv.Start()
+		close(done)
+	}()
+	Eventually(done).WithTimeout(time.Minute).Should(BeClosed())
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
