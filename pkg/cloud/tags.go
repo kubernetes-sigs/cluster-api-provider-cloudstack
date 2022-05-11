@@ -58,7 +58,7 @@ func (c *client) IsCapcManaged(resourceType ResourceType, resourceID string) (bo
 	tags, err := c.GetTags(resourceType, resourceID)
 	if err != nil {
 		return false, errors.Wrapf(err,
-			"checking if %s with ID: %s is tagged as CAPC managed:", resourceType, resourceID)
+			"checking if %s with ID: %s is tagged as CAPC managed", resourceType, resourceID)
 	}
 	_, CreatedByCAPC := tags[CreatedByCAPCTagName]
 	return CreatedByCAPC, nil

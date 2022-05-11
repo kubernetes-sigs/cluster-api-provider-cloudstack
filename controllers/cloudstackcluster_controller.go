@@ -126,7 +126,7 @@ func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result
 	return ctrl.Result{}, nil
 }
 
-// ReconcileDelete cleans up resources used by the cluster and finaly removes the CloudStackCluster's finalizers.
+// ReconcileDelete cleans up resources used by the cluster and finally removes the CloudStackCluster's finalizers.
 func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
 	r.Log.Info("Deleting CloudStackCluster.")
 	if res, err := r.GetZones(r.Zones)(); r.ShouldReturn(res, err) {
@@ -171,7 +171,7 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 			},
 		).Build(reconciler)
 	if err != nil {
-		return errors.Wrap(err, "building CloudStackCluster controller:")
+		return errors.Wrap(err, "building CloudStackCluster controller")
 	}
 
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
@@ -187,5 +187,5 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool { return false },
 			CreateFunc: func(e event.CreateEvent) bool { return false }})
-	return errors.Wrap(err, "building CloudStackCluster controller:")
+	return errors.Wrap(err, "building CloudStackCluster controller")
 }
