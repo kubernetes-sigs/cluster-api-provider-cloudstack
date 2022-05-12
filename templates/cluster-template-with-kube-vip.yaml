@@ -24,8 +24,8 @@ metadata:
   name: ${CLUSTER_NAME}
 spec:
   controlPlaneEndpoint:
-    host: ${CLUSTER_ENDPOINT_IP}
-    port: ${CLUSTER_ENDPOINT_PORT}
+    host: ""
+    port: 6443
   zones:
   - name : ${CLOUDSTACK_ZONE_NAME}
     network: 
@@ -71,7 +71,7 @@ spec:
               - name: vip_leaderelection
                 value: "true"
               - name: vip_address
-                value: ${CLUSTER_ENDPOINT_IP}
+                value: "\"\""
               - name: vip_interface
                 value: ens3
               - name: vip_leaseduration

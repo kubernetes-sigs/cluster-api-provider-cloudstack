@@ -16,7 +16,7 @@ spec:
         control-plane: capc-controller-manager
     spec:
       securityContext:
-        runAsNonRoot: true
+        runAsNonRoot: false
       containers:
       - command:
         - /manager

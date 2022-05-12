@@ -215,6 +215,7 @@ e2e-essentials: bin/ginkgo_v1 e2e-cluster-templates kind-cluster ## Fulfill esse
 	IMG=$(IMG_LOCAL) make manifests docker-build docker-push
 
 JOB ?= .*
+NODES ?= 1
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
 	cd test/e2e && \
 	ginkgo_v1 -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \

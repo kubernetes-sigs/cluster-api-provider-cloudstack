@@ -17,6 +17,7 @@ limitations under the License.
 package cloud
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -38,6 +39,7 @@ type IsoNetworkIface interface {
 	AssignVMToLoadBalancerRule(isoNet *capcv1.CloudStackIsolatedNetwork, instanceID string) error
 	DeleteNetwork(capcv1.Network) error
 	DisposeIsoNetResources(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) error
+	GetNumberOfVMsCreatedIn(*capcv1.CloudStackIsolatedNetwork) (int, error)
 }
 
 // getOfferingID fetches an offering id.
@@ -128,9 +130,13 @@ func (c *client) GetPublicIP(
 	p := c.cs.Address.NewListPublicIpAddressesParams()
 	p.SetAllocatedonly(false)
 	p.SetZoneid(zone.Spec.ID)
+	p.SetListall(true)
 	setIfNotEmpty(ip, p.SetIpaddress)
 	publicAddresses, err := c.cs.Address.ListPublicIpAddresses(p)
+	fmt.Printf("GetPublicIP: ip %s, zone id %s\n", ip, zone.Spec.ID)
+	fmt.Printf("GetPublicIP: params %+v\n", p)
 	if err != nil {
+		fmt.Printf("GetPublicIP: error %s\n", err.Error())
 		return nil, err
 	} else if ip != "" && publicAddresses.Count == 1 { // Endpoint specified and IP found.
 		// Ignore already allocated here since the IP was specified.
@@ -149,6 +155,7 @@ func (c *client) GetPublicIP(
 		}
 		return nil, errors.New("all Public IP Adresse(s) found were already allocated")
 	}
+	fmt.Printf("GetPublicIP: ip %s, count %d\n", ip, publicAddresses.Count)
 	return nil, errors.New("no public addresses found in available networks")
 }
 
@@ -369,4 +376,22 @@ func (c *client) DisassociatePublicIPAddress(isoNet *capcv1.CloudStackIsolatedNe
 	p := c.cs.Address.NewDisassociateIpAddressParams(isoNet.Status.PublicIPID)
 	_, retErr = c.cs.Address.DisassociateIpAddress(p)
 	return retErr
+}
+
+// GetNumberOfVMsCreatedIn returns the nuber of VM instances created in the passed isolated network.
+func (c *client) GetNumberOfVMsCreatedIn(isoNet *capcv1.CloudStackIsolatedNetwork) (vmCount int, retErr error) {
+	// Remove the CAPC creation tag, so it won't be there the next time this address is associated.
+	retErr = c.DeleteCreatedByCAPCTag(ResourceTypeIPAddress, isoNet.Status.PublicIPID)
+	if retErr != nil {
+		return 0, retErr
+	}
+
+	p := c.cs.VirtualMachine.NewListVirtualMachinesParams()
+	p.SetNetworkid(isoNet.Spec.ID)
+	resp, retErr := c.cs.VirtualMachine.ListVirtualMachines(p)
+	if retErr != nil {
+		return 0, retErr
+	}
+
+	return resp.Count, nil
 }
