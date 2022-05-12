@@ -117,7 +117,7 @@ func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Resu
 	// Address Isolated Networks.
 	if r.ReconciliationSubject.Spec.Network.Type == infrav1.NetworkTypeIsolated {
 		netName := r.ReconciliationSubject.Spec.Network.Name
-		if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
+		if res, err := r.GetObjectByName(r.IsoNetMetaName(netName), r.IsoNet)(); r.ShouldReturn(res, err) {
 			return res, err
 		}
 		if r.IsoNet.Name != "" {
