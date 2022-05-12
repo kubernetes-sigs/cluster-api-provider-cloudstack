@@ -24,7 +24,7 @@ metadata:
   name: ${CLUSTER_NAME}
 spec:
   controlPlaneEndpoint:
-    host: ""
+    host: ${CLUSTER_ENDPOINT_IP}
     port: 6443
   zones:
   - name : ${CLOUDSTACK_ZONE_NAME}
