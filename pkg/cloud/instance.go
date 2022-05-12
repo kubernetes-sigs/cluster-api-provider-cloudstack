@@ -251,6 +251,17 @@ func (c *client) GetOrCreateVMInstance(
 
 // DestroyVMInstance Destroys a VM instance. Assumes machine has been fetched prior and has an instance ID.
 func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
+	// Stop forcefully first
+	stopParams := c.cs.VirtualMachine.NewStopVirtualMachineParams(*csMachine.Spec.InstanceID)
+	stopParams.SetForced(true)
+	if _, err := c.csAsync.VirtualMachine.StopVirtualMachine(stopParams); err != nil &&
+		strings.Contains(strings.ToLower(err.Error()), "unable to find uuid for id") {
+		// VM doesn't exist. Success...
+		return nil
+	} else if err != nil {
+		return err
+	}
+
 	// Attempt deletion regardless of machine state.
 	p := c.csAsync.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
 	volIDs, err := c.listVMInstanceVolumeIDs(*csMachine.Spec.InstanceID)
