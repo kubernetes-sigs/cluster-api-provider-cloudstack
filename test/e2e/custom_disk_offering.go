@@ -31,15 +31,16 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// DiskOfferingSpec implements a test that verifies creating a cluster with a disk offering
-func DiskOfferingSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
+// CustomDiskOfferingSpec implements a test that verifies creating a cluster with a custom disk offering
+func CustomDiskOfferingSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
-		specName         = "disk-offering"
+		specName         = "custom-disk-offering"
 		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
-		diskOfferingName = "Small"
+		diskOfferingName = "Custom"
+		volumeSize       = int64(1 * 1024 * 1024 * 1024)
 	)
 
 	BeforeEach(func() {
@@ -57,7 +58,7 @@ func DiskOfferingSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should successfully create a cluster with disk offering", func() {
+	It("Should successfully create a cluster with a custom disk offering", func() {
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -81,7 +82,7 @@ func DiskOfferingSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		}, clusterResources)
 
 		CheckDiskOfferingOfVmInstances(clusterResources.Cluster.Name, diskOfferingName)
-
+		CheckVolumeSizeofVmInstances(clusterResources.Cluster.Name, volumeSize)
 		By("PASSED!")
 	})
 
