@@ -76,26 +76,6 @@ var ( // Declare exported dummy vars.
 		Filesystem: "ext4",
 		Label:      "data_disk",
 	}
-	DiskOffering3 = capcv1.CloudStackResourceDiskOffering{
-		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
-			Name: "Custom",
-		},
-		Size:       1,
-		MountPath:  "/data",
-		Device:     "/dev/vdb",
-		Filesystem: "ext4",
-		Label:      "data_disk",
-	}
-	DiskOffering4 = capcv1.CloudStackResourceDiskOffering{
-		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
-			Name: "Custom",
-		},
-		Size:       -1,
-		MountPath:  "/data",
-		Device:     "/dev/vdb",
-		Filesystem: "ext4",
-		Label:      "data_disk",
-	}
 )
 
 // SetDummyVars sets/resets all dummy vars.

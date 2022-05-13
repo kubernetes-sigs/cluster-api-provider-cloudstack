@@ -24,7 +24,6 @@ import (
 
 type set func(string)
 type setArray func([]string)
-type setInt func(int64)
 
 func setIfNotEmpty(str string, setFn set) {
 	if str != "" {
@@ -35,12 +34,6 @@ func setIfNotEmpty(str string, setFn set) {
 func setArrayIfNotEmpty(strArray []string, setFn setArray) {
 	if len(strArray) > 0 {
 		setFn(strArray)
-	}
-}
-
-func setIntIfNotZero(num int64, setFn setInt) {
-	if num > 0 {
-		setFn(num)
 	}
 }
 

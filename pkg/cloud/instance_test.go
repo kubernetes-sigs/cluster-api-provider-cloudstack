@@ -179,56 +179,6 @@ var _ = Describe("Instance", func() {
 				ShouldNot(Succeed())
 		})
 
-		It("returns errors when more than one diskoffering found", func() {
-			expectVMNotFound()
-			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
-				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
-			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
-			dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 2, nil)
-			//dos.EXPECT().GetDiskOfferingByID(dummies.CSMachine1.Spec.DiskOffering.ID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
-			Ω(client.GetOrCreateVMInstance(
-				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
-				ShouldNot(Succeed())
-		})
-
-		It("returns errors when fetching diskoffering", func() {
-			expectVMNotFound()
-			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
-				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
-			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
-			dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-			dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, unknownError)
-			Ω(client.GetOrCreateVMInstance(
-				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
-				ShouldNot(Succeed())
-		})
-
-		It("returns errors when disk size not zero for non-customized disk offering", func() {
-			expectVMNotFound()
-			dummies.CSMachine1.Spec.DiskOffering.Size = 1
-			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
-				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
-			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
-			dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-			dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
-			Ω(client.GetOrCreateVMInstance(
-				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
-				ShouldNot(Succeed())
-		})
-
-		It("returns errors when disk size zero for customized disk offering", func() {
-			expectVMNotFound()
-			dummies.CSMachine1.Spec.DiskOffering.Size = 0
-			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
-				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
-			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
-			dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-			dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: true}, 1, nil)
-			Ω(client.GetOrCreateVMInstance(
-				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
-				ShouldNot(Succeed())
-		})
-
 		It("handles deployment errors", func() {
 			expectVMNotFound()
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
@@ -237,8 +187,6 @@ var _ = Describe("Instance", func() {
 				Return(templateFakeID, 1, nil)
 			dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).
 				Return(diskOfferingFakeID, 1, nil)
-			dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).
-				Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 			vms.EXPECT().NewDeployVirtualMachineParams(offeringFakeID, templateFakeID, dummies.Zone1.ID).
 				Return(&cloudstack.DeployVirtualMachineParams{})
 			vms.EXPECT().DeployVirtualMachine(gomock.Any()).Return(nil, unknownError)
@@ -273,7 +221,6 @@ var _ = Describe("Instance", func() {
 			}
 
 			It("works with service offering name and template name", func() {
-				dummies.CSMachine1.Spec.DiskOffering.ID = diskOfferingFakeID
 				dummies.CSMachine1.Spec.Offering.ID = ""
 				dummies.CSMachine1.Spec.Template.ID = ""
 				dummies.CSMachine1.Spec.Offering.Name = "offering"
@@ -281,7 +228,6 @@ var _ = Describe("Instance", func() {
 
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
 				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(dummies.CSMachine1.Spec.DiskOffering.ID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
 
@@ -303,7 +249,6 @@ var _ = Describe("Instance", func() {
 			})
 
 			It("works with service offering ID and template name", func() {
-				dummies.CSMachine1.Spec.DiskOffering.ID = diskOfferingFakeID
 				dummies.CSMachine1.Spec.Offering.ID = offeringFakeID
 				dummies.CSMachine1.Spec.Template.ID = ""
 				dummies.CSMachine1.Spec.Offering.Name = ""
@@ -313,13 +258,11 @@ var _ = Describe("Instance", func() {
 				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).
 					Return(templateFakeID, 1, nil)
 				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(dummies.CSMachine1.Spec.DiskOffering.ID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 
 				ActionAndAssert()
 			})
 
 			It("works with service offering name and template ID", func() {
-				dummies.CSMachine1.Spec.DiskOffering.ID = diskOfferingFakeID
 				dummies.CSMachine1.Spec.Offering.ID = ""
 				dummies.CSMachine1.Spec.Template.ID = templateFakeID
 				dummies.CSMachine1.Spec.Offering.Name = "offering"
@@ -328,13 +271,11 @@ var _ = Describe("Instance", func() {
 				sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).Return(offeringFakeID, 1, nil)
 				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, executableFilter).Return(&cloudstack.Template{Name: ""}, 1, nil)
 				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(dummies.CSMachine1.Spec.DiskOffering.ID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 
 				ActionAndAssert()
 			})
 
 			It("works with service offering ID and template ID", func() {
-				dummies.CSMachine1.Spec.DiskOffering.ID = diskOfferingFakeID
 				dummies.CSMachine1.Spec.Offering.ID = offeringFakeID
 				dummies.CSMachine1.Spec.Template.ID = templateFakeID
 				dummies.CSMachine1.Spec.Offering.Name = ""
@@ -344,8 +285,6 @@ var _ = Describe("Instance", func() {
 					Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
 				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).
 					Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(dummies.CSMachine1.Spec.DiskOffering.ID).
-					Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, executableFilter).
 					Return(&cloudstack.Template{Name: "template"}, 1, nil)
 
@@ -353,7 +292,6 @@ var _ = Describe("Instance", func() {
 			})
 
 			It("works with Id and name both provided", func() {
-				dummies.CSMachine1.Spec.DiskOffering.ID = diskOfferingFakeID
 				dummies.CSMachine1.Spec.Offering.ID = offeringFakeID
 				dummies.CSMachine1.Spec.Template.ID = templateFakeID
 				dummies.CSMachine1.Spec.Offering.Name = "offering"
@@ -362,7 +300,6 @@ var _ = Describe("Instance", func() {
 				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
 				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, executableFilter).Return(&cloudstack.Template{Name: "template"}, 1, nil)
 				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(dummies.CSMachine1.Spec.DiskOffering.ID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 
 				ActionAndAssert()
 			})
@@ -400,24 +337,6 @@ var _ = Describe("Instance", func() {
 				Ω(client.GetOrCreateVMInstance(
 					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
 					Should(MatchError(MatchRegexp(requiredRegexp, dummies.CSMachine1.Spec.Template.Name, "template-not-match", templateFakeID)))
-
-			})
-
-			It("works with Id and name both provided, disk offering id/name mismatch", func() {
-				dummies.CSMachine1.Spec.Offering.ID = offeringFakeID
-				dummies.CSMachine1.Spec.Template.ID = templateFakeID
-				dummies.CSMachine1.Spec.DiskOffering.ID = diskOfferingFakeID
-				dummies.CSMachine1.Spec.Offering.Name = "offering"
-				dummies.CSMachine1.Spec.Template.Name = "template"
-				dummies.CSMachine1.Spec.DiskOffering.Name = "diskoffering"
-
-				sos.EXPECT().GetServiceOfferingByID(dummies.CSMachine1.Spec.Offering.ID).Return(&cloudstack.ServiceOffering{Name: "offering"}, 1, nil)
-				ts.EXPECT().GetTemplateByID(dummies.CSMachine1.Spec.Template.ID, executableFilter).Return(&cloudstack.Template{Name: "template"}, 1, nil)
-				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID+"-not-match", 1, nil)
-				requiredRegexp := "diskOffering ID %s does not match ID %s returned using name %s"
-				Ω(client.GetOrCreateVMInstance(
-					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
-					Should(MatchError(MatchRegexp(requiredRegexp, dummies.CSMachine1.Spec.DiskOffering.ID, diskOfferingFakeID+"-not-match", dummies.CSMachine1.Spec.DiskOffering.Name)))
 
 			})
 		})
