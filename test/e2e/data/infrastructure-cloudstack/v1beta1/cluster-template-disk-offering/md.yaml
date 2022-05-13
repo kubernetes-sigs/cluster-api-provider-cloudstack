@@ -8,7 +8,8 @@ spec:
       offering: 
         name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
       diskOffering: 
-        name: ${CLOUDSTACK_DISK_OFFERING_NAME}
+        name: ${CLOUDSTACK_DISK_OFFERING_NAME_CUSTOM}
+        sizeInGB: ${CLOUDSTACK_DISK_OFFERING_SIZE}
         mountPath: ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
         device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
         filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
@@ -27,7 +28,8 @@ spec:
       offering: 
         name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
       diskOffering: 
-        name: ${CLOUDSTACK_DISK_OFFERING_NAME}
+        name: ${CLOUDSTACK_DISK_OFFERING_NAME_CUSTOM}
+        sizeInGB: ${CLOUDSTACK_DISK_OFFERING_SIZE}
         mountPath: ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
         device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
         filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}

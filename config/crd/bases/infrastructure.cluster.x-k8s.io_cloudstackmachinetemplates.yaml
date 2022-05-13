@@ -125,6 +125,11 @@ spec:
                           name:
                             description: Cloudstack resource Name
                             type: string
+                          sizeInGB:
+                            description: disk size if disk offering is custom disk
+                              (need to specify disk size by users)
+                            format: int64
+                            type: integer
                         required:
                         - device
                         - filesystem

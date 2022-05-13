@@ -46,6 +46,16 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 		})
 
+		It("should accept a CloudStackMachine with disk Offering size attribute", func() {
+			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering3
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
+		})
+
+		It("should not accept a CloudStackMachine with disk Offering size attribute", func() {
+			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering4
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(MatchError(MatchRegexp(forbiddenRegex, "sizeInGB")))
+		})
+
 		It("should reject a CloudStackMachine with missing Offering attribute", func() {
 			dummies.CSMachine1.Spec.Offering = v1beta1.CloudStackResourceIdentifier{ID: "", Name: ""}
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
