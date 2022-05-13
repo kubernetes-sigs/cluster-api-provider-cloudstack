@@ -10,5 +10,5 @@ spec:
   account: ${CLOUDSTACK_ACCOUNT_NAME}
   domain: ${CLOUDSTACK_DOMAIN_NAME}
   controlPlaneEndpoint:
-    host: ""
+    host: ${CLUSTER_ENDPOINT_IP_2}
     port: 6443
