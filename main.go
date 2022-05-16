@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"k8s.io/klog/v2/klogr"
 	"math/rand"
 	"os"
 	"strings"
@@ -31,8 +32,7 @@ import (
 	goflag "flag"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/klog"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
