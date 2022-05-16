@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -171,7 +172,7 @@ var _ = BeforeSuite(func() {
 		K8sClient:  k8sManager.GetClient(),
 		Scheme:     k8sManager.GetScheme(),
 		CSClient:   CS,
-		BaseLogger: logf.NullLogger{}}
+		BaseLogger: logr.New(logf.NullLogSink{})}
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())
 
