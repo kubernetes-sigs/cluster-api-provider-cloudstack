@@ -193,8 +193,9 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
-		controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	}
+	// Always add the finalizer regardless. It can't be added twice anyway.
+	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, err
 }
 
@@ -204,7 +205,7 @@ func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (r
 		r.Log.Info("Machine instance is Running...")
 		r.ReconciliationSubject.Status.Ready = true
 	} else if r.ReconciliationSubject.Status.InstanceState == "Error" {
-		r.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", r.ReconciliationSubject)
+		r.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", r.ReconciliationSubject.GetName())
 		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -259,6 +260,7 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 		}
 		return ctrl.Result{}, err
 	}
+	r.Log.Info("VM Deleted.")
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
