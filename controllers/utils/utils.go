@@ -143,20 +143,20 @@ func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned clientPkg.Obj
 		return errors.Errorf(
 			"found more than one GVK for owner when finding owner kind for %s/%s", owned.GetName(), owned.GetNamespace())
 	}
-	kind := gvks[0].Kind
+	gvk := gvks[0]
+
 	for _, ref := range owned.GetOwnerReferences() {
-		if ref.Kind != kind {
+		if ref.Kind != gvk.Kind {
 			continue
 		}
 		key := clientPkg.ObjectKey{Name: ref.Name, Namespace: owned.GetNamespace()}
 		if err := c.Get(ctx, key, owner); err != nil {
-			return errors.Wrapf(err, "finding owner of kind %s %s/%s",
-				owner.GetObjectKind().GroupVersionKind().Kind, owner.GetNamespace(), owner.GetName())
+			return errors.Wrapf(err, "finding owner of kind %s in namespace %s", gvk.Kind, owned.GetNamespace())
 		}
 		return nil
 	}
-	return errors.Errorf("couldn't find owner of kind %s %s/%s",
-		owner.GetObjectKind().GroupVersionKind().Kind, owner.GetNamespace(), owner.GetName())
+
+	return errors.Errorf("couldn't find owner of kind %s in namespace %s", gvk.Kind, owned.GetNamespace())
 }
 
 func ContainsNoMatchSubstring(err error) bool {
