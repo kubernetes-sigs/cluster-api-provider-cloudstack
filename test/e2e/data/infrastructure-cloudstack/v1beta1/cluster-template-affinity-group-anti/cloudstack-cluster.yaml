@@ -1,0 +1,14 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: CloudStackCluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  zones:
+  - name: ${CLOUDSTACK_ZONE_NAME_3}
+    network:
+      name: ${CLOUDSTACK_SHARED_NETWORK_NAME_3}
+  account: ${CLOUDSTACK_ACCOUNT_NAME}
+  domain: ${CLOUDSTACK_DOMAIN_NAME}
+  controlPlaneEndpoint:
+    host: ${CLUSTER_ENDPOINT_IP}
+    port: 6443

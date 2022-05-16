@@ -62,7 +62,6 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 	})
 
 	It("Should have host affinity group when affinity is anti", func() {
-		Skip("The ACS used by Prow doesn't have multiple hosts in the target zone")
 		executeTest(ctx, input, namespace, specName, clusterResources, "anti")
 	})
 
@@ -90,8 +89,8 @@ func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.N
 			Namespace:                namespace.Name,
 			ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-			ControlPlaneMachineCount: pointer.Int64Ptr(3),
-			WorkerMachineCount:       pointer.Int64Ptr(3),
+			ControlPlaneMachineCount: pointer.Int64Ptr(1),
+			WorkerMachineCount:       pointer.Int64Ptr(2),
 		},
 		WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 		WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
