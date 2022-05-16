@@ -89,6 +89,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-shared-network-kubevip.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-multi-zone.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
       - name: v1.0.0
@@ -106,15 +107,19 @@ variables:
   NODE_DRAIN_TIMEOUT: "60s"
 
   CLOUDSTACK_ZONE_NAME: zone2
+  CLOUDSTACK_ZONE_NAME_2: zone3
+  CLOUDSTACK_ZONE_NAME_3: zone4
   CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
   CLOUDSTACK_INVALID_NETWORK_NAME: networkXXXX
   CLOUDSTACK_ACCOUNT_NAME: admin
   CLOUDSTACK_INVALID_ACCOUNT_NAME: accountXXXX
   CLOUDSTACK_DOMAIN_NAME: ROOT
   CLOUDSTACK_INVALID_DOMAIN_NAME: domainXXXX
-  CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
+  CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-2
   CLOUDSTACK_NEW_NETWORK_NAME: isolated-for-e2e-new
   CLOUDSTACK_SHARED_NETWORK_NAME: SharedNet2
+  CLOUDSTACK_SHARED_NETWORK_NAME_2: SharedNet3
+  CLOUDSTACK_SHARED_NETWORK_NAME_3: SharedNet4
   CLUSTER_ENDPOINT_IP: 10.11.2.99
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"

@@ -1,3 +1,6 @@
 bases:
   - ../bases/cluster-with-shared-network-and-kubevip.yaml
   - ../bases/md.yaml
+
+patchesStrategicMerge:
+  - ./cloudstack-cluster.yaml

@@ -455,3 +455,37 @@ func CheckDiskOfferingOfVmInstances(clusterName string, diskOfferingName string)
 		}
 	}
 }
+
+func CheckZones(clusterName string, numZones int) {
+	client := createCloudStackClient()
+
+	By("Listing all machines")
+	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+	if err != nil {
+		Fail("Failed to list machines")
+	}
+	cpZoneIdMap := make(map[string]int)
+	mdZoneIdMap := make(map[string]int)
+
+	for _, vm := range listResp.VirtualMachines {
+		if strings.Contains(vm.Name, clusterName) {
+			Byf("%s is in zone %s (%s)", vm.Name, vm.Zonename, vm.Zoneid)
+			checkZoneAssignments(vm, cpZoneIdMap, mdZoneIdMap)
+		}
+	}
+
+	Expect(len(cpZoneIdMap)).To(Equal(numZones))
+	for _, value := range cpZoneIdMap {
+		Expect(value).ToNot(BeZero())
+	}
+}
+
+func checkZoneAssignments(vm *cloudstack.VirtualMachine, cpZoneIdMap map[string]int, mdZoneIdMap map[string]int) {
+	if strings.Contains(vm.Name, ControlPlaneIndicator) {
+		cpZoneIdMap[vm.Zoneid]++
+	}
+
+	if strings.Contains(vm.Name, MachineDeploymentIndicator) {
+		mdZoneIdMap[vm.Zoneid]++
+	}
+}
