@@ -218,7 +218,7 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
-	setIntIfNotZero(csMachine.Spec.DiskOffering.Size, p.SetSize)
+	setIntIfPositive(csMachine.Spec.DiskOffering.Size, p.SetSize)
 
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 

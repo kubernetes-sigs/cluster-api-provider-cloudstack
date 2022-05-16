@@ -38,7 +38,7 @@ func setArrayIfNotEmpty(strArray []string, setFn setArray) {
 	}
 }
 
-func setIntIfNotZero(num int64, setFn setInt) {
+func setIntIfPositive(num int64, setFn setInt) {
 	if num > 0 {
 		setFn(num)
 	}
