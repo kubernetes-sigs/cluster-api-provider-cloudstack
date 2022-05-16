@@ -71,7 +71,7 @@ spec:
               - name: vip_leaderelection
                 value: "true"
               - name: vip_address
-                value: "\"\""
+                value: ${CLUSTER_ENDPOINT_IP}
               - name: vip_interface
                 value: ens3
               - name: vip_leaseduration
