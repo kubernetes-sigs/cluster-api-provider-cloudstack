@@ -172,7 +172,7 @@ var _ = BeforeSuite(func() {
 		K8sClient:  k8sManager.GetClient(),
 		Scheme:     k8sManager.GetScheme(),
 		CSClient:   CS,
-		BaseLogger: logr.New(logf.NullLogSink{})}
+		BaseLogger: logr.Discard()}
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())
 
