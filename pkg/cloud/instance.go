@@ -169,13 +169,13 @@ func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine) (disk
 			"expected 1 DiskOffering with UUID %s, but got %d", diskOfferingID, count))
 	}
 
-	if csDiskOffering.Iscustomized && csMachine.Spec.DiskOffering.Size == 0 {
+	if csDiskOffering.Iscustomized && csMachine.Spec.DiskOffering.CustomSize == 0 {
 		return "", multierror.Append(retErr, errors.Errorf(
 			"diskOffering with UUID %s is customized, disk size can not be 0 GB",
 			diskOfferingID))
 	}
 
-	if !csDiskOffering.Iscustomized && csMachine.Spec.DiskOffering.Size > 0 {
+	if !csDiskOffering.Iscustomized && csMachine.Spec.DiskOffering.CustomSize > 0 {
 		return "", multierror.Append(retErr, errors.Errorf(
 			"diskOffering with UUID %s is not customized, disk size can not be specified",
 			diskOfferingID))
@@ -218,7 +218,7 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
-	setIntIfPositive(csMachine.Spec.DiskOffering.Size, p.SetSize)
+	setIntIfPositive(csMachine.Spec.DiskOffering.CustomSize, p.SetSize)
 
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 

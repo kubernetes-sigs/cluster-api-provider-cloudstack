@@ -9,7 +9,7 @@ spec:
         name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
       diskOffering: 
         name: ${CLOUDSTACK_DISK_OFFERING_NAME}
-        sizeInGB: 1
+        customSizeInGB: 1
         mountPath: /disk
         device: /dev/vdb
         filesystem: ext4

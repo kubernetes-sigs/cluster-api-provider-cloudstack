@@ -205,7 +205,7 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors when disk size not zero for non-customized disk offering", func() {
 			expectVMNotFound()
-			dummies.CSMachine1.Spec.DiskOffering.Size = 1
+			dummies.CSMachine1.Spec.DiskOffering.CustomSize = 1
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
 				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
 			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
@@ -218,7 +218,7 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors when disk size zero for customized disk offering", func() {
 			expectVMNotFound()
-			dummies.CSMachine1.Spec.DiskOffering.Size = 0
+			dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
 			sos.EXPECT().GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name).
 				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
 			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)

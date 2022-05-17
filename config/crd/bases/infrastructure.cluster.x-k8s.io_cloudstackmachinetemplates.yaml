@@ -103,6 +103,11 @@ spec:
                       diskOffering:
                         description: CloudStack disk offering to use.
                         properties:
+                          customSizeInGB:
+                            description: disk size if disk offering is custom disk
+                              (need to specify disk size by users)
+                            format: int64
+                            type: integer
                           device:
                             description: device name of data disk, for example /dev/vdb
                             type: string
@@ -125,11 +130,6 @@ spec:
                           name:
                             description: Cloudstack resource Name
                             type: string
-                          sizeInGB:
-                            description: disk size if disk offering is custom disk
-                              (need to specify disk size by users)
-                            format: int64
-                            type: integer
                         required:
                         - device
                         - filesystem

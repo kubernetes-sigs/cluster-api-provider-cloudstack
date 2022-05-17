@@ -80,7 +80,7 @@ var ( // Declare exported dummy vars.
 		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
 			Name: "Custom",
 		},
-		Size:       1,
+		CustomSize: 1,
 		MountPath:  "/data",
 		Device:     "/dev/vdb",
 		Filesystem: "ext4",
@@ -90,7 +90,7 @@ var ( // Declare exported dummy vars.
 		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
 			Name: "Custom",
 		},
-		Size:       -1,
+		CustomSize: -1,
 		MountPath:  "/data",
 		Device:     "/dev/vdb",
 		Filesystem: "ext4",
