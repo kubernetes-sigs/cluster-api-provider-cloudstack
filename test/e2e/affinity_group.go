@@ -62,6 +62,7 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 	})
 
 	It("Should have host affinity group when affinity is anti", func() {
+		Skip("no multi-host")
 		executeTest(ctx, input, namespace, specName, clusterResources, "anti")
 	})
 

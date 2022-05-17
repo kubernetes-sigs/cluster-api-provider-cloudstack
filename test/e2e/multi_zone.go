@@ -58,6 +58,7 @@ func MultiZoneSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	})
 
 	It("should successfully create a cluster with multi-zone and isolated networks", func() {
+		Skip("no multi-zone")
 		By("Creating a workload cluster")
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:    input.BootstrapClusterProxy,

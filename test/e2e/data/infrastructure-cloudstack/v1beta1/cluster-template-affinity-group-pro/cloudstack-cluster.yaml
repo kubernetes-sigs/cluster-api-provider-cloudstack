@@ -4,9 +4,9 @@ metadata:
   name: ${CLUSTER_NAME}
 spec:
   zones:
-  - name: ${CLOUDSTACK_ZONE_NAME_3}
+  - name: ${CLOUDSTACK_ZONE_NAME}
     network:
-      name: ${CLOUDSTACK_SHARED_NETWORK_NAME_3}
+      name: ${CLOUDSTACK_SHARED_NETWORK_NAME}
   account: ${CLOUDSTACK_ACCOUNT_NAME}
   domain: ${CLOUDSTACK_DOMAIN_NAME}
   controlPlaneEndpoint:
