@@ -249,6 +249,10 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 }
 
 func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
+	if r.ReconciliationSubject.Spec.InstanceID == nil {
+		r.Log.Info("VM Instance ID is nil")
+		return ctrl.Result{}, nil
+	}
 	r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
 	// Use CSClient instead of CSUser here to expunge as admin.
 	// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
@@ -260,7 +264,7 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 		}
 		return ctrl.Result{}, err
 	}
-	r.Log.Info("VM Deleted.")
+	r.Log.Info("VM Deleted")
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
