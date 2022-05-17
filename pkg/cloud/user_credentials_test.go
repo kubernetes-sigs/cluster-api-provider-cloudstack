@@ -17,8 +17,10 @@ limitations under the License.
 package cloud_test
 
 import (
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/pkg/errors"
 )
 
 var _ = Describe("User Credentials", func() {
@@ -32,62 +34,62 @@ var _ = Describe("User Credentials", func() {
 	AfterEach(func() {
 	})
 
-	// Context("UserCred Semi-Integ Tests", func() {
-	// 	client, connectionErr := cloud.NewClient("../../cloud-config")
-	// 	var domain cloud.Domain
-	// 	var account cloud.Account
-	// 	var user cloud.User
+	Context("UserCred Semi-Integ Tests", func() {
+		client, connectionErr := cloud.NewClient("../../cloud-config")
+		var domain cloud.Domain
+		var account cloud.Account
+		var user cloud.User
 
-	// 	BeforeEach(func() {
-	// 		if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
-	// 			Skip(errors.Wrapf(connectionErr, "Could not connect to ACS instance").Error())
-	// 		}
+		BeforeEach(func() {
+			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
+				Skip(errors.Wrapf(connectionErr, "Could not connect to ACS instance").Error())
+			}
 
-	// 		// Settup dummies.
-	// 		// TODO: move these to the test dummies package.
-	// 		domain = cloud.Domain{Path: "ROOT/blah/blah/subsub"}
-	// 		account = cloud.Account{Name: "SuperNested", Domain: domain}
-	// 		user = cloud.User{Name: "SubSub", Account: account}
-	// 	})
+			// Settup dummies.
+			// TODO: move these to the test dummies package.
+			domain = cloud.Domain{Path: "ROOT/blah/blah/subsub"}
+			account = cloud.Account{Name: "SuperNested", Domain: domain}
+			user = cloud.User{Name: "SubSub", Account: account}
+		})
 
-	// 	It("can resolve a domain from the path", func() {
-	// 		Ω(client.ResolveDomain(&domain)).Should(Succeed())
-	// 		Ω(domain.ID).ShouldNot(BeEmpty())
-	// 	})
+		It("can resolve a domain from the path", func() {
+			Ω(client.ResolveDomain(&domain)).Should(Succeed())
+			Ω(domain.ID).ShouldNot(BeEmpty())
+		})
 
-	// 	It("can resolve an account from the domain path and account name", func() {
-	// 		Ω(client.ResolveAccount(&account)).Should(Succeed())
-	// 		Ω(account.ID).ShouldNot(BeEmpty())
-	// 	})
+		It("can resolve an account from the domain path and account name", func() {
+			Ω(client.ResolveAccount(&account)).Should(Succeed())
+			Ω(account.ID).ShouldNot(BeEmpty())
+		})
 
-	// 	It("can resolve a user from the domain path, account name, and user name", func() {
-	// 		Ω(client.ResolveUser(&user)).Should(Succeed())
-	// 		Ω(user.ID).ShouldNot(BeEmpty())
-	// 	})
+		It("can resolve a user from the domain path, account name, and user name", func() {
+			Ω(client.ResolveUser(&user)).Should(Succeed())
+			Ω(user.ID).ShouldNot(BeEmpty())
+		})
 
-	// 	It("can get sub-domain user's credentials", func() {
-	// 		Ω(client.ResolveUserKeys(&user)).Should(Succeed())
+		It("can get sub-domain user's credentials", func() {
+			Ω(client.ResolveUserKeys(&user)).Should(Succeed())
 
-	// 		Ω(user.APIKey).ShouldNot(BeEmpty())
-	// 		Ω(user.SecretKey).ShouldNot(BeEmpty())
-	// 	})
+			Ω(user.APIKey).ShouldNot(BeEmpty())
+			Ω(user.SecretKey).ShouldNot(BeEmpty())
+		})
 
-	// 	It("can get an arbitrary user with keys from domain and account specifications alone", func() {
-	// 		found, err := client.GetUserWithKeys(&user)
-	// 		Ω(err).ShouldNot(HaveOccurred())
-	// 		Ω(found).Should(BeTrue())
-	// 		Ω(user.APIKey).ShouldNot(BeEmpty())
-	// 	})
+		It("can get an arbitrary user with keys from domain and account specifications alone", func() {
+			found, err := client.GetUserWithKeys(&user)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
+			Ω(user.APIKey).ShouldNot(BeEmpty())
+		})
 
-	// 	It("can get create a new client as another user", func() {
-	// 		found, err := client.GetUserWithKeys(&user)
-	// 		Ω(err).ShouldNot(HaveOccurred())
-	// 		Ω(found).Should(BeTrue())
-	// 		Ω(user.APIKey).ShouldNot(BeEmpty())
-	// 		cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
-	// 		newClient, err := client.NewClientFromSpec(cfg)
-	// 		Ω(err).ShouldNot(HaveOccurred())
-	// 		Ω(newClient).ShouldNot(BeNil())
-	// 	})
-	// })
+		It("can get create a new client as another user", func() {
+			found, err := client.GetUserWithKeys(&user)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
+			Ω(user.APIKey).ShouldNot(BeEmpty())
+			cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
+			newClient, err := client.NewClientFromSpec(cfg)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(newClient).ShouldNot(BeNil())
+		})
+	})
 })

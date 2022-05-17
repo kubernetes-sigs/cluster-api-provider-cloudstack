@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -97,20 +96,11 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 
 func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
 	r.Log.Info("Deleting IsolatedNetwork.")
-	count, err := r.CSUser.GetNumberOfVMsCreatedIn(r.ReconciliationSubject)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if count > 0 {
-		return r.RequeueWithMessage(fmt.Sprintf("The network still has VM instances: %d\n", count))
-	}
-
 	if err := r.CSUser.DisposeIsoNetResources(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
 		if !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			return ctrl.Result{}, err
 		}
 	}
-	r.Log.Info("Removing Finalizer for IsolatedNetwork.")
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.IsolatedNetworkFinalizer)
 	return ctrl.Result{}, nil
 }
