@@ -17,7 +17,6 @@ limitations under the License.
 package cloud
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -150,7 +149,6 @@ func (c *client) GetPublicIP(
 		}
 		return nil, errors.New("all Public IP Adresse(s) found were already allocated")
 	}
-	fmt.Printf("GetPublicIP: ip %s, count %d\n", ip, publicAddresses.Count)
 	return nil, errors.New("no public addresses found in available networks")
 }
 
