@@ -141,7 +141,7 @@ func (c *client) ResolveAccount(account *Account) error {
 	if retErr != nil {
 		return retErr
 	} else if resp.Count == 0 {
-		return errors.Errorf("could not find account name %s in domain ID %s",
+		return errors.Errorf("could not find account %s in domain ID %s",
 			account.Name, account.Domain.ID)
 	} else if resp.Count != 1 {
 		return errors.Errorf("expected 1 Account with account name %s in domain ID %s, but got %d",
