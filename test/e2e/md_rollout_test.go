@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing MachineDeployment rolling upgrades[PR-Blocking]", func() {
+var _ = Describe("When testing MachineDeployment rolling upgrades", func() {
 	MachineDeploymentRolloutSpec(ctx, func() CommonSpecInput {
 		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
