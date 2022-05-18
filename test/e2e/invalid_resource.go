@@ -62,7 +62,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 	})
 
 	It("Should fail due to the specified account is not found [TC4a]", func() {
-		testInvalidResource(ctx, input, "invalid-account", "could not find account name "+input.E2EConfig.GetVariable(InvalidAccountName))
+		testInvalidResource(ctx, input, "invalid-account", "could not find account "+input.E2EConfig.GetVariable(InvalidAccountName))
 	})
 
 	It("Should fail due to the specified domain is not found [TC4b]", func() {
