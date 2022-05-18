@@ -70,11 +70,10 @@ func (c *client) ResolveDomain(domain *Domain) error {
 			domain.Name = tokens[len(tokens)-1]
 		}
 		// Ensure the path begins with ROOT.
-		if !strings.EqualFold(tokens[0], rootDomain) {
+		if strings.EqualFold(tokens[0], rootDomain) {
 			tokens = append([]string{rootDomain}, tokens...)
 		} else {
-			tokens[0] = rootDomain
-			domain.Path = strings.Join(tokens, domainDelimiter)
+			domain.Path = rootDomain + domainDelimiter + strings.Join(tokens, domainDelimiter)
 		}
 	}
 
@@ -85,7 +84,7 @@ func (c *client) ResolveDomain(domain *Domain) error {
 	setIfNotEmpty(domain.ID, p.SetId)
 
 	// If path was provided also use level narrow the search for domain.
-	if level := len(tokens) - 1; level >= 0 {
+	if level := len(tokens); level >= 0 {
 		p.SetLevel(level)
 	}
 
@@ -154,11 +153,6 @@ func (c *client) ResolveAccount(account *Account) error {
 
 // ResolveUser resolves a user's information.
 func (c *client) ResolveUser(user *User) error {
-	// Resolve account prior to any user resolution activity.
-	if err := c.ResolveAccount(&user.Account); err != nil {
-		return errors.Wrapf(err, "resolving account %s details", user.Account.Name)
-	}
-
 	p := c.cs.User.NewListUsersParams()
 	p.SetAccount(user.Account.Name)
 	p.SetDomainid(user.Domain.ID)
@@ -186,7 +180,7 @@ func (c *client) ResolveUserKeys(user *User) error {
 	p := c.cs.User.NewGetUserKeysParams(user.ID)
 	resp, err := c.cs.User.GetUserKeys(p)
 	if err != nil {
-		return errors.Errorf("error encountered when resolving user api keys for user %s", user.Name)
+		return errors.Wrapf(err, "error encountered when resolving user api keys for user %s", user.Name)
 	}
 	user.APIKey = resp.Apikey
 	user.SecretKey = resp.Secretkey
