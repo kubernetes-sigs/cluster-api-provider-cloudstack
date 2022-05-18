@@ -42,17 +42,19 @@ var _ = Describe("CloudStackMachine webhook", func() {
 		})
 
 		It("should accept a CloudStackMachine with disk Offering attribute", func() {
-			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering2
+			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 		})
 
-		It("should accept a CloudStackMachine with disk Offering size attribute", func() {
-			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering3
+		It("should accept a CloudStackMachine with positive disk Offering size attribute", func() {
+			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering
+			dummies.CSMachine1.Spec.DiskOffering.CustomSize = 1
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 		})
 
-		It("should not accept a CloudStackMachine with disk Offering size attribute", func() {
-			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering4
+		It("should not accept a CloudStackMachine with negative disk Offering size attribute", func() {
+			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering
+			dummies.CSMachine1.Spec.DiskOffering.CustomSize = -1
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(MatchError(MatchRegexp(forbiddenRegex, "customSizeInGB")))
 		})
 
@@ -93,7 +95,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 		})
 
 		It("should reject VM disk offering updates to the CloudStackMachine", func() {
-			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering2
+			dummies.CSMachine1.Spec.DiskOffering.Name = "medium"
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "diskOffering")))
 		})

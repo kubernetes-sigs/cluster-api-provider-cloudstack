@@ -148,18 +148,25 @@ func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine) (disk
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
 				"expected 1 DiskOffering with name %s, but got %d", csMachine.Spec.DiskOffering.Name, count))
-		} else {
-			if len(csMachine.Spec.DiskOffering.ID) > 0 && diskID != csMachine.Spec.DiskOffering.ID {
-				return "", multierror.Append(retErr, errors.Errorf(
-					"diskOffering ID %s does not match ID %s returned using name %s",
-					csMachine.Spec.DiskOffering.ID, diskID, csMachine.Spec.DiskOffering.Name))
-			}
+		} else if len(csMachine.Spec.DiskOffering.ID) > 0 && diskID != csMachine.Spec.DiskOffering.ID {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"diskOffering ID %s does not match ID %s returned using name %s",
+				csMachine.Spec.DiskOffering.ID, diskID, csMachine.Spec.DiskOffering.Name))
+		} else if len(diskID) == 0 {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"empty diskOffering ID %s returned using name %s",
+				diskID, csMachine.Spec.DiskOffering.Name))
 		}
 		diskOfferingID = diskID
 	}
 	if len(diskOfferingID) == 0 {
 		return "", nil
 	}
+
+	return verifyDiskoffering(csMachine, c, diskOfferingID, retErr)
+}
+
+func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOfferingID string, retErr error) (string, error) {
 	csDiskOffering, count, err := c.cs.DiskOffering.GetDiskOfferingByID(diskOfferingID)
 	if err != nil {
 		return "", multierror.Append(retErr, errors.Wrapf(

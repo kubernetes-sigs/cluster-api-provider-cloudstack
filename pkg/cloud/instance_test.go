@@ -185,7 +185,6 @@ var _ = Describe("Instance", func() {
 				Return(dummies.CSMachine1.Spec.Offering.ID, 1, nil)
 			ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
 			dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name).Return(diskOfferingFakeID, 2, nil)
-			//dos.EXPECT().GetDiskOfferingByID(dummies.CSMachine1.Spec.DiskOffering.ID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 			Ω(client.GetOrCreateVMInstance(
 				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "")).
 				ShouldNot(Succeed())
