@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -73,7 +74,7 @@ func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Re
 		return res, err
 	}
 
-	if err := r.CSClient.ResolveVMInstanceDetails(r.CSMachine); err != nil {
+	if err := r.CSClient.ResolveVMInstanceDetails(r.CSMachine); err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 		return r.ReturnWrappedError(err, "failed to resolve VM instance details")
 	}
 	if r.CSMachine.Status.InstanceState == "Running" {
