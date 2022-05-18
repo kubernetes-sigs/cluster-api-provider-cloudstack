@@ -70,11 +70,12 @@ func (c *client) ResolveDomain(domain *Domain) error {
 			domain.Name = tokens[len(tokens)-1]
 		}
 		// Ensure the path begins with ROOT.
-		if strings.EqualFold(tokens[0], rootDomain) {
+		if !strings.EqualFold(tokens[0], rootDomain) {
 			tokens = append([]string{rootDomain}, tokens...)
 		} else {
-			domain.Path = rootDomain + domainDelimiter + strings.Join(tokens, domainDelimiter)
+			tokens[0] = rootDomain
 		}
+		domain.Path = strings.Join(tokens, domainDelimiter)
 	}
 
 	// Set present search/list parameters.
