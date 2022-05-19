@@ -412,6 +412,13 @@ func (in *CloudStackMachineSpec) DeepCopyInto(out *CloudStackMachineSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.Symlinks != nil {
+		in, out := &in.Symlinks, &out.Symlinks
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.AffinityGroupIDs != nil {
 		in, out := &in.AffinityGroupIDs, &out.AffinityGroupIDs
 		*out = make([]string, len(*in))

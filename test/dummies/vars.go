@@ -67,6 +67,11 @@ var ( // Declare exported dummy vars.
 		Filesystem: "ext4",
 		Label:      "data_disk",
 	}
+	Symlinks = map[string]string{
+		"/var/log/pods":       "/data/var/log/pods",
+		"/var/log/containers": "/data/var/log/containers",
+		"/var/log/kubernetes": "/data/var/log/kubernetes",
+	}
 )
 
 // SetDummyVars sets/resets all dummy vars.
@@ -153,6 +158,9 @@ func SetDummyCSMachineTemplateVars() {
 					Details: map[string]string{
 						"memoryOvercommitRatio": "1.2",
 					},
+					Symlinks: map[string]string{
+						"/var/log/pods": "/data/var/log/pods",
+					},
 				},
 			},
 		},
@@ -194,6 +202,9 @@ func SetDummyCSMachineVars() {
 			AffinityGroupIDs: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
 			Details: map[string]string{
 				"memoryOvercommitRatio": "1.2",
+			},
+			Symlinks: map[string]string{
+				"/var/log/pods": "/data/var/log/pods",
 			},
 		},
 	}

@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/webhookutil"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -68,6 +69,14 @@ func (r *CloudStackMachine) ValidateCreate() error {
 	if len(r.Spec.DiskOffering.ID) > 0 || len(r.Spec.DiskOffering.Name) > 0 {
 		errorList = webhookutil.EnsureIntFieldsAreNotNegative(r.Spec.DiskOffering.CustomSize, "customSizeInGB", errorList)
 	}
+	for symlink, target := range r.Spec.Symlinks {
+		if !strings.HasPrefix(symlink, "/") || strings.HasSuffix(symlink, "/") {
+			errorList = append(errorList, field.Invalid(field.NewPath("spec", "Symlinks"), symlink, "symlink (key) must start with / and NOT ends with /"))
+		}
+		if !strings.HasPrefix(target, "/") || strings.HasSuffix(target, "/") {
+			errorList = append(errorList, field.Invalid(field.NewPath("spec", "Symlinks"), target, "target (value) must start with / and NOT ends with /"))
+		}
+	}
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
@@ -94,6 +103,7 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
 	errorList = webhookutil.EnsureBothFieldsAreEqual(r.Spec.Template.ID, r.Spec.Template.Name, oldSpec.Template.ID, oldSpec.Template.Name, "template", errorList)
 	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&r.Spec.Details, &oldSpec.Details, "details", errorList)
+	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&r.Spec.Symlinks, &oldSpec.Symlinks, "symlinks", errorList)
 	if r.Spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			r.Spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)

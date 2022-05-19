@@ -59,6 +59,10 @@ type CloudStackMachineSpec struct {
 	// Optional details map for deployVirtualMachine
 	Details map[string]string `json:"details,omitempty"`
 
+	// Optional symlinks map for soft link to target
+	// +optional
+	Symlinks map[string]string `json:"symlinks,omitempty"`
+
 	// Optional affinitygroupids for deployVirtualMachine
 	// +optional
 	AffinityGroupIDs []string `json:"affinitygroupids,omitempty"`

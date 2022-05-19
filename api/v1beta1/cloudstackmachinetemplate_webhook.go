@@ -79,6 +79,15 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 	errorList = webhookutil.EnsureAtLeastOneFieldExists(spec.Offering.ID, spec.Offering.Name, "Offering", errorList)
 	errorList = webhookutil.EnsureAtLeastOneFieldExists(spec.Template.ID, spec.Template.Name, "Template", errorList)
 
+	for symlink, target := range spec.Symlinks {
+		if !strings.HasPrefix(symlink, "/") || strings.HasSuffix(symlink, "/") {
+			errorList = append(errorList, field.Invalid(field.NewPath("spec", "Symlinks"), symlink, "symlink (key)"))
+		}
+		if !strings.HasPrefix(target, "/") || strings.HasSuffix(target, "/") {
+			errorList = append(errorList, field.Invalid(field.NewPath("spec", "Symlinks"), target, "target (value)"))
+		}
+	}
+
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
@@ -101,6 +110,7 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
 	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.Template.ID, spec.Template.Name, oldSpec.Template.ID, oldSpec.Template.Name, "template", errorList)
 	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&spec.Details, &oldSpec.Details, "details", errorList)
+	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&spec.Symlinks, &oldSpec.Symlinks, "symlinks", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Affinity, oldSpec.Affinity, "affinity", errorList)
 
 	if !reflect.DeepEqual(spec.AffinityGroupIDs, oldSpec.AffinityGroupIDs) { // Equivalent to other Ensure funcs.

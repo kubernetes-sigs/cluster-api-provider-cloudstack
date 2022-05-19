@@ -29,6 +29,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 	var ctx context.Context
 	forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
 	requiredRegex := "admission webhook.*denied the request.*Required value\\: %s"
+	invalidRegex := "admission webhook.*denied the request.*Invalid value\\: \"%s\".*"
 
 	BeforeEach(func() { // Reset test vars to initial state.
 		dummies.SetDummyVars()
@@ -70,6 +71,30 @@ var _ = Describe("CloudStackMachine webhook", func() {
 				Should(MatchError(MatchRegexp(requiredRegex, "Template")))
 		})
 
+		It("Should reject a CloudStackMachine when symlink key not start with /", func() {
+			dummies.CSMachine1.Spec.Symlinks["var/log/pods"] = "/data/var/log/pods"
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(invalidRegex, "var/log/pods")))
+		})
+
+		It("Should reject a CloudStackMachine when symlink key ends with /", func() {
+			dummies.CSMachine1.Spec.Symlinks["/var/log/pods/"] = "/data/var/log/pods"
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(invalidRegex, "/var/log/pods/")))
+		})
+
+		It("Should reject a CloudStackMachine when symlink value not start with /", func() {
+			dummies.CSMachine1.Spec.Symlinks["/var/log/pods"] = "data/var/log/pods"
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(invalidRegex, "data/var/log/pods")))
+		})
+
+		It("Should reject a CloudStackMachine when symlink value ends with /", func() {
+			dummies.CSMachine1.Spec.Symlinks["/var/log/pods"] = "/data/var/log/pods/"
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(invalidRegex, "/data/var/log/pods/")))
+		})
+
 		It("should reject a CloudStackMachine with IdentityRef not of kind 'Secret'", func() {
 			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
@@ -104,6 +129,12 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			dummies.CSMachine1.Spec.Details = map[string]string{"memoryOvercommitRatio": "1.5"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "details")))
+		})
+
+		It("should reject updates to VM symlinks of the CloudStackMachine", func() {
+			dummies.CSMachine1.Spec.Symlinks = map[string]string{"/var/log/kubernetes": "/data/var/log/kubernetes"}
+			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "symlinks")))
 		})
 
 		It("should reject identity reference kind updates to the CloudStackMachine", func() {
