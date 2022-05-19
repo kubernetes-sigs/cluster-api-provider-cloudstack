@@ -193,8 +193,9 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
-		controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	}
+	// Always add the finalizer regardless. It can't be added twice anyway.
+	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, err
 }
 
@@ -204,7 +205,7 @@ func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (r
 		r.Log.Info("Machine instance is Running...")
 		r.ReconciliationSubject.Status.Ready = true
 	} else if r.ReconciliationSubject.Status.InstanceState == "Error" {
-		r.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", r.ReconciliationSubject)
+		r.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", r.ReconciliationSubject.GetName())
 		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -248,17 +249,20 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 }
 
 func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
-	r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
-	// Use CSClient instead of CSUser here to expunge as admin.
-	// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
-	// non-domain admin user.
-	if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
-		if err.Error() == "VM deletion in progress" {
-			r.Log.Info(err.Error())
-			return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
+	if r.ReconciliationSubject.Spec.InstanceID != nil {
+		r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
+		// Use CSClient instead of CSUser here to expunge as admin.
+		// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
+		// non-domain admin user.
+		if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
+			if err.Error() == "VM deletion in progress" {
+				r.Log.Info(err.Error())
+				return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
+			}
+			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, err
 	}
+	r.Log.Info("VM Deleted")
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
