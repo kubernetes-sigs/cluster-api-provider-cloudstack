@@ -1,0 +1,44 @@
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  kubeadmConfigSpec:
+    initConfiguration:
+      nodeRegistration:
+        name: '{{ local_hostname }}'
+        kubeletExtraArgs:
+          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+    clusterConfiguration:
+      imageRepository: k8s.gcr.io
+    joinConfiguration:
+      nodeRegistration:
+        name: '{{ local_hostname }}'
+        kubeletExtraArgs:
+          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+    preKubeadmCommands:
+      - swapoff -a
+    diskSetup:
+      filesystems:
+        - device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}1
+          overwrite: false
+          extraOpts:
+            - -E
+            - lazy_itable_init=1,lazy_journal_init=1
+          filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
+          label: data_disk
+      partitions:
+        - device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
+          layout: true
+          overwrite: false
+          tableType: gpt
+    mounts:
+      - - LABEL=${CLOUDSTACK_DISK_OFFERING_LABEL}
+        - ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: CloudStackMachineTemplate
+      name: ${CLUSTER_NAME}-control-plane
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  version: ${KUBERNETES_VERSION}

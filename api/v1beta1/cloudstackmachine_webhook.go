@@ -65,6 +65,9 @@ func (r *CloudStackMachine) ValidateCreate() error {
 
 	errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Offering.ID, r.Spec.Offering.Name, "Offering", errorList)
 	errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Template.ID, r.Spec.Template.Name, "Template", errorList)
+	if len(r.Spec.DiskOffering.ID) > 0 || len(r.Spec.DiskOffering.Name) > 0 {
+		errorList = webhookutil.EnsureIntFieldsAreNotNegative(r.Spec.DiskOffering.CustomSize, "customSizeInGB", errorList)
+	}
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
@@ -83,6 +86,7 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 
 	errorList = webhookutil.EnsureBothFieldsAreEqual(r.Spec.Offering.ID, r.Spec.Offering.Name, oldSpec.Offering.ID, oldSpec.Offering.Name, "offering", errorList)
 	errorList = webhookutil.EnsureBothFieldsAreEqual(r.Spec.DiskOffering.ID, r.Spec.DiskOffering.Name, oldSpec.DiskOffering.ID, oldSpec.DiskOffering.Name, "diskOffering", errorList)
+	errorList = webhookutil.EnsureIntFieldsAreNotNegative(r.Spec.DiskOffering.CustomSize, "customSizeInGB", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.DiskOffering.MountPath, oldSpec.DiskOffering.MountPath, "mountPath", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.DiskOffering.Device, oldSpec.DiskOffering.Device, "device", errorList)
 	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.DiskOffering.Filesystem, oldSpec.DiskOffering.Filesystem, "filesystem", errorList)

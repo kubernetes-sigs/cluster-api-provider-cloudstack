@@ -58,18 +58,9 @@ var ( // Declare exported dummy vars.
 	ListDomainsResp    *csapi.ListDomainsResponse
 	ListAccountsParams *csapi.ListAccountsParams
 	ListAccountsResp   *csapi.ListAccountsResponse
-	DiskOffering1      = capcv1.CloudStackResourceDiskOffering{
+	DiskOffering       = capcv1.CloudStackResourceDiskOffering{
 		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
 			Name: "Small",
-		},
-		MountPath:  "/data",
-		Device:     "/dev/vdb",
-		Filesystem: "ext4",
-		Label:      "data_disk",
-	}
-	DiskOffering2 = capcv1.CloudStackResourceDiskOffering{
-		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
-			Name: "Medium",
 		},
 		MountPath:  "/data",
 		Device:     "/dev/vdb",

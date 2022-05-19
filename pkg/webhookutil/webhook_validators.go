@@ -45,6 +45,13 @@ func EnsureStringFieldsAreEqual(new string, old string, name string, allErrs fie
 	return allErrs
 }
 
+func EnsureIntFieldsAreNotNegative(new int64, name string, allErrs field.ErrorList) field.ErrorList {
+	if new < 0 {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))
+	}
+	return allErrs
+}
+
 func EnsureBothFieldsAreEqual(new1 string, new2 string, old1 string, old2 string, name string, allErrs field.ErrorList) field.ErrorList {
 	if new1 != old1 || new2 != old2 {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))

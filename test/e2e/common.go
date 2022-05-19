@@ -64,6 +64,7 @@ const (
 const (
 	ControlPlaneIndicator      = "control-plane"
 	MachineDeploymentIndicator = "md"
+	DataVolumePrefix           = "DATA-"
 )
 
 type CommonSpecInput struct {
@@ -452,6 +453,37 @@ func CheckDiskOfferingOfVmInstances(clusterName string, diskOfferingName string)
 	for _, vm := range listResp.VirtualMachines {
 		if strings.Contains(vm.Name, clusterName) {
 			Expect(vm.Diskofferingname).To(Equal(diskOfferingName))
+		}
+	}
+}
+func CheckVolumeSizeofVmInstances(clusterName string, volumeSize int64) {
+	client := createCloudStackClient()
+
+	Byf("Listing machines with %q", clusterName)
+	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+	if err != nil {
+		Fail("Failed to list machines")
+	}
+	for _, vm := range listResp.VirtualMachines {
+		if strings.Contains(vm.Name, clusterName) {
+			p := client.Volume.NewListVolumesParams()
+			p.SetVirtualmachineid(vm.Id)
+			volResp, err := client.Volume.ListVolumes(p)
+			if err != nil {
+				Fail(fmt.Sprintf("Failed to list volumes for VM instance %s", vm.Id))
+			}
+			isVolumeSizeChecked := false
+			for _, vol := range volResp.Volumes {
+				if strings.Contains(vol.Name, DataVolumePrefix) {
+					if vol.Size != volumeSize {
+						Fail(fmt.Sprintf("Expected %d volume size but got %d volume size for VM instance %s", volumeSize, vol.Size, vm.Id))
+					}
+					isVolumeSizeChecked = true
+				}
+			}
+			if !isVolumeSizeChecked {
+				Fail(fmt.Sprintf("Could not find any volumes with a prefix %s", DataVolumePrefix))
+			}
 		}
 	}
 }
