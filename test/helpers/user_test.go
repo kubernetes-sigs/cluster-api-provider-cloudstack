@@ -27,45 +27,36 @@ import (
 )
 
 var _ = Describe("Test helper methods", func() {
+	var csClient *cloudstack.CloudStackClient
+	ccPath := "../../cloud-config"
+	conf := cloud.Config{}
+	if rawCfg, err := ini.Load("../../cloud-config"); err != nil {
+		Ω(errors.Wrapf(err, "reading config at path %s:", ccPath)).ShouldNot(HaveOccurred())
+	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
+		Ω(errors.New("section Global not found")).ShouldNot(HaveOccurred())
+	} else if err = rawCfg.Section("Global").StrictMapTo(&conf); err != nil {
+		Ω(errors.Wrapf(err, "parsing [Global] section from config at path %s:", ccPath)).ShouldNot(HaveOccurred())
+	}
+	csClient = cloudstack.NewAsyncClient(conf.APIURL, conf.APIKey, conf.SecretKey, conf.VerifySSL)
 
-	Context("Domain Creation and Deletion Integ Tests", func() {
-		var csClient *cloudstack.CloudStackClient
-		ccPath := "../../cloud-config"
-		var connectionErr error
-		conf := cloud.Config{}
-		if rawCfg, err := ini.Load("../../cloud-config"); err != nil {
-			connectionErr = errors.Wrapf(err, "reading config at path %s:", ccPath)
-		} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
-			connectionErr = errors.New("section Global not found")
-		} else if err = rawCfg.Section("Global").StrictMapTo(&conf); err != nil {
-			connectionErr = errors.Wrapf(err, "parsing [Global] section from config at path %s:", ccPath)
+	// Get the root domain's ID.
+	rootDomainID, err, found := helpers.GetDomainByPath(csClient, "ROOT/")
+	Ω(err).ShouldNot(HaveOccurred())
+	Ω(rootDomainID).ShouldNot(BeEmpty())
+	Ω(found).Should(BeTrue())
+
+	AfterEach(func() {
+		for _, path := range []string{"ROOT/someNewDomain", "ROOT/blah"} {
+			// Delete any created domains.
+			id, err, found := helpers.GetDomainByPath(csClient, path)
+			Ω(err).ShouldNot(HaveOccurred())
+			if found {
+				Ω(helpers.DeleteDomain(csClient, id)).Should(Succeed())
+			}
 		}
+	})
 
-		csClient = cloudstack.NewAsyncClient(conf.APIURL, conf.APIKey, conf.SecretKey, conf.VerifySSL)
-
-		// Get the root domain's ID.
-		rootDomainID, err, found := helpers.GetDomainByPath(csClient, "ROOT/")
-		Ω(err).ShouldNot(HaveOccurred())
-		Ω(rootDomainID).ShouldNot(BeEmpty())
-		Ω(found).Should(BeTrue())
-
-		BeforeEach(func() {
-			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
-				Skip("Could not connect to ACS instance.")
-			}
-		})
-
-		AfterEach(func() {
-			for _, path := range []string{"ROOT/someNewDomain", "ROOT/blah"} {
-				// Delete any created domains.
-				id, err, found := helpers.GetDomainByPath(csClient, path)
-				Ω(err).ShouldNot(HaveOccurred())
-				if found {
-					Ω(helpers.DeleteDomain(csClient, id)).Should(Succeed())
-				}
-			}
-		})
-
+	Context("Domain Creation and Deletion.", func() {
 		It("Can get the ROOT domain's ID.", func() {
 			id, err, found := helpers.GetDomainByPath(csClient, "ROOT/")
 			Ω(err).ShouldNot(HaveOccurred())
@@ -88,7 +79,7 @@ var _ = Describe("Test helper methods", func() {
 
 		It("Returns an appropriate error when the domain already exists.", func() {
 			someDomain := &cloud.Domain{Name: "blah", Path: "blah"}
-			Ω(helpers.GetOrCreateDomain(someDomain, csClient)).Should(Succeed())
+			Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(Succeed())
 			Ω(someDomain.Name).Should(Equal("blah"))
 			Ω(someDomain.Path).Should(Equal("ROOT/blah"))
 			Ω(someDomain.ID).ShouldNot(BeEmpty())
@@ -99,12 +90,12 @@ var _ = Describe("Test helper methods", func() {
 
 		It("Doesn't error if the domain already exists.", func() {
 			someDomain := &cloud.Domain{Name: "blah", Path: "blah"}
-			Ω(helpers.GetOrCreateDomain(someDomain, csClient)).Should(Succeed())
+			Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(Succeed())
 			Ω(someDomain.Name).Should(Equal("blah"))
 			Ω(someDomain.Path).Should(Equal("ROOT/blah"))
 			Ω(someDomain.ID).ShouldNot(BeEmpty())
 
-			Ω(helpers.GetOrCreateDomain(someDomain, csClient)).Should(Succeed())
+			Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(Succeed())
 			Ω(someDomain.Name).Should(Equal("blah"))
 			Ω(someDomain.Path).Should(Equal("ROOT/blah"))
 			Ω(someDomain.ID).ShouldNot(BeEmpty())
@@ -112,10 +103,32 @@ var _ = Describe("Test helper methods", func() {
 
 		It("Can create a wholly new multi-level sub-domain path.", func() {
 			someDomain := &cloud.Domain{Name: "tooBlah", Path: "ROOT/someNewDomain/tooBlah"}
-			Ω(helpers.GetOrCreateDomain(someDomain, csClient)).Should(Succeed())
+			Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(Succeed())
 			Ω(someDomain.Name).Should(Equal("tooBlah"))
 			Ω(someDomain.Path).Should(Equal("ROOT/someNewDomain/tooBlah"))
 			Ω(someDomain.ID).ShouldNot(BeEmpty())
 		})
 	})
+
+	Context("Account Creation.", func() {
+		It("Can create a new account in a new domain.", func() {
+			domain := cloud.Domain{Path: "ROOT/someNewDomain/tooBlah"}
+			account := cloud.Account{Name: "TempTestAccount", Domain: domain}
+			Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(Succeed())
+		})
+		It("Doesn't fail if the account already exists.", func() {
+			domain := cloud.Domain{Path: "ROOT/someNewDomain/tooBlah"}
+			account := cloud.Account{Name: "TempTestAccount", Domain: domain}
+			Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(Succeed())
+			Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(Succeed())
+		})
+	})
+
+	// Context("User Creation w/Keys.", func() {
+	// 	It("Can create a new account in a new domain.", func() {
+	// 		domain := cloud.Domain{Path: "ROOT/someNewDomain/tooBlah"}
+	// 		account := cloud.Account{Name: "TempTestAccount", Domain: domain}
+	// 		Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(Succeed())
+	// 	})
+	// })
 })

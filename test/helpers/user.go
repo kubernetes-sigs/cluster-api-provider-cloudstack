@@ -57,7 +57,7 @@ func CreateDomainUnderParent(csClient *cloudstack.CloudStackClient, parentID str
 }
 
 // GetOrCreateDomain gets or creates a domain as specified in the passed domain object.
-func GetOrCreateDomain(domain *cloud.Domain, csClient *cloudstack.CloudStackClient) error {
+func GetOrCreateDomain(csClient *cloudstack.CloudStackClient, domain *cloud.Domain) error {
 	// Split the specified domain path and prepend ROOT/ if it's missing.
 	domain.Path = strings.Trim(domain.Path, "/")
 	tokens := strings.Split(domain.Path, "/")
@@ -108,12 +108,37 @@ func DeleteDomain(csClient *cloudstack.CloudStackClient, domainID string) error 
 	return err
 }
 
-// // CreateAccount creates a domain as specified in the passed account object.
-// func CreateAccount(account *cloud.Account, csClient *cloudstack.CloudStackClient) error {
-// 	return nil
-// }
+// GetOrCreateAccount creates a domain as specified in the passed account object.
+func GetOrCreateAccount(csClient *cloudstack.CloudStackClient, account *cloud.Account) error {
+	if err := GetOrCreateDomain(csClient, &account.Domain); err != nil {
+		return err
+	}
 
-// // CreateUser creates a domain as specified in the passed account object.
-// func CreateUser(user *cloud.User, csClient *cloudstack.CloudStackClient) error {
-// 	return nil
-// }
+	roleDetails, count, err := csClient.Role.GetRoleByName("Domain Admin")
+	if err != nil {
+		return err
+	} else if count != 1 {
+		return fmt.Errorf("expected exactly one role with name 'Domain Admin', found %d", count)
+	}
+
+	p := csClient.Account.NewCreateAccountParams("blah@someDomain.net", "first", "last", "temp123", "TempUser")
+	p.SetDomainid(account.Domain.ID)
+	p.SetRoleid(roleDetails.Id)
+	resp, err := csClient.Account.CreateAccount(p)
+	if err != nil {
+		return err
+	}
+	account.Name = resp.Name
+	account.ID = resp.Id
+
+	return nil
+}
+
+// GetOrCreateUser creates a domain as specified in the passed account object.
+func GetOrCreateUser(csClient *cloudstack.CloudStackClient, user *cloud.User) error {
+	if err := GetOrCreateAccount(csClient, &user.Account); err != nil {
+		return err
+	}
+
+	return nil
+}
