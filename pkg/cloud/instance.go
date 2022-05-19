@@ -139,35 +139,55 @@ func (c *client) ResolveTemplate(
 // disk offering name matches name provided in spec.
 // If disk offering ID is not provided, the disk offering name is used to retrieve disk offering ID.
 func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine) (diskOfferingID string, retErr error) {
-	if len(csMachine.Spec.DiskOffering.ID) > 0 {
-		csDiskOffering, count, err := c.cs.DiskOffering.GetDiskOfferingByID(csMachine.Spec.DiskOffering.ID)
+	diskOfferingID = csMachine.Spec.DiskOffering.ID
+	if len(csMachine.Spec.DiskOffering.Name) > 0 {
+		diskID, count, err := c.cs.DiskOffering.GetDiskOfferingID(csMachine.Spec.DiskOffering.Name)
 		if err != nil {
 			return "", multierror.Append(retErr, errors.Wrapf(
-				err, "could not get DiskOffering by ID %s", csMachine.Spec.DiskOffering.ID))
+				err, "could not get DiskOffering ID from %s", csMachine.Spec.DiskOffering.Name))
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"expected 1 DiskOffering with UUID %s, but got %d", csMachine.Spec.DiskOffering.ID, count))
-		}
-
-		if len(csMachine.Spec.DiskOffering.Name) > 0 && csMachine.Spec.DiskOffering.Name != csDiskOffering.Name {
+				"expected 1 DiskOffering with name %s, but got %d", csMachine.Spec.DiskOffering.Name, count))
+		} else if len(csMachine.Spec.DiskOffering.ID) > 0 && diskID != csMachine.Spec.DiskOffering.ID {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"diskOffering name %s does not match name %s returned using UUID %s",
-				csMachine.Spec.DiskOffering.Name, csDiskOffering.Name, csMachine.Spec.DiskOffering.ID))
+				"diskOffering ID %s does not match ID %s returned using name %s",
+				csMachine.Spec.DiskOffering.ID, diskID, csMachine.Spec.DiskOffering.Name))
+		} else if len(diskID) == 0 {
+			return "", multierror.Append(retErr, errors.Errorf(
+				"empty diskOffering ID %s returned using name %s",
+				diskID, csMachine.Spec.DiskOffering.Name))
 		}
-		return csMachine.Spec.DiskOffering.ID, nil
+		diskOfferingID = diskID
 	}
-	if len(csMachine.Spec.DiskOffering.Name) == 0 {
+	if len(diskOfferingID) == 0 {
 		return "", nil
 	}
-	diskID, count, err := c.cs.DiskOffering.GetDiskOfferingID(csMachine.Spec.DiskOffering.Name)
+
+	return verifyDiskoffering(csMachine, c, diskOfferingID, retErr)
+}
+
+func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOfferingID string, retErr error) (string, error) {
+	csDiskOffering, count, err := c.cs.DiskOffering.GetDiskOfferingByID(diskOfferingID)
 	if err != nil {
 		return "", multierror.Append(retErr, errors.Wrapf(
-			err, "could not get DiskOffering ID from %s", csMachine.Spec.DiskOffering.Name))
+			err, "could not get DiskOffering by ID %s", diskOfferingID))
 	} else if count != 1 {
 		return "", multierror.Append(retErr, errors.Errorf(
-			"expected 1 DiskOffering with name %s, but got %d", csMachine.Spec.DiskOffering.Name, count))
+			"expected 1 DiskOffering with UUID %s, but got %d", diskOfferingID, count))
 	}
-	return diskID, nil
+
+	if csDiskOffering.Iscustomized && csMachine.Spec.DiskOffering.CustomSize == 0 {
+		return "", multierror.Append(retErr, errors.Errorf(
+			"diskOffering with UUID %s is customized, disk size can not be 0 GB",
+			diskOfferingID))
+	}
+
+	if !csDiskOffering.Iscustomized && csMachine.Spec.DiskOffering.CustomSize > 0 {
+		return "", multierror.Append(retErr, errors.Errorf(
+			"diskOffering with UUID %s is not customized, disk size can not be specified",
+			diskOfferingID))
+	}
+	return diskOfferingID, nil
 }
 
 // GetOrCreateVMInstance CreateVMInstance will fetch or create a VM instance, and
@@ -205,6 +225,7 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
+	setIntIfPositive(csMachine.Spec.DiskOffering.CustomSize, p.SetSize)
 
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 

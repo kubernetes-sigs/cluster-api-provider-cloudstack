@@ -74,8 +74,8 @@ func (c *client) ResolveDomain(domain *Domain) error {
 			tokens = append([]string{rootDomain}, tokens...)
 		} else {
 			tokens[0] = rootDomain
-			domain.Path = strings.Join(tokens, domainDelimiter)
 		}
+		domain.Path = strings.Join(tokens, domainDelimiter)
 	}
 
 	// Set present search/list parameters.
@@ -130,7 +130,7 @@ func (c *client) ResolveDomain(domain *Domain) error {
 func (c *client) ResolveAccount(account *Account) error {
 	// Resolve domain prior to any account resolution activity.
 	if err := c.ResolveDomain(&account.Domain); err != nil {
-		return errors.Wrapf(err, "resolving domain %s details:", account.Domain.Name)
+		return errors.Wrapf(err, "resolving domain %s details", account.Domain.Name)
 	}
 
 	p := c.cs.Account.NewListAccountsParams()
