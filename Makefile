@@ -114,10 +114,11 @@ vet: ## Run go vet on the whole project.
 	go vet ./...
 
 .PHONY: lint
-lint: bin/golangci-lint generate-mocks ## Run linting for the project.
+lint: bin/golangci-lint bin/staticcheck generate-mocks ## Run linting for the project.
 	go fmt ./...
 	go vet ./...
 	golangci-lint run -v --timeout 360s ./...
+	staticcheck ./...
 	@ # The below string of commands checks that ginkgo isn't present in the controllers.
 	@(grep ginkgo ${PROJECT_DIR}/controllers/cloudstack*_controller.go && \
 		echo "Remove ginkgo from controllers. This is probably an artifact of testing." \
@@ -137,13 +138,20 @@ undeploy: bin/kustomize ## Undeploy controller from the K8s cluster specified in
 ##@ Binaries
 
 .PHONY: binaries
-binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/mockgen bin/kubectl ## Locally install all needed bins.
+binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/staticcheck bin/mockgen bin/kubectl ## Locally install all needed bins.
 bin/controller-gen: ## Install controller-gen to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
 bin/golangci-lint: ## Install golangci-lint to bin.
-	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.43.0
-bin/ginkgo: ## Install ginkgo to bin.
+	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.0
+bin/staticcheck: ## Install staticcheck to bin.
+	GOBIN=$(PROJECT_DIR)/bin go install honnef.co/go/tools/cmd/staticcheck@v0.3.1
+bin/ginkgo: bin/ginkgo_v1 bin/ginkgo_v2 ## Install ginkgo to bin.
+bin/ginkgo_v2: 
+	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.4
+	mv $(PROJECT_DIR)/bin/ginkgo $(PROJECT_DIR)/bin/ginkgo_v2
+bin/ginkgo_v1:
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/ginkgo@v1.16.5
+	mv $(PROJECT_DIR)/bin/ginkgo $(PROJECT_DIR)/bin/ginkgo_v1
 bin/mockgen:
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golang/mock/mockgen@v1.6.0
 bin/kustomize: ## Install kustomize to bin.
@@ -171,7 +179,7 @@ export KUBEBUILDER_ASSETS=$(PROJECT_DIR)/bin
 test: generate-mocks lint bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
-	@cd ./test/unit && ginkgo -v ./... -coverprofile cover.out; EXIT_STATUS=$$?;\
+	@cd ./test/unit && ginkgo_v2 -v ./... -coverprofile cover.out; EXIT_STATUS=$$?;\
 		cd ../../ && ./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 	
 .PHONY: generate-mocks
@@ -204,13 +212,13 @@ e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster tem
 cluster-template%yaml: bin/kustomize $(CLUSTER_TEMPLATES_INPUT_FILES)
 	kustomize build --load-restrictor LoadRestrictionsNone $(basename $@) > $@
 
-e2e-essentials: bin/ginkgo e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
+e2e-essentials: bin/ginkgo_v1 e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
 	IMG=$(IMG_LOCAL) make manifests docker-build docker-push
 
 JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
 	cd test/e2e && \
-	ginkgo -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 --noColor=false ./... -- \
+	ginkgo_v1 -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
 	    -e2e.artifacts-folder=${PROJECT_DIR}/_artifacts \
 	    -e2e.config=${PROJECT_DIR}/test/e2e/config/cloudstack.yaml \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true

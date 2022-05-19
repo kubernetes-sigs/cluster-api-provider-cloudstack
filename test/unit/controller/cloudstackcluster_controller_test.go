@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"

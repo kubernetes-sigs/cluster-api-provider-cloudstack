@@ -81,8 +81,20 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 		testInvalidResource(ctx, input, "invalid-zone", "No match found for "+input.E2EConfig.GetVariable(InvalidZoneName))
 	})
 
+	It("Should fail due to the specified disk offering is not found", func() {
+		testInvalidResource(ctx, input, "invalid-disk-offering", "could not get DiskOffering ID from "+input.E2EConfig.GetVariable(InvalidDiskOfferingName))
+	})
+
 	It("Should fail due to the compute resources are not sufficient for the specified offering [TC8]", func() {
 		testInvalidResource(ctx, input, "insufficient-compute-resources", "Unable to create a deployment for VM")
+	})
+
+	It("Should fail due to the specified disk offer is not customized but the disk size is specified", func() {
+		testInvalidResource(ctx, input, "invalid-disk-offering-size-for-non-customized", "is not customized, disk size can not be specified")
+	})
+
+	It("Should fail due to the specified disk offer is customized but the disk size is not specified", func() {
+		testInvalidResource(ctx, input, "invalid-disk-offering-size-for-customized", "is customized, disk size can not be 0 GB")
 	})
 
 	AfterEach(func() {

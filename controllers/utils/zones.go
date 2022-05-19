@@ -17,6 +17,7 @@ limitations under the License.
 package utils
 
 import (
+	"fmt"
 	"strings"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
@@ -28,17 +29,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// CreateZone generates a specified CloudStackZone CRD owned by the ReconcilationSubject.
-func (r *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
+// ZoneMetaName creates a meta name for a zone based on the cluster and zone information.
+func (r *ReconciliationRunner) ZoneMetaName(zoneSpec infrav1.Zone) string {
 	metaName := zoneSpec.Name
 	if metaName == "" {
 		metaName = zoneSpec.ID
 	}
+	return fmt.Sprintf("%s-%s", r.CSCluster.Name, metaName)
+}
+
+// CreateZone generates a specified CloudStackZone CRD owned by the ReconcilationSubject.
+func (r *ReconciliationRunner) CreateZone(zoneSpec infrav1.Zone) error {
+	metaName := r.ZoneMetaName(zoneSpec)
 	csZone := &infrav1.CloudStackZone{
 		ObjectMeta: r.NewChildObjectMeta(metaName),
 		Spec:       infrav1.CloudStackZoneSpec(zoneSpec),
 	}
-	return errors.Wrap(r.K8sClient.Create(r.RequestCtx, csZone), "creating CloudStackZone:")
+	return errors.Wrap(r.K8sClient.Create(r.RequestCtx, csZone), "creating CloudStackZone")
 }
 
 // CreateZones generates a CloudStackClusterZone CRD for each of the ReconcilationSubject's Zones.
@@ -48,7 +55,7 @@ func (r *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudStackR
 		for _, zone := range zoneSpecs {
 			if err := r.CreateZone(zone); err != nil {
 				if !strings.Contains(strings.ToLower(err.Error()), "already exists") {
-					return reconcile.Result{}, errors.Wrap(err, "creating CloudStackZone:")
+					return reconcile.Result{}, errors.Wrap(err, "creating CloudStackZone")
 				}
 			}
 		}

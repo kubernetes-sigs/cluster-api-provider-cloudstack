@@ -8,7 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var ( // Declare exported dummy vars.
@@ -17,7 +16,7 @@ var ( // Declare exported dummy vars.
 	CSCluster          *capcv1.CloudStackCluster
 	CAPIMachine        *capiv1.Machine
 	CSMachine1         *capcv1.CloudStackMachine
-	CAPICluster        *clusterv1.Cluster
+	CAPICluster        *capiv1.Cluster
 	CSMachineTemplate1 *capcv1.CloudStackMachineTemplate
 	Zone1              capcv1.Zone
 	Zone2              capcv1.Zone
@@ -62,18 +61,9 @@ var ( // Declare exported dummy vars.
 	PublicIPID         string
 	EndPointHost       string
 	EndPointPort       int32
-	DiskOffering1      = capcv1.CloudStackResourceDiskOffering{
+	DiskOffering       = capcv1.CloudStackResourceDiskOffering{
 		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
 			Name: "Small",
-		},
-		MountPath:  "/data",
-		Device:     "/dev/vdb",
-		Filesystem: "ext4",
-		Label:      "data_disk",
-	}
-	DiskOffering2 = capcv1.CloudStackResourceDiskOffering{
-		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
-			Name: "Medium",
 		},
 		MountPath:  "/data",
 		Device:     "/dev/vdb",
@@ -269,7 +259,7 @@ func SetDummyCAPCClusterVars() {
 				Kind: "Secret",
 				Name: "IdentitySecret",
 			},
-			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
+			ControlPlaneEndpoint: capiv1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
 			Zones:                []capcv1.Zone{Zone1, Zone2},
 		},
 		Status: capcv1.CloudStackClusterStatus{Zones: map[string]capcv1.Zone{}},
@@ -300,12 +290,12 @@ func SetDummyDomainID() {
 
 // SetDummyCapiCluster resets the values in each of the exported CAPICluster related dummy variables.
 func SetDummyCAPIClusterVars() {
-	CAPICluster = &clusterv1.Cluster{
+	CAPICluster = &capiv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "capi-cluster-test-",
 			Namespace:    "default",
 		},
-		Spec: clusterv1.ClusterSpec{
+		Spec: capiv1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
 				APIVersion: capcv1.GroupVersion.String(),
 				Kind:       "CloudStackCluster",

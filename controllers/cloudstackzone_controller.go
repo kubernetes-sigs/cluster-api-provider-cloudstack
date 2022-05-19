@@ -82,11 +82,11 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 	r.Log.V(1).Info("Reconciling CloudStackZone.", "zoneSpec", r.ReconciliationSubject.Spec)
 	// Start by purely data fetching information about the zone and specified network.
 	if err := r.CSUser.ResolveZone(r.ReconciliationSubject); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information:")
+		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information")
 	}
 	if err := r.CSUser.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
 		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
-		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information:")
+		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information")
 	}
 
 	// Address Isolated Networks.
@@ -96,7 +96,7 @@ func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, re
 		netName := r.ReconciliationSubject.Spec.Network.Name
 		if res, err := r.GenerateIsolatedNetwork(netName)(); r.ShouldReturn(res, err) {
 			return res, err
-		} else if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
+		} else if res, err := r.GetObjectByName(r.IsoNetMetaName(netName), r.IsoNet)(); r.ShouldReturn(res, err) {
 			return res, err
 		}
 		if r.IsoNet.Name == "" {
@@ -117,7 +117,7 @@ func (r *CloudStackZoneReconciliationRunner) ReconcileDelete() (retRes ctrl.Resu
 	// Address Isolated Networks.
 	if r.ReconciliationSubject.Spec.Network.Type == infrav1.NetworkTypeIsolated {
 		netName := r.ReconciliationSubject.Spec.Network.Name
-		if res, err := r.GetObjectByName(netName, r.IsoNet)(); r.ShouldReturn(res, err) {
+		if res, err := r.GetObjectByName(r.IsoNetMetaName(netName), r.IsoNet)(); r.ShouldReturn(res, err) {
 			return res, err
 		}
 		if r.IsoNet.Name != "" {

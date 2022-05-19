@@ -21,7 +21,7 @@ import (
 	"github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 
 	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -42,8 +42,20 @@ var _ = Describe("CloudStackMachine webhook", func() {
 		})
 
 		It("should accept a CloudStackMachine with disk Offering attribute", func() {
-			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering2
+			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
+		})
+
+		It("should accept a CloudStackMachine with positive disk Offering size attribute", func() {
+			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering
+			dummies.CSMachine1.Spec.DiskOffering.CustomSize = 1
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
+		})
+
+		It("should not accept a CloudStackMachine with negative disk Offering size attribute", func() {
+			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering
+			dummies.CSMachine1.Spec.DiskOffering.CustomSize = -1
+			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).Should(MatchError(MatchRegexp(forbiddenRegex, "customSizeInGB")))
 		})
 
 		It("should reject a CloudStackMachine with missing Offering attribute", func() {
@@ -83,7 +95,7 @@ var _ = Describe("CloudStackMachine webhook", func() {
 		})
 
 		It("should reject VM disk offering updates to the CloudStackMachine", func() {
-			dummies.CSMachine1.Spec.DiskOffering = dummies.DiskOffering2
+			dummies.CSMachine1.Spec.DiskOffering.Name = "medium"
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "diskOffering")))
 		})

@@ -1,0 +1,7 @@
+bases:
+  - ../bases/cluster-with-kcp.yaml
+  - ../bases/md.yaml
+
+patchesStrategicMerge:
+- ./cluster-with-disk-offering.yaml
+- ./md.yaml

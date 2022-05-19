@@ -27,7 +27,6 @@ import (
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capiControlPlanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientPkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -136,28 +135,28 @@ func GetManagementOwnerRef(capiMachine *capiv1.Machine) *meta.OwnerReference {
 }
 
 // GetOwnerOfKind returns the Cluster object owning the current resource of passed kind.
-func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned client.Object, owner client.Object) error {
+func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned clientPkg.Object, owner clientPkg.Object) error {
 	gvks, _, err := c.Scheme().ObjectKinds(owner)
 	if err != nil {
-		return errors.Wrapf(err, "finding owner kind for %s/%s:", owned.GetName(), owned.GetNamespace())
+		return errors.Wrapf(err, "finding owner kind for %s/%s", owned.GetName(), owned.GetNamespace())
 	} else if len(gvks) != 1 {
 		return errors.Errorf(
 			"found more than one GVK for owner when finding owner kind for %s/%s", owned.GetName(), owned.GetNamespace())
 	}
-	kind := gvks[0].Kind
+	gvk := gvks[0]
+
 	for _, ref := range owned.GetOwnerReferences() {
-		if ref.Kind != kind {
+		if ref.Kind != gvk.Kind {
 			continue
 		}
-		key := client.ObjectKey{Name: ref.Name, Namespace: owned.GetNamespace()}
+		key := clientPkg.ObjectKey{Name: ref.Name, Namespace: owned.GetNamespace()}
 		if err := c.Get(ctx, key, owner); err != nil {
-			return errors.Wrapf(err, "finding owner of kind %s %s/%s:",
-				owner.GetObjectKind().GroupVersionKind().Kind, owner.GetNamespace(), owner.GetName())
+			return errors.Wrapf(err, "finding owner of kind %s in namespace %s", gvk.Kind, owned.GetNamespace())
 		}
 		return nil
 	}
-	return errors.Errorf("couldn't find owner of kind %s %s/%s",
-		owner.GetObjectKind().GroupVersionKind().Kind, owner.GetNamespace(), owner.GetName())
+
+	return errors.Errorf("couldn't find owner of kind %s in namespace %s", gvk.Kind, owned.GetNamespace())
 }
 
 func ContainsNoMatchSubstring(err error) bool {

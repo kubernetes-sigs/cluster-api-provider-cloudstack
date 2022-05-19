@@ -56,7 +56,7 @@ func SharedNetworkKubevipSpec(ctx context.Context, inputGetter func() CommonSpec
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should successfully scale machine replicas up and down horizontally", func() {
+	It("Should successfully create a cluster with multiple CPs in a shared network", func() {
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

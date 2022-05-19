@@ -35,7 +35,6 @@ import (
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
-	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -49,7 +48,7 @@ import (
 
 // CloudStackMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack machine reconciliation.
 type CloudStackMachineReconciliationRunner struct {
-	csCtrlrUtils.ReconciliationRunner
+	utils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackMachine
 	CAPIMachine           *capiv1.Machine
 	StateChecker          *infrav1.CloudStackMachineStateChecker
@@ -61,7 +60,7 @@ type CloudStackMachineReconciliationRunner struct {
 
 // CloudStackMachineReconciler reconciles a CloudStackMachine object
 type CloudStackMachineReconciler struct {
-	csCtrlrUtils.ReconcilerBase
+	utils.ReconcilerBase
 }
 
 // Initialize a new CloudStackMachine reconciliation runner with concrete types and initialized member fields.
@@ -75,7 +74,7 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 	r.AffinityGroup = &infrav1.CloudStackAffinityGroup{}
 	r.FailureDomain = &infrav1.CloudStackZone{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	r.ReconciliationRunner = utils.NewRunner(r, r.ReconciliationSubject)
 	return r
 }
 
@@ -96,7 +95,7 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		r.RequeueIfCloudStackClusterNotReady,
 		r.ConsiderAffinity,
 		r.SetFailureDomainOnCSMachine,
-		r.GetObjectByName("placeholder", r.IsoNet, func() string { return r.FailureDomain.Spec.Network.Name }),
+		r.GetObjectByName("placeholder", r.IsoNet, func() string { return r.IsoNetMetaName(r.FailureDomain.Spec.Network.Name) }),
 		r.GetOrCreateVMInstance,
 		r.RequeueIfInstanceNotRunning,
 		r.AddToLBIfNeeded,
@@ -112,9 +111,9 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 		return ctrl.Result{}, nil
 	}
 
-	agName, err := csCtrlrUtils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
+	agName, err := utils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
 	if err != nil {
-		r.Log.Info("getting affinity group name:", err)
+		r.Log.Info("getting affinity group name", err)
 	}
 
 	if res, err := r.GetOrCreateAffinityGroup(agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup)(); r.ShouldReturn(res, err) {
@@ -194,8 +193,9 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
-		controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	}
+	// Always add the finalizer regardless. It can't be added twice anyway.
+	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, err
 }
 
@@ -205,7 +205,7 @@ func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (r
 		r.Log.Info("Machine instance is Running...")
 		r.ReconciliationSubject.Status.Ready = true
 	} else if r.ReconciliationSubject.Status.InstanceState == "Error" {
-		r.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", r.ReconciliationSubject)
+		r.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", r.ReconciliationSubject.GetName())
 		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -241,7 +241,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 		Status:     infrav1.CloudStackMachineStateCheckerStatus{Ready: false},
 	}
 
-	if err := r.K8sClient.Create(r.RequestCtx, csMachineStateChecker); err != nil && !csCtrlrUtils.ContainsAlreadyExistsSubstring(err) {
+	if err := r.K8sClient.Create(r.RequestCtx, csMachineStateChecker); err != nil && !utils.ContainsAlreadyExistsSubstring(err) {
 		return r.ReturnWrappedError(err, "error encountered when creating CloudStackMachineStateChecker")
 	}
 
@@ -249,17 +249,20 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 }
 
 func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
-	r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
-	// Use CSClient instead of CSUser here to expunge as admin.
-	// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
-	// non-domain admin user.
-	if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
-		if err.Error() == "VM deletion in progress" {
-			r.Log.Info(err.Error())
-			return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
+	if r.ReconciliationSubject.Spec.InstanceID != nil {
+		r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
+		// Use CSClient instead of CSUser here to expunge as admin.
+		// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
+		// non-domain admin user.
+		if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
+			if err.Error() == "VM deletion in progress" {
+				r.Log.Info(err.Error())
+				return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
+			}
+			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, err
 	}
+	r.Log.Info("VM Deleted")
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }

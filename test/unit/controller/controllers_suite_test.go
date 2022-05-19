@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"go/build"
+	"k8s.io/client-go/rest"
 	"os"
 	"os/exec"
 	"path"
@@ -28,17 +29,17 @@ import (
 	goruntime "runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	csReconcilers "github.com/aws/cluster-api-provider-cloudstack/controllers"
@@ -100,9 +101,7 @@ func TestAPIs(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	RunSpecs(t, "Controller Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -147,7 +146,15 @@ var _ = BeforeSuite(func() {
 	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
 	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
 
-	cfg, err := testEnv.Start()
+	var cfg *rest.Config
+	var err error
+	done := make(chan interface{})
+	go func() {
+		defer GinkgoRecover()
+		cfg, err = testEnv.Start()
+		close(done)
+	}()
+	Eventually(done).WithTimeout(time.Minute).Should(BeClosed())
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(cfg).ShouldNot(BeNil())
 
@@ -166,7 +173,7 @@ var _ = BeforeSuite(func() {
 		K8sClient:  k8sManager.GetClient(),
 		Scheme:     k8sManager.GetScheme(),
 		CSClient:   CS,
-		BaseLogger: logf.NullLogger{}}
+		BaseLogger: logr.Discard()}
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())
 
@@ -175,7 +182,7 @@ var _ = BeforeSuite(func() {
 		Ω(k8sManager.Start(ctrl.SetupSignalHandler())).Should(Succeed(), "failed to run manager")
 	}()
 
-}, 60)
+})
 
 var _ = AfterSuite(func() {
 	cancel()

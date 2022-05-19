@@ -31,6 +31,7 @@ import (
 // GenerateIsolatedNetwork of the passed name that's owned by the ReconciliationSubject.
 func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityType string, ag *infrav1.CloudStackAffinityGroup) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
+
 		// Start by attempting a fetch.
 		lowerName := strings.ToLower(name)
 		namespace := r.ReconciliationSubject.GetNamespace()
@@ -66,7 +67,7 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 		}
 
 		if err := r.K8sClient.Create(r.RequestCtx, ag); err != nil && !ContainsAlreadyExistsSubstring(err) {
-			return r.ReturnWrappedError(err, "creating affinity group CRD:")
+			return r.ReturnWrappedError(err, "creating affinity group CRD")
 		}
 		return ctrl.Result{}, nil
 	}

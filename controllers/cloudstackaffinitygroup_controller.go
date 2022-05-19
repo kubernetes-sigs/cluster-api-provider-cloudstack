@@ -63,7 +63,7 @@ func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Conte
 
 func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.AffinityGroupFinalizer)
-	affinityGroup := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Spec.Name, Type: "host affinity"}
+	affinityGroup := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Spec.Name, Type: r.ReconciliationSubject.Spec.Type}
 	if err := r.CSUser.GetOrCreateAffinityGroup(affinityGroup); err != nil {
 		return ctrl.Result{}, err
 	}
