@@ -1,0 +1,251 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: cluster1
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+    serviceDomain: cluster.local
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: CloudStackCluster
+    name: cluster1
+  controlPlaneRef:
+    kind: KubeadmControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    name: cluster1-control-plane
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: CloudStackCluster
+metadata:
+  name: cluster1
+spec:
+  controlPlaneEndpoint:
+    # host: ""
+    host: ""
+    port: 6443
+  # domain: ROOT/blah/blah/subsub
+  # account: SuperNested
+  zones:
+  - name : Zone1
+    network: 
+      name: SomeGuestNet2
+  # - name : Zone2
+  #   network: 
+  #     name: SharedGuestNet2
+  # - name : Zone1
+  #   network: 
+  #     name: SharedGuestNet1
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: cluster1-control-plane
+spec:
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      imageRepository: k8s.gcr.io
+      # etcd:
+      #   external:
+      #     endpoints: []
+      #     caFile: "/etc/kubernetes/pki/etcd/ca.crt"
+      #     certFile: "/etc/kubernetes/pki/apiserver-etcd-client.crt"
+      #     keyFile: "/etc/kubernetes/pki/apiserver-etcd-client.key"
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+        name: '{{ local_hostname }}'
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+        name: '{{ local_hostname }}'
+    preKubeadmCommands:
+      - swapoff -a
+      - echo '' >> /etc/hosts
+      - echo '192.168.1.31 kend' >> /etc/hosts
+  machineTemplate:
+    infrastructureRef:
+      kind: CloudStackMachineTemplate
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      name: "cluster1-control-plane"
+  replicas: 1
+  version: v1.20.10
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: CloudStackMachineTemplate
+metadata:
+  name: cluster1-control-plane
+spec:
+  template:
+    spec:
+      offering: 
+        name: Large Instance
+      template: 
+        name: ubuntu20
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: "cluster1-md-0"
+spec:
+  clusterName: "cluster1"
+  replicas: 1
+  selector:
+    matchLabels: null
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: "cluster1-md-0"
+      clusterName: "cluster1"
+      infrastructureRef:
+        name: "cluster1-md-0"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: CloudStackMachineTemplate
+      version: v1.20.10
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: CloudStackMachineTemplate
+metadata:
+  name: cluster1-md-0
+spec:
+  template:
+    spec:
+      affinity: pro
+      offering: 
+        #        name: Large Instance
+        name: Insane Instance
+      template: 
+        name: ubuntu20
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: cluster1-md-0
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          name: '{{ local_hostname }}'
+      preKubeadmCommands:
+        - swapoff -a
+# ---
+# managedExternalEtcdRef:
+#   kind: EtcdadmCluster
+#   apiVersion: etcdcluster.cluster.x-k8s.io/v1beta1
+#   name: cluster1-etcd
+# ---
+# kind: EtcdadmCluster
+# apiVersion: etcdcluster.cluster.x-k8s.io/v1beta1
+# metadata:
+#   name: cluster1-etcd
+#   namespace: default
+# spec:
+#   replicas: 3
+#   etcdadmConfigSpec:
+#     etcdadmBuiltin: true
+#     format: {{.format}}
+#     cloudInitConfig:
+#       version: {{.externalEtcdVersion}}
+#       installDir: "/usr/bin"
+#     preEtcdadmCommands:
+#     - swapoff -a
+#     - hostname "{{`{{ ds.meta_data.local_hostname }}`}}"
+#     - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+#     - echo "127.0.0.1   localhost" >>/etc/hosts
+#     - echo "127.0.0.1   {{`{{ ds.meta_data.local_hostname }}`}}" >>/etc/hosts
+#     - echo "{{`{{ ds.meta_data.local_hostname }}`}}" >/etc/hostname
+# {{- if .etcdCipherSuites }}
+#     cipherSuites: {{.etcdCipherSuites}}
+# {{- end }}
+    # users:
+    # - name: {{.etcdSshUsername}}
+    #   sshAuthorizedKeys:
+    #   - '{{.cloudstackEtcdSshAuthorizedKey}}'
+    #   sudo: ALL=(ALL) NOPASSWD:ALL
+# {{- if .proxyConfig }}
+#     proxy:
+#       httpProxy: {{ .httpProxy }}
+#       httpsProxy: {{ .httpsProxy }}
+#       noProxy: {{ range .noProxy }}
+#         - {{ . }}
+#       {{- end }}
+# {{- end }}
+# {{- if .registryMirrorConfiguration }}
+#     registryMirror:
+#       endpoint: {{.registryMirrorConfiguration}}
+#       {{- if .registryCACert }}
+#       caCert: |
+# {{ .registryCACert | indent 8 }}
+#       {{- end }}
+# {{- end }}
+  # infrastructureTemplate:
+  #   apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+  #   kind: CloudStackMachineTemplate
+  #   name: cluster1-etcd
+# ---
+# apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+# kind: CloudStackMachineTemplate
+# metadata:
+#   name: cluster1-etcd
+# spec:
+#   template:
+#     spec:
+#       affinity: pro
+#       offering: 
+#         name: Large Instance
+#       template: 
+#         name: ubuntu20
+# ---
+# kind: EtcdadmCluster
+# apiVersion: etcdcluster.cluster.x-k8s.io/v1beta1
+# metadata:
+#   name: eksa-test-b77a195-etcd
+#   namespace: eksa-system
+# spec:
+#   replicas: 1
+#   etcdadmConfigSpec:
+#     etcdadmBuiltin: true
+#     format: cloud-config
+#     cloudInitConfig:
+#       version: 3.4.18
+#       installDir: "/usr/bin"
+#     preEtcdadmCommands:
+#     - swapoff -a
+#     - hostname "{{ ds.meta_data.local_hostname }}"
+#     - echo "::1         ipv6-localhost ipv6-loopback" >/etc/hosts
+#     - echo "127.0.0.1   localhost" >>/etc/hosts
+#     - echo "127.0.0.1   {{ ds.meta_data.local_hostname }}" >>/etc/hosts
+#     - echo "{{ ds.meta_data.local_hostname }}" >/etc/hostname
+#     cipherSuites: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+#     users:
+#     - name: capc
+#       sshAuthorizedKeys:
+#       - 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDsnzypEZ7l9agzljZrZ2GWpEXdHHXRZYQsn4a5WcLcLvKDkkvZKV9WDpBpQtxdn6LOkxlhLsujSAVn8oRezdWaqBS2snKHU6jqf6QhQrDm268zwL421s6CDyfJj5+LN1GuHQpieY3RTH9iyxhzc/hnv803LNCuYMJK0HzKpuKkw3YelFvQeyzUUQbsflfP/0eSmEmw16MoPUML8OqPsQyt0JH7cbUWyAYQmYkOKLHVeOvY93Uq3h9H74neFH19DKvR+2PgKiMwxo+Ab6VzgC5TMwb1/ohj18ClENhcbKYR9zWeD2bkORniB8eETf2aOCBNVaLCsF6S7U93DY9v7TZ1Q+wVdZ5hLiHVAkeiXJwfYec+KqL7IdRmxpiBB4uZ8py6DijdX/jqRLS7bAwRhC6aioxmRrCWQxjgBSm+rdkMMrOev23KWDXDBOI4PfHp/C0jE2S8dDbeCbJmmwn2I1vNP9ZIBNtjjJglcrqJveZZFreGj1NMeiiSZPrqT4D0tr8='
+#       sudo: ALL=(ALL) NOPASSWD:ALL
+#   infrastructureTemplate:
+#     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+#     kind: CloudStackMachineTemplate
+#     name: eksa-test-b77a195-etcd-template-1650656267111
+# ---
+# apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+# kind: CloudStackMachineTemplate
+# metadata:
+#   name: eksa-test-b77a195-etcd-template-1650656267111
+#   namespace: 'eksa-system'
+# spec:
+#   template:
+#     spec:
+#       offering:
+#         name: Fruitstand Instance
+#       template:
+#         name: rhel-8-kube-v1.20.7-v0.6.3-beta-fruitstand

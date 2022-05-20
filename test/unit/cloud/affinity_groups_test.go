@@ -20,78 +20,71 @@ import (
 	"errors"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
-	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("AffinityGroup Unit Tests", func() {
-	var ( // Declare shared vars.
-		mockCtrl   *gomock.Controller
-		mockClient *cloudstack.CloudStackClient
-		ags        *cloudstack.MockAffinityGroupServiceIface
-		client     cloud.Client
-	)
-
+var _ = Describe("The AffinityGroup interface", func() {
+	var client cloud.Client
 	BeforeEach(func() {
-		// Setup new mock services.
-		mockCtrl = gomock.NewController(GinkgoT())
-		mockClient = cloudstack.NewMockClient(mockCtrl)
-		ags = mockClient.AffinityGroup.(*cloudstack.MockAffinityGroupServiceIface)
-		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
 	})
-
-	AfterEach(func() {
-		mockCtrl.Finish()
-	})
-
-	It("fetches an affinity group", func() {
-		dummies.AffinityGroup.ID = "" // Force name fetching.
-		ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name).Return(&cloudstack.AffinityGroup{}, 1, nil)
-
-		Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
-	})
-	It("creates an affinity group", func() {
-		dummies.SetDummyDomainAndAccount()
-		dummies.SetDummyDomainID()
-		ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(nil, -1, errors.New("FakeError"))
-		ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
-			Return(&cloudstack.CreateAffinityGroupParams{})
-		ags.EXPECT().CreateAffinityGroup(ParamMatch(And(NameEquals(dummies.AffinityGroup.Name)))).
-			Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
-
-		Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
-	})
-
-	Context("AffinityGroup Integ Tests", func() {
-		client, connectionErr := cloud.NewClient("../../cloud-config")
-
+	When("using a mock CloudStack Client", func() {
+		var (
+			mockCtrl   *gomock.Controller
+			mockClient *cloudstack.CloudStackClient
+			ags        *cloudstack.MockAffinityGroupServiceIface
+		)
 		BeforeEach(func() {
-			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
-				Skip("Could not connect to ACS instance.")
-			}
-			dummies.AffinityGroup.ID = "" // Force name fetching.
+			// Setup mock CloudstackClient.
+			mockCtrl = gomock.NewController(GinkgoT())
+			mockClient = cloudstack.NewMockClient(mockCtrl)
+			ags = mockClient.AffinityGroup.(*cloudstack.MockAffinityGroupServiceIface)
+			client = cloud.NewClientFromCSAPIClient(mockClient)
 		})
 		AfterEach(func() {
+			// Check mocked calls match.
 			mockCtrl.Finish()
 		})
 
-		It("Creates an affinity group.", func() {
+		It("fetches an affinity group", func() {
+			dummies.AffinityGroup.ID = "" // Force name fetching.
+			ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name).Return(&cloudstack.AffinityGroup{}, 1, nil)
+
 			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 		})
-		It("Associates an affinity group.", func() {
-			if err := client.GetOrCreateVMInstance(
+		It("creates an affinity group", func() {
+			dummies.SetDummyDomainAndAccount()
+			dummies.SetDummyDomainID()
+			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(nil, -1, errors.New("FakeError"))
+			ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
+				Return(&cloudstack.CreateAffinityGroupParams{})
+			ags.EXPECT().CreateAffinityGroup(ParamMatch(And(NameEquals(dummies.AffinityGroup.Name)))).
+				Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
+
+			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+		})
+	})
+
+	When("using a real CloudStack client", func() {
+		BeforeEach(func() {
+			client = realCloudClient
+			dummies.AffinityGroup.ID = "" // Force name fetching.
+		})
+		It("creates an affinity group.", func() {
+			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+		})
+		It("associates an affinity group.", func() {
+			Ω(client.GetOrCreateVMInstance(
 				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "",
-			); err != nil {
-				Skip("Could not create VM." + err.Error())
-			}
+			)).Should(Succeed())
 			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 			Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
 		})
-		It("Deletes an affinity group.", func() {
+		It("deletes an affinity group.", func() {
 			Ω(client.DeleteAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 			Ω(client.FetchAffinityGroup(dummies.AffinityGroup)).ShouldNot(Succeed())
 		})

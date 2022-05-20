@@ -12,8 +12,7 @@ import (
 func GetDomainByPath(csClient *cloudstack.CloudStackClient, path string) (string, error, bool) {
 	// Split path and get name.
 	path = strings.Trim(path, "/")
-	tokens := []string{}
-	tokens = strings.Split(path, "/")
+	tokens := strings.Split(path, "/")
 
 	// Ensure the path begins with ROOT.
 	if !strings.EqualFold(tokens[0], "ROOT") {

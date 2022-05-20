@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	FixturePath = "test/fixtures/cloud-config-files"
+	FixturePath = "../fixtures/cloud-config-files"
 )
 
 var _ = Describe("Helpers", func() {

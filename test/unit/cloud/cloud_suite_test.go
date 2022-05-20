@@ -17,11 +17,26 @@ limitations under the License.
 package cloud_test
 
 import (
+	"os"
 	"testing"
 
+	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+var (
+	realCloudClient cloud.Client
+	realCSClient    *cloudstack.CloudStackClient
+)
+
+var _ = BeforeSuite(func() {
+	projDir := os.Getenv("PROJECT_DIR")
+	var connectionErr error
+	realCloudClient, connectionErr = cloud.NewClient(projDir + "/cloud-config")
+	Ω(connectionErr).ShouldNot(HaveOccurred())
+})
 
 func TestCloud(t *testing.T) {
 	RegisterFailHandler(Fail)

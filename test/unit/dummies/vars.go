@@ -1,14 +1,25 @@
 package dummies
 
 import (
+	"io/ioutil"
+	"os"
+
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	. "github.com/onsi/gomega"
+	"github.com/smallfish/simpleyaml"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
+
+func GetYamlVal(variable string) string {
+	val, err := CSConf.Get("variables").Get(variable).String()
+	Ω(err).ShouldNot(HaveOccurred())
+	return val
+}
 
 var ( // Declare exported dummy vars.
 	AffinityGroup      *cloud.AffinityGroup
@@ -61,19 +72,61 @@ var ( // Declare exported dummy vars.
 	PublicIPID         string
 	EndPointHost       string
 	EndPointPort       int32
-	DiskOffering       = capcv1.CloudStackResourceDiskOffering{
-		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
-			Name: "Small",
-		},
-		MountPath:  "/data",
-		Device:     "/dev/vdb",
-		Filesystem: "ext4",
-		Label:      "data_disk",
-	}
+	CSConf             *simpleyaml.Yaml
+	DiskOffering       capcv1.CloudStackResourceDiskOffering
 )
+
+// CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
+// 	Name: "Small",
+// },
+// MountPath:  "/data",
+// Device:     "/dev/vdb",
+// Filesystem: "ext4",
+// Label:      "data_disk",
+// }
+
+// variables:
+//   KUBERNETES_VERSION_MANAGEMENT: "v1.20.10"
+//   KUBERNETES_VERSION: "v1.20.10"
+//   CNI: "./data/cni/kindnet.yaml"
+//   IP_FAMILY: "IPv4"
+//   NODE_DRAIN_TIMEOUT: "60s"
+
+//   CLOUDSTACK_ZONE_NAME: zone1
+//   CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
+//   CLOUDSTACK_INVALID_NETWORK_NAME: networkXXXX
+//   CLOUDSTACK_ACCOUNT_NAME: admin
+//   CLOUDSTACK_INVALID_ACCOUNT_NAME: accountXXXX
+//   CLOUDSTACK_DOMAIN_NAME: ROOT
+//   CLOUDSTACK_INVALID_DOMAIN_NAME: domainXXXX
+//   CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
+//   CLOUDSTACK_NEW_NETWORK_NAME: isolated-for-e2e-new
+//   CLOUDSTACK_SHARED_NETWORK_NAME: Shared1
+//   CLUSTER_ENDPOINT_IP: 172.16.2.199
+//   CLUSTER_ENDPOINT_IP_2: 172.16.2.198
+//   CLUSTER_ENDPOINT_NEW_IP: 172.16.2.201
+//   CLUSTER_ENDPOINT_PORT: 6443
+//   CLUSTER_ENDPOINT_PORT_2: 6443
+//   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
+//   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
+//   CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING: "Extremely Large Instance"
+//   CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
+//   CLOUDSTACK_TEMPLATE_NAME: kube-v1.20.10/ubuntu-2004
+//   CLOUDSTACK_INVALID_TEMPLATE_NAME: templateXXXX
+//   CLOUDSTACK_SSH_KEY_NAME: CAPCKeyPair6
 
 // SetDummyVars sets/resets all dummy vars.
 func SetDummyVars() {
+	projDir := os.Getenv("PROJECT_DIR")
+	source, err := ioutil.ReadFile(projDir + "/test/e2e/config/cloudstack.yaml")
+	if err != nil {
+		panic(err)
+	}
+	CSConf, err = simpleyaml.NewYaml(source)
+	if err != nil {
+		panic(err)
+	}
+
 	// These need to be in order as they build upon eachother.
 	SetDummyZoneVars()
 	SetDummyCAPCClusterVars()
@@ -139,10 +192,10 @@ func SetDummyCSMachineTemplateVars() {
 						Name: "IdentitySecret",
 					},
 					Template: capcv1.CloudStackResourceIdentifier{
-						Name: "Template",
+						Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
 					},
 					Offering: capcv1.CloudStackResourceIdentifier{
-						Name: "Offering",
+						Name: GetYamlVal("CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING"),
 					},
 					DiskOffering: capcv1.CloudStackResourceDiskOffering{
 						CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
@@ -180,10 +233,10 @@ func SetDummyCSMachineVars() {
 			},
 			InstanceID: pointer.String("Instance1"),
 			Template: capcv1.CloudStackResourceIdentifier{
-				Name: "Template",
+				Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
 			},
 			Offering: capcv1.CloudStackResourceIdentifier{
-				Name: "Offering",
+				Name: GetYamlVal("CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING"),
 			},
 			DiskOffering: capcv1.CloudStackResourceDiskOffering{
 				CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
@@ -205,8 +258,7 @@ func SetDummyCSMachineVars() {
 
 func SetDummyZoneVars() {
 	Zone1 = capcv1.Zone{Network: Net1}
-	Zone1.Name = "Zone1"
-	Zone1.ID = "FakeZone1ID"
+	Zone1.Name = GetYamlVal("CLOUDSTACK_ZONE_NAME")
 	Zone2 = capcv1.Zone{Network: Net2}
 	Zone2.Name = "Zone2"
 	Zone2.ID = "FakeZone2ID"

@@ -19,15 +19,15 @@ import (
 	"fmt"
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
-	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 )
 
-var _ = Describe("Cluster", func() {
+var _ = Describe("Zone", func() {
 	var (
 		client     cloud.Client
 		mockCtrl   *gomock.Controller
