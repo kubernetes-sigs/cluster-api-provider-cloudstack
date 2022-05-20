@@ -9,4 +9,4 @@ spec:
       name: ${CLOUDSTACK_NEW_NETWORK_NAME}
   controlPlaneEndpoint:
     host: ""
-    port: ${CLUSTER_ENDPOINT_PORT}
+    port: 6443
