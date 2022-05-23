@@ -66,7 +66,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 	})
 
 	It("Should fail due to the specified domain is not found [TC4b]", func() {
-		testInvalidResource(ctx, input, "invalid-domain", "domain not found for domain path"))
+		testInvalidResource(ctx, input, "invalid-domain", "domain not found for domain path")
 	})
 
 	It("Should fail due to the specified control plane offering is not found [TC7]", func() {
