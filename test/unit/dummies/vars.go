@@ -76,15 +76,6 @@ var ( // Declare exported dummy vars.
 	DiskOffering       capcv1.CloudStackResourceDiskOffering
 )
 
-// CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
-// 	Name: "Small",
-// },
-// MountPath:  "/data",
-// Device:     "/dev/vdb",
-// Filesystem: "ext4",
-// Label:      "data_disk",
-// }
-
 // variables:
 //   KUBERNETES_VERSION_MANAGEMENT: "v1.20.10"
 //   KUBERNETES_VERSION: "v1.20.10"
@@ -129,6 +120,7 @@ func SetDummyVars() {
 
 	// These need to be in order as they build upon eachother.
 	SetDummyZoneVars()
+	SetDiskOfferingVars()
 	SetDummyCAPCClusterVars()
 	SetDummyCAPIClusterVars()
 	SetDummyCAPIMachineVars()
@@ -136,6 +128,15 @@ func SetDummyVars() {
 	SetDummyCSMachineVars()
 	SetDummyTagVars()
 	LBRuleID = "FakeLBRuleID"
+}
+
+func SetDiskOfferingVars() {
+	DiskOffering = capcv1.CloudStackResourceDiskOffering{CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{Name: "Small"},
+		MountPath:  "/data",
+		Device:     "/dev/vdb",
+		Filesystem: "ext4",
+		Label:      "data_disk",
+	}
 }
 
 func CAPCNetToCSAPINet(net *capcv1.Network) *csapi.Network {
@@ -197,15 +198,7 @@ func SetDummyCSMachineTemplateVars() {
 					Offering: capcv1.CloudStackResourceIdentifier{
 						Name: GetYamlVal("CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING"),
 					},
-					DiskOffering: capcv1.CloudStackResourceDiskOffering{
-						CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
-							Name: "DiskOffering",
-						},
-						MountPath:  "/data",
-						Device:     "/dev/vdb",
-						Filesystem: "ext4",
-						Label:      "data_disk",
-					},
+					DiskOffering: DiskOffering,
 					Details: map[string]string{
 						"memoryOvercommitRatio": "1.2",
 					},
@@ -247,7 +240,6 @@ func SetDummyCSMachineVars() {
 				Filesystem: "ext4",
 				Label:      "data_disk",
 			},
-			AffinityGroupIDs: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
 			Details: map[string]string{
 				"memoryOvercommitRatio": "1.2",
 			},
@@ -293,7 +285,7 @@ func SetDummyCAPCClusterVars() {
 		ID:   "FakeAffinityGroupID"}
 	CSAffinityGroup = &capcv1.CloudStackAffinityGroup{
 		Spec: capcv1.CloudStackAffinityGroupSpec{Name: AffinityGroup.Name, Type: AffinityGroup.Type, ID: AffinityGroup.ID}}
-	Net1 = capcv1.Network{Name: "SharedGuestNet1", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID1"}
+	Net1 = capcv1.Network{Name: GetYamlVal("CLOUDSTACK_NETWORK_NAME"), Type: cloud.NetworkTypeShared}
 	Net2 = capcv1.Network{Name: "SharedGuestNet2", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID2"}
 	ISONet1 = capcv1.Network{Name: "IsoGuestNet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
 	CSCluster = &capcv1.CloudStackCluster{

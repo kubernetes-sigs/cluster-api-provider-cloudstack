@@ -18,6 +18,7 @@ package cloud_test
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
@@ -71,22 +72,39 @@ var _ = Describe("The AffinityGroup interface", func() {
 
 	When("using a real CloudStack client", func() {
 		BeforeEach(func() {
+			fmt.Println("blah2oomuch")
 			client = realCloudClient
 			dummies.AffinityGroup.ID = "" // Force name fetching.
 		})
 		It("creates an affinity group.", func() {
 			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 		})
-		It("associates an affinity group.", func() {
-			Ω(client.GetOrCreateVMInstance(
-				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "",
-			)).Should(Succeed())
-			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
-			Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
-		})
+		// Context("with an existing VM", func() {
+		// 	BeforeEach(func() {
+		// 		Ω(client.ResolveZone(dummies.CSZone1)).Should(Succeed())
+		// 		Ω(dummies.CSZone1.Spec.ID).ShouldNot(BeEmpty())
+		// 		dummies.CSMachine1.Status.ZoneID = dummies.CSZone1.Spec.ID
+		// 		dummies.CSMachine1.Spec.DiskOffering.Name = ""
+		// 		dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""
+		// 		Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+		// 		dummies.CSZone1.Spec.Network.ID = dummies.CSISONet1.Spec.ID
+		// 		Ω(client.GetOrCreateVMInstance(
+		// 			dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "",
+		// 		)).Should(Succeed())
+		// 	})
+		// 	AfterEach(func() {
+		// 		Ω(client.DestroyVMInstance(dummies.CSMachine1)).Should(MatchError("VM deletion in progress"))
+		// 	})
+		// 	It("associates an affinity group and disassociates it", func() {
+		// 		Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+		// 		Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
+		// 		Ω(client.DisassociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
+		// 	})
+		// })
 		It("deletes an affinity group.", func() {
 			Ω(client.DeleteAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 			Ω(client.FetchAffinityGroup(dummies.AffinityGroup)).ShouldNot(Succeed())
 		})
+		Context("del", func() {})
 	})
 })

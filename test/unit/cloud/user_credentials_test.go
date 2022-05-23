@@ -20,7 +20,6 @@ import (
 	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/pkg/errors"
 
 	. "github.com/onsi/gomega"
 )
@@ -37,17 +36,14 @@ var _ = Describe("User Credentials", func() {
 	})
 
 	Context("UserCred Semi-Integ Tests", func() {
-		client, connectionErr := cloud.NewClient("../../cloud-config")
 		var domain cloud.Domain
 		var account cloud.Account
 		var user cloud.User
 
 		BeforeEach(func() {
-			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
-				Skip(errors.Wrapf(connectionErr, "Could not connect to ACS instance").Error())
-			}
+			client = realCloudClient
 
-			// Settup dummies.
+			// Setup dummies.
 			// TODO: move these to the test dummies package.
 			domain = cloud.Domain{Path: "ROOT/blah/blah/subsub"}
 			account = cloud.Account{Name: "SuperNested", Domain: domain}

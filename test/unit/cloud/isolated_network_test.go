@@ -192,16 +192,8 @@ var _ = Describe("Network", func() {
 	})
 
 	Context("Networking Integ Tests", func() {
-		client, connectionErr := cloud.NewClient("../../cloud-config")
-
 		BeforeEach(func() {
-			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
-				Skip("Could not connect to ACS instance.")
-			}
-			if err := client.ResolveNetwork(&dummies.Net1); err != nil {
-				Skip("Could not find network.")
-			}
-
+			client = realCloudClient
 			// Delete any existing tags
 			existingTags, err := client.GetTags(cloud.ResourceTypeNetwork, dummies.Net1.ID)
 			if err != nil {
@@ -213,6 +205,17 @@ var _ = Describe("Network", func() {
 					Fail("Failed to delete existing tags. Error: " + err.Error())
 				}
 			}
+			dummies.SetDummyVars()
+
+			// Setup Isolated Network Dummy Vars.
+			dummies.CSISONet1.Spec.ID = ""                        // Make CAPC methods resolve this.
+			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = "" // Make CAPC methods resolve this.
+			dummies.CSZone1.Spec.ID = ""                          // Make CAPC methods resolve this.
+			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
+
+			// Get Zone info needed for network testing.
+			Ω(client.ResolveZone(dummies.CSZone1)).Should(Succeed())
+			dummies.CSISONet1.Spec.ID = ""
 		})
 
 		It("fetches an isolated network", func() {
@@ -230,28 +233,6 @@ var _ = Describe("Network", func() {
 			dummies.SetClusterSpecToNet(&dummies.ISONet1)
 			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""
 			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
-		})
-	})
-
-	Context("Network Semi-Integ Tests", func() {
-		client, connectionErr := cloud.NewClient("../../cloud-config")
-
-		BeforeEach(func() {
-			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
-				Skip("Could not connect to ACS instance.")
-			}
-
-			dummies.SetDummyVars()
-
-			// Setup Isolated Network Dummy Vars.
-			dummies.CSISONet1.Spec.ID = ""                        // Make CAPC methods resolve this.
-			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = "" // Make CAPC methods resolve this.
-			dummies.CSZone1.Spec.ID = ""                          // Make CAPC methods resolve this.
-			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
-
-			// Get Zone info needed for network testing.
-			Ω(client.ResolveZone(dummies.CSZone1)).Should(Succeed())
-			dummies.CSISONet1.Spec.ID = ""
 		})
 
 		It("adds an isolated network and doesn't fail when asked to GetOrCreateIsolatedNetwork multiple times", func() {

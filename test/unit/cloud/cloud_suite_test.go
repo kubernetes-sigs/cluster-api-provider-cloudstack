@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -28,6 +29,7 @@ import (
 
 var (
 	realCloudClient cloud.Client
+	client          cloud.Client
 	realCSClient    *cloudstack.CloudStackClient
 )
 
@@ -36,9 +38,21 @@ var _ = BeforeSuite(func() {
 	var connectionErr error
 	realCloudClient, connectionErr = cloud.NewClient(projDir + "/cloud-config")
 	Ω(connectionErr).ShouldNot(HaveOccurred())
+
+	Ω().Should(Succeed())
 })
 
 func TestCloud(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Cloud Suite")
+}
+
+// FetchIntegTestResources runs through basic CloudStack Client setup methods needed to test others.
+func FetchIntegTestResources() {
+	Ω(client.ResolveZone(dummies.CSZone1)).Should(Succeed())
+	Ω(dummies.CSZone1.Spec.ID).ShouldNot(BeEmpty())
+	dummies.CSMachine1.Status.ZoneID = dummies.CSZone1.Spec.ID
+	dummies.CSMachine1.Spec.DiskOffering.Name = ""
+	dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""
+	Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 }
