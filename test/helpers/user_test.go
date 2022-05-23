@@ -20,7 +20,7 @@ import (
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/aws/cluster-api-provider-cloudstack/test/helpers"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
@@ -116,6 +116,7 @@ var _ = Describe("Test helper methods", func() {
 			account := cloud.Account{Name: "TempTestAccount", Domain: domain}
 			Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(Succeed())
 		})
+		// already exists
 		It("Doesn't fail if the account already exists.", func() {
 			domain := cloud.Domain{Path: "ROOT/someNewDomain/tooBlah"}
 			account := cloud.Account{Name: "TempTestAccount", Domain: domain}
@@ -124,11 +125,14 @@ var _ = Describe("Test helper methods", func() {
 		})
 	})
 
-	// Context("User Creation w/Keys.", func() {
-	// 	It("Can create a new account in a new domain.", func() {
-	// 		domain := cloud.Domain{Path: "ROOT/someNewDomain/tooBlah"}
-	// 		account := cloud.Account{Name: "TempTestAccount", Domain: domain}
-	// 		Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(Succeed())
-	// 	})
-	// })
+	Context("User Creation w/Keys.", func() {
+		It("Can create a new user with keys.", func() {
+			domain := cloud.Domain{Path: "ROOT/someNewDomain/tooBlah"}
+			account := cloud.Account{Name: "TempTestAccount", Domain: domain}
+			user := cloud.User{Account: account}
+			Ω(helpers.GetOrCreateUserWithKey(csClient, &user)).Should(Succeed())
+			Ω(user.ID).ShouldNot(BeEmpty())
+			Ω(user.APIKey).ShouldNot(BeEmpty())
+		})
+	})
 })

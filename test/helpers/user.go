@@ -8,6 +8,8 @@ import (
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
+const tempUserName = "TemporaryUser"
+
 // GetDomainByPath fetches a domain by its path.
 func GetDomainByPath(csClient *cloudstack.CloudStackClient, path string) (string, error, bool) {
 	// Split path and get name.
@@ -113,6 +115,18 @@ func GetOrCreateAccount(csClient *cloudstack.CloudStackClient, account *cloud.Ac
 		return err
 	}
 
+	// Attempt to fetch account.
+	if resp, count, err := csClient.Account.GetAccountByName(
+		account.Name, cloudstack.WithDomain(account.Domain.ID)); err != nil && !strings.Contains(err.Error(), "No match found") {
+		return err
+	} else if count > 1 {
+		return fmt.Errorf("expected exactly 1 account, but got %d", count)
+	} else if count == 1 {
+		account.ID = resp.Id
+		return nil
+	} // Account not found, do account creation.
+
+	// Get role for account creation.
 	roleDetails, count, err := csClient.Role.GetRoleByName("Domain Admin")
 	if err != nil {
 		return err
@@ -120,7 +134,7 @@ func GetOrCreateAccount(csClient *cloudstack.CloudStackClient, account *cloud.Ac
 		return fmt.Errorf("expected exactly one role with name 'Domain Admin', found %d", count)
 	}
 
-	p := csClient.Account.NewCreateAccountParams("blah@someDomain.net", "first", "last", "temp123", "TempUser")
+	p := csClient.Account.NewCreateAccountParams("blah@someDomain.net", "first", "last", "temp123", tempUserName)
 	p.SetDomainid(account.Domain.ID)
 	p.SetRoleid(roleDetails.Id)
 	resp, err := csClient.Account.CreateAccount(p)
@@ -133,10 +147,43 @@ func GetOrCreateAccount(csClient *cloudstack.CloudStackClient, account *cloud.Ac
 	return nil
 }
 
-// GetOrCreateUser creates a domain as specified in the passed account object.
-func GetOrCreateUser(csClient *cloudstack.CloudStackClient, user *cloud.User) error {
+// GetOrCreateUserWithKey creates a domain as specified in the passed account object.
+// Right now only works with a default TemporaryUser name. This function was only built to get a testing user built.
+func GetOrCreateUserWithKey(csClient *cloudstack.CloudStackClient, user *cloud.User) error {
 	if err := GetOrCreateAccount(csClient, &user.Account); err != nil {
 		return err
+	}
+
+	p := csClient.User.NewListUsersParams()
+	p.SetAccount(user.Account.Name)
+	p.SetDomainid(user.Account.Domain.ID)
+	if resp, err := csClient.User.ListUsers(p); err != nil {
+		return err
+	} else if resp.Count > 1 {
+		return fmt.Errorf("expected exactly one User with name %s, found %d", user.Name, resp.Count)
+	} else if resp.Count == 1 {
+		user.ID = resp.Users[0].Id
+	} else { // User not found, create user.
+		// TODO: If ever needed, actually implement user creation here.
+		// For now we only care about the default account since this is a testing infrastructure method.
+		return fmt.Errorf("User not found for %s", user.Name)
+	}
+
+	pGKey := csClient.User.NewGetUserKeysParams(user.ID)
+	if resp, err := csClient.User.GetUserKeys(pGKey); err != nil {
+		return err
+	} else if user.APIKey != "" {
+		user.APIKey = resp.Apikey
+		user.SecretKey = resp.Secretkey
+		return nil
+	}
+
+	pKey := csClient.User.NewRegisterUserKeysParams(user.ID)
+	if resp, err := csClient.User.RegisterUserKeys(pKey); err != nil {
+		return err
+	} else {
+		user.APIKey = resp.Apikey
+		user.SecretKey = resp.Secretkey
 	}
 
 	return nil
