@@ -469,7 +469,7 @@ func CheckZones(clusterName string, numZones int) {
 	By("Listing all machines")
 	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
 	if err != nil {
-		Fail("Failed to list machines")
+		Fail("Failed to list machines: " + err.Error())
 	}
 	cpZoneIdMap := make(map[string]int)
 	mdZoneIdMap := make(map[string]int)

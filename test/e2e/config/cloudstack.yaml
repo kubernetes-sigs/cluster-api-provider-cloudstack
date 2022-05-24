@@ -106,7 +106,7 @@ providers:
 variables:
   KUBERNETES_VERSION_MANAGEMENT: "v1.21.5"
   KUBERNETES_VERSION: "v1.21.5"
-  CNI: "./data/cni/calico.yaml"
+  CNI: "./data/cni/kindnet.yaml"
   IP_FAMILY: "IPv4"
   NODE_DRAIN_TIMEOUT: "60s"
 
