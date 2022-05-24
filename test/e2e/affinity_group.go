@@ -58,11 +58,11 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 	})
 
 	It("Should have host affinity group when affinity is pro", func() {
-		executeTest(ctx, input, namespace, specName, clusterResources, "pro")
+		affinityIds = executeTest(ctx, input, namespace, specName, clusterResources, "pro")
 	})
 
 	It("Should have host affinity group when affinity is anti", func() {
-		executeTest(ctx, input, namespace, specName, clusterResources, "anti")
+		affinityIds = executeTest(ctx, input, namespace, specName, clusterResources, "anti")
 	})
 
 	AfterEach(func() {
@@ -73,6 +73,7 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		if err != nil {
 			Fail(err.Error())
 		}
+		By("PASSED!")
 	})
 }
 
@@ -97,9 +98,5 @@ func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.N
 		WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 	}, clusterResources)
 
-	affinityIds := CheckAffinityGroup(clusterResources.Cluster.Name, affinityType)
-
-	By("PASSED!")
-
-	return affinityIds
+	return CheckAffinityGroup(clusterResources.Cluster.Name, affinityType)
 }

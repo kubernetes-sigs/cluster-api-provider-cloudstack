@@ -235,6 +235,10 @@ func DestroyOneMachine(clusterName string, machineType string) {
 }
 
 func CheckAffinityGroupsDeleted(affinityIds []string) error {
+	if len(affinityIds) == 0 {
+		return errors.New("affinityIds are empty")
+	}
+
 	client := createCloudStackClient()
 
 	for _, affinityId := range affinityIds {
@@ -250,7 +254,9 @@ func CheckAffinityGroup(clusterName string, affinityType string) []string {
 	client := createCloudStackClient()
 
 	By("Listing all machines")
-	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+	p := client.VirtualMachine.NewListVirtualMachinesParams()
+	p.SetListall(true)
+	listResp, err := client.VirtualMachine.ListVirtualMachines(p)
 	if err != nil {
 		Fail("Failed to list machines: " + err.Error())
 	}

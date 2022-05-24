@@ -39,6 +39,7 @@ func SubdomainSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
+		affinityIds      []string
 	)
 
 	BeforeEach(func() {
@@ -77,11 +78,17 @@ func SubdomainSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
-		By("PASSED!")
+		affinityIds = CheckAffinityGroup(clusterResources.Cluster.Name, "pro")
 	})
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+
+		err := CheckAffinityGroupsDeleted(affinityIds)
+		if err != nil {
+			Fail(err.Error())
+		}
+		By("PASSED!")
 	})
 }
