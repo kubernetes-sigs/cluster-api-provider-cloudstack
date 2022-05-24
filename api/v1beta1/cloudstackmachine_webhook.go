@@ -71,10 +71,10 @@ func (r *CloudStackMachine) ValidateCreate() error {
 	}
 	for symlink, target := range r.Spec.Symlinks {
 		if !strings.HasPrefix(symlink, "/") || strings.HasSuffix(symlink, "/") {
-			errorList = append(errorList, field.Invalid(field.NewPath("spec", "Symlinks"), symlink, "symlink (key) must start with / and NOT ends with /"))
+			errorList = append(errorList, field.Invalid(field.NewPath("spec", "Symlinks"), symlink, "symlink (key) must start with / and NOT end with /"))
 		}
 		if !strings.HasPrefix(target, "/") || strings.HasSuffix(target, "/") {
-			errorList = append(errorList, field.Invalid(field.NewPath("spec", "Symlinks"), target, "target (value) must start with / and NOT ends with /"))
+			errorList = append(errorList, field.Invalid(field.NewPath("spec", "Symlinks"), target, "target (value) must start with / and NOT end with /"))
 		}
 	}
 
