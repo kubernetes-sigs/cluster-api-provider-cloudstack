@@ -92,7 +92,11 @@ func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.N
 			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 			ControlPlaneMachineCount: pointer.Int64Ptr(1),
 			WorkerMachineCount:       pointer.Int64Ptr(1),
+		},
+		WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+		WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 		WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+	}, clusterResources)
 
 	return CheckAffinityGroup(clusterResources.Cluster.Name, affinityType)
 }
