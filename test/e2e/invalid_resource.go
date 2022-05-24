@@ -89,6 +89,14 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 		testInvalidResource(ctx, input, "insufficient-compute-resources", "Unable to create a deployment for VM")
 	})
 
+	It("Should fail due to the specified disk offer is not customized but the disk size is specified", func() {
+		testInvalidResource(ctx, input, "invalid-disk-offering-size-for-non-customized", "is not customized, disk size can not be specified")
+	})
+
+	It("Should fail due to the specified disk offer is customized but the disk size is not specified", func() {
+		testInvalidResource(ctx, input, "invalid-disk-offering-size-for-customized", "is customized, disk size can not be 0 GB")
+	})
+
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)

@@ -58,12 +58,11 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 	})
 
 	It("Should have host affinity group when affinity is pro", func() {
-		executeTest(ctx, input, namespace, specName, clusterResources, "pro")
+		affinityIds = executeTest(ctx, input, namespace, specName, clusterResources, "pro")
 	})
 
 	It("Should have host affinity group when affinity is anti", func() {
-		Skip("no multi-host")
-		executeTest(ctx, input, namespace, specName, clusterResources, "anti")
+		affinityIds = executeTest(ctx, input, namespace, specName, clusterResources, "anti")
 	})
 
 	AfterEach(func() {
@@ -74,6 +73,7 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		if err != nil {
 			Fail(err.Error())
 		}
+		By("PASSED!")
 	})
 }
 
@@ -91,16 +91,8 @@ func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.N
 			ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 			ControlPlaneMachineCount: pointer.Int64Ptr(1),
-			WorkerMachineCount:       pointer.Int64Ptr(2),
-		},
-		WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
-		WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+			WorkerMachineCount:       pointer.Int64Ptr(1),
 		WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-	}, clusterResources)
 
-	affinityIds := CheckAffinityGroup(clusterResources.Cluster.Name, affinityType)
-
-	By("PASSED!")
-
-	return affinityIds
+	return CheckAffinityGroup(clusterResources.Cluster.Name, affinityType)
 }

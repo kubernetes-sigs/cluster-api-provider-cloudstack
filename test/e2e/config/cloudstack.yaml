@@ -88,8 +88,11 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-second-cluster.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-shared-network-kubevip.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-disk-offering-size-for-non-customized.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-disk-offering-size-for-customized.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-multi-zone.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-custom-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-subdomain.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
@@ -119,12 +122,9 @@ variables:
   CLOUDSTACK_INVALID_DOMAIN_NAME: domainXXXX
   CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
   CLOUDSTACK_NEW_NETWORK_NAME: isolated-for-e2e-new
-  # CLOUDSTACK_SHARED_NETWORK_NAME: shared1
-  CLOUDSTACK_SHARED_NETWORK_NAME: SharedNet2
-  CLOUDSTACK_SHARED_NETWORK_NAME_2: SharedNet3
-  CLOUDSTACK_SHARED_NETWORK_NAME_3: SharedNet4
-  # CLUSTER_ENDPOINT_IP: 172.16.2.99
-  CLUSTER_ENDPOINT_IP: 10.11.2.99
+  CLOUDSTACK_SHARED_NETWORK_NAME: Shared1
+  CLUSTER_ENDPOINT_IP: 172.16.2.199
+  CLUSTER_ENDPOINT_IP_2: 172.16.2.198
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
   CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING: "Extremely Large Instance"
@@ -136,6 +136,8 @@ variables:
 
   CLOUDSTACK_INVALID_DISK_OFFERING_NAME: diskOfferingXXXX
   CLOUDSTACK_DISK_OFFERING_NAME: Small
+  CLOUDSTACK_CUSTOM_DISK_OFFERING_NAME: Custom
+  CLOUDSTACK_DISK_OFFERING_CUSTOM_SIZE: 1
   CLOUDSTACK_DISK_OFFERING_DEVICE: /dev/vdc
   CLOUDSTACK_DISK_OFFERING_FILESYSTEM: ext4
   CLOUDSTACK_DISK_OFFERING_LABEL: my_disk
