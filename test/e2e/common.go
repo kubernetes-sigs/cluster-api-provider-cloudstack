@@ -206,7 +206,7 @@ func DestroyOneMachine(clusterName string, machineType string) {
 	Byf("Listing machines with %q", matcher)
 	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
 	if err != nil {
-		Fail("Failed to list machines")
+		Fail("Failed to list machines: " + err.Error())
 	}
 	var vmToDestroy *cloudstack.VirtualMachine
 	originalCount := 0
@@ -224,17 +224,21 @@ func DestroyOneMachine(clusterName string, machineType string) {
 	stopParams.SetForced(true)
 	_, err = client.VirtualMachine.StopVirtualMachine(stopParams)
 	if err != nil {
-		Fail("Failed to stop machine")
+		Fail("Failed to stop machine: " + err.Error())
 	}
 	destroyParams := client.VirtualMachine.NewDestroyVirtualMachineParams(vmToDestroy.Id)
 	destroyParams.SetExpunge(true)
 	_, err = client.VirtualMachine.DestroyVirtualMachine(destroyParams)
 	if err != nil {
-		Fail("Failed to destroy machine")
+		Fail("Failed to destroy machine: " + err.Error())
 	}
 }
 
 func CheckAffinityGroupsDeleted(affinityIds []string) error {
+	if len(affinityIds) == 0 {
+		return errors.New("affinityIds are empty")
+	}
+
 	client := createCloudStackClient()
 
 	for _, affinityId := range affinityIds {
@@ -250,9 +254,11 @@ func CheckAffinityGroup(clusterName string, affinityType string) []string {
 	client := createCloudStackClient()
 
 	By("Listing all machines")
-	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+	p := client.VirtualMachine.NewListVirtualMachinesParams()
+	p.SetListall(true)
+	listResp, err := client.VirtualMachine.ListVirtualMachines(p)
 	if err != nil {
-		Fail("Failed to list machines")
+		Fail("Failed to list machines: " + err.Error())
 	}
 	affinityTypeString := strings.Title(fmt.Sprintf("%sAffinity", affinityType))
 	cpHostIdSet := make(map[string]bool)
@@ -271,7 +277,7 @@ func CheckAffinityGroup(clusterName string, affinityType string) []string {
 				affinityIds = append(affinityIds, affinity.Id)
 				affinity, _, _ := client.AffinityGroup.GetAffinityGroupByID(affinity.Id)
 				if err != nil {
-					Fail("Failed to get affinity group for " + affinity.Id)
+					Fail("Failed to get affinity group for " + affinity.Id + " : " + err.Error())
 				}
 				if !strings.Contains(affinity.Name, affinityTypeString) {
 					Fail(affinity.Name + " does not contain " + affinityTypeString)
@@ -307,11 +313,11 @@ func createCloudStackClient() *cloudstack.CloudStackClient {
 	encodedSecret := os.Getenv("CLOUDSTACK_B64ENCODED_SECRET")
 	secret, err := base64.StdEncoding.DecodeString(encodedSecret)
 	if err != nil {
-		Fail("Failed ")
+		Fail("Failed to decode: " + err.Error())
 	}
 	cfg := &cloudConfig{VerifySSL: true}
 	if rawCfg, err := ini.Load(secret); err != nil {
-		Fail("Failed to load INI file")
+		Fail("Failed to load INI file: " + err.Error())
 	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
 		Fail("Global section not found")
 	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
@@ -448,7 +454,7 @@ func CheckDiskOfferingOfVmInstances(clusterName string, diskOfferingName string)
 	Byf("Listing machines with %q", clusterName)
 	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
 	if err != nil {
-		Fail("Failed to list machines")
+		Fail("Failed to list machines: " + err.Error())
 	}
 	for _, vm := range listResp.VirtualMachines {
 		if strings.Contains(vm.Name, clusterName) {
@@ -462,7 +468,7 @@ func CheckVolumeSizeofVmInstances(clusterName string, volumeSize int64) {
 	Byf("Listing machines with %q", clusterName)
 	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
 	if err != nil {
-		Fail("Failed to list machines")
+		Fail("Failed to list machines: " + err.Error())
 	}
 	for _, vm := range listResp.VirtualMachines {
 		if strings.Contains(vm.Name, clusterName) {

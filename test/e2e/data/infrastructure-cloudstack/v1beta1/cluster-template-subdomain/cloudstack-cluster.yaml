@@ -6,7 +6,9 @@ spec:
   zones:
   - name : ${CLOUDSTACK_ZONE_NAME}
     network: 
-      name: ${CLOUDSTACK_NEW_NETWORK_NAME}
+      name: ${CLOUDSTACK_NETWORK_NAME}
+  account: ${CLOUDSTACK_SUBDOMAIN_ACCOUNT_NAME}
+  domain: ${CLOUDSTACK_SUBDOMAIN_PATH}
   controlPlaneEndpoint:
     host: ""
     port: 6443

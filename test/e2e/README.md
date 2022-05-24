@@ -27,9 +27,7 @@ The first step to running the e2e tests is setting up the required environment v
 | `CLOUDSTACK_ZONE_NAME`                      | The zone name                                                                    | `zone1`                     |
 | `CLOUDSTACK_NETWORK_NAME`                   | The network name. If not exisiting an isolated network with the name is created. | `Shared1`                   |
 | `CLUSTER_ENDPOINT_IP`                       | The cluster endpoint IP                                                          | `172.16.2.199`              |
-| `CLUSTER_ENDPOINT_PORT`                     | The cluster endpoint port                                                        | `6443`                      |
 | `CLUSTER_ENDPOINT_IP_2`                     | The cluster endpoint IP for a second cluster                                     | `172.16.2.199`              |
-| `CLUSTER_ENDPOINT_PORT_2`                   | The cluster endpoint port for a second cluster                                   | `6444`                      |
 | `CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING` | The machine offering for the control plane VM instances                          | `Large Instance`            |
 | `CLOUDSTACK_WORKER_MACHINE_OFFERING`        | The machine offering for the worker node VM instances                            | `Medium Instance`           |
 | `CLOUDSTACK_TEMPLATE_NAME`                  | The machine template for both control plane and worke node VM instances          | `kube-v1.20.10/ubuntu-2004` |
