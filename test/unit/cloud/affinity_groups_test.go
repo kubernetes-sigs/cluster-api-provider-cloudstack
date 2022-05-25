@@ -18,7 +18,6 @@ package cloud_test
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
@@ -72,7 +71,6 @@ var _ = Describe("The AffinityGroup interface", func() {
 
 	When("using a real CloudStack client", func() {
 		BeforeEach(func() {
-			fmt.Println("blah2oomuch")
 			client = realCloudClient
 			dummies.AffinityGroup.ID = "" // Force name fetching.
 		})
