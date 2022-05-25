@@ -36,44 +36,44 @@ var (
 	testDomainPath  string // Needed in before and in after suite.
 )
 
-var _ = BeforeSuite(func() {
-	// Create a real cloud client.
-	projDir := os.Getenv("PROJECT_DIR")
-	var connectionErr error
-	realCloudClient, connectionErr = cloud.NewClient(projDir + "/cloud-config")
-	Ω(connectionErr).ShouldNot(HaveOccurred())
-
-	// Create a real CloudStack client.
-	realCSClient, connectionErr = helpers.NewCSClient()
-	Ω(connectionErr).ShouldNot(HaveOccurred())
-
-	// Create a new account and user to run tests that use a real ACS instance.
-	uid := string(uuid.NewUUID())
-	newAccount := cloud.Account{
-		Name:   "TestAccount-" + uid,
-		Domain: cloud.Domain{Name: "TestDomain-" + uid, Path: "ROOT/TestDomain-" + uid}}
-	newUser := cloud.User{Account: newAccount}
-	Ω(helpers.GetOrCreateUserWithKey(realCSClient, &newUser)).Should(Succeed())
-	testDomainPath = newAccount.Domain.Path
-
-	Ω(newUser.APIKey).ShouldNot(BeEmpty())
-
-	// Switch to test account user.
-	cfg := cloud.Config{APIKey: newUser.APIKey, SecretKey: newUser.SecretKey}
-	realCloudClient, connectionErr = realCloudClient.NewClientFromSpec(cfg)
-	Ω(connectionErr).ShouldNot(HaveOccurred())
-})
-
-var _ = AfterSuite(func() {
-	// Delete created domain.
-	id, err, found := helpers.GetDomainByPath(realCSClient, testDomainPath)
-	Ω(err).ShouldNot(HaveOccurred())
-	Ω(found).Should(BeTrue())
-	Ω(helpers.DeleteDomain(realCSClient, id)).Should(Succeed())
-})
-
 func TestCloud(t *testing.T) {
 	RegisterFailHandler(Fail)
+	BeforeSuite(func() {
+		// Create a real cloud client.
+		projDir := os.Getenv("PROJECT_DIR")
+		var connectionErr error
+		realCloudClient, connectionErr = cloud.NewClient(projDir + "/cloud-config")
+		Ω(connectionErr).ShouldNot(HaveOccured())
+
+		// Create a real CloudStack client.
+		realCSClient, connectionErr = helpers.NewCSClient()
+		Ω(connectionErr).ShouldNot(HaveOccurred())
+
+		// Create a new account and user to run tests that use a real ACS instance.
+		uid := string(uuid.NewUUID())
+		newAccount := cloud.Account{
+			Name:   "TestAccount-" + uid,
+			Domain: cloud.Domain{Name: "TestDomain-" + uid, Path: "ROOT/TestDomain-" + uid}}
+		newUser := cloud.User{Account: newAccount}
+		Ω(helpers.GetOrCreateUserWithKey(realCSClient, &newUser)).Should(Succeed())
+		testDomainPath = newAccount.Domain.Path
+
+		Ω(newUser.APIKey).ShouldNot(BeEmpty())
+
+		// Switch to test account user.
+		cfg := cloud.Config{APIKey: newUser.APIKey, SecretKey: newUser.SecretKey}
+		realCloudClient, connectionErr = realCloudClient.NewClientFromSpec(cfg)
+		Ω(connectionErr).ShouldNot(HaveOccurred())
+	})
+	AfterSuite(func() {
+		if realCSClient != nil { // Check for nil in case the before suite setup failed.
+			// Delete created domain.
+			id, err, found := helpers.GetDomainByPath(realCSClient, testDomainPath)
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(found).Should(BeTrue())
+			Ω(helpers.DeleteDomain(realCSClient, id)).Should(Succeed())
+		}
+	})
 	RunSpecs(t, "Cloud Suite")
 }
 
