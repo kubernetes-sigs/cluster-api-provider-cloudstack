@@ -166,7 +166,7 @@ func GetOrCreateUserWithKey(csClient *cloudstack.CloudStackClient, user *cloud.U
 	} else { // User not found, create user.
 		// TODO: If ever needed, actually implement user creation here.
 		// For now we only care about the default account since this is a testing infrastructure method.
-		return fmt.Errorf("User not found for %s", user.Name)
+		return fmt.Errorf("user not found for %s", user.Name)
 	}
 
 	pGKey := csClient.User.NewGetUserKeysParams(user.ID)

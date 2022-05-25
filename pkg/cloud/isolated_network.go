@@ -247,8 +247,9 @@ func (c *client) GetOrCreateIsolatedNetwork(
 		if err = c.CreateIsolatedNetwork(zone, isoNet); err != nil {
 			return errors.Wrap(err, "creating a new isolated network")
 		}
+	} else {
+		isoNet.Spec.ID = net.ID
 	}
-	isoNet.Spec.ID = net.ID
 
 	// Tag the created network.
 	networkID := isoNet.Spec.ID
