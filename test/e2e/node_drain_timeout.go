@@ -92,6 +92,9 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() CommonSpecInpu
 
 		By("Add a deployment with unevictable pods and podDisruptionBudget to the workload cluster. The deployed pods cannot be evicted in the node draining process.")
 		workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
+		workloadKubeconfigPath := workloadClusterProxy.GetKubeconfigPath()
+		Byf("workload cluster kubeconfig path %s", workloadKubeconfigPath)
+
 		framework.DeployUnevictablePod(ctx, framework.DeployUnevictablePodInput{
 			WorkloadClusterProxy:               workloadClusterProxy,
 			DeploymentName:                     fmt.Sprintf("%s-%s", "unevictable-pod", util.RandomString(3)),
