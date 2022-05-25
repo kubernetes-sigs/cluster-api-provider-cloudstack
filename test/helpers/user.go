@@ -8,7 +8,7 @@ import (
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
-const tempUserName = "TemporaryUser"
+const TempUserName = "TemporaryUser"
 
 // GetDomainByPath fetches a domain by its path.
 func GetDomainByPath(csClient *cloudstack.CloudStackClient, path string) (string, error, bool) {
@@ -134,7 +134,7 @@ func GetOrCreateAccount(csClient *cloudstack.CloudStackClient, account *cloud.Ac
 		return fmt.Errorf("expected exactly one role with name 'Domain Admin', found %d", count)
 	}
 
-	p := csClient.Account.NewCreateAccountParams("blah@someDomain.net", "first", "last", "temp123", tempUserName)
+	p := csClient.Account.NewCreateAccountParams("blah@someDomain.net", "first", "last", "temp123", TempUserName)
 	p.SetDomainid(account.Domain.ID)
 	p.SetRoleid(roleDetails.Id)
 	resp, err := csClient.Account.CreateAccount(p)

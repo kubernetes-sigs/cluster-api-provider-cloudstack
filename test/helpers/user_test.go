@@ -17,27 +17,15 @@ limitations under the License.
 package helpers_test
 
 import (
-	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/aws/cluster-api-provider-cloudstack/test/helpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
-	"gopkg.in/ini.v1"
 )
 
 var _ = Describe("Test helper methods", func() {
-	var csClient *cloudstack.CloudStackClient
-	ccPath := "../../cloud-config"
-	conf := cloud.Config{}
-	if rawCfg, err := ini.Load("../../cloud-config"); err != nil {
-		Ω(errors.Wrapf(err, "reading config at path %s:", ccPath)).ShouldNot(HaveOccurred())
-	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
-		Ω(errors.New("section Global not found")).ShouldNot(HaveOccurred())
-	} else if err = rawCfg.Section("Global").StrictMapTo(&conf); err != nil {
-		Ω(errors.Wrapf(err, "parsing [Global] section from config at path %s:", ccPath)).ShouldNot(HaveOccurred())
-	}
-	csClient = cloudstack.NewAsyncClient(conf.APIURL, conf.APIKey, conf.SecretKey, conf.VerifySSL)
+	csClient, err := helpers.NewCSClient()
+	Ω(err).ShouldNot(HaveOccurred())
 
 	// Get the root domain's ID.
 	rootDomainID, err, found := helpers.GetDomainByPath(csClient, "ROOT/")

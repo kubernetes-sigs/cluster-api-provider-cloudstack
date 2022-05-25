@@ -213,9 +213,7 @@ var _ = Describe("Network", func() {
 			dummies.CSZone1.Spec.ID = ""                          // Make CAPC methods resolve this.
 			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
 
-			// Get Zone info needed for network testing.
-			Ω(client.ResolveZone(dummies.CSZone1)).Should(Succeed())
-			dummies.CSISONet1.Spec.ID = ""
+			FetchIntegTestResources()
 		})
 
 		It("fetches an isolated network", func() {
@@ -238,8 +236,10 @@ var _ = Describe("Network", func() {
 		It("adds an isolated network and doesn't fail when asked to GetOrCreateIsolatedNetwork multiple times", func() {
 			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+
 			// Network should now exist if it didn't at the start.
 			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
+
 			// Do once more.
 			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 		})

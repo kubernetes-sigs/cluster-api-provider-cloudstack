@@ -19,6 +19,7 @@ package cloud_test
 import (
 	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
 	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/aws/cluster-api-provider-cloudstack/test/helpers"
 	. "github.com/onsi/ginkgo/v2"
 
 	. "github.com/onsi/gomega"
@@ -43,11 +44,9 @@ var _ = Describe("User Credentials", func() {
 		BeforeEach(func() {
 			client = realCloudClient
 
-			// Setup dummies.
-			// TODO: move these to the test dummies package.
-			domain = cloud.Domain{Path: "ROOT/blah/blah/subsub"}
-			account = cloud.Account{Name: "SuperNested", Domain: domain}
-			user = cloud.User{Name: "SubSub", Account: account}
+			domain = cloud.Domain{Path: testDomainPath}
+			account = cloud.Account{Domain: domain}
+			user = cloud.User{Name: helpers.TempUserName, Account: account}
 		})
 
 		It("can resolve a domain from the path", func() {
