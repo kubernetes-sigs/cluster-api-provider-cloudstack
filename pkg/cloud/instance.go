@@ -34,6 +34,8 @@ type VMIface interface {
 	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, *infrav1.CloudStackAffinityGroup, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
 	DestroyVMInstance(*infrav1.CloudStackMachine) error
+	StartVMInstance(*infrav1.CloudStackMachine) error
+	AttachISOToVMInstance(*infrav1.CloudStackMachine, *infrav1.CloudStackZone) error
 }
 
 // Set infrastructure spec and status from the CloudStack API's virtual machine metrics type.
@@ -42,6 +44,20 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 	csMachine.Spec.InstanceID = pointer.StringPtr(vmResponse.Id)
 	csMachine.Status.Addresses = []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vmResponse.Ipaddress}}
 	csMachine.Status.InstanceState = infrav1.InstanceState(vmResponse.State)
+}
+
+// Set infrastructure spec and status from the CloudStack API's virtual machine metrics type.
+func setMachineDataFromStartVMResponse(startVMResponse *cloudstack.StartVirtualMachineResponse, csMachine *infrav1.CloudStackMachine) {
+	csMachine.Spec.ProviderID = pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", startVMResponse.Id))
+	csMachine.Spec.InstanceID = pointer.StringPtr(startVMResponse.Id)
+	var addresses []corev1.NodeAddress
+	for _, nic := range startVMResponse.Nic {
+		addresses = append(addresses, corev1.NodeAddress{
+			Type:    corev1.NodeInternalIP,
+			Address: nic.Ipaddress})
+	}
+	csMachine.Status.Addresses = addresses
+	csMachine.Status.InstanceState = infrav1.InstanceState(startVMResponse.State)
 }
 
 // ResolveVMInstanceDetails Retrieves VM instance details by csMachine.Spec.InstanceID or csMachine.Name, and
@@ -73,6 +89,94 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 		}
 	}
 	return errors.New("no match found")
+}
+
+// StartVMInstance Start VM instance using csMachine.Spec.InstanceID.
+func (c *client) StartVMInstance(csMachine *infrav1.CloudStackMachine) error {
+	// Get VM instance ID
+	instanceID := csMachine.Spec.InstanceID
+
+	if instanceID == nil && len(csMachine.Name) > 0 {
+		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name) // add opts usage
+		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match") {
+			return err
+		} else if count > 1 {
+			return fmt.Errorf("found more than one VM Instance with name %s", csMachine.Name)
+		} else if err == nil {
+			instanceID = pointer.StringPtr(vmResp.Id)
+		}
+	}
+	// Attempt to fetch by ID.
+	if instanceID != nil {
+		p := c.cs.VirtualMachine.NewStartVirtualMachineParams(*instanceID)
+		startVMResp, err := c.cs.VirtualMachine.StartVirtualMachine(p)
+		if err != nil {
+			return err
+		}
+		setMachineDataFromStartVMResponse(startVMResp, csMachine)
+		return nil
+	}
+
+	return errors.New("vm instance ID empty")
+}
+
+// AttachISOToVMInstance Attach ISO to VM instance using csMachine.Spec.InstanceID.
+func (c *client) AttachISOToVMInstance(csMachine *infrav1.CloudStackMachine, zone *infrav1.CloudStackZone) error {
+	// Get VM instance ID
+	instanceID := csMachine.Spec.InstanceID
+
+	if instanceID == nil && len(csMachine.Name) > 0 {
+		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name) // add opts usage
+		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match") {
+			return err
+		} else if count > 1 {
+			return fmt.Errorf("found more than one VM Instance with name %s", csMachine.Name)
+		} else if err == nil {
+			instanceID = pointer.StringPtr(vmResp.Id)
+		}
+	}
+	// Attempt to fetch by ID.
+	if instanceID != nil {
+		isoID, err := c.resolveISO(csMachine, zone)
+		if err != nil {
+			return err
+		}
+		p := c.cs.ISO.NewAttachIsoParams(isoID, *instanceID)
+		_, err = c.cs.ISO.AttachIso(p)
+		return err
+	}
+
+	return errors.New("vm instance ID empty")
+}
+
+// resolveISO get ISO id if only name configured, verify name and id match if both configured
+func (c *client) resolveISO(csMachine *infrav1.CloudStackMachine, zone *infrav1.CloudStackZone) (isoID string, err error) {
+	if len(csMachine.Spec.ISOAttachment.ID) > 0 {
+		iso, count, err := c.cs.ISO.GetIsoByID(csMachine.Spec.ISOAttachment.ID)
+		if err != nil {
+			return "", multierror.Append(err, errors.Wrapf(
+				err, "could not get ISO by ID %s", csMachine.Spec.ISOAttachment.ID))
+		} else if count != 1 {
+			return "", multierror.Append(err, errors.Errorf(
+				"expected 1 ISO with UUID %s, but got %d", csMachine.Spec.ISOAttachment.ID, count))
+		}
+
+		if len(csMachine.Spec.ISOAttachment.Name) > 0 && csMachine.Spec.ISOAttachment.Name != iso.Name {
+			return "", multierror.Append(err, errors.Errorf(
+				"iso name %s does not match name %s returned using UUID %s", csMachine.Spec.ISOAttachment.Name, iso.Name, csMachine.Spec.ISOAttachment.ID))
+		}
+		return csMachine.Spec.ISOAttachment.ID, nil
+	}
+	isoID, count, err := c.cs.ISO.GetIsoID(csMachine.Spec.ISOAttachment.Name, "", zone.Spec.ID)
+	if err != nil {
+		return "", multierror.Append(err, errors.Wrapf(
+			err, "could not get ISO by Name %s", csMachine.Spec.ISOAttachment.Name))
+	} else if count != 1 {
+		return "", multierror.Append(err, errors.Errorf(
+			"expected 1 ISO with Name %s, but got %d", csMachine.Spec.ISOAttachment.Name, count))
+	}
+
+	return isoID, nil
 }
 
 func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (offeringID string, retErr error) {
@@ -226,6 +330,7 @@ func (c *client) GetOrCreateVMInstance(
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
 	setIntIfPositive(csMachine.Spec.DiskOffering.CustomSize, p.SetSize)
+	p.SetStartvm(false)
 
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
