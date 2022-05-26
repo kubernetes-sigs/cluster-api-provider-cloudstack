@@ -23,7 +23,7 @@ RELEASE_DIR ?= out
 export ACK_GINKGO_DEPRECATIONS := 1.16.5
 export ACK_GINKGO_RC=true
 
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 export PATH := $(PROJECT_DIR)/bin:$(PATH)
 
 all: build
