@@ -179,6 +179,10 @@ export KUBEBUILDER_ASSETS=$(PROJECT_DIR)/bin
 test: generate-mocks lint bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
+	echo $$PROJECT_DIR
+	echo $$PROJECT_DIR
+	echo $$PROJECT_DIR
+	echo $$PROJECT_DIR
 	@cd ./test/unit && ginkgo_v2 -v ./... -coverprofile cover.out; EXIT_STATUS=$$?;\
 		cd ../../ && ./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 	
