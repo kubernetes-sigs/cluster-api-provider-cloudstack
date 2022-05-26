@@ -41,6 +41,9 @@ func TestCloud(t *testing.T) {
 	BeforeSuite(func() {
 		// Create a real cloud client.
 		projDir := os.Getenv("PROJECT_DIR")
+		fmt.Println(projDir)
+		fmt.Println(projDir)
+		fmt.Println(projDir)
 		var connectionErr error
 		realCloudClient, connectionErr = cloud.NewClient(projDir + "/cloud-config")
 		Ω(connectionErr).ShouldNot(HaveOccurred())
