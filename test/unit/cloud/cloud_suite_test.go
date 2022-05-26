@@ -17,6 +17,7 @@ limitations under the License.
 package cloud_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
