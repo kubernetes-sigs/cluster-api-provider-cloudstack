@@ -306,6 +306,7 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 func (c *client) listVMInstanceVolumeIDs(instanceID string) ([]string, error) {
 	p := c.cs.Volume.NewListVolumesParams()
 	p.SetVirtualmachineid(instanceID)
+	p.SetType("DATADISK")
 
 	listVOLResp, err := c.csAsync.Volume.ListVolumes(p)
 	if err != nil {
