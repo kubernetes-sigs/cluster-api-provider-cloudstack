@@ -54,7 +54,7 @@ type CloudStackMachineSpec struct {
 
 	// CloudStack ISO attachment, can run pre/post kubeadmCommand defined in ISO image
 	// +optional
-	ISOAttachment CloudStackISOAttachment `json:"ISOAttachment,omitempty"`
+	ISOAttachment CloudStackResourceIdentifier `json:"ISOAttachment,omitempty"`
 
 	// CloudStack ssh key to use.
 	// +optional
@@ -116,23 +116,6 @@ type CloudStackResourceDiskOffering struct {
 	Filesystem string `json:"filesystem"`
 	// label of data disk, used by mkfs as label parameter
 	Label string `json:"label"`
-}
-
-type CloudStackISOAttachment struct {
-	CloudStackResourceIdentifier `json:",inline"`
-	// run preKubeadmCommand pre-defined in attached ISO directory.
-	// +optional
-	RunPreKubeadmCommand bool `json:"runPreKubeadmCommand,omitempty"`
-	// specifies a list of args to be passed to preKubeadmCommand pre-defined in ISO directory.
-	// +optional
-	PreKubeadmCommandArgs []string `json:"preKubeadmCommandArgs,omitempty"`
-
-	// run preKubeadmCommand pre-defined in attached ISO directory.
-	// +optional
-	RunPostKubeadmCommand bool `json:"runPostKubeadmCommand,omitempty"`
-	// specifies a list of args to be passed to postKubeadmCommand pre-defined in ISO directory.
-	// +optional
-	PostKubeadmCommandArgs []string `json:"postKubeadmCommandArgs,omitempty"`
 }
 
 // TODO: Review the use of this field/type.

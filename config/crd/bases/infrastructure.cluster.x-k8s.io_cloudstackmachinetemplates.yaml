@@ -57,26 +57,6 @@ spec:
                           name:
                             description: Cloudstack resource Name
                             type: string
-                          postKubeadmCommandArgs:
-                            description: specifies a list of args to be passed to
-                              postKubeadmCommand pre-defined in ISO directory.
-                            items:
-                              type: string
-                            type: array
-                          preKubeadmCommandArgs:
-                            description: specifies a list of args to be passed to
-                              preKubeadmCommand pre-defined in ISO directory.
-                            items:
-                              type: string
-                            type: array
-                          runPostKubeadmCommand:
-                            description: run preKubeadmCommand pre-defined in attached
-                              ISO directory.
-                            type: boolean
-                          runPreKubeadmCommand:
-                            description: run preKubeadmCommand pre-defined in attached
-                              ISO directory.
-                            type: boolean
                         type: object
                       affinity:
                         description: Mutually exclusive parameter with AffinityGroupIDs.
@@ -135,8 +115,9 @@ spec:
                         description: CloudStack disk offering to use.
                         properties:
                           customSizeInGB:
-                            description: disk size if disk offering is custom disk
-                              (need to specify disk size by users)
+                            description: Desired disk size. Used if disk offering
+                              is customizable as indicated by the ACS field 'Custom
+                              Disk Size'.
                             format: int64
                             type: integer
                           device:
