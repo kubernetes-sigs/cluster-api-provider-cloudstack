@@ -48,8 +48,8 @@ spec:
                       CloudStackMachine
                     properties:
                       ISOAttachment:
-                        description: CloudStack ISO attachment, can run pre/post kubeadmCommand
-                          defined in ISO image
+                        description: CloudStack ISO attachment, ISO is attached before
+                          VM starts.
                         properties:
                           id:
                             description: Cloudstack resource ID.

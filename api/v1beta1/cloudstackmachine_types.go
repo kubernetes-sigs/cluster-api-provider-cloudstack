@@ -52,7 +52,7 @@ type CloudStackMachineSpec struct {
 	// +optional
 	DiskOffering CloudStackResourceDiskOffering `json:"diskOffering,omitempty"`
 
-	// CloudStack ISO attachment, can run pre/post kubeadmCommand defined in ISO image
+	// CloudStack ISO attachment, ISO is attached before VM starts.
 	// +optional
 	ISOAttachment CloudStackResourceIdentifier `json:"ISOAttachment,omitempty"`
 
