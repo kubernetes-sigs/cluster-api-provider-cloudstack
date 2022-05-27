@@ -274,7 +274,7 @@ func (c *client) GetOrCreateVMInstance(
 func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 	// Attempt deletion regardless of machine state.
 	p := c.csAsync.VirtualMachine.NewDestroyVirtualMachineParams(*csMachine.Spec.InstanceID)
-	volIDs, err := c.listVMInstanceVolumeIDs(*csMachine.Spec.InstanceID)
+	volIDs, err := c.listVMInstanceDatadiskVolumeIDs(*csMachine.Spec.InstanceID)
 	if err != nil {
 		return err
 	}
@@ -303,9 +303,11 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 	return errors.New("VM deletion in progress")
 }
 
-func (c *client) listVMInstanceVolumeIDs(instanceID string) ([]string, error) {
+func (c *client) listVMInstanceDatadiskVolumeIDs(instanceID string) ([]string, error) {
 	p := c.cs.Volume.NewListVolumesParams()
 	p.SetVirtualmachineid(instanceID)
+	// VM root volumes are destroyed automatically, no need to explicitly include
+	p.SetType("DATADISK")
 
 	listVOLResp, err := c.csAsync.Volume.ListVolumes(p)
 	if err != nil {
