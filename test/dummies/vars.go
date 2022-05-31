@@ -2,8 +2,8 @@ package dummies
 
 import (
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
-	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	capcv1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"

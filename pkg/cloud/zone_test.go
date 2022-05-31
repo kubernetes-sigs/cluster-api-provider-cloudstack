@@ -19,8 +19,8 @@ import (
 	"fmt"
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
-	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

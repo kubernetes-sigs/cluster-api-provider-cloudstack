@@ -22,8 +22,8 @@ import (
 	"strings"
 	"time"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	infrav1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"

@@ -22,8 +22,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
+	infrav1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
+	csCtrlrUtils "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/pkg/errors"
 )
 

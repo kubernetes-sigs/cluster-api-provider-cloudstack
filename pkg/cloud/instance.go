@@ -23,7 +23,7 @@ import (
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"

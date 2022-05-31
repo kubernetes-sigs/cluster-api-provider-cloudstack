@@ -19,8 +19,8 @@ package v1beta1_test
 import (
 	"context"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
+	infrav1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

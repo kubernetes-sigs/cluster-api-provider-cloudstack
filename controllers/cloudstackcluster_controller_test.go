@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

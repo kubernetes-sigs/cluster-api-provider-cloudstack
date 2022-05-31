@@ -26,7 +26,7 @@ import (
 	"path"
 	"reflect"
 
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

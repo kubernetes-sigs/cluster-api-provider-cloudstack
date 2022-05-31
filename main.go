@@ -27,7 +27,7 @@ import (
 	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
 
 	goflag "flag"
 
@@ -43,9 +43,9 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/aws/cluster-api-provider-cloudstack/controllers"
-	"github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
+	infrav1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/controllers"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/controllers/utils"
 	//+kubebuilder:scaffold:imports
 )
 

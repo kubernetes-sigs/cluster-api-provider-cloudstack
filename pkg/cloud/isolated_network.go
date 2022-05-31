@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	capcv1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	capcv1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 )

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 

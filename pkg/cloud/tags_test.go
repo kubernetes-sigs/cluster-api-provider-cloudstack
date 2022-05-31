@@ -17,8 +17,8 @@ limitations under the License.
 package cloud_test
 
 import (
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
-	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

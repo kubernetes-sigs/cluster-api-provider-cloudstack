@@ -28,8 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
+	infrav1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
+	csCtrlrUtils "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/controllers/utils"
 	"github.com/pkg/errors"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
