@@ -17,8 +17,8 @@ limitations under the License.
 package cloud
 
 import (
-	capcv1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/hashicorp/go-multierror"
+	capcv1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/pkg/errors"
 )
 

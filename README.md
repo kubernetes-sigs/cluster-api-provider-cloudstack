@@ -1,6 +1,6 @@
 ## CloudStack Cluster API Provider (CAPC)
 
-[![Go Report Card](https://goreportcard.com/badge/aws/cluster-api-provider-cloudstack)](https://goreportcard.com/report/aws/cluster-api-provider-cloudstack)
+[![Go Report Card](https://goreportcard.com/badge/kubernetes-sigs/cluster-api-provider-cloudstack)](https://goreportcard.com/report/kubernetes-sigs/cluster-api-provider-cloudstack)
 
 A Kubernetes Cluster API Provider implementation for Apache CloudStack.
 

@@ -22,10 +22,10 @@ import (
 	"strings"
 	"time"
 
-	infrav1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
+	infrav1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
+	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

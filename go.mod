@@ -1,4 +1,4 @@
-module github.com/aws/cluster-api-provider-cloudstack
+module github.com/kubernetes-sigs/cluster-api-provider-cloudstack
 
 go 1.16
 
