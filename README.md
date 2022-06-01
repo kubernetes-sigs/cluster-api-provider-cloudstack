@@ -51,18 +51,18 @@ Check out the [Getting Started Guide][getting_started] to create your first Kube
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
-|                             | v1.19 || v1.20 || v1.21 || v1.22 || v1.23 |
-| --------------------------- | ----- || ----- || ----- || ----- || ----- |
-| CloudStack Provider  (v0.4) | ✓     || ✓     || ✓     || ✓     || ✓     |
+| Kubernetes Version          | v1.19 | v1.20 | v1.21 | v1.22 | v1.23 |
+| --------------------------- | ----- | ----- | ----- | ----- | ----- |
+| CloudStack Provider  (v0.4) |   ✓   |   ✓   |   ✓   |   ✓   |   ✓   |
 
 ## Compatibility with Apache CloudStack Versions
 
 
 This provider's versions are able to work on the following versions of Apache CloudStack:
 
-|                             | 4.14 || 4.15 || 4.16 || 4.17 |
-| --------------------------- | ---- || ---- || ---- || ---- |
-| CloudStack Provider  (v0.4) | ✓    || ✓    || ✓    || ✓    |
+| CloudStack Version          | 4.14 | 4.15 | 4.16 | 4.17 |
+| --------------------------- | ---- | ---- | ---- | ---- |
+| CloudStack Provider  (v0.4) |   ✓  |   ✓  |   ✓  |   ✓  |
 
 ------
 
