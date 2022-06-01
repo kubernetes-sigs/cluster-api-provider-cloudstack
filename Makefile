@@ -145,10 +145,11 @@ bin/golangci-lint: ## Install golangci-lint to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.0
 bin/staticcheck: ## Install staticcheck to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install honnef.co/go/tools/cmd/staticcheck@v0.3.1
-bin/ginkgo: ## Install ginkgo to bin.
+bin/ginkgo: bin/ginkgo_v1 bin/ginkgo_v2 ## Install ginkgo to bin.
+bin/ginkgo_v2: 
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.4
 	mv $(PROJECT_DIR)/bin/ginkgo $(PROJECT_DIR)/bin/ginkgo_v2
-bin/ginkgo_v1: ## Install ginkgo to bin.
+bin/ginkgo_v1:
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/ginkgo@v1.16.5
 	mv $(PROJECT_DIR)/bin/ginkgo $(PROJECT_DIR)/bin/ginkgo_v1
 bin/mockgen:
