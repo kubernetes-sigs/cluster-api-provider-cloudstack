@@ -22,8 +22,8 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/hashicorp/go-multierror"
-	capcv1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
 	"github.com/pkg/errors"
+	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 )
 
 type IsoNetworkIface interface {

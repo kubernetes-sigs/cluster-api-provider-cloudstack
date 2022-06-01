@@ -27,10 +27,10 @@ import (
 	"reflect"
 
 	"github.com/golang/mock/gomock"
-	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
 const (

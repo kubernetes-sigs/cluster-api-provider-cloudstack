@@ -21,12 +21,12 @@ import (
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
-	capcv1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
-	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
-	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/test/dummies"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 )
 
 var _ = Describe("Network", func() {

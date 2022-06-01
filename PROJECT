@@ -1,6 +1,6 @@
 domain: cluster.x-k8s.io
 projectName: cluster-api-provider-capc
-repo: github.com/kubernetes-sigs/cluster-api-provider-cloudstack
+repo: sigs.k8s.io/cluster-api-provider-cloudstack
 resources:
 - api:
     crdVersion: v1
@@ -9,7 +9,7 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackCluster
-  path: github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1
   version: v1beta1
   webhooks:
     defaulting: true
@@ -22,7 +22,7 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachine
-  path: github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1
   version: v1beta1
   webhooks:
     defaulting: true
@@ -35,7 +35,7 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineTemplate
-  path: github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1
   version: v1beta1
   webhooks:
     defaulting: true
@@ -48,7 +48,7 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackIsolatedNetwork
-  path: github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1
   version: v1beta1
 - api:
     crdVersion: v1
@@ -57,7 +57,7 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackZone
-  path: github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1
   version: v1beta1
 - api:
     crdVersion: v1
@@ -66,7 +66,7 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackAffinityGroup
-  path: github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1
   version: v1beta1
 - api:
     crdVersion: v1
@@ -75,6 +75,6 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineStateChecker
-  path: github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1
   version: v1beta1
 version: "3"

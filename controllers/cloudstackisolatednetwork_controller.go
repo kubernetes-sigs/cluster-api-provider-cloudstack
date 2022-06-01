@@ -24,10 +24,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	infrav1 "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1"
-	csCtrlrUtils "github.com/kubernetes-sigs/cluster-api-provider-cloudstack/controllers/utils"
-	"github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/pkg/errors"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackisolatednetworks,verbs=get;list;watch;create;update;patch;delete

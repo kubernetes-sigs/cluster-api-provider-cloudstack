@@ -1,4 +1,4 @@
-module github.com/kubernetes-sigs/cluster-api-provider-cloudstack-staging/test/e2e
+module sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e
 
 go 1.16
 

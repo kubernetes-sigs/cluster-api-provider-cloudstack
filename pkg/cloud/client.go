@@ -24,7 +24,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-//go:generate mockgen -destination=../mocks/mock_client.go -package=mocks github.com/kubernetes-sigs/cluster-api-provider-cloudstack/pkg/cloud Client
+//go:generate mockgen -destination=../mocks/mock_client.go -package=mocks sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud Client
 
 type Client interface {
 	VMIface
