@@ -167,7 +167,7 @@ func (c *client) resolveISO(csMachine *infrav1.CloudStackMachine, zone *infrav1.
 		}
 		return csMachine.Spec.ISOAttachment.ID, nil
 	}
-	isoID, count, err := c.cs.ISO.GetIsoID(csMachine.Spec.ISOAttachment.Name, "", zone.Spec.ID)
+	isoID, count, err := c.cs.ISO.GetIsoID(csMachine.Spec.ISOAttachment.Name, "all", zone.Spec.ID)
 	if err != nil {
 		return "", multierror.Append(err, errors.Wrapf(
 			err, "could not get ISO by Name %s", csMachine.Spec.ISOAttachment.Name))
