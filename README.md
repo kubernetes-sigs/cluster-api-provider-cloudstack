@@ -1,234 +1,147 @@
-## CloudStack Cluster API Provider (CAPC)
 
 [![Go Report Card](https://goreportcard.com/badge/kubernetes-sigs/cluster-api-provider-cloudstack)](https://goreportcard.com/report/kubernetes-sigs/cluster-api-provider-cloudstack)
 
-A Kubernetes Cluster API Provider implementation for Apache CloudStack.
+<p align="center">
+  <!-- <h1 style="text-align: center"> Kubernetes Cluster API Provider CloudStack </h1> -->
+  <a href="https://cloudstack.apache.org/">
+    <img width="75%" src="https://raw.githubusercontent.com/shapeblue/cluster-api-provider-cloudstack/add-docs/docs/book/src/images/capc.png"
+    alt="Powered by Apache CloudStack"/>
+  </a>
+  <br /><br /><br />
 
-## Security
+  <!-- go doc / reference card -->
+  <a href="https://pkg.go.dev/sigs.k8s.io/cluster-api-provider-cloudstack">
+    <img src="https://pkg.go.dev/badge/sigs.k8s.io/cluster-api-provider-cloudstack">
+  </a>
+  <!-- goreportcard badge -->
+  <a href="https://goreportcard.com/report/sigs.k8s.io/cluster-api-provider-cloudstack">
+    <img src="https://goreportcard.com/badge/sigs.k8s.io/cluster-api-provider-cloudstack">
+  </a>
+  <!-- join kubernetes slack channel for cluster-api-cloudstack-provider -->
+  <a href="https://kubernetes.slack.com/messages/cluster-api-cloudstack">
+    <img src="https://img.shields.io/badge/join%20slack-%23cluster--api--cloudstack-brightgreen">
+  </a>
+</p>
 
-See [SECURITY_CONTACTS](SECURITY_CONTACTS) for more information.
+------------------------------------------------------------------------------
 
-## License
+## What is the Cluster API Provider CloudStack
 
-This project is licensed under the Apache-2.0 License.
+The [Cluster API][cluster_api] brings declarative, Kubernetes-style APIs to cluster creation, configuration and management.
 
-## Testing
-
-To run a particular test. In this case TestCreateInstance2.
-
-Integration tests use Controller Runtime EnvTest.  Your testing environment must be pre-configured with several EnvTest
-git dependencies.
-
-See [configuring envtest for integration tests](https://book.kubebuilder.io/reference/envtest.html?highlight=etcd#configuring-envtest-for-integration-tests)
-
-However, the makefile is setup to install kubebuilder tools in `$PROJECT_DIR/bin`. So, running `make binaries`, and setting 
-env var KUBEBUILDER_ASSETS should be enough for envtest to work.
-
-- export PROJECT_DIR=$(pwd)
-
-- copy cloud-config to project dir.
-
-- `make binaries && export KUBEBUILDER_ASSETS=$(pwd)/bin`
-
-- `$ go test -v -run TestCreateInstance2 ./pkg/cloud`
-
-## Dev w/Tilt
-
-Install [tilt prerequisites](https://cluster-api.sigs.k8s.io/developer/tilt.html).
-
-`make tilt-up`
-
-## Running CAPC without Tilt - detailed instructions
-
-Generally speaking, this cloudstack infrastructure provider will generate a docker image and 3 yaml files. 
-`clusterctl` (a binary tool) will use the above docker image and 3 yaml files to provision a cluster from your local 
-machine using cloudstack as a provider.
-
-### Prerequisites:
-Assuming your running environment is MacOS:
-
-1. Follow the instructions [here](https://cluster-api.sigs.k8s.io/user/quick-start.html) to install the following tools:
-    1. Docker
-    2. KinD
-    3. KubeCtl
-    4. ClusterCtl - note that depending on the version of CAPC used, you may need different clusterctl versions. 
-    Download the binary by finding the necessary release [here](https://github.com/kubernetes-sigs/cluster-api/releases) 
-    [v1.0.2](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.0.2) for v1beta1). 
-    Download the appropriate executable assets (darwin-arm64 for Macbook) and add them to your PATH
-
-2. [Install cilium-cli](https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default/#install-the-cilium-cli).
-Another container networking choice is to use [kindnet](https://github.com/aojea/kindnet), but its usage will not be described here
-
-3. Create a local docker registry to save your docker image - otherwise, you need an image registry to push it somewhere else.
-   
-4. Download this [script](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/hack/kind-install-for-capd.sh) into your local and run it.
-   This script will create a kind cluster and configure it to use local docker registry:
-    ```
-    wget https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/hack/kind-install-for-capd.sh
-    chmod +x ./kind-install-for-capd.sh
-    ./kind-install-for-capd.sh
-    ```
-5. Set up CloudStack credentials
-    1. Create a file named `cloud-config` in the repo's root directory, substituting in your own environment's values
-        ```
-        [Global]
-        api-url = <cloudstackApiUrl>
-        api-key = <cloudstackApiKey>
-        secret-key = <cloudstackSecretKey>
-        ```
-
-    2. Run the following command to save the above cloudstack connection info into an environment variable, to be used by `./config/default/credentials.yaml` and ultimately the generated `infrastructure-components.yaml`, where it gets passed to CAPC:
-
-        ```
-        export CLOUDSTACK_B64ENCODED_SECRET=$(base64 -w0 -i cloud-config 2>/dev/null || base64 -b 0 -i cloud-config)
-        ```
-6. Set the IMG environment variable so that the Makefile knows where to push docker image (if building your own)
-   1. `export IMG=localhost:5000/cluster-api-provider-capc`
-   2. `make docker-build`
-   3. `make docker-push`
-   
-7. Set the source image location so that the CAPC deployment manifest files have the right image path in them in `config/default/manager_image_patch.yaml`
-
-8. Generate the CAPC manifests (if building your own) into `$RELEASE_DIR`
-   1. `make build` will generate and copy `infrastructure-components.yaml` and metadata.yaml files to `$RELEASE_DIR`, which is `./out` by default. You may want to override the default value with `export RELEASE_DIR=${HOME}/.cluster-api/overrides/infrastructure-cloudstack/<VERSION>/` to deploy the generated manifests for use by clusterctl before running `make build`.
+The API itself is shared across multiple cloud providers allowing for true Apache CloudStack hybrid deployments of Kubernetes.
+It is built atop the lessons learned from previous cluster managers such as [kops][kops] and [kubicorn][kubicorn].
 
 
-8. Generate clusterctl config file so that clusterctl knows how to provision the CloudStack cluster, referencing whatever you set for `$RELEASE_DIR` from above for the url:
-    ```
-    cat << EOF > ~/.cluster-api/cloudstack.yaml
-    providers:
-    - name: "cloudstack"
-      type: "InfrastructureProvider"
-      url: ${HOME}/.cluster-api/overrides/infrastructure-cloudstack/<VERSION>/infrastructure-components.yaml
-    EOF
-    ```
+## Launching a Kubernetes cluster on Apache CloudStack
 
-9. Assure that the required CloudStack resources have been created: zone, pod cluster, and k8s-compatible template, compute offerings defined (2GB+ of RAM for control plane offering).
+Check out the [Getting Started Guide][getting_started] to create your first Kubernetes cluster on Apache CloudStack using Cluster API.
 
-### Creating a CAPC Cluster:
+## Features
 
-1. Run the following command to turn your previously generated kind cluster into a management cluster and load the cloudstack components into it.
-    1. `clusterctl init --infrastructure cloudstack --config ~/.cluster-api/cloudstack.yaml`
+- Native Kubernetes manifests and API
+- Choice of Linux distribution (as long as a current cloud-init is available). Tested on Ubuntu, Centos, Rocky and RHEL
+- Support for single and multi-node control plane clusters
+- Deploy clusters on Isolated and Shared Networks
+- cloud-init based nodes bootstrapping
 
-2. Set up the environment variables used by `templates/cluster-template.yaml`. It will be populated by the values set here. See the example values below (and replace with your own!)
-    ```
-    # Machine offerings must be pre-created. Control plane offering
-    # must have have >2GB RAM available
-    export CLOUDSTACK_WORKER_MACHINE_OFFERING="Small Instance"
-    export CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING="Large Instance"
-    
-    # If the referenced network doesn't exist, a new isolated network
-    # will be created.
-    export CLOUDSTACK_NETWORK_NAME=GuestNet1
-    export CLOUDSTACK_SSH_KEY_NAME=CAPCKeyPair6
-    # Referring to a prerequisite kubernetes-compatible image you've loaded into CloudStack
-    export CLOUDSTACK_TEMPLATE_NAME=kube-v1.20.10/ubuntu-2004
-    export CLOUDSTACK_ZONE_NAME=zone1
-    
-    # The IP you put here must be available as an unused public IP on the network 
-    # referenced above. If it's not available, the control plane will fail to create.
-    # You can see the list of available IP's when you try allocating a public
-    # IP in the network at 
-    # Network -> Guest Networks -> <Network Name> -> IP Addresses
-    export CLUSTER_ENDPOINT_IP=192.168.1.161
-    
-    # This is the standard port that the Control Plane process runs on
-    export CLUSTER_ENDPOINT_PORT=6443
 
-    # Pick any name for your cluster
-    export CLUSTER_NAME="capc-cluster"
-    export CONTROL_PLANE_MACHINE_COUNT=1
-    export KUBERNETES_VERSION="v1.20.10"
-    export WORKER_MACHINE_COUNT=1
-    ```
+------
 
-3. Generate the CAPC cluster spec yaml file
-    ```
-    clusterctl generate cluster capc-cluster \
-        --from ~/.cluster-api/overrides/infrastructure-cloudstack/<VERSION>/cluster-template.yaml \
-        > capc-cluster-spec.yaml
-    
-    ```
+## Compatibility with Cluster API and Kubernetes Versions
 
-4. Apply the CAPC cluster spec to your kind management cluster
-    ```
-    kubectl apply -f capc-cluster-spec.yaml
-    ```
 
-5. Check the progress of capc-cluster, and wait for all the components to be ready
-    ```
-    clusterctl describe cluster capc-cluster 
-    ```
+This provider's versions are able to install and manage the following versions of Kubernetes:
 
-6. Get the generated kubeconfig for your newly created CloudStack cluster `capc-cluster`
-    ```
-    clusterctl get kubeconfig capc-cluster > capc-cluster.kubeconfig
-    ```
+| Kubernetes Version          | v1.19 | v1.20 | v1.21 | v1.22 | v1.23 |
+| --------------------------- | ----- | ----- | ----- | ----- | ----- |
+| CloudStack Provider  (v0.4) |   ✓   |   ✓   |   ✓   |   ✓   |   ✓   |
 
-7. Install cilium on the workload cluster so that pods can see each other
-    ```
-    KUBECONFIG=capc-cluster.kubeconfig cilium install
-    ```
-    1. cilium must be installed into this newly created capc-cluster
-    2. Run `KUBECONFIG=capc-cluster.kubeconfig cilium status` to confirm cilium status
+## Compatibility with Apache CloudStack Versions
 
-8. Verify the K8s cluster is fully up
-   1. Run `KUBECONFIG=capc-cluster.kubeconfig kubectl get nodes`, and observe the following output
-   ```
-   NAME                               STATUS   ROLES                  AGE     VERSION
-   capc-cluster-control-plane-xsnxt   Ready    control-plane,master   2m56s   v1.20.10
-   capc-cluster-md-0-9fr9d            Ready    <none>                 112s    v1.20.10
-   ```
 
-### Validating the CAPC Cluster:
+This provider's versions are able to work on the following versions of Apache CloudStack:
 
-Run a simple kubernetes app called 'test-thing'
-1. Create the container
-```
-KUBECONFIG=capc-cluster.kubeconfig kubectl run test-thing --image=rockylinux/rockylinux:8 --restart=Never -- /bin/bash -c 'echo Hello, World!'
-KUBECONFIG=capc-cluster.kubeconfig kubectl get pods
- ```
-2. Wait for the container to complete, and check the logs for 'Hello, World!'
-```
-KUBECONFIG=capc-cluster.kubeconfig kubectl logs test-thing
-```
-### kubectl/clusterctl Reference:
-- Pods in capc-cluster -- cluster running in cloudstack
-```
-% KUBECONFIG=capc-cluster.kubeconfig kubectl get pods -A    
-NAMESPACE     NAME                                                       READY   STATUS      RESTARTS   AGE
-default       test-thing                                                 0/1     Completed   0          2m43s
-kube-system   cilium-jxw68                                               1/1     Running     0          6m
-kube-system   cilium-nw9x6                                               1/1     Running     0          6m
-kube-system   cilium-operator-885b58448-c6wtq                            1/1     Running     0          6m
-kube-system   coredns-74ff55c5b-n6zp7                                    1/1     Running     0          9m18s
-kube-system   coredns-74ff55c5b-r8gvj                                    1/1     Running     0          9m18s
-kube-system   etcd-capc-cluster-control-plane-tknwx                      1/1     Running     0          9m21s
-kube-system   kube-apiserver-capc-cluster-control-plane-tknwx            1/1     Running     0          9m21s
-kube-system   kube-controller-manager-capc-cluster-control-plane-tknwx   1/1     Running     0          9m21s
-kube-system   kube-proxy-6g9zb                                           1/1     Running     0          9m3s
-kube-system   kube-proxy-7gjbv                                           1/1     Running     0          9m18s
-kube-system   kube-scheduler-capc-cluster-control-plane-tknwx            1/1     Running     0          9m21s
-```
+| CloudStack Version          | 4.14 | 4.15 | 4.16 | 4.17 |
+| --------------------------- | ---- | ---- | ---- | ---- |
+| CloudStack Provider  (v0.4) |   ✓  |   ✓  |   ✓  |   ✓  |
 
-- Pods in original kind cluster (also called bootstrap cluster, management cluster)
-```
-% kubectl  get pods -A
-NAMESPACE                           NAME                                                             READY   STATUS    RESTARTS   AGE
-capc-system                         capc-controller-manager-55798f8594-lp2xs                         1/1     Running   0          30m
-capi-kubeadm-bootstrap-system       capi-kubeadm-bootstrap-controller-manager-7857cd7bb8-rldnw       1/1     Running   0          30m
-capi-kubeadm-control-plane-system   capi-kubeadm-control-plane-controller-manager-6cc4b4d964-tz5zq   1/1     Running   0          30m
-capi-system                         capi-controller-manager-7cfcfdf99b-79lr9                         1/1     Running   0          30m
-cert-manager                        cert-manager-848f547974-dl7hc                                    1/1     Running   0          31m
-cert-manager                        cert-manager-cainjector-54f4cc6b5-gfgsw                          1/1     Running   0          31m
-cert-manager                        cert-manager-webhook-7c9588c76-5m2b2                             1/1     Running   0          31m
-kube-system                         coredns-558bd4d5db-22zql                                         1/1     Running   0          48m
-kube-system                         coredns-558bd4d5db-7g7kh                                         1/1     Running   0          48m
-kube-system                         etcd-capi-test-control-plane                                     1/1     Running   0          48m
-kube-system                         kindnet-7p2dq                                                    1/1     Running   0          48m
-kube-system                         kube-apiserver-capi-test-control-plane                           1/1     Running   0          48m
-kube-system                         kube-controller-manager-capi-test-control-plane                  1/1     Running   0          48m
-kube-system                         kube-proxy-cwrhv                                                 1/1     Running   0          48m
-kube-system                         kube-scheduler-capi-test-control-plane                           1/1     Running   0          48m
-local-path-storage                  local-path-provisioner-547f784dff-f2g7r                          1/1     Running   0          48m
-```
+------
+
+## Operating system images
+
+Note: Cluster API Provider Apache CloudStack relies on a few prerequisites which have to be already
+installed in the used operating system images, e.g. a container runtime, kubelet, kubeadm, etc.
+Reference images can be found in [kubernetes-sigs/image-builder][image-builder].
+
+Prebuilt images can be found [here](prebuilt-images)
+
+------
+## Getting involved and contributing
+
+Are you interested in contributing to cluster-api-provider-cloudstack? We, the
+maintainers and community, would love your suggestions, contributions, and help!
+Also, the maintainers can be contacted at any time to learn more about how to get
+involved:
+
+- via the [cluster-api-cloudstack channel on Kubernetes Slack][slack]
+
+## Code of conduct
+
+Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
+
+## Github issues
+
+### Bugs
+
+If you think you have found a bug please follow the instructions below.
+
+- Please spend a small amount of time giving due diligence to the issue tracker. Your issue might be a duplicate.
+- Get the logs from the cluster controllers. Please paste this into your issue.
+- Open a [new issue][new_bug_issue].
+- Remember that users might be searching for your issue in the future, so please give it a meaningful title to help others.
+- Feel free to reach out to the Cluster API community on the [Kubernetes Slack][slack].
+
+### Tracking new features
+
+We also use the issue tracker to track features. If you have an idea for a feature, or think you can help Cluster API Provider CloudStack become even more awesome follow the steps below.
+
+- Open a [new issue][new_feature_issue].
+- Remember that users might be searching for your issue in the future, so please
+  give it a meaningful title to help others.
+- Clearly define the use case, using concrete examples.
+- Some of our larger features will require some design. If you would like to
+  include a technical design for your feature, please include it in the issue.
+- After the new feature is well understood, and the design agreed upon, we can
+  start coding the feature. We would love for you to code it. So please open
+  up a **WIP** *(work in progress)* pull request, and happy coding.
+
+
+## Our Contributors
+
+Thank you to all contributors and a special thanks to our current maintainers & reviewers:
+
+| Maintainers                                               | Reviewers                                              |
+| --------------------------------------------------------- | ------------------------------------------------------ |
+| [@rohityadavcloud](https://github.com/rohityadavcloud)    | [@rohityadavcloud](https://github.com/rohityadavcloud) |
+| [@davidjumani](https://github.com/davidjumani)            | [@davidjumani](https://github.com/davidjumani)         |
+
+All the CAPC contributors:
+
+<p>
+  <a href="https://sigs.k8s.io/cluster-api-provider-cloudstack/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=aws/cluster-api-provider-cloudstack" />
+  </a>
+</p>
+<!-- References -->
+
+[capi-quick-start]: https://cluster-api.sigs.k8s.io/user/quick-start.html
+[cluster_api]: https://sigs.k8s.io/cluster-api
+[getting_started]: https://cluster-api-cloudstack.sigs.k8s.io/getting-started.html
+[image-builder]: https://sigs.k8s.io/image-builder/tree/master/images/capi
+[kops]: https://github.com/kubernetes/kops
+[kubicorn]: http://kubicorn.io/
+[prebuilt-images]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/
+[slack]: https://kubernetes.slack.com/messages/cluster-api-cloudstack
+[new_bug_issue]: https://sigs.k8s.io/cluster-api-provider-cloudstack/issues/new
+[new_feature_issue]: https://sigs.k8s.io/cluster-api-provider-cloudstack/issues/new
