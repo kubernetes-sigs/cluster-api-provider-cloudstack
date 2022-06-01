@@ -1,0 +1,7 @@
+# Netlify build instructions
+[build]
+command = "make -C docs/book build"
+publish = "docs/book/book"
+
+[build.environment]
+GO_VERSION = "1.17"

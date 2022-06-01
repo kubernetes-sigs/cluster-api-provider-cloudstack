@@ -1,0 +1,20 @@
+[book]
+authors = ["The Cluster API Provider CloudStack Maintainers"]
+language = "en"
+multilingual = false
+src = "src"
+title = "The Cluster API Provider CloudStack Book"
+
+[output.html]
+curly-quotes = true
+git-repository-url = "https://sigs.k8s.io/cluster-api-provider-cloudstack"
+no-section-label = true
+
+[preprocessor.tabulate]
+command = "mdbook-tabulate"
+
+[preprocessor.embed]
+command = "mdbook-embed"
+
+[preprocessor.releaselink]
+command = "mdbook-releaselink"
