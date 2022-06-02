@@ -1,6 +1,4 @@
 
-[![Go Report Card](https://goreportcard.com/badge/kubernetes-sigs/cluster-api-provider-cloudstack)](https://goreportcard.com/report/kubernetes-sigs/cluster-api-provider-cloudstack)
-
 <p align="center">
   <!-- <h1 style="text-align: center"> Kubernetes Cluster API Provider CloudStack </h1> -->
   <a href="https://cloudstack.apache.org/">
