@@ -5,3 +5,23 @@ publish = "docs/book/book"
 
 [build.environment]
 GO_VERSION = "1.17"
+
+# Standard Netlify redirects
+[[redirects]]
+from = "https://main--kubernetes-sigs-cluster-api-cloudstack.netlify.com/*"
+to = "https://main.cluster-api-cloudstack.sigs.k8s.io/:splat"
+status = 301
+force = true
+
+# HTTP-to-HTTPS rules
+[[redirects]]
+from = "http://main.cluster-api-cloudstack.sigs.k8s.io/*"
+to = "https://main.cluster-api-cloudstack.sigs.k8s.io/:splat"
+status = 301
+force = true
+
+[[redirects]]
+from = "http://main--kubernetes-sigs-cluster-api-cloudstack.netlify.com/*"
+to = "http://main.cluster-api-cloudstack.sigs.k8s.io/:splat"
+status = 301
+force = true
