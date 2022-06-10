@@ -439,6 +439,7 @@ var _ = Describe("Instance", func() {
 
 		It("calls destroy and finds VM doesn't exist, then returns nil", func() {
 			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
+			listVolumesParams.SetType("DATADISK")
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, fmt.Errorf("unable to find uuid for id"))
@@ -450,6 +451,7 @@ var _ = Describe("Instance", func() {
 
 		It("calls destroy and returns unexpected error", func() {
 			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
+			listVolumesParams.SetType("DATADISK")
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, fmt.Errorf("new error"))
@@ -460,6 +462,7 @@ var _ = Describe("Instance", func() {
 
 		It("calls destroy without error but cannot resolve VM after", func() {
 			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
+			listVolumesParams.SetType("DATADISK")
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
@@ -473,6 +476,7 @@ var _ = Describe("Instance", func() {
 
 		It("calls destroy without error and identifies it as expunging", func() {
 			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
+			listVolumesParams.SetType("DATADISK")
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
@@ -488,6 +492,7 @@ var _ = Describe("Instance", func() {
 
 		It("calls destroy without error and identifies it as expunged", func() {
 			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
+			listVolumesParams.SetType("DATADISK")
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
@@ -503,6 +508,7 @@ var _ = Describe("Instance", func() {
 
 		It("calls destroy without error and identifies it as stopping", func() {
 			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)
+			listVolumesParams.SetType("DATADISK")
 			vms.EXPECT().NewDestroyVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).
 				Return(expungeDestroyParams)
 			vms.EXPECT().DestroyVirtualMachine(expungeDestroyParams).Return(nil, nil)
