@@ -10,28 +10,12 @@ As of now, prebuilt images for KVM, VMware and XenServer are available [here][pr
 
 ## Building a custom image
 
-Cluster API uses the Kubernetes [Image Builder][image-builder] tools. You should use the [CloudStack images][image-builder-cloudstack] from that project as a starting point for your custom image.
+Cluster API uses the Kubernetes [Image Builder][image-builder] tools. You should use the [QEMU images][image-builder-qemu] from that project as a starting point for your custom image.
 
 [The Image Builder Book][capi-images] explains how to build the images defined in that repository, with instructions for [CloudStack CAPI Images][cloudstack-capi-images] in particular.
 
 The image is built using KVM hypervisor as a `qcow2` image.
-Following which, it is then converted into `ova` for VMware and `vhd` for XenServer as a `post-processors` build step.
-
-Depending on the requirement and the hypervisor, the `post-processors` can be modified.
-
-If you build Apache CloudStack CAPI images with the `make` targets in Image Builder, these required values are printed after a successful build. For example:
-
-```bash
-$ make -C images/capi/ build-cloudstack-ubuntu-2004
-# many minutes later...
-==> qemu:
-Build 'qemu' finished after 45 minutes 54 seconds.
-
-11:13:48 ==> Builds finished. The artifacts of successful builds are:
-11:13:48 --> qemu: VM files in directory: ./output/ubuntu-2004-kube-v1.21.10
-11:13:48 --> qemu: VM files in directory: ./output/ubuntu-2004-kube-v1.21.10
-11:13:48 --> qemu: VM files in directory: ./output/ubuntu-2004-kube-v1.21.10
-```
+Depending on they hypervisor requirements, it can then converted into `ova` for VMware and `vhd` for XenServer via the `convert-cloudstack-image.sh` script.
 
 ### Operating system requirements
 
@@ -75,7 +59,7 @@ See [Upgrading workload clusters][upgrading-workload-clusters] for more details.
 [capi-images]: https://image-builder.sigs.k8s.io/capi/capi.html
 [cloudstack-capi-images]: https://image-builder.sigs.k8s.io/capi/providers/cloudstack.html
 [image-builder]: https://github.com/kubernetes-sigs/image-builder
-[image-builder-cloudstack]: https://github.com/kubernetes-sigs/image-builder/tree/master/images/capi/packer/cloudstack
+[image-builder-qemu]: https://github.com/kubernetes-sigs/image-builder/tree/master/images/capi/packer/qemu
 [kubeadm-preflight-checks]: https://github.com/kubernetes/kubeadm/blob/master/docs/design/design_v1.10.md#preflight-checks
 [prebuilt-images]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/
 [upgrading-workload-clusters]: https://cluster-api.sigs.k8s.io/tasks/kubeadm-control-plane.html#upgrading-workload-clusters

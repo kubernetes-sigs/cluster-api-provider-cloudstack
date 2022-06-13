@@ -179,7 +179,6 @@ The list of existing affinity groups can be fetched using the cmk cli as follows
 cmk list affinitygroups listall=true | jq '.affinitygroup[] | {name, id}'
 ```
 
-
 ### VM Details
 
 These are arbitrary key value pairs which are passed as VM details while deploying the nodes.
@@ -193,6 +192,7 @@ TODO / Maybe add feature ?
 ## Timeout settings
 
 TODO / Add feature
+
 
 # Apache CloudStack Credentials
 
