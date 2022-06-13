@@ -19,12 +19,12 @@ import (
 	"fmt"
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
-	"github.com/aws/cluster-api-provider-cloudstack/test/dummies"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 )
 
 var _ = Describe("Cluster", func() {
