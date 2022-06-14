@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/apache/cloudstack-go/v2 v2.13.0
+	github.com/aws/cluster-api-provider-cloudstack v0.4.4
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1

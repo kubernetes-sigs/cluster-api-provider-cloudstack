@@ -18,11 +18,12 @@ package main
 
 import (
 	"fmt"
-	"k8s.io/klog/v2/klogr"
 	"math/rand"
 	"os"
 	"strings"
 	"time"
+
+	"k8s.io/klog/v2/klogr"
 
 	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -43,6 +44,7 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 
+	infrastructurev1beta1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
@@ -60,6 +62,7 @@ func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(controlplanev1.AddToScheme(scheme))
 	utilruntime.Must(infrav1.AddToScheme(scheme))
+	utilruntime.Must(infrastructurev1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
