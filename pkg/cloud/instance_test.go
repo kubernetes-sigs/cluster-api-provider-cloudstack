@@ -33,11 +33,13 @@ import (
 
 var _ = Describe("Instance", func() {
 	const (
-		unknownErrorMessage = "unknown err"
-		offeringFakeID      = "123"
-		templateFakeID      = "456"
-		executableFilter    = "executable"
-		diskOfferingFakeID  = "789"
+		unknownErrorMessage  = "unknown err"
+		offeringFakeID       = "123"
+		templateFakeID       = "456"
+		isoFakeID            = "901"
+		executableFilter     = "executable"
+		diskOfferingFakeID   = "789"
+		virtualMachineFakeID = "abc"
 	)
 
 	notFoundError := errors.New("no match found")
@@ -49,6 +51,7 @@ var _ = Describe("Instance", func() {
 		vms        *cloudstack.MockVirtualMachineServiceIface
 		sos        *cloudstack.MockServiceOfferingServiceIface
 		dos        *cloudstack.MockDiskOfferingServiceIface
+		iso        *cloudstack.MockISOServiceIface
 		ts         *cloudstack.MockTemplateServiceIface
 		vs         *cloudstack.MockVolumeServiceIface
 		client     cloud.Client
@@ -60,6 +63,7 @@ var _ = Describe("Instance", func() {
 		vms = mockClient.VirtualMachine.(*cloudstack.MockVirtualMachineServiceIface)
 		sos = mockClient.ServiceOffering.(*cloudstack.MockServiceOfferingServiceIface)
 		dos = mockClient.DiskOffering.(*cloudstack.MockDiskOfferingServiceIface)
+		iso = mockClient.ISO.(*cloudstack.MockISOServiceIface)
 		ts = mockClient.Template.(*cloudstack.MockTemplateServiceIface)
 		vs = mockClient.Volume.(*cloudstack.MockVolumeServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
@@ -421,7 +425,168 @@ var _ = Describe("Instance", func() {
 			})
 		})
 	})
+	Context("when attaching ISO to VM instance", func() {
+		It("returns errors occurring while fetching iso offering information", func() {
+			iso.EXPECT().GetIsoID(dummies.CSMachine1.Spec.ISOAttachment.Name, "all", dummies.Zone1.ID).Return("", -1, unknownError)
+			Ω(client.AttachISOToVMInstance(
+				dummies.CSMachine1, dummies.CSZone1)).
+				ShouldNot(Succeed())
+		})
 
+		It("returns errors if more than one iso offering found", func() {
+			iso.EXPECT().GetIsoID(dummies.CSMachine1.Spec.ISOAttachment.Name, "all", dummies.Zone1.ID).Return("", 2, nil)
+			Ω(client.AttachISOToVMInstance(
+				dummies.CSMachine1, dummies.CSZone1)).
+				ShouldNot(Succeed())
+		})
+
+		It("returns errors if VM instance ID and name both empty", func() {
+			dummies.CSMachine1.Spec.InstanceID = nil
+			dummies.CSMachine1.Name = ""
+			Ω(client.AttachISOToVMInstance(
+				dummies.CSMachine1, dummies.CSZone1)).
+				ShouldNot(Succeed())
+		})
+
+		It("returns OK", func() {
+			iso.EXPECT().GetIsoID(dummies.CSMachine1.Spec.ISOAttachment.Name, "all", dummies.Zone1.ID).Return(isoFakeID, 1, nil)
+			iso.EXPECT().NewAttachIsoParams(isoFakeID, *dummies.CSMachine1.Spec.InstanceID).Return(&cloudstack.AttachIsoParams{})
+			iso.EXPECT().AttachIso(&cloudstack.AttachIsoParams{}).Return(nil, nil)
+			Ω(client.AttachISOToVMInstance(
+				dummies.CSMachine1, dummies.CSZone1)).
+				Should(Succeed())
+		})
+	})
+	Context("when attaching ISO to VM instance using iso ID", func() {
+		It("returns errors occurring while fetching iso offering information", func() {
+			dummies.CSMachine1.Spec.ISOAttachment.ID = isoFakeID
+			iso.EXPECT().GetIsoByID(dummies.CSMachine1.Spec.ISOAttachment.ID).Return(nil, -1, unknownError)
+			Ω(client.AttachISOToVMInstance(
+				dummies.CSMachine1, dummies.CSZone1)).
+				ShouldNot(Succeed())
+		})
+
+		It("returns errors if more than one iso offering found", func() {
+			dummies.CSMachine1.Spec.ISOAttachment.ID = isoFakeID
+			iso.EXPECT().GetIsoByID(dummies.CSMachine1.Spec.ISOAttachment.ID).Return(nil, 2, nil)
+			Ω(client.AttachISOToVMInstance(
+				dummies.CSMachine1, dummies.CSZone1)).
+				ShouldNot(Succeed())
+		})
+
+		It("returns errors if name not match", func() {
+			dummies.CSMachine1.Spec.ISOAttachment.ID = isoFakeID
+			iso.EXPECT().GetIsoByID(dummies.CSMachine1.Spec.ISOAttachment.ID).Return(&cloudstack.Iso{
+				Name: "cloudstack-script.iso-not-match",
+			}, 1, nil)
+			Ω(client.AttachISOToVMInstance(
+				dummies.CSMachine1, dummies.CSZone1)).
+				ShouldNot(Succeed())
+		})
+
+		It("returns errors if VM name not found", func() {
+			dummies.CSMachine1.Spec.InstanceID = nil
+			dummies.CSMachine1.Name = "fake"
+			vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(nil, -1, unknownError)
+			Ω(client.AttachISOToVMInstance(
+				dummies.CSMachine1, dummies.CSZone1)).
+				ShouldNot(Succeed())
+		})
+
+		It("returns errors if more than one VM found", func() {
+			dummies.CSMachine1.Spec.InstanceID = nil
+			dummies.CSMachine1.Name = "fake"
+			vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(nil, 2, nil)
+			Ω(client.AttachISOToVMInstance(
+				dummies.CSMachine1, dummies.CSZone1)).
+				ShouldNot(Succeed())
+		})
+
+		It("returns OK", func() {
+			dummies.CSMachine1.Spec.InstanceID = nil
+			dummies.CSMachine1.Name = "fake"
+			dummies.CSMachine1.Spec.ISOAttachment.ID = isoFakeID
+			vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(&cloudstack.VirtualMachinesMetric{
+				Id: virtualMachineFakeID,
+			}, 1, nil)
+			iso.EXPECT().GetIsoByID(dummies.CSMachine1.Spec.ISOAttachment.ID).Return(&cloudstack.Iso{
+				Name: "cloudstack-script.iso",
+			}, 1, nil)
+			iso.EXPECT().NewAttachIsoParams(isoFakeID, virtualMachineFakeID).Return(&cloudstack.AttachIsoParams{})
+			iso.EXPECT().AttachIso(&cloudstack.AttachIsoParams{}).Return(nil, nil)
+			Ω(client.AttachISOToVMInstance(
+				dummies.CSMachine1, dummies.CSZone1)).
+				Should(Succeed())
+		})
+	})
+	Context("when starting VM instance", func() {
+		It("returns OK if VM instance ID not empty", func() {
+			p := &cloudstack.StartVirtualMachineParams{}
+			vms.EXPECT().NewStartVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).Return(p)
+			vms.EXPECT().StartVirtualMachine(p).Return(&cloudstack.StartVirtualMachineResponse{
+				Id:    virtualMachineFakeID,
+				State: "Running",
+				Nic: []cloudstack.Nic{
+					{Ipaddress: "172.0.0.1"},
+				},
+			}, nil)
+			Ω(client.StartVMInstance(
+				dummies.CSMachine1)).
+				Should(Succeed())
+		})
+
+		It("returns OK if VM instance ID empty but Name not empty", func() {
+			dummies.CSMachine1.Spec.InstanceID = nil
+			vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(&cloudstack.VirtualMachinesMetric{
+				Id: virtualMachineFakeID,
+			}, 1, nil)
+			p := &cloudstack.StartVirtualMachineParams{}
+			vms.EXPECT().NewStartVirtualMachineParams(virtualMachineFakeID).Return(p)
+			vms.EXPECT().StartVirtualMachine(p).Return(&cloudstack.StartVirtualMachineResponse{
+				Id:    virtualMachineFakeID,
+				State: "Running",
+				Nic: []cloudstack.Nic{
+					{Ipaddress: "172.0.0.1"},
+				},
+			}, nil)
+			Ω(client.StartVMInstance(
+				dummies.CSMachine1)).
+				Should(Succeed())
+		})
+
+		It("returns error if VM instance ID and Name both empty", func() {
+			dummies.CSMachine1.Spec.InstanceID = nil
+			dummies.CSMachine1.Name = ""
+			Ω(client.StartVMInstance(
+				dummies.CSMachine1)).
+				ShouldNot(Succeed())
+		})
+
+		It("returns error if VM instance Name not found", func() {
+			dummies.CSMachine1.Spec.InstanceID = nil
+			vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(nil, -1, unknownError)
+			Ω(client.StartVMInstance(
+				dummies.CSMachine1)).
+				ShouldNot(Succeed())
+		})
+
+		It("returns error if more than one VM instance found using Name", func() {
+			dummies.CSMachine1.Spec.InstanceID = nil
+			vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(nil, 2, nil)
+			Ω(client.StartVMInstance(
+				dummies.CSMachine1)).
+				ShouldNot(Succeed())
+		})
+		It("returns error if start VM instance error", func() {
+			p := &cloudstack.StartVirtualMachineParams{}
+			vms.EXPECT().NewStartVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).Return(p)
+			vms.EXPECT().StartVirtualMachine(p).Return(nil, unknownError)
+			Ω(client.StartVMInstance(
+				dummies.CSMachine1)).
+				ShouldNot(Succeed())
+		})
+
+	})
 	Context("when destroying a VM instance", func() {
 		expungeDestroyParams := &cloudstack.DestroyVirtualMachineParams{}
 		expungeDestroyParams.SetExpunge(true)

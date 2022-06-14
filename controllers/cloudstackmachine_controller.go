@@ -206,12 +206,12 @@ func (r *CloudStackMachineReconciliationRunner) getMachineZone() infrav1.CloudSt
 	return machineZone
 }
 
-// AttachISOIfConfigured attach ISO to vm instance
+// StartVMInstance starts vm instance
 func (r *CloudStackMachineReconciliationRunner) StartVMInstance() (retRes ctrl.Result, err error) {
 	if len(*r.ReconciliationSubject.Spec.InstanceID) == 0 {
 		return r.RequeueWithMessage("vm instance not yet available.")
 	}
-	r.Log.Info("Start vm instance.")
+	r.Log.Info("Starting vm instance.")
 
 	err = r.CSUser.StartVMInstance(r.ReconciliationSubject)
 
@@ -227,9 +227,15 @@ func (r *CloudStackMachineReconciliationRunner) AttachISOIfConfigured() (retRes 
 	if len(*r.ReconciliationSubject.Spec.InstanceID) == 0 {
 		return r.RequeueWithMessage("vm instance not yet available.")
 	}
-	r.Log.Info("Start to attach ISO.")
-
 	machineZone := r.getMachineZone()
+	r.Log.Info("Start to attach ISO.",
+		"iso id", r.ReconciliationSubject.Spec.ISOAttachment.ID,
+		"iso name", r.ReconciliationSubject.Spec.ISOAttachment.Name,
+		"vm id", r.ReconciliationSubject.Spec.InstanceID,
+		"vm name", r.ReconciliationSubject.Name,
+		"zone id", machineZone.Spec.ID,
+		"zone name", machineZone.Spec.Name,
+	)
 	err = r.CSUser.AttachISOToVMInstance(r.ReconciliationSubject, &machineZone)
 
 	return ctrl.Result{}, err

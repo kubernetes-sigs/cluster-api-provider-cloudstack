@@ -54,7 +54,7 @@ type CloudStackMachineSpec struct {
 
 	// CloudStack ISO attachment, ISO is attached before VM starts.
 	// +optional
-	ISOAttachment CloudStackResourceIdentifier `json:"ISOAttachment,omitempty"`
+	ISOAttachment CloudStackResourceIdentifier `json:"isoAttachment,omitempty"`
 
 	// CloudStack ssh key to use.
 	// +optional

@@ -47,17 +47,6 @@ spec:
                     description: CloudStackMachineSpec defines the desired state of
                       CloudStackMachine
                     properties:
-                      ISOAttachment:
-                        description: CloudStack ISO attachment, ISO is attached before
-                          VM starts.
-                        properties:
-                          id:
-                            description: Cloudstack resource ID.
-                            type: string
-                          name:
-                            description: Cloudstack resource Name
-                            type: string
-                        type: object
                       affinity:
                         description: Mutually exclusive parameter with AffinityGroupIDs.
                           Defaults to `no`. Can be `pro` or `anti`. Will create an
@@ -173,6 +162,17 @@ spec:
                         description: Instance ID. Should only be useful to modify
                           an existing instance.
                         type: string
+                      isoAttachment:
+                        description: CloudStack ISO attachment, ISO is attached before
+                          VM starts.
+                        properties:
+                          id:
+                            description: Cloudstack resource ID.
+                            type: string
+                          name:
+                            description: Cloudstack resource Name
+                            type: string
+                        type: object
                       name:
                         description: Name.
                         type: string
