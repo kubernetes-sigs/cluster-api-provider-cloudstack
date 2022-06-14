@@ -6,8 +6,7 @@
     1. docker
     2. kind
     3. kubectl
-    4. clusterctl [here][clusterctl-release]
-    TODO : Update this once there is an official release
+    4. clusterctl (Requires v1.1.5 +)
 
 2. Create a local docker registry to save your docker image - otherwise, you need an image registry to push it somewhere else.
 

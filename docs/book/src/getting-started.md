@@ -4,7 +4,7 @@
 
 1. Follow the instructions [here][capi-quick-start] to install the following tools:
     - [kubectl][kubectl-install]
-    - [clusterctl][clusterctl-install] (Requires v1.1.5+)
+    - [clusterctl][clusterctl-install] (Requires v1.1.5 +)
 
     Optional if you do not have an existing Kubernetes cluster
     - [kind][kind-install]

@@ -125,4 +125,4 @@ kind delete cluster
 <!-- References -->
 [tilt]: https://tilt.dev
 [cluster_api_tilt]: https://cluster-api.sigs.k8s.io/developer/tilt.html
-[initial-setup]: ./index.md#initial-setup-for-development-environment
+[initial-setup]: ./index.html#initial-setup-for-development-environment
