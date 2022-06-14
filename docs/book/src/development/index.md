@@ -16,7 +16,7 @@ Please install the following tools :
 
 ### Get the source
 
-Fork the [cluster-api-provider-cloudstack repo](https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack):
+Fork the [cluster-api-provider-cloudstack](https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack) repo:
 
 ```bash
 cd "$(go env GOPATH)"/src

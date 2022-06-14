@@ -4,9 +4,7 @@
 
 1. Follow the instructions [here][capi-quick-start] to install the following tools:
     - [kubectl][kubectl-install]
-    - [clusterctl][clusterctl-install]
-
-    TODO : Update this once there is an official release
+    - [clusterctl][clusterctl-install] (Requires v1.1.5 +)
 
     Optional if you do not have an existing Kubernetes cluster
     - [kind][kind-install]
@@ -52,7 +50,7 @@ Run the following command to turn your cluster into a management cluster and loa
 [cloudstack-capi-images]: https://image-builder.sigs.k8s.io/capi/providers/cloudstack.html
 [docker-install]: https://www.docker.com/
 [kind-install]: https://kind.sigs.k8s.io/
-[kubectl-install]: [https://kubernetes.io/docs/tasks/tools/install-kubectl/]
+[kubectl-install]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [prebuilt-images]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/
 
 
