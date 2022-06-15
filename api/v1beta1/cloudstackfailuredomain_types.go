@@ -20,22 +20,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // CloudStackFailureDomainSpec defines the desired state of CloudStackFailureDomain
 type CloudStackFailureDomainSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Zone CloudStackZone
 
-	// Foo is an example field of CloudStackFailureDomain. Edit cloudstackfailuredomain_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// CloudStack account.
+	// +optional
+	Account string `json:"account,omitempty"`
+
+	// CloudStack domain.
+	// +optional
+	Domain string `json:"domain,omitempty"`
+
+	// Apache CloudStack Endpoint.
+	// +optional
+	ACSEndpoint string `json:"ACSEndpoint,omitempty"`
 }
 
 // CloudStackFailureDomainStatus defines the observed state of CloudStackFailureDomain
 type CloudStackFailureDomainStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
 //+kubebuilder:object:root=true

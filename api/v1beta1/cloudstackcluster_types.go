@@ -84,7 +84,7 @@ func (z *Zone) MetaName() string {
 
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
 type CloudStackClusterSpec struct {
-	Zones []Zone `json:"zones"`
+	FailureDomains []CloudStackFailureDomain `json:"failureDomains"`
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
