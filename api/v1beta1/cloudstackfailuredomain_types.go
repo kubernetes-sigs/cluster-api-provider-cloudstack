@@ -22,7 +22,8 @@ import (
 
 // CloudStackFailureDomainSpec defines the desired state of CloudStackFailureDomain
 type CloudStackFailureDomainSpec struct {
-	Zone CloudStackZone
+	// The ACS Zone for this failure domain.
+	Zone CloudStackZone `json:"zone"`
 
 	// CloudStack account.
 	// +optional
