@@ -117,8 +117,8 @@ spec:
                 description: CloudStack disk offering to use.
                 properties:
                   customSizeInGB:
-                    description: disk size if disk offering is custom disk (need to
-                      specify disk size by users)
+                    description: Desired disk size. Used if disk offering is customizable
+                      as indicated by the ACS field 'Custom Disk Size'.
                     format: int64
                     type: integer
                   device:

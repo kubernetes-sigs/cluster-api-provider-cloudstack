@@ -19,10 +19,11 @@ package v1beta1_test
 import (
 	"context"
 
-	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/unit/dummies"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 )
 
 var _ = Describe("CloudStackCluster webhooks", func() {

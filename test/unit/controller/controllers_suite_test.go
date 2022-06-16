@@ -40,10 +40,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	csReconcilers "github.com/aws/cluster-api-provider-cloudstack/controllers"
-	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	csReconcilers "sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
+	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	//+kubebuilder:scaffold:imports
 )

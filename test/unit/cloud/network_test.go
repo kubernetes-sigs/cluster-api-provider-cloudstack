@@ -18,11 +18,11 @@ package cloud_test
 
 import (
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/unit/dummies"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
 var _ = Describe("Network", func() {

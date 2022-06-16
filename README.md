@@ -68,11 +68,11 @@ This provider's versions are able to work on the following versions of Apache Cl
 
 ## Operating system images
 
-Note: Cluster API Provider Apache CloudStack relies on a few prerequisites which have to be already
+Note: Cluster API Provider CloudStack relies on a few prerequisites which have to be already
 installed in the used operating system images, e.g. a container runtime, kubelet, kubeadm, etc.
 Reference images can be found in [kubernetes-sigs/image-builder][image-builder].
 
-Prebuilt images can be found [here](prebuilt-images)
+Prebuilt images can be found [here][prebuilt-images]
 
 ------
 ## Getting involved and contributing
@@ -86,7 +86,7 @@ involved:
 
 ## Code of conduct
 
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
+Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct][code-of-conduct].
 
 ## Github issues
 
@@ -123,6 +123,7 @@ Thank you to all contributors and a special thanks to our current maintainers & 
 | --------------------------------------------------------- | ------------------------------------------------------ |
 | [@rohityadavcloud](https://github.com/rohityadavcloud)    | [@rohityadavcloud](https://github.com/rohityadavcloud) |
 | [@davidjumani](https://github.com/davidjumani)            | [@davidjumani](https://github.com/davidjumani)         |
+| [@maxdrib](https://github.com/maxdrib)                    | [@maxdrib](https://github.com/maxdrib)                 |
 
 All the CAPC contributors:
 
@@ -135,11 +136,12 @@ All the CAPC contributors:
 
 [capi-quick-start]: https://cluster-api.sigs.k8s.io/user/quick-start.html
 [cluster_api]: https://sigs.k8s.io/cluster-api
+[code-of-conduct]: https://kubernetes.io/community/code-of-conduct/
 [getting_started]: https://cluster-api-cloudstack.sigs.k8s.io/getting-started.html
-[image-builder]: https://sigs.k8s.io/image-builder/tree/master/images/capi
+[image-builder]: https://github.com/kubernetes-sigs/image-builder/tree/master/images/capi
 [kops]: https://github.com/kubernetes/kops
 [kubicorn]: http://kubicorn.io/
 [prebuilt-images]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/
 [slack]: https://kubernetes.slack.com/messages/cluster-api-cloudstack
-[new_bug_issue]: https://sigs.k8s.io/cluster-api-provider-cloudstack/issues/new
-[new_feature_issue]: https://sigs.k8s.io/cluster-api-provider-cloudstack/issues/new
+[new_bug_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/issues/new
+[new_feature_issue]: https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/issues/new

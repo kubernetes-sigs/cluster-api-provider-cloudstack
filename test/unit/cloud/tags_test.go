@@ -17,10 +17,10 @@ limitations under the License.
 package cloud_test
 
 import (
-	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/unit/dummies"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
 var _ = Describe("Tag Unit Tests", func() {
