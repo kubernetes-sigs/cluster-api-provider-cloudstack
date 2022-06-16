@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
 const TempUserName = "TemporaryUser"

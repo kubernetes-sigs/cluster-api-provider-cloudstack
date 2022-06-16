@@ -20,9 +20,7 @@ import (
 	"context"
 
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
-
-	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/unit/dummies"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

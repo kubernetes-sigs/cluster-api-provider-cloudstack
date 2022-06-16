@@ -17,10 +17,10 @@ limitations under the License.
 package helpers_test
 
 import (
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
-	"github.com/aws/cluster-api-provider-cloudstack/test/helpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
 )
 
 var _ = Describe("Test helper methods", func() {

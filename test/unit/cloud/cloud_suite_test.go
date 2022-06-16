@@ -22,12 +22,12 @@ import (
 	"testing"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
-	"github.com/aws/cluster-api-provider-cloudstack/test/helpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
 )
 
 var (

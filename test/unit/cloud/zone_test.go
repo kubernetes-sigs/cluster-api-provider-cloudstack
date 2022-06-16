@@ -23,8 +23,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/unit/dummies"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 )
 
 var _ = Describe("Zone", func() {

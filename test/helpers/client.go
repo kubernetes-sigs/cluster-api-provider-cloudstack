@@ -4,9 +4,9 @@ import (
 	"os"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/cloud"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
 func NewCSClient() (*cloudstack.CloudStackClient, error) {
