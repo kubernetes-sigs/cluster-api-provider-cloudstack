@@ -15,6 +15,7 @@ import (
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// GetYamlVal fetches the values in test/e2e/config/cloudstack.yaml by yaml node. A common config file.
 func GetYamlVal(variable string) string {
 	val, err := CSConf.Get("variables").Get(variable).String()
 	gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
@@ -75,36 +76,6 @@ var ( // Declare exported dummy vars.
 	CSConf             *simpleyaml.Yaml
 	DiskOffering       capcv1.CloudStackResourceDiskOffering
 )
-
-// variables:
-//   KUBERNETES_VERSION_MANAGEMENT: "v1.20.10"
-//   KUBERNETES_VERSION: "v1.20.10"
-//   CNI: "./data/cni/kindnet.yaml"
-//   IP_FAMILY: "IPv4"
-//   NODE_DRAIN_TIMEOUT: "60s"
-
-//   CLOUDSTACK_ZONE_NAME: zone1
-//   CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
-//   CLOUDSTACK_INVALID_NETWORK_NAME: networkXXXX
-//   CLOUDSTACK_ACCOUNT_NAME: admin
-//   CLOUDSTACK_INVALID_ACCOUNT_NAME: accountXXXX
-//   CLOUDSTACK_DOMAIN_NAME: ROOT
-//   CLOUDSTACK_INVALID_DOMAIN_NAME: domainXXXX
-//   CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
-//   CLOUDSTACK_NEW_NETWORK_NAME: isolated-for-e2e-new
-//   CLOUDSTACK_SHARED_NETWORK_NAME: Shared1
-//   CLUSTER_ENDPOINT_IP: 172.16.2.199
-//   CLUSTER_ENDPOINT_IP_2: 172.16.2.198
-//   CLUSTER_ENDPOINT_NEW_IP: 172.16.2.201
-//   CLUSTER_ENDPOINT_PORT: 6443
-//   CLUSTER_ENDPOINT_PORT_2: 6443
-//   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
-//   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
-//   CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING: "Extremely Large Instance"
-//   CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
-//   CLOUDSTACK_TEMPLATE_NAME: kube-v1.20.10/ubuntu-2004
-//   CLOUDSTACK_INVALID_TEMPLATE_NAME: templateXXXX
-//   CLOUDSTACK_SSH_KEY_NAME: CAPCKeyPair6
 
 // SetDummyVars sets/resets all dummy vars.
 func SetDummyVars() {

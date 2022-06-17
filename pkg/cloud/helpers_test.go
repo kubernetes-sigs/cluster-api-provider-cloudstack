@@ -40,7 +40,6 @@ var _ = Describe("Helpers", func() {
 	Context("For a configuration with the 'Global' section missing", func() {
 		It("Gets API configuration", func() {
 			filepath := getConfigPath("cloud-config-no-global")
-			fmt.Println(filepath)
 
 			client, err := cloud.NewClient(filepath)
 

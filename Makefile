@@ -178,7 +178,7 @@ export KUBEBUILDER_ASSETS=$(PROJECT_DIR)/bin
 .PHONY: test
 test: generate-mocks lint bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
-	@ginkgo_v2 --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
+	@ginkgo_v2 --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 	
 .PHONY: generate-mocks
