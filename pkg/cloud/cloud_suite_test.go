@@ -17,8 +17,8 @@ limitations under the License.
 package cloud_test
 
 import (
-	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
@@ -40,34 +40,34 @@ var (
 func TestCloud(t *testing.T) {
 	RegisterFailHandler(Fail)
 	BeforeSuite(func() {
-		// Create a real cloud client.
-		projDir := os.Getenv("PROJECT_DIR")
-		fmt.Println(projDir)
-		fmt.Println(projDir)
-		fmt.Println(projDir)
-		var connectionErr error
-		realCloudClient, connectionErr = cloud.NewClient(projDir + "/cloud-config")
-		Ω(connectionErr).ShouldNot(HaveOccurred())
+		suiteConfig, _ := GinkgoConfiguration()
+		if !strings.Contains(suiteConfig.LabelFilter, "!integ") { // Skip if integ tests are filtered out.
+			// Create a real cloud client.
+			projDir := os.Getenv("PROJECT_DIR")
+			var connectionErr error
+			realCloudClient, connectionErr = cloud.NewClient(projDir + "/cloud-config")
+			Ω(connectionErr).ShouldNot(HaveOccurred())
 
-		// Create a real CloudStack client.
-		realCSClient, connectionErr = helpers.NewCSClient()
-		Ω(connectionErr).ShouldNot(HaveOccurred())
+			// Create a real CloudStack client.
+			realCSClient, connectionErr = helpers.NewCSClient()
+			Ω(connectionErr).ShouldNot(HaveOccurred())
 
-		// Create a new account and user to run tests that use a real ACS instance.
-		uid := string(uuid.NewUUID())
-		newAccount := cloud.Account{
-			Name:   "TestAccount-" + uid,
-			Domain: cloud.Domain{Name: "TestDomain-" + uid, Path: "ROOT/TestDomain-" + uid}}
-		newUser := cloud.User{Account: newAccount}
-		Ω(helpers.GetOrCreateUserWithKey(realCSClient, &newUser)).Should(Succeed())
-		testDomainPath = newAccount.Domain.Path
+			// Create a new account and user to run tests that use a real ACS instance.
+			uid := string(uuid.NewUUID())
+			newAccount := cloud.Account{
+				Name:   "TestAccount-" + uid,
+				Domain: cloud.Domain{Name: "TestDomain-" + uid, Path: "ROOT/TestDomain-" + uid}}
+			newUser := cloud.User{Account: newAccount}
+			Ω(helpers.GetOrCreateUserWithKey(realCSClient, &newUser)).Should(Succeed())
+			testDomainPath = newAccount.Domain.Path
 
-		Ω(newUser.APIKey).ShouldNot(BeEmpty())
+			Ω(newUser.APIKey).ShouldNot(BeEmpty())
 
-		// Switch to test account user.
-		cfg := cloud.Config{APIKey: newUser.APIKey, SecretKey: newUser.SecretKey}
-		realCloudClient, connectionErr = realCloudClient.NewClientFromSpec(cfg)
-		Ω(connectionErr).ShouldNot(HaveOccurred())
+			// Switch to test account user.
+			cfg := cloud.Config{APIKey: newUser.APIKey, SecretKey: newUser.SecretKey}
+			realCloudClient, connectionErr = realCloudClient.NewClientFromSpec(cfg)
+			Ω(connectionErr).ShouldNot(HaveOccurred())
+		}
 	})
 	AfterSuite(func() {
 		if realCSClient != nil { // Check for nil in case the before suite setup failed.
@@ -83,7 +83,7 @@ func TestCloud(t *testing.T) {
 
 // FetchIntegTestResources runs through basic CloudStack Client setup methods needed to test others.
 func FetchIntegTestResources() {
-	realCloudClient.ResolveZone(dummies.CSZone1)
+	Ω(realCloudClient.ResolveZone(dummies.CSZone1)).Should(Succeed())
 	Ω(dummies.CSZone1.Spec.ID).ShouldNot(BeEmpty())
 	dummies.CSMachine1.Status.ZoneID = dummies.CSZone1.Spec.ID
 	dummies.CSMachine1.Spec.DiskOffering.Name = ""

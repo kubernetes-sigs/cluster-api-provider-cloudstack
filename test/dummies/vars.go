@@ -5,7 +5,7 @@ import (
 	"os"
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"github.com/smallfish/simpleyaml"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +17,7 @@ import (
 
 func GetYamlVal(variable string) string {
 	val, err := CSConf.Get("variables").Get(variable).String()
-	Ω(err).ShouldNot(HaveOccurred())
+	gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 	return val
 }
 

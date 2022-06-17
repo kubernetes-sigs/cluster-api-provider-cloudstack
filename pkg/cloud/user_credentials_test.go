@@ -36,7 +36,7 @@ var _ = Describe("User Credentials", func() {
 	AfterEach(func() {
 	})
 
-	Context("UserCred Semi-Integ Tests", func() {
+	Context("UserCred Integ Tests", Label("integ"), func() {
 		var domain cloud.Domain
 		var account cloud.Account
 		var user cloud.User

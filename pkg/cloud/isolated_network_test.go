@@ -191,7 +191,7 @@ var _ = Describe("Network", func() {
 		})
 	})
 
-	Context("Networking Integ Tests", func() {
+	Context("Networking Integ Tests", Label("integ"), func() {
 		BeforeEach(func() {
 			client = realCloudClient
 			// Delete any existing tags

@@ -28,7 +28,7 @@ var _ = Describe("Tag Unit Tests", func() {
 		dummies.SetDummyVars()
 	})
 
-	Context("Tag Integ Tests", func() {
+	Context("Tag Integ Tests", Label("integ"), func() {
 		BeforeEach(func() {
 			client = realCloudClient
 			FetchIntegTestResources()

@@ -33,15 +33,14 @@ import (
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
-const (
-	FixturePath = "../fixtures/cloud-config-files"
-)
+var FixturePath = path.Join(os.Getenv("PROJECT_DIR"), "test/fixtures/cloud-config-files")
 
 var _ = Describe("Helpers", func() {
 
 	Context("For a configuration with the 'Global' section missing", func() {
 		It("Gets API configuration", func() {
 			filepath := getConfigPath("cloud-config-no-global")
+			fmt.Println(filepath)
 
 			client, err := cloud.NewClient(filepath)
 
@@ -65,8 +64,7 @@ var _ = Describe("Helpers", func() {
 })
 
 func getConfigPath(filename string) string {
-	dir, _ := os.Getwd()
-	return path.Join(dir, FixturePath, filename)
+	return path.Join(FixturePath, filename)
 }
 
 // This matcher is used to make gomega matching compatible with gomock parameter matching.
