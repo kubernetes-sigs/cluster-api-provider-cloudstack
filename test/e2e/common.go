@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -187,9 +188,22 @@ func DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx context.Context, wo
 
 func DownloadFromAppInWorkloadCluster(ctx context.Context, workloadKubeconfigPath string, appName string, port int, path string) (string, error) {
 	runArgs := []string{
-		"-i", "--restart=Never", "dummy", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", fmt.Sprintf("%s:%d%s", appName, port, path),
+		// Required by below: container name is runArg zero.
+		"dummy", "-i", "--restart=Never", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", "--show-error", fmt.Sprintf("%s:%d%s", appName, port, path),
 	}
-	return KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
+	var result, err = KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
+	if err != nil {
+		return result, err
+	}
+	if result == "" {
+		// A single retry to accommodate occasional cases where an empty string is returned, ostensibly
+		//  because the service isn't fully ready.  Subsequent requests have always worked.
+		fmt.Println("Retrying html download")
+		time.Sleep(5 * time.Second)
+		runArgs[0] = "dummy2" // Assumed: container name is runArg zero.
+		result, err = KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
+	}
+	return result, err
 }
 
 type cloudConfig struct {
