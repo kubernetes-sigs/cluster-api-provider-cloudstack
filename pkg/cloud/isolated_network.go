@@ -60,6 +60,7 @@ func (c *client) AssociatePublicIPAddress(
 	// Check specified IP address is available or get an unused one if not specified.
 	publicAddress, err := c.GetPublicIP(zone, isoNet, csCluster)
 	if err != nil {
+		c.customMetrics.IncrementAcsReconciliationErrors(err)
 		return errors.Wrapf(err, "fetching a public IP address")
 	}
 	isoNet.Spec.ControlPlaneEndpoint.Host = publicAddress.Ipaddress
