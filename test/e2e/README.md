@@ -58,6 +58,6 @@ You can specify JOB environment variable which value is a regular expression to 
 For example, 
 
 ```shell
-JOB=PR-Blocking make run
+JOB=PR-Blocking make run-e2e
 ```
 This command runs the e2e tests that contains `PR-Blocking` in their spec names. 
