@@ -112,7 +112,7 @@ var _ = BeforeSuite(func() {
 	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--add")
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
-		fmt.Println(errors.Wrapf(err, "cleaning up gingko statements:"))
+		fmt.Println(errors.Wrapf(err, "cleaning up gingko statements"))
 		os.Exit(1)
 	}
 
