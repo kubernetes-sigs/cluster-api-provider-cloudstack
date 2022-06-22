@@ -35,6 +35,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -111,7 +112,7 @@ var _ = BeforeSuite(func() {
 	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--add")
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
-		fmt.Println("Refusing to run tests without ginkgo recover set.")
+		fmt.Println(errors.Wrapf(err, "cleaning up gingko statements:"))
 		os.Exit(1)
 	}
 
