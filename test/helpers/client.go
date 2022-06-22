@@ -15,9 +15,9 @@ func NewCSClient() (*cloudstack.CloudStackClient, error) {
 	ccPath := projDir + "/cloud-config"
 	if rawCfg, err := ini.Load(ccPath); err != nil {
 		return nil, errors.Wrapf(err, "reading config at path %s:", ccPath)
-	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
+	} else if g := rawCfg.Section(cloud.GLOBAL); len(g.Keys()) == 0 {
 		return nil, errors.New("section Global not found")
-	} else if err = rawCfg.Section("Global").StrictMapTo(&conf); err != nil {
+	} else if err = rawCfg.Section(cloud.GLOBAL).StrictMapTo(&conf); err != nil {
 		return nil, errors.Wrapf(err, "parsing [Global] section from config at path %s:", ccPath)
 	}
 	csClient := cloudstack.NewAsyncClient(conf.APIURL, conf.APIKey, conf.SecretKey, conf.VerifySSL)

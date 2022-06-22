@@ -247,7 +247,7 @@ func (c *client) GetOrCreateIsolatedNetwork(
 		if err = c.CreateIsolatedNetwork(zone, isoNet); err != nil {
 			return errors.Wrap(err, "creating a new isolated network")
 		}
-	} else {
+	} else { // Network existed and was resolved. Set ID on isoNet CloudStackIsolatedNetwork in case it only had name set.
 		isoNet.Spec.ID = net.ID
 	}
 

@@ -31,8 +31,9 @@ import (
 )
 
 var (
-	realCloudClient cloud.Client
-	client          cloud.Client
+	// cloud.Client is our cloud package used to interact with ACS.
+	realCloudClient cloud.Client // Real cloud client is a cloud client connected to a real Apache CloudStack instance.
+	client          cloud.Client // client is simply a pointer to a cloud client object intended to be swapped per test.
 	realCSClient    *cloudstack.CloudStackClient
 	testDomainPath  string // Needed in before and in after suite.
 )
