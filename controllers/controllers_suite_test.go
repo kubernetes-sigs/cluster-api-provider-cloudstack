@@ -20,16 +20,15 @@ import (
 	"context"
 	"fmt"
 	"go/build"
-	"k8s.io/client-go/rest"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"regexp"
-	goruntime "runtime"
 	"strings"
 	"testing"
 	"time"
+
+	"k8s.io/client-go/rest"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/go-logr/logr"
@@ -41,10 +40,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
-	csReconcilers "sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
-	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/mocks"
+	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
+	csReconcilers "github.com/aws/cluster-api-provider-cloudstack/controllers"
+	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
+	"github.com/aws/cluster-api-provider-cloudstack/pkg/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	//+kubebuilder:scaffold:imports
 )
@@ -106,8 +105,10 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 
-	// Check for ginkgo recover statements.
-	cmd := exec.Command("../hack/testing_ginkgo_recover_statements.sh", "--contains")
+	projectDir := os.Getenv("PROJECT_DIR")
+
+	// Add ginkgo recover statements to controllers.
+	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--add")
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		fmt.Println("Refusing to run tests without ginkgo recover set.")
@@ -121,17 +122,13 @@ var _ = BeforeSuite(func() {
 	CS = mocks.NewMockClient(mockCtrl)
 
 	By("bootstrapping test environment")
-	// Get the root of the current file to use in CRD paths.
-	_, filename, _, _ := goruntime.Caller(0) //nolint
-	root := path.Join(path.Dir(filename), "..")
-	fmt.Println(root)
 
 	crdPaths := []string{
-		filepath.Join(root, "config", "crd", "bases"),
+		filepath.Join(projectDir, "config", "crd", "bases"),
 	}
 
 	// Append CAPI CRDs path
-	if capiPath := getFilePathToCAPICRDs(root); capiPath != "" {
+	if capiPath := getFilePathToCAPICRDs(projectDir); capiPath != "" {
 		crdPaths = append(crdPaths, capiPath)
 	}
 
@@ -183,6 +180,14 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
+	projectDir := os.Getenv("PROJECT_DIR")
+	// Add ginkgo recover statements to controllers.
+	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--remove")
+	cmd.Stdout = os.Stdout
+	if err := cmd.Run(); err != nil {
+		fmt.Println("Refusing to run tests without ginkgo recover set.")
+		os.Exit(1)
+	}
 	cancel()
 	By("tearing down the test environment")
 	Ω(testEnv.Stop()).Should(Succeed())

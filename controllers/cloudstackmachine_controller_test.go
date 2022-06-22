@@ -18,7 +18,6 @@ package controllers_test
 
 import (
 	"context"
-	"time"
 
 	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
 	. "github.com/onsi/ginkgo/v2"
@@ -29,32 +28,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	timeout = time.Second * 30
-)
-
-var _ = Describe("CloudStackClusterReconciler", func() {
+var _ = Describe("CloudStackZoneReconciler", func() {
 	ctx := context.Background()
 
 	BeforeEach(func() {
 		dummies.SetDummyVars()
+
+		// Create onwer CRDs.
+		Ω(k8sClient.Create(ctx, dummies.CAPICluster)).Should(Succeed())
+		Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
+		dummies.CAPICluster.Spec.InfrastructureRef.Name = dummies.CSCluster.Name
 	})
 
-	It("Should create a cluster", func() {
+	It("Should create a CloudStackZone", func() {
 		By("Fetching a CS Cluster Object")
-		// TODO make the tests work with other CRDs. This stage can't be reached yet.
-		// CS.EXPECT().GetOrCreateCluster(gomock.Any()).MinTimes(1)
-
-		// Create the CS Cluster object for the reconciler to fetch.
-		Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
-		// TODO: add deletion defer here.
-
-		By("Fetching the CAPI cluster object that owns this CS cluster object")
-		// Create the CAPI cluster (owner) object.
-		dummies.CAPICluster.Spec.InfrastructureRef.Name = dummies.CSCluster.Name
-		Ω(k8sClient.Create(ctx, dummies.CAPICluster)).Should(Succeed())
-		// TODO: add deletion defer here.
-
 		key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Name}
 		Eventually(func() error {
 			return k8sClient.Get(ctx, key, dummies.CSCluster)
