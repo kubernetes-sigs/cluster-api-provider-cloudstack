@@ -67,31 +67,31 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 	})
 
 	Context("AffinityGroup Integ Tests", func() {
-		client, connectionErr := cloud.NewClient("../../cloud-config")
 
 		BeforeEach(func() {
-			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
-				Skip("Could not connect to ACS instance.")
-			}
+			client = realCloudClient
 			dummies.AffinityGroup.ID = "" // Force name fetching.
 		})
-		AfterEach(func() {
-			mockCtrl.Finish()
-		})
 
-		It("Creates an affinity group.", func() {
-			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
-		})
 		It("Associates an affinity group.", func() {
-			if err := client.GetOrCreateVMInstance(
+			Ω(client.ResolveZone(dummies.CSZone1)).Should(Succeed())
+			dummies.CSMachine1.Status.ZoneID = dummies.CSZone1.Spec.ID
+			dummies.CSMachine1.Spec.DiskOffering.Name = ""
+
+			Ω(client.GetOrCreateVMInstance(
 				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "",
-			); err != nil {
-				Skip("Could not create VM." + err.Error())
-			}
+			)).Should(Succeed())
+
 			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 			Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
+
+			// Make the created VM go away quickly by force stopping it.
+			p := realCSClient.VirtualMachine.NewStopVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID)
+			p.SetForced(true)
+			Ω(realCSClient.VirtualMachine.StopVirtualMachine(p)).Should(Succeed())
 		})
-		It("Deletes an affinity group.", func() {
+
+		It("Creates and deletes an affinity group.", func() {
 			Ω(client.DeleteAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 			Ω(client.FetchAffinityGroup(dummies.AffinityGroup)).ShouldNot(Succeed())
 		})
