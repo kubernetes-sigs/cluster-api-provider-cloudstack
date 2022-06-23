@@ -192,6 +192,37 @@ func DownloadFromAppInWorkloadCluster(ctx context.Context, workloadKubeconfigPat
 	return KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
 }
 
+func DownloadMetricsFromCAPCManager(ctx context.Context, bootstrapKubeconfigPath string) (string, error) {
+	// Expose the CAPC manager metrics port via a K8S service
+	runArgs := []string{
+		"--port=8080", "--target-port=metrics", "--name=capc-controller-manager-metrics", "--namespace=capc-system", "deployment", "capc-controller-manager",
+	}
+	_, err := KubectlExec(ctx, "expose", bootstrapKubeconfigPath, runArgs...)
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+
+	// Scrape the metrics from the service
+	runArgs = []string{
+		"-i", "--restart=Never", "dummy", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", "capc-controller-manager-metrics.capc-system:8080/metrics",
+	}
+	result, err := KubectlExec(ctx, "run", bootstrapKubeconfigPath, runArgs...)
+	if err != nil {
+		return result, err
+	}
+
+	// Remove the metrics service
+	runArgs = []string{
+		"--namespace=capc-system", "service", "capc-controller-manager-metrics",
+	}
+	_, err = KubectlExec(ctx, "delete", bootstrapKubeconfigPath, runArgs...)
+	if err != nil {
+		return "", err
+	}
+	return result, err
+}
+
 type cloudConfig struct {
 	APIURL    string `ini:"api-url"`
 	APIKey    string `ini:"api-key"`
