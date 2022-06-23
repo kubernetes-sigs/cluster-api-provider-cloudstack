@@ -148,6 +148,7 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", r.ReconciliationSubject.Spec.ZoneName)
 			}
 		} else { // No Zone Specified, pick a Random Zone.
+			// TODO: Add an additional controller test for this once controller test upgrades are merged.
 			if len(r.Zones.Items) < 1 { // Double check that zones are present.
 				return r.RequeueWithMessage("no zones found, requeueing")
 			}
