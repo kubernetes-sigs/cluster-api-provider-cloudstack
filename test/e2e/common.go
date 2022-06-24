@@ -198,29 +198,23 @@ func DownloadMetricsFromCAPCManager(ctx context.Context, bootstrapKubeconfigPath
 		"--port=8080", "--target-port=metrics", "--name=capc-controller-manager-metrics", "--namespace=capc-system", "deployment", "capc-controller-manager",
 	}
 	_, err := KubectlExec(ctx, "expose", bootstrapKubeconfigPath, runArgs...)
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
+	Ω(err).ShouldNot(HaveOccurred())
 
 	// Scrape the metrics from the service
 	runArgs = []string{
 		"-i", "--restart=Never", "dummy", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", "capc-controller-manager-metrics.capc-system:8080/metrics",
 	}
 	result, err := KubectlExec(ctx, "run", bootstrapKubeconfigPath, runArgs...)
-	if err != nil {
-		return result, err
-	}
+	Ω(err).ShouldNot(HaveOccurred())
 
 	// Remove the metrics service
 	runArgs = []string{
 		"--namespace=capc-system", "service", "capc-controller-manager-metrics",
 	}
 	_, err = KubectlExec(ctx, "delete", bootstrapKubeconfigPath, runArgs...)
-	if err != nil {
-		return "", err
-	}
-	return result, err
+	Ω(err).ShouldNot(HaveOccurred())
+
+	return result, nil
 }
 
 type cloudConfig struct {
