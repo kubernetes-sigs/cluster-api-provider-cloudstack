@@ -39,7 +39,14 @@ func NewCustomMetrics() AcsCustomMetrics {
 		},
 		[]string{"acs_error_code"},
 	)
-	crtlmetrics.Registry.MustRegister(customMetrics.acsReconciliationErrorCount)
+	if err := crtlmetrics.Registry.Register(customMetrics.acsReconciliationErrorCount); err != nil {
+		if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
+			customMetrics.acsReconciliationErrorCount = are.ExistingCollector.(*prometheus.CounterVec)
+		} else {
+			// Something else went wrong!
+			panic(err)
+		}
+	}
 
 	// ACS standard error messages of the form "CloudStack API error 431 (CSExceptionErrorCode: 9999):..."
 	//  This regexp is used to extract CSExceptionCodes from the message.

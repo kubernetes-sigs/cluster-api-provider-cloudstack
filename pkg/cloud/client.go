@@ -94,6 +94,7 @@ func (origC *client) NewClientFromSpec(cfg Config) (Client, error) {
 	// comments for more details
 	newC.cs = cloudstack.NewAsyncClient(newC.config.APIURL, newC.config.APIKey, newC.config.SecretKey, newC.config.VerifySSL)
 	newC.csAsync = cloudstack.NewClient(newC.config.APIURL, newC.config.APIKey, newC.config.SecretKey, newC.config.VerifySSL)
+	newC.customMetrics = metrics.NewCustomMetrics()
 
 	_, err := newC.cs.APIDiscovery.ListApis(newC.cs.APIDiscovery.NewListApisParams())
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
@@ -103,6 +104,6 @@ func (origC *client) NewClientFromSpec(cfg Config) (Client, error) {
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
-	c := &client{cs: cs, csAsync: cs}
+	c := &client{cs: cs, csAsync: cs, customMetrics: metrics.NewCustomMetrics()}
 	return c
 }
