@@ -18,7 +18,6 @@ package v1beta1
 
 import (
 	"fmt"
-	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -68,17 +67,17 @@ func (r *CloudStackCluster) ValidateCreate() error {
 			field.NewPath("spec", "account"), "specifying account requires additionally specifying domain"))
 	}
 
-	// Require Zones and their respective Networks.
-	if len(r.Spec.Zones) <= 0 {
-		errorList = append(errorList, field.Required(field.NewPath("spec", "Zones"), "Zones"))
-	} else {
-		for _, zone := range r.Spec.Zones {
-			if zone.Network.Name == "" && zone.Network.ID == "" {
-				errorList = append(errorList, field.Required(
-					field.NewPath("spec", "Zones", "Network"), "each Zone requires a Network specification"))
-			}
-		}
-	}
+	// // Require Zones and their respective Networks.
+	// if len(r.Spec.Zones) <= 0 {
+	// 	errorList = append(errorList, field.Required(field.NewPath("spec", "Zones"), "Zones"))
+	// } else {
+	// 	for _, zone := range r.Spec.Zones {
+	// 		if zone.Network.Name == "" && zone.Network.ID == "" {
+	// 			errorList = append(errorList, field.Required(
+	// 				field.NewPath("spec", "Zones", "Network"), "each Zone requires a Network specification"))
+	// 		}
+	// 	}
+	// }
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
@@ -99,10 +98,10 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 
 	// No spec fields may be updated.
 	errorList := field.ErrorList(nil)
-	if !reflect.DeepEqual(oldSpec.Zones, spec.Zones) {
-		errorList = append(errorList, field.Forbidden(
-			field.NewPath("spec", "Zones"), "Zones and sub-attributes may not be modified after creation"))
-	}
+	// if !reflect.DeepEqual(oldSpec.Zones, spec.Zones) {
+	// 	errorList = append(errorList, field.Forbidden(
+	// 		field.NewPath("spec", "Zones"), "Zones and sub-attributes may not be modified after creation"))
+	// }
 	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpoint.host", errorList)

@@ -46,6 +46,7 @@ import (
 
 	infrastructurev1beta1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	infrastructurev1beta2 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	//+kubebuilder:scaffold:imports
@@ -63,6 +64,7 @@ func init() {
 	utilruntime.Must(controlplanev1.AddToScheme(scheme))
 	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(infrastructurev1beta1.AddToScheme(scheme))
+	utilruntime.Must(infrastructurev1beta2.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -168,6 +170,13 @@ func main() {
 
 	setupReconcilers(base, mgr)
 
+	if err = (&controllers.CloudStackFailureDomainReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackFailureDomain")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	// Add health and ready checks.
