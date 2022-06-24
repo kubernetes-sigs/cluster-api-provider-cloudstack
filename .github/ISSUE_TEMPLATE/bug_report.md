@@ -19,6 +19,6 @@ about: Tell us about a problem you are experiencing
 
 **Environment:**
 
-- Cluster-api-provider-vsphere version: 
+- Cluster-api-provider-cloudstack version: 
 - Kubernetes version: (use `kubectl version`): 
 - OS (e.g. from `/etc/os-release`): 
