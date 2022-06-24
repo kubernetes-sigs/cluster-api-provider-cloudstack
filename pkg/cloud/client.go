@@ -26,6 +26,8 @@ import (
 
 //go:generate mockgen -destination=../mocks/mock_client.go -package=mocks sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud Client
 
+const GLOBAL = "Global"
+
 type Client interface {
 	VMIface
 	NetworkIface
@@ -55,9 +57,9 @@ func NewClient(ccPath string) (Client, error) {
 	c := &client{config: Config{VerifySSL: true}}
 	if rawCfg, err := ini.Load(ccPath); err != nil {
 		return nil, errors.Wrapf(err, "reading config at path %s", ccPath)
-	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
+	} else if g := rawCfg.Section(GLOBAL); len(g.Keys()) == 0 {
 		return nil, errors.New("section Global not found")
-	} else if err = rawCfg.Section("Global").StrictMapTo(&c.config); err != nil {
+	} else if err = rawCfg.Section(GLOBAL).StrictMapTo(&c.config); err != nil {
 		return nil, errors.Wrapf(err, "parsing [Global] section from config at path %s", ccPath)
 	}
 
