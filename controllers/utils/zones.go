@@ -75,6 +75,8 @@ func (r *ReconciliationRunner) GetZones(zones *infrav1.CloudStackZoneList) Cloud
 			client.MatchingLabels(capiClusterLabel),
 		); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to list zones")
+		} else if len(zones.Items) < 1 {
+			return r.RequeueWithMessage("no zones found, requeueing")
 		}
 		return ctrl.Result{}, nil
 	}
