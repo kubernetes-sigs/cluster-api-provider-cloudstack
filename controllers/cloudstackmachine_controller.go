@@ -88,7 +88,7 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 		RunBaseReconciliationStages()
 }
 
-func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, err error) {
 	return r.RunReconciliationStages(
 		r.GetZones(r.Zones),
 		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
@@ -97,6 +97,8 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		r.SetFailureDomainOnCSMachine,
 		r.GetObjectByName("placeholder", r.IsoNet, func() string { return r.IsoNetMetaName(r.FailureDomain.Spec.Network.Name) }),
 		r.GetOrCreateVMInstance,
+		r.AttachISOIfConfigured,
+		r.StartVMInstance,
 		r.RequeueIfInstanceNotRunning,
 		r.AddToLBIfNeeded,
 		r.GetOrCreateMachineStateChecker,
@@ -126,7 +128,7 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 }
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
-func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
+func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, err error) {
 	// Set ZoneID on csMachine.
 	if util.IsControlPlaneMachine(r.CAPIMachine) { // Use failure domain zone.
 		r.ReconciliationSubject.Status.ZoneID = *r.CAPIMachine.Spec.FailureDomain
@@ -167,20 +169,13 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 
 // GetOrCreateVMInstance creates or gets a VM instance.
 // Implicitly it also fetches its bootstrap secret in order to create said instance.
-func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes ctrl.Result, reterr error) {
+func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes ctrl.Result, err error) {
 	if r.CAPIMachine.Spec.Bootstrap.DataSecretName == nil {
 		return r.RequeueWithMessage("Bootstrap DataSecretName not yet available.")
 	}
 	r.Log.Info("Got Bootstrap DataSecretName.")
 
-	// Get the CloudStackZone for the Machine.
-	var machineZone infrav1.CloudStackZone
-	for _, zone := range r.Zones.Items {
-		machineZone = zone
-		if zone.Spec.ID == r.ReconciliationSubject.Status.ZoneID {
-			break
-		}
-	}
+	machineZone := r.getMachineZone()
 
 	// Get the kubeadm bootstrap secret for this machine.
 	secret := &corev1.Secret{}
@@ -193,7 +188,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
-	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data))
+	err = r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data))
 
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
@@ -203,14 +198,61 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	return ctrl.Result{}, err
 }
 
+func (r *CloudStackMachineReconciliationRunner) getMachineZone() infrav1.CloudStackZone {
+	// Get the CloudStackZone for the Machine.
+	var machineZone infrav1.CloudStackZone
+	for _, zone := range r.Zones.Items {
+		machineZone = zone
+		if zone.Spec.ID == r.ReconciliationSubject.Status.ZoneID {
+			break
+		}
+	}
+	return machineZone
+}
+
+// StartVMInstance starts vm instance
+func (r *CloudStackMachineReconciliationRunner) StartVMInstance() (retRes ctrl.Result, err error) {
+	if len(*r.ReconciliationSubject.Spec.InstanceID) == 0 {
+		return r.RequeueWithMessage("vm instance not yet available.")
+	}
+	r.Log.Info("Starting vm instance.")
+
+	err = r.CSUser.StartVMInstance(r.ReconciliationSubject)
+
+	return ctrl.Result{}, err
+}
+
+// AttachISOIfConfigured attach ISO to vm instance
+func (r *CloudStackMachineReconciliationRunner) AttachISOIfConfigured() (retRes ctrl.Result, err error) {
+	if len(r.ReconciliationSubject.Spec.ISOAttachment.ID) == 0 && len(r.ReconciliationSubject.Spec.ISOAttachment.Name) == 0 {
+		// ISO attachment not configured, ignore
+		return ctrl.Result{}, nil
+	}
+	if len(*r.ReconciliationSubject.Spec.InstanceID) == 0 {
+		return r.RequeueWithMessage("vm instance not yet available.")
+	}
+	machineZone := r.getMachineZone()
+	r.Log.Info("Start to attach ISO.",
+		"iso id", r.ReconciliationSubject.Spec.ISOAttachment.ID,
+		"iso name", r.ReconciliationSubject.Spec.ISOAttachment.Name,
+		"vm id", r.ReconciliationSubject.Spec.InstanceID,
+		"vm name", r.ReconciliationSubject.Name,
+		"zone id", machineZone.Spec.ID,
+		"zone name", machineZone.Spec.Name,
+	)
+	err = r.CSUser.AttachISOToVMInstance(r.ReconciliationSubject, &machineZone)
+
+	return ctrl.Result{}, err
+}
+
 // ConfirmVMStatus checks the Instance's status for running state and requeues otherwise.
-func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (retRes ctrl.Result, reterr error) {
+func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (retRes ctrl.Result, err error) {
 	if r.ReconciliationSubject.Status.InstanceState == "Running" {
 		r.Log.Info("Machine instance is Running...")
 		r.ReconciliationSubject.Status.Ready = true
 	} else if r.ReconciliationSubject.Status.InstanceState == "Error" {
 		r.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", r.ReconciliationSubject.GetName())
-		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
+		if err = r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
@@ -237,7 +279,7 @@ func (r *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.R
 }
 
 // GetOrCreateMachineStateChecker creates or gets CloudStackMachineStateChecker object.
-func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker() (retRes ctrl.Result, reterr error) {
+func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker() (retRes ctrl.Result, err error) {
 	checkerName := r.ReconciliationSubject.Spec.InstanceID
 	csMachineStateChecker := &infrav1.CloudStackMachineStateChecker{
 		ObjectMeta: r.NewChildObjectMeta(*checkerName),
@@ -245,20 +287,20 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 		Status:     infrav1.CloudStackMachineStateCheckerStatus{Ready: false},
 	}
 
-	if err := r.K8sClient.Create(r.RequestCtx, csMachineStateChecker); err != nil && !utils.ContainsAlreadyExistsSubstring(err) {
+	if err = r.K8sClient.Create(r.RequestCtx, csMachineStateChecker); err != nil && !utils.ContainsAlreadyExistsSubstring(err) {
 		return r.ReturnWrappedError(err, "error encountered when creating CloudStackMachineStateChecker")
 	}
 
 	return r.GetObjectByName(*checkerName, r.StateChecker)()
 }
 
-func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
+func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, err error) {
 	if r.ReconciliationSubject.Spec.InstanceID != nil {
 		r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
 		// Use CSClient instead of CSUser here to expunge as admin.
 		// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
 		// non-domain admin user.
-		if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
+		if err = r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
 			if err.Error() == "VM deletion in progress" {
 				r.Log.Info(err.Error())
 				return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil

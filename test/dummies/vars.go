@@ -150,6 +150,9 @@ func SetDummyCSMachineTemplateVars() {
 						Filesystem: "ext4",
 						Label:      "data_disk",
 					},
+					ISOAttachment: capcv1.CloudStackResourceIdentifier{
+						Name: "cloudstack-script.iso",
+					},
 					Details: map[string]string{
 						"memoryOvercommitRatio": "1.2",
 					},
@@ -161,6 +164,15 @@ func SetDummyCSMachineTemplateVars() {
 
 // SetDummyCSMachineVars resets the values in each of the exported CloudStackMachine dummy variables.
 func SetDummyCSMachineVars() {
+	DiskOffering = capcv1.CloudStackResourceDiskOffering{
+		CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
+			Name: "Small",
+		},
+		MountPath:  "/data",
+		Device:     "/dev/vdb",
+		Filesystem: "ext4",
+		Label:      "data_disk",
+	}
 	CSMachine1 = &capcv1.CloudStackMachine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,
@@ -182,14 +194,9 @@ func SetDummyCSMachineVars() {
 			Offering: capcv1.CloudStackResourceIdentifier{
 				Name: "Offering",
 			},
-			DiskOffering: capcv1.CloudStackResourceDiskOffering{
-				CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
-					Name: "DiskOffering",
-				},
-				MountPath:  "/data",
-				Device:     "/dev/vdb",
-				Filesystem: "ext4",
-				Label:      "data_disk",
+			DiskOffering: DiskOffering,
+			ISOAttachment: capcv1.CloudStackResourceIdentifier{
+				Name: "cloudstack-script.iso",
 			},
 			AffinityGroupIDs: []string{"41eeb6e4-946f-4a18-b543-b2184815f1e4"},
 			Details: map[string]string{
