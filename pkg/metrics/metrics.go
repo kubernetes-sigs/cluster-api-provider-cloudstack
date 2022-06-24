@@ -50,11 +50,13 @@ func NewCustomMetrics() AcsCustomMetrics {
 
 // IncrementAcsReconciliationErrors accepts a CloudStack error message and increments the custom
 // acs_reconciliation_errors counter, labeled with the error code if present in the error message.
-func (m *AcsCustomMetrics) IncrementAcsReconciliationErrors(acsError error) {
-	matches := m.errorCodeRegexp.FindStringSubmatch(acsError.Error())
-	if len(matches) > 1 {
-		m.acsReconciliationErrorCount.WithLabelValues(matches[1]).Inc()
-	} else {
-		m.acsReconciliationErrorCount.WithLabelValues("No error code").Inc()
+func (m *AcsCustomMetrics) EvaluateErrorAndIncrementAcsReconciliationErrorCounter(acsError error) {
+	if acsError != nil {
+		matches := m.errorCodeRegexp.FindStringSubmatch(acsError.Error())
+		if len(matches) > 1 {
+			m.acsReconciliationErrorCount.WithLabelValues(matches[1]).Inc()
+		} else {
+			m.acsReconciliationErrorCount.WithLabelValues("No error code").Inc()
+		}
 	}
 }
