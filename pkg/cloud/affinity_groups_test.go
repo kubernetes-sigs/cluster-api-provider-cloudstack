@@ -66,7 +66,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 	})
 
-	Context("AffinityGroup Integ Tests", func() {
+	Context("AffinityGroup Integ Tests", Label("integ"), func() {
 
 		BeforeEach(func() {
 			client = realCloudClient
