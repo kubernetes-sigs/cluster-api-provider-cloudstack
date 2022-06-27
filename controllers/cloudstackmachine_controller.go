@@ -90,7 +90,7 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 
 func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
-		r.GetZones(r.Zones),
+		r.GetZonesAndRequeueIfMissing(r.Zones),
 		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
 		r.RequeueIfCloudStackClusterNotReady,
 		r.ConsiderAffinity,
