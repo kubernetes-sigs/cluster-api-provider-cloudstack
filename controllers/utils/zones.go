@@ -81,3 +81,16 @@ func (r *ReconciliationRunner) GetZones(zones *infrav1.CloudStackZoneList) Cloud
 		return ctrl.Result{}, nil
 	}
 }
+
+// GetZonesAndRequeueIfMissing gets CloudStackZones owned by a CloudStackCluster via an ownership label, and requeues
+// if none are found.
+func (r *ReconciliationRunner) GetZonesAndRequeueIfMissing(zones *infrav1.CloudStackZoneList) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		if res, err := r.GetZones(zones)(); r.ShouldReturn(res, err) {
+			return res, err
+		} else if len(zones.Items) < 1 {
+			return r.RequeueWithMessage("no zones found, requeueing")
+		}
+		return ctrl.Result{}, nil
+	}
+}
