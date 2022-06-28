@@ -14,18 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1beta2
 
 import (
-	"strings"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"strings"
 )
 
 const (
-	ClusterFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
-	//defaultIdentityRefKind     = "Secret"
+	ClusterFinalizer           = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
+	defaultIdentityRefKind     = "Secret"
 	CloudStackClusterLabelName = "cloudstackcluster.infrastructure.cluster.x-k8s.io/name"
 	NetworkTypeIsolated        = "Isolated"
 	NetworkTypeShared          = "Shared"
@@ -82,10 +81,9 @@ func (z *Zone) MetaName() string {
 	return strings.ToLower(s)
 }
 
-//+k8s:conversion-gen=false
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
 type CloudStackClusterSpec struct {
-	Zones []Zone `json:"zones"`
+	FailureDomains []CloudStackFailureDomain `json:"failureDomains"`
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
@@ -99,16 +97,16 @@ type CloudStackClusterSpec struct {
 	Domain string `json:"domain,omitempty"`
 
 	// +optional
+	// +k8s:conversion-gen=false
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
-//+k8s:conversion-gen=false
 // The status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
 type CloudStackClusterStatus struct {
 
-	// The status of the cluster's ACS Zones.
+	// The status of the cluster's ACS Failure Domains.
 	// +optional
-	Zones ZoneStatusMap `json:"zones,omitempty"`
+	CloudStackFailureDomainStatusMap CloudStackFailureDomainStatusMap `json:"zones,omitempty"`
 
 	// CAPI recognizes failure domains as a method to spread machines.
 	// CAPC sets failure domains to indicate functioning Zones.
@@ -133,7 +131,7 @@ type CloudStackClusterStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +k8s:conversion-gen=false
+//+kubebuilder:storageversion
 // CloudStackCluster is the Schema for the cloudstackclusters API
 type CloudStackCluster struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -146,7 +144,6 @@ type CloudStackCluster struct {
 }
 
 //+kubebuilder:object:root=true
-// +k8s:conversion-gen=false
 
 // CloudStackClusterList contains a list of CloudStackCluster
 type CloudStackClusterList struct {
@@ -156,5 +153,5 @@ type CloudStackClusterList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&CloudStackCluster{}, &CloudStackClusterList{})
+	SchemeBuilder.Register(&CloudStackFailureDomain{}, &CloudStackFailureDomainList{})
 }

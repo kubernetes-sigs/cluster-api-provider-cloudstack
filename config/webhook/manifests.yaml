@@ -7,19 +7,19 @@ metadata:
   name: mutating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
-  - v1beta1
+  - v1beta2
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackcluster
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster
   failurePolicy: Fail
   name: mcloudstackcluster.kb.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -55,19 +55,19 @@ metadata:
   name: validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
-  - v1beta1
+  - v1beta2
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackcluster
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster
   failurePolicy: Fail
   name: vcloudstackcluster.kb.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
