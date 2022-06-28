@@ -38,22 +38,16 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 
 	BeforeEach(func() {
 		dummies.SetDummyVars()
+		Ω(k8sClient.Create(ctx, dummies.CAPICluster)).Should(Succeed())
+		Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
+	})
+	AfterEach(func() {
+		Ω(k8sClient.Delete(ctx, dummies.CAPICluster)).Should(Succeed())
+		Ω(k8sClient.Delete(ctx, dummies.CSCluster)).Should(Succeed())
 	})
 
 	It("Should create a cluster", func() {
-		By("Fetching a CS Cluster Object")
-		// TODO make the tests work with other CRDs. This stage can't be reached yet.
-		// CS.EXPECT().GetOrCreateCluster(gomock.Any()).MinTimes(1)
-
-		// Create the CS Cluster object for the reconciler to fetch.
-		Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
-		// TODO: add deletion defer here.
-
 		By("Fetching the CAPI cluster object that owns this CS cluster object")
-		// Create the CAPI cluster (owner) object.
-		dummies.CAPICluster.Spec.InfrastructureRef.Name = dummies.CSCluster.Name
-		Ω(k8sClient.Create(ctx, dummies.CAPICluster)).Should(Succeed())
-		// TODO: add deletion defer here.
 
 		key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Name}
 		Eventually(func() error {

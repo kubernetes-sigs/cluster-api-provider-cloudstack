@@ -33,11 +33,16 @@ var _ = Describe("CloudStackZoneReconciler", func() {
 
 	BeforeEach(func() {
 		dummies.SetDummyVars()
-
 		// Create onwer CRDs.
+		dummies.CAPICluster.Spec.InfrastructureRef.Name = dummies.CSCluster.Name
+
 		Ω(k8sClient.Create(ctx, dummies.CAPICluster)).Should(Succeed())
 		Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
-		dummies.CAPICluster.Spec.InfrastructureRef.Name = dummies.CSCluster.Name
+
+	})
+	AfterEach(func() {
+		Ω(k8sClient.Delete(ctx, dummies.CAPICluster)).Should(Succeed())
+		Ω(k8sClient.Delete(ctx, dummies.CSCluster)).Should(Succeed())
 	})
 
 	It("Should create a CloudStackZone", func() {

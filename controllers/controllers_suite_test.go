@@ -177,7 +177,6 @@ var _ = BeforeSuite(func() {
 		defer GinkgoRecover()
 		Ω(k8sManager.Start(ctrl.SetupSignalHandler())).Should(Succeed(), "failed to run manager")
 	}()
-
 })
 
 var _ = AfterSuite(func() {
