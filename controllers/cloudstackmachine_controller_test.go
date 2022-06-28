@@ -19,10 +19,10 @@ package controllers_test
 import (
 	"context"
 
-	"github.com/aws/cluster-api-provider-cloudstack-staging/test/unit/dummies"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"

@@ -70,6 +70,7 @@ func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Re
 	if res, err := r.GetParent(r.ReconciliationSubject, r.CSMachine)(); r.ShouldReturn(res, err) {
 		return res, err
 	}
+
 	if res, err := r.GetParent(r.CSMachine, r.CAPIMachine)(); r.ShouldReturn(res, err) {
 		return res, err
 	}
@@ -77,9 +78,25 @@ func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Re
 	if err := r.CSClient.ResolveVMInstanceDetails(r.CSMachine); err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 		return r.ReturnWrappedError(err, "failed to resolve VM instance details")
 	}
-	if r.CSMachine.Status.InstanceState == "Running" {
+
+	csRunning := r.CSMachine.Status.InstanceState == "Running"
+	csTimeInState := r.CSMachine.Status.TimeSinceLastStateChange()
+	capiRunning := r.CAPIMachine.Status.Phase == "Running"
+
+	// capiTimeout indicates that a new VM is running, but it isn't reachable due to a network issue or a misconfiguration.
+	// When this happens, the machine should be deleted or else the cluster won't ever recover.
+	capiTimeout := csRunning && !capiRunning && csTimeInState > 5*time.Minute
+
+	if csRunning && capiRunning {
 		r.ReconciliationSubject.Status.Ready = true
-	} else {
+	} else if !csRunning || capiTimeout {
+		r.Log.Info("CloudStack instance in bad state",
+			"name", r.CSMachine.Name,
+			"instance-id", r.CSMachine.Spec.InstanceID,
+			"cs-state", r.CSMachine.Status.InstanceState,
+			"cs-time-in-state", csTimeInState.String(),
+			"capi-phase", r.CAPIMachine.Status.Phase)
+
 		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
 			return r.ReturnWrappedError(err, "failed to delete CAPI machine")
 		}

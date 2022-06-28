@@ -220,12 +220,6 @@ func DestroyOneMachine(clusterName string, machineType string) {
 	}
 
 	Byf("Destroying machine %s", vmToDestroy.Name)
-	stopParams := client.VirtualMachine.NewStopVirtualMachineParams(vmToDestroy.Id)
-	stopParams.SetForced(true)
-	_, err = client.VirtualMachine.StopVirtualMachine(stopParams)
-	if err != nil {
-		Fail("Failed to stop machine: " + err.Error())
-	}
 	destroyParams := client.VirtualMachine.NewDestroyVirtualMachineParams(vmToDestroy.Id)
 	destroyParams.SetExpunge(true)
 	_, err = client.VirtualMachine.DestroyVirtualMachine(destroyParams)

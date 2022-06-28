@@ -20,11 +20,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"k8s.io/client-go/rest"
 	"net"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"k8s.io/client-go/rest"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -57,10 +58,10 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{filepath.Join("../../", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: false,
 		WebhookInstallOptions: envtest.WebhookInstallOptions{
-			Paths: []string{filepath.Join("..", "..", "config", "webhook")},
+			Paths: []string{filepath.Join("../../", "config", "webhook")},
 		},
 	}
 

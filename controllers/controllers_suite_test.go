@@ -35,15 +35,16 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	infrav1 "github.com/aws/cluster-api-provider-cloudstack/api/v1beta1"
-	csReconcilers "github.com/aws/cluster-api-provider-cloudstack/controllers"
-	csCtrlrUtils "github.com/aws/cluster-api-provider-cloudstack/controllers/utils"
-	"github.com/aws/cluster-api-provider-cloudstack/pkg/mocks"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	csReconcilers "sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
+	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	//+kubebuilder:scaffold:imports
 )
@@ -111,7 +112,7 @@ var _ = BeforeSuite(func() {
 	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--add")
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
-		fmt.Println("Refusing to run tests without ginkgo recover set.")
+		fmt.Println(errors.Wrapf(err, "adding gingko statements"))
 		os.Exit(1)
 	}
 
@@ -185,7 +186,7 @@ var _ = AfterSuite(func() {
 	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--remove")
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
-		fmt.Println("Refusing to run tests without ginkgo recover set.")
+		fmt.Println(errors.Wrapf(err, "cleaning up gingko statements"))
 		os.Exit(1)
 	}
 	cancel()

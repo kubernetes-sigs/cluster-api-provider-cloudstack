@@ -19,6 +19,7 @@ package v1beta1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 const (
@@ -130,8 +131,21 @@ type CloudStackMachineStatus struct {
 	// +optional
 	InstanceState InstanceState `json:"instanceState,omitempty"`
 
+	// InstanceStateLastUpdated is the time the instance state was last updated.
+	// +optional
+	InstanceStateLastUpdated metav1.Time `json:"instanceStateLastUpdated,omitempty"`
+
 	// Ready indicates the readiness of the provider resource.
 	Ready bool `json:"ready"`
+}
+
+// TimeSinceLastStateChange returns the amount of time that's elapsed since the state was last updated.  If the state
+// hasn't ever been updated, it returns a negative value.
+func (s *CloudStackMachineStatus) TimeSinceLastStateChange() time.Duration {
+	if s.InstanceStateLastUpdated.IsZero() {
+		return time.Duration(-1)
+	}
+	return time.Since(s.InstanceStateLastUpdated.Time)
 }
 
 // +kubebuilder:object:root=true

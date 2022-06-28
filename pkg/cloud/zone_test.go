@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 )
 
-var _ = Describe("Cluster", func() {
+var _ = Describe("Zone", func() {
 	var (
 		client     cloud.Client
 		mockCtrl   *gomock.Controller
@@ -42,7 +42,6 @@ var _ = Describe("Cluster", func() {
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
 		dummies.SetDummyDomainAndAccount()
-		dummies.SetDummyCSApiResponse()
 	})
 
 	AfterEach(func() {
