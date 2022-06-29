@@ -29,6 +29,9 @@ var ( // Declare exported dummy vars.
 	CAPIMachine        *capiv1.Machine
 	CSMachine1         *capcv1.CloudStackMachine
 	CAPICluster        *capiv1.Cluster
+	ClusterLabel       map[string]string
+	ClusterName        string
+	ClusterNameSpace   string
 	CSMachineTemplate1 *capcv1.CloudStackMachineTemplate
 	Zone1              capcv1.Zone
 	Zone2              capcv1.Zone
@@ -61,8 +64,6 @@ var ( // Declare exported dummy vars.
 	Tag2Val            string
 	CSApiVersion       string
 	CSClusterKind      string
-	CSClusterName      string
-	CSlusterNamespace  string
 	TestTags           map[string]string
 	CSClusterTagKey    string
 	CSClusterTagVal    string
@@ -187,8 +188,9 @@ func SetDummyCSMachineVars() {
 			Kind:       "CloudStackMachine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-machine-2",
+			Name:      "test-machine-1",
 			Namespace: "default",
+			Labels:    ClusterLabel,
 		},
 		Spec: capcv1.CloudStackMachineSpec{
 			IdentityRef: &capcv1.CloudStackIdentityReference{
@@ -216,7 +218,6 @@ func SetDummyCSMachineVars() {
 			},
 		},
 	}
-	CSMachine1.ObjectMeta.SetName("test-vm")
 }
 
 func SetDummyZoneVars() {
@@ -225,8 +226,20 @@ func SetDummyZoneVars() {
 	Zone2 = capcv1.Zone{Network: Net2}
 	Zone2.Name = "Zone2"
 	Zone2.ID = "FakeZone2ID"
-	CSZone1 = &capcv1.CloudStackZone{Spec: capcv1.CloudStackZoneSpec(Zone1)}
-	CSZone2 = &capcv1.CloudStackZone{Spec: capcv1.CloudStackZoneSpec(Zone2)}
+	CSZone1 = &capcv1.CloudStackZone{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ClusterName + "-" + Zone1.Name,
+			Namespace: "default",
+			Labels:    ClusterLabel,
+		},
+		Spec: capcv1.CloudStackZoneSpec(Zone1)}
+	CSZone2 = &capcv1.CloudStackZone{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ClusterName + "-" + Zone2.Name,
+			Namespace: "default",
+			Labels:    ClusterLabel,
+		},
+		Spec: capcv1.CloudStackZoneSpec(Zone2)}
 }
 
 // SetDummyCAPCClusterVars resets the values in each of the exported CloudStackCluster related dummy variables.
@@ -244,12 +257,12 @@ func SetDummyCAPCClusterVars() {
 	Level2Account = cloud.Account{Name: Level2AccountName, Domain: Level2Domain}
 	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta1"
 	CSClusterKind = "CloudStackCluster"
-	CSClusterName = "test-cluster"
+	ClusterName = "test-cluster"
 	EndPointHost = "EndpointHost"
 	EndPointPort = int32(5309)
 	PublicIPID = "FakePublicIPID"
-
-	CSlusterNamespace = "default"
+	ClusterNameSpace = "default"
+	ClusterLabel = map[string]string{capiv1.ClusterLabelName: ClusterName}
 	AffinityGroup = &cloud.AffinityGroup{
 		Name: "FakeAffinityGroup",
 		Type: cloud.AffinityGroupType,
@@ -265,9 +278,10 @@ func SetDummyCAPCClusterVars() {
 			Kind:       CSClusterKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      CSClusterName,
+			Name:      ClusterName,
 			Namespace: "default",
 			UID:       "0",
+			Labels:    ClusterLabel,
 		},
 		Spec: capcv1.CloudStackClusterSpec{
 			IdentityRef: &capcv1.CloudStackIdentityReference{
@@ -307,8 +321,8 @@ func SetDummyDomainID() {
 func SetDummyCAPIClusterVars() {
 	CAPICluster = &capiv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "capi-cluster-test-",
-			Namespace:    "default",
+			Name:      ClusterName,
+			Namespace: ClusterNameSpace,
 		},
 		Spec: capiv1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
@@ -340,7 +354,14 @@ func SetClusterSpecToNet(net *capcv1.Network) {
 
 func SetDummyCAPIMachineVars() {
 	CAPIMachine = &capiv1.Machine{
-		Spec: capiv1.MachineSpec{FailureDomain: pointer.String(Zone1.ID)},
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "capi-test-machine-",
+			Namespace:    "default",
+			Labels:       ClusterLabel,
+		},
+		Spec: capiv1.MachineSpec{
+			ClusterName:   ClusterName,
+			FailureDomain: pointer.String(Zone1.ID)},
 	}
 }
 
