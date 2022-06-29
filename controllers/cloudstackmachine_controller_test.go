@@ -17,62 +17,49 @@ limitations under the License.
 package controllers_test
 
 import (
-	"context"
-
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("CloudStackZoneReconciler", func() {
-	ctx := context.Background()
-
+var _ = Describe("CloudStackMachineReconciler", func() {
 	BeforeEach(func() {
 		dummies.SetDummyVars()
-		// Create onwer CRDs.
-		dummies.CAPICluster.Spec.InfrastructureRef.Name = dummies.CSCluster.Name
 
-		Ω(k8sClient.Create(ctx, dummies.CAPICluster)).Should(Succeed())
-		Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
+		setClusterReady()
+		Ω(k8sClient.Create(ctx, dummies.CSZone1)).Should(Succeed())
 
+		// Create the kubeadm bootstrap secret.
+		dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = pointer.String("asdf")
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: dummies.ClusterNameSpace,
+				Name:      *dummies.CAPIMachine.Spec.Bootstrap.DataSecretName},
+			Data: map[string][]byte{"value": make([]byte, 0)}}
+		Ω(k8sClient.Create(ctx, secret)).Should(Succeed())
+
+		setupMachineCRDs()
 	})
-	AfterEach(func() {
-		Ω(k8sClient.Delete(ctx, dummies.CAPICluster)).Should(Succeed())
-		Ω(k8sClient.Delete(ctx, dummies.CSCluster)).Should(Succeed())
-	})
 
-	It("Should create a CloudStackZone", func() {
-		By("Fetching a CS Cluster Object")
-		key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Name}
-		Eventually(func() error {
-			return k8sClient.Get(ctx, key, dummies.CSCluster)
-		}, timeout).Should(BeNil())
-
-		By("Setting the OwnerRef on the CloudStack cluster")
-		Eventually(func() error {
-			ph, err := patch.NewHelper(dummies.CSCluster, k8sClient)
-			Ω(err).ShouldNot(HaveOccurred())
-			dummies.CSCluster.OwnerReferences = append(dummies.CSCluster.OwnerReferences, metav1.OwnerReference{
-				Kind:       "Cluster",
-				APIVersion: clusterv1.GroupVersion.String(),
-				Name:       dummies.CAPICluster.Name,
-				UID:        "uniqueness",
-			})
-			return ph.Patch(ctx, dummies.CSCluster, patch.WithStatusObservedGeneration{})
-		}, timeout).Should(Succeed())
-
-		// Test that the CloudStackCluster controller creates a CloudStackZone CRD.
-		Eventually(func() bool {
-			key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Spec.Zones[0].Name}
-			if err := k8sClient.Get(ctx, key, dummies.CSCluster); err != nil {
-				return true
+	It("Should call GetOrCreateVMInstance", func() {
+		mockCloudClient.EXPECT().GetOrCreateVMInstance(
+			gomock.Any(), gomock.Any(), gomock.Any(),
+			gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		Eventually(func() bool { // Fails atm, but super close now!
+			tempMachine := &infrav1.CloudStackMachine{}
+			key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSMachine1.Spec.Name}
+			if err := k8sClient.Get(ctx, key, tempMachine); err != nil {
+				if tempMachine.Status.Ready == true {
+					return true
+				}
 			}
 			return false
 		}, timeout).Should(BeTrue())
-
 	})
 })

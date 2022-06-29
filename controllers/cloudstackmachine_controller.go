@@ -162,6 +162,7 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 			break
 		}
 	}
+	r.Log.Info("set zone stuffs")
 	return ctrl.Result{}, nil
 }
 
