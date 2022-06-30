@@ -73,7 +73,7 @@ generate-deepcopy: $(DEEPCOPY_GEN_TARGETS) ## Generate code containing DeepCopy,
 api/%/zz_generated.deepcopy.go: bin/controller-gen $(DEEPCOPY_GEN_INPUTS)
 	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-CONVERSION_GEN_TARGET=$(shell find api -type d -name "v*" -exec echo {}\/zz_generated.conversion.go \;)
+CONVERSION_GEN_TARGET=$(shell find api -type d -name "v*1" -exec echo {}\/zz_generated.conversion.go \;)
 CONVERSION_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_generated*" -prune -o -type f -print)
 .PHONY: generate-conversion
 generate-conversion: $(CONVERSION_GEN_TARGET) ## Generate code to convert api/v1beta1 to api/v1beta2
@@ -194,7 +194,7 @@ test: generate-mocks lint bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## 
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 	
 .PHONY: generate-mocks
-generate-mocks: bin/mockgen generate-deepcopy generate-conversion pkg/mocks/mock_client.go $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
+generate-mocks: bin/mockgen generate-deepcopy pkg/mocks/mock_client.go $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
 pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
 	go generate ./...
 

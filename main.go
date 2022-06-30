@@ -59,10 +59,9 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(infrav1.AddToScheme(scheme))
+	utilruntime.Must(infrav2.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(controlplanev1.AddToScheme(scheme))
-	utilruntime.Must(infrav1.AddToScheme(scheme))
-	utilruntime.Must(infrav2.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -181,16 +180,16 @@ func main() {
 	}
 
 	// Start the controller manager.
-	if err = (&infrav2.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackCluster")
-		os.Exit(1)
-	}
 	if err = (&infrav2.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachine")
 		os.Exit(1)
 	}
 	if err = (&infrav2.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachineTemplate")
+		os.Exit(1)
+	}
+	if err = (&infrav2.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackCluster")
 		os.Exit(1)
 	}
 

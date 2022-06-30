@@ -62,16 +62,15 @@ func (r *CloudStackCluster) ValidateCreate() error {
 		errorList = append(errorList, field.Required(field.NewPath("spec", "failureDomains"), "failureDomains"))
 	}
 	for _, failuredomain := range r.Spec.FailureDomains {
-		spec := failuredomain.Spec
-		if (spec.Account != "") && (spec.Domain == "") {
+		if (failuredomain.Account != "") && (failuredomain.Domain == "") {
 			errorList = append(errorList, field.Required(
 				field.NewPath("spec", "failureDomains", "account"), "specifying account requires additionally specifying domain"))
 		}
 		// credentialsRef must be Secrets.
-		if spec.CredentialsRef != nil && spec.CredentialsRef.Kind != defaultIdentityRefKind {
+		if failuredomain.CredentialsRef != nil && failuredomain.CredentialsRef.Kind != defaultIdentityRefKind {
 			errorList = append(errorList, field.Forbidden(field.NewPath("spec", "failureDomains", "credentialsRef", "kind"), "must be a Secret"))
 		}
-		zone := spec.Zone
+		zone := failuredomain.Zone
 		// Require Zones and their respective Networks.
 		if zone.Name == "" && zone.ID == "" {
 			errorList = append(errorList, field.Required(

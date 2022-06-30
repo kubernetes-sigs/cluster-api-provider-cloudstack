@@ -24,11 +24,11 @@ import (
 )
 
 const (
-	ClusterFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
-	//defaultIdentityRefKind     = "Secret"
+	ClusterFinalizer           = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
+	DefaultIdentityRefKind     = "Secret"
 	CloudStackClusterLabelName = "cloudstackcluster.infrastructure.cluster.x-k8s.io/name"
 	NetworkTypeIsolated        = "Isolated"
-	NetworkTypeShared          = "Shared"
+	// NetworkTypeShared          = "Shared"
 )
 
 // CloudStackIdentityReference is a reference to an infrastructure

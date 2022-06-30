@@ -21,6 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const FailureDomainFinalizer = "cloudstackfailuredomain.infrastructure.cluster.x-k8s.io"
+
 // CloudStackFailureDomainSpec defines the desired state of CloudStackFailureDomain
 type CloudStackFailureDomainSpec struct {
 	// The ACS Zone for this failure domain.

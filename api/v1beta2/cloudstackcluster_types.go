@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"strings"
@@ -81,9 +82,26 @@ func (z *Zone) MetaName() string {
 	return strings.ToLower(s)
 }
 
+type FailureDomain struct {
+
+	// The ACS Zone for this failure domain.
+	Zone Zone `json:"zone"`
+
+	// CloudStack account.
+	// +optional
+	Account string `json:"account,omitempty"`
+
+	// CloudStack domain.
+	// +optional
+	Domain string `json:"domain,omitempty"`
+
+	// +k8s:conversion-gen=false
+	CredentialsRef *corev1.ObjectReference `json:"credentialsRef"`
+}
+
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
 type CloudStackClusterSpec struct {
-	FailureDomains []CloudStackFailureDomain `json:"failureDomains"`
+	FailureDomains []FailureDomain `json:"failureDomains"`
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
@@ -153,5 +171,5 @@ type CloudStackClusterList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&CloudStackFailureDomain{}, &CloudStackFailureDomainList{})
+	SchemeBuilder.Register(&CloudStackCluster{}, &CloudStackClusterList{})
 }
