@@ -20,25 +20,35 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("CloudStackClusterReconciler", func() {
-	BeforeEach(func() {
-		// Register the CloudStack ClusterReconciler only.
-		Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())
+	Context("With k8s like test environment", func() {
+		BeforeEach(func() {
+			SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
+			Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack ClusterReconciler.
+		})
+
+		It("Should create a CloudStackZone", func() {
+			// Test that the CloudStackCluster controller creates a CloudStackZone CRD.
+			tempZone := &infrav1.CloudStackZone{}
+			Eventually(func() bool {
+				key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Spec.Zones[0].Name}
+				if err := k8sClient.Get(ctx, key, tempZone); err != nil {
+					return true
+				}
+				return false
+			}, timeout).Should(BeTrue())
+		})
 	})
 
-	It("Should create a CloudStackZone", func() {
-		// Test that the CloudStackCluster controller creates a CloudStackZone CRD.
-		tempZone := &infrav1.CloudStackZone{}
-		Eventually(func() bool {
-			key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Spec.Zones[0].Name}
-			if err := k8sClient.Get(ctx, key, tempZone); err != nil {
-				return true
-			}
-			return false
-		}, timeout).Should(BeTrue())
+	Context("Without a k8s test environment.", func() {
+		It("Should create a reconciliation runner with a Cloudstack Cluster as the reconciliation subject.", func() {
+			reconRunenr := controllers.NewCSClusterReconciliationRunner()
+			Ω(reconRunenr.ReconciliationSubject).ShouldNot(BeNil())
+		})
 	})
 })

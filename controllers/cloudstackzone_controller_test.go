@@ -29,8 +29,8 @@ import (
 
 var _ = Describe("CloudStackZoneReconciler", func() {
 	BeforeEach(func() {
-		// Register the ZoneReconciler only.
-		Ω(ZoneReconciler.SetupWithManager(k8sManager)).Should(Succeed())
+		SetupTestEnvironment()                                           // Must happen before setting up managers/reconcilers.
+		Ω(ZoneReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack ZoneReconciler.
 		dummies.SetDummyVars()
 	})
 

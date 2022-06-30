@@ -32,8 +32,8 @@ import (
 
 var _ = Describe("CloudStackMachineReconciler", func() {
 	BeforeEach(func() {
-		// Register the MachineReconciler only.
-		Ω(MachineReconciler.SetupWithManager(k8sManager)).Should(Succeed())
+		SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
+		Ω(MachineReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register the CloudStack MachineReconciler.
 
 		dummies.SetDummyVars()
 
@@ -52,7 +52,6 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 	})
 
 	It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
-
 		// Mock a call to GetOrCreateVMInstance and set the machine to running.
 		mockCloudClient.EXPECT().GetOrCreateVMInstance(
 			gomock.Any(), gomock.Any(), gomock.Any(),

@@ -148,11 +148,9 @@ var _ = BeforeSuite(func() {
 	logger = klogr.New()
 })
 
-// Setup and teardown on a per test basis.
-var _ = BeforeEach(func() {
+func SetupTestEnvironment() {
 	// See reconciliation results.
 	ctrl.SetLogger(logr.Discard())
-	dummies.SetDummyVars()
 
 	crdPaths := []string{filepath.Join(projectDir, "config", "crd", "bases")}
 
@@ -198,8 +196,6 @@ var _ = BeforeEach(func() {
 	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
 	ctx, cancel = context.WithCancel(context.TODO())
 
-	mockCtrl = gomock.NewController(GinkgoT())
-
 	// Setup mock clients.
 	mockCSAPIClient = cloudstack.NewMockClient(mockCtrl)
 	mockCloudClient = mocks.NewMockClient(mockCtrl)
@@ -212,24 +208,34 @@ var _ = BeforeEach(func() {
 	AffinityGReconciler.CSClient = mockCloudClient
 
 	setupClusterCRDs()
+
+	DeferCleanup(func() {
+		// Cancelling the context shuts down any outstanding requests and the test environment.
+		cancel()
+		k8sManager = nil
+	})
+}
+
+// Setup and teardown on a per test basis.
+var _ = BeforeEach(func() {
+	dummies.SetDummyVars()
+	mockCtrl = gomock.NewController(GinkgoT())
 })
 
 var _ = JustBeforeEach(func() {
-	ctrl.SetLogger(logr.Discard())
-	// Launch the k8s manager.
-	// Needs to be in JustBeforeEach() so individual contexts can register controllers first.
-	go func() {
-		defer GinkgoRecover()
-		Ω(k8sManager.Start(ctx)).Should(Succeed(), "failed to run manager")
-	}()
+	if k8sManager != nil { // Allow skipping a test environment for tests that don't need it.
+		// Launch the k8s manager.
+		// Needs to be in JustBeforeEach() so individual contexts can register controllers first.
+		go func() {
+			defer GinkgoRecover()
+			Ω(k8sManager.Start(ctx)).Should(Succeed(), "failed to run manager")
+		}()
+	}
 })
 
 var _ = AfterEach(func() {
 	// Finishing mockCtrl checks expected calls on mock objects matched.
 	mockCtrl.Finish()
-
-	// Cancelling the context shuts down any outstanding requests and the test environment.
-	cancel()
 })
 
 var _ = AfterSuite(func() {})
