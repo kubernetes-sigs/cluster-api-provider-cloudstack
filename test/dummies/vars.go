@@ -193,6 +193,7 @@ func SetDummyCSMachineVars() {
 			Labels:    ClusterLabel,
 		},
 		Spec: capcv1.CloudStackMachineSpec{
+			Name: "test-machine-1",
 			IdentityRef: &capcv1.CloudStackIdentityReference{
 				Kind: "Secret",
 				Name: "IdentitySecret",

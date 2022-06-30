@@ -25,6 +25,10 @@ import (
 )
 
 var _ = Describe("CloudStackClusterReconciler", func() {
+	BeforeEach(func() {
+		// Register the CloudStack ClusterReconciler only.
+		Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())
+	})
 
 	It("Should create a CloudStackZone", func() {
 		// Test that the CloudStackCluster controller creates a CloudStackZone CRD.

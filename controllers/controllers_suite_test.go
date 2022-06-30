@@ -29,20 +29,23 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	csReconcilers "sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
@@ -54,6 +57,11 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	//+kubebuilder:scaffold:imports
 )
+
+func TestAPIs(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Controller Suite")
+}
 
 var (
 	clusterAPIVersionRegex = regexp.MustCompile(`^(\W)sigs.k8s.io/cluster-api v(.+)`)
@@ -94,60 +102,68 @@ func getFilePathToCAPICRDs(root string) string {
 		fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "config", "crd", "bases")
 }
 
-var ( // TestEnv vars...
-	testEnv   *envtest.Environment
-	k8sClient client.Client
-	ctx       context.Context
-	cancel    context.CancelFunc
+var (
+	// TestEnv vars...
+	testEnv    *envtest.Environment
+	k8sClient  client.Client
+	ctx        context.Context
+	cancel     context.CancelFunc
+	k8sManager manager.Manager
+	cfg        *rest.Config
+	logger     logr.Logger
+
+	// Mock Vars.
+	mockCtrl        *gomock.Controller
+	mockCloudClient *mocks.MockClient
+	mockCSAPIClient *cloudstack.CloudStackClient
+
+	// Reconcilers
+	MachineReconciler   *csReconcilers.CloudStackMachineReconciler
+	ClusterReconciler   *csReconcilers.CloudStackClusterReconciler
+	ZoneReconciler      *csReconcilers.CloudStackZoneReconciler
+	IsoNetReconciler    *csReconcilers.CloudStackIsoNetReconciler
+	AffinityGReconciler *csReconcilers.CloudStackAffinityGroupReconciler
 )
-var ( // Mock var.
-	mockCtrl          *gomock.Controller
-	mockCloudClient   *mocks.MockClient
-	mockCSAPIClient   *cloudstack.CloudStackClient
-	MachineReconciler *csReconcilers.CloudStackMachineReconciler
-)
 
-func TestAPIs(t *testing.T) {
-
-	RegisterFailHandler(Fail)
-
-	RunSpecs(t, "Controller Suite")
-}
+var projectDir = os.Getenv("PROJECT_DIR")
 
 var _ = BeforeSuite(func() {
-
-	projectDir := os.Getenv("PROJECT_DIR")
-
 	// Add ginkgo recover statements to controllers.
-	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--add")
+	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--contains")
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
-		fmt.Println(errors.Wrapf(err, "adding gingko statements"))
+		fmt.Println(errors.Wrapf(err, "refusing to run test suite without ginkgo recover statements present"))
 		os.Exit(1)
 	}
 
-	ctx, cancel = context.WithCancel(context.TODO())
-
 	By("bootstrapping test environment")
 
-	crdPaths := []string{
-		filepath.Join(projectDir, "config", "crd", "bases"),
-	}
+	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
+	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
+
+	// Increase log verbosity.
+	klog.InitFlags(nil)
+	flag.Lookup("v").Value.Set("1")
+	flag.Parse()
+
+	logger = klogr.New()
+})
+
+// Setup and teardown on a per test basis.
+var _ = BeforeEach(func() {
+	// See reconciliation results.
+	ctrl.SetLogger(logger)
+
+	crdPaths := []string{filepath.Join(projectDir, "config", "crd", "bases")}
 
 	// Append CAPI CRDs path
 	if capiPath := getFilePathToCAPICRDs(projectDir); capiPath != "" {
 		crdPaths = append(crdPaths, capiPath)
 	}
-
-	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
-	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
-
-	// Create the test environment.
 	testEnv = &envtest.Environment{
 		ErrorIfCRDPathMissing: true,
 		CRDDirectoryPaths:     crdPaths,
 	}
-	var cfg *rest.Config
 	var err error
 	done := make(chan interface{})
 	go func() {
@@ -164,15 +180,8 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Ω(err).ShouldNot(HaveOccurred())
 	Ω(k8sClient).ShouldNot(BeNil())
-
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
+	k8sManager, _ = ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
 	Ω(err).ShouldNot(HaveOccurred())
-
-	logger := klogr.New()
-
-	klog.InitFlags(nil) // Add klog options to flag set.
-	flag.Lookup("v").Value.Set("1")
-	flag.Parse()
 
 	// Base reconciler shared across reconcilers.
 	base := csCtrlrUtils.ReconcilerBase{
@@ -181,60 +190,49 @@ var _ = BeforeSuite(func() {
 		CSClient:   mockCloudClient,
 		BaseLogger: logger}
 
-	ctrl.SetLogger(logger)
-
 	// Setup each specific reconciler.
-	// ClusterReconciler := &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
-	// Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())
+	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	MachineReconciler = &csReconcilers.CloudStackMachineReconciler{ReconcilerBase: base}
-	Ω(MachineReconciler.SetupWithManager(k8sManager)).Should(Succeed())
-	// ZoneReconciler := &csReconcilers.CloudStackZoneReconciler{ReconcilerBase: base}
-	// Ω(ZoneReconciler.SetupWithManager(k8sManager)).Should(Succeed())
-	// IsoNetReconciler := &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
-	// Ω(IsoNetReconciler.SetupWithManager(k8sManager)).Should(Succeed())
-	// AffinityGReconciler := &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
-	// Ω(AffinityGReconciler.SetupWithManager(k8sManager)).Should(Succeed())
+	ZoneReconciler = &csReconcilers.CloudStackZoneReconciler{ReconcilerBase: base}
+	IsoNetReconciler = &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
+	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
+	ctx, cancel = context.WithCancel(context.TODO())
 
-	go func() {
-		defer GinkgoRecover()
-		Ω(k8sManager.Start(ctrl.SetupSignalHandler())).Should(Succeed(), "failed to run manager")
-	}()
-})
-
-// Setup and teardown on a per test basis.
-var _ = BeforeEach(func() {
 	mockCtrl = gomock.NewController(GinkgoT())
 
 	// Setup mock clients.
 	mockCSAPIClient = cloudstack.NewMockClient(mockCtrl)
 	mockCloudClient = mocks.NewMockClient(mockCtrl)
+
+	// Set on reconcilers. The mock client wasn't available at suite startup, so set it now.
+	ClusterReconciler.CSClient = mockCloudClient
+	ZoneReconciler.CSClient = mockCloudClient
+	IsoNetReconciler.CSClient = mockCloudClient
 	MachineReconciler.CSClient = mockCloudClient
+	AffinityGReconciler.CSClient = mockCloudClient
 
 	dummies.SetDummyVars()
 	setupClusterCRDs()
+})
+
+var _ = JustBeforeEach(func() {
+	go func() {
+		defer GinkgoRecover()
+
+		Ω(k8sManager.Start(ctx)).Should(Succeed(), "failed to run manager")
+	}()
 })
 
 var _ = AfterEach(func() {
 	// Finishint the mockCtrl checks expected calls on mock objects matched.
 	mockCtrl.Finish()
 
-	// Delete any CRDs left by test.
-	cleanupCRDs()
-})
-
-var _ = AfterSuite(func() {
-	projectDir := os.Getenv("PROJECT_DIR")
-	// Add ginkgo recover statements to controllers.
-	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--remove")
-	cmd.Stdout = os.Stdout
-	if err := cmd.Run(); err != nil {
-		fmt.Println(errors.Wrapf(err, "cleaning up gingko statements"))
-		os.Exit(1)
-	}
 	cancel()
 	By("tearing down the test environment")
 	Ω(testEnv.Stop()).Should(Succeed())
+})
 
+var _ = AfterSuite(func() {
 })
 
 // cleanupCRDs deletes all CRDs in the dummies CSClusterNamespace.
@@ -246,6 +244,7 @@ func cleanupCRDs() {
 	Ω(k8sClient.DeleteAllOf(ctx, &infrav1.CloudStackZone{}, nameSpaceFilter)).Should(Succeed())
 	Ω(k8sClient.DeleteAllOf(ctx, &infrav1.CloudStackAffinityGroup{}, nameSpaceFilter)).Should(Succeed())
 	Ω(k8sClient.DeleteAllOf(ctx, &infrav1.CloudStackIsolatedNetwork{}, nameSpaceFilter)).Should(Succeed())
+	Ω(k8sClient.DeleteAllOf(ctx, &corev1.Secret{}, nameSpaceFilter)).Should(Succeed())
 }
 
 // setClusterReady patches the clsuter with ready status true.

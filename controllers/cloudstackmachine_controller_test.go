@@ -17,6 +17,8 @@ limitations under the License.
 package controllers_test
 
 import (
+	"time"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -30,10 +32,10 @@ import (
 
 var _ = Describe("CloudStackMachineReconciler", func() {
 	BeforeEach(func() {
-		dummies.SetDummyVars()
+		// Register the MachineReconciler only.
+		Ω(MachineReconciler.SetupWithManager(k8sManager)).Should(Succeed())
 
-		setClusterReady()
-		Ω(k8sClient.Create(ctx, dummies.CSZone1)).Should(Succeed())
+		dummies.SetDummyVars()
 
 		// Create the kubeadm bootstrap secret.
 		dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = pointer.String("asdf")
@@ -44,22 +46,31 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			Data: map[string][]byte{"value": make([]byte, 0)}}
 		Ω(k8sClient.Create(ctx, secret)).Should(Succeed())
 
+		Ω(k8sClient.Create(ctx, dummies.CSZone1)).Should(Succeed())
+		setClusterReady()
 		setupMachineCRDs()
 	})
 
-	It("Should call GetOrCreateVMInstance", func() {
+	It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
+
+		// Mock a call to GetOrCreateVMInstance and set the machine to running.
 		mockCloudClient.EXPECT().GetOrCreateVMInstance(
 			gomock.Any(), gomock.Any(), gomock.Any(),
-			gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		Eventually(func() bool { // Fails atm, but super close now!
+			gomock.Any(), gomock.Any(), gomock.Any()).Do(
+			func(arg1, _, _, _, _, _ interface{}) {
+				arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
+			}).AnyTimes()
+
+		// Eventually the machine should set ready to true.
+		Eventually(func() bool {
 			tempMachine := &infrav1.CloudStackMachine{}
-			key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSMachine1.Spec.Name}
-			if err := k8sClient.Get(ctx, key, tempMachine); err != nil {
+			key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+			if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
 				if tempMachine.Status.Ready == true {
 					return true
 				}
 			}
 			return false
-		}, timeout).Should(BeTrue())
+		}, timeout).WithPolling(2 * time.Second).Should(BeTrue())
 	})
 })
