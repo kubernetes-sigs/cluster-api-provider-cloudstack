@@ -17,37 +17,41 @@ limitations under the License.
 package controllers_test
 
 import (
+	"time"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("CloudStackZoneReconciler", func() {
 	BeforeEach(func() {
-		// Register the MachineReconciler only.
+		// Register the ZoneReconciler only.
 		Ω(ZoneReconciler.SetupWithManager(k8sManager)).Should(Succeed())
-
 		dummies.SetDummyVars()
-		dummies.CSZone1.Spec.Network = dummies.ISONet1
-		// dummies.CAPICluster.Spec.InfrastructureRef.Name = dummies.CSCluster.Name
-		Ω(k8sClient.Create(ctx, dummies.CSZone1)).Should(Succeed())
-
 	})
 
-	PIt("Should create a CloudStackIsolatedNetwork", func() {
-		mockCloudClient.EXPECT().ResolveZone(gomock.Any())
-		mockCloudClient.EXPECT().ResolveNetworkForZone(gomock.Any())
+	It("Should create a CloudStackIsolatedNetwork", func() {
+		// Specify an Isolated Network for the Zone and create the CRD to kick of reconciliation.
+		dummies.CSZone1.Spec.Network = dummies.ISONet1
+		Ω(k8sClient.Create(ctx, dummies.CSZone1)).Should(Succeed())
+
+		mockCloudClient.EXPECT().ResolveZone(gomock.Any()).AnyTimes()
+		mockCloudClient.EXPECT().ResolveNetworkForZone(gomock.Any()).AnyTimes()
 
 		// Test that the CloudStackCluster controller creates a CloudStackZone CRD.
 		Eventually(func() bool {
-			key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSZone1.Spec.Network.Name}
-			if err := k8sClient.Get(ctx, key, dummies.CSISONet1); err == nil {
-				return true
+			nameSpaceFilter := &client.DeleteAllOfOptions{ListOptions: client.ListOptions{Namespace: dummies.ClusterNameSpace}}
+			isoNets := &infrav1.CloudStackIsolatedNetworkList{}
+			if err := k8sClient.List(ctx, isoNets, nameSpaceFilter); err == nil {
+				if len(isoNets.Items) == 1 {
+					return true
+				}
 			}
 			return false
-		}, timeout).Should(BeTrue())
-
+		}, timeout).WithPolling(2 * time.Second).Should(BeTrue())
 	})
 })

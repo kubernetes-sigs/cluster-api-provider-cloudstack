@@ -177,10 +177,11 @@ export KUBEBUILDER_ASSETS=$(PROJECT_DIR)/bin
 
 .PHONY: test
 test: generate-mocks lint bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
+	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@ginkgo_v2 --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
-	
+
 .PHONY: generate-mocks
 generate-mocks: bin/mockgen generate-deepcopy pkg/mocks/mock_client.go $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
 pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)

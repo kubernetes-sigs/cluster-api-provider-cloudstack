@@ -29,7 +29,6 @@ import (
 	"testing"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -143,7 +142,7 @@ var _ = BeforeSuite(func() {
 
 	// Increase log verbosity.
 	klog.InitFlags(nil)
-	flag.Lookup("v").Value.Set("1")
+	Ω(flag.Lookup("v").Value.Set("1")).Should(Succeed())
 	flag.Parse()
 
 	logger = klogr.New()
@@ -152,7 +151,8 @@ var _ = BeforeSuite(func() {
 // Setup and teardown on a per test basis.
 var _ = BeforeEach(func() {
 	// See reconciliation results.
-	ctrl.SetLogger(logger)
+	ctrl.SetLogger(logr.Discard())
+	dummies.SetDummyVars()
 
 	crdPaths := []string{filepath.Join(projectDir, "config", "crd", "bases")}
 
@@ -211,41 +211,28 @@ var _ = BeforeEach(func() {
 	MachineReconciler.CSClient = mockCloudClient
 	AffinityGReconciler.CSClient = mockCloudClient
 
-	dummies.SetDummyVars()
 	setupClusterCRDs()
 })
 
 var _ = JustBeforeEach(func() {
+	ctrl.SetLogger(logr.Discard())
+	// Launch the k8s manager.
+	// Needs to be in JustBeforeEach() so individual contexts can register controllers first.
 	go func() {
 		defer GinkgoRecover()
-
 		Ω(k8sManager.Start(ctx)).Should(Succeed(), "failed to run manager")
 	}()
 })
 
 var _ = AfterEach(func() {
-	// Finishint the mockCtrl checks expected calls on mock objects matched.
+	// Finishing mockCtrl checks expected calls on mock objects matched.
 	mockCtrl.Finish()
 
+	// Cancelling the context shuts down any outstanding requests and the test environment.
 	cancel()
-	By("tearing down the test environment")
-	Ω(testEnv.Stop()).Should(Succeed())
 })
 
-var _ = AfterSuite(func() {
-})
-
-// cleanupCRDs deletes all CRDs in the dummies CSClusterNamespace.
-func cleanupCRDs() {
-	nameSpaceFilter := &client.DeleteAllOfOptions{ListOptions: client.ListOptions{Namespace: dummies.ClusterNameSpace}}
-	Ω(k8sClient.DeleteAllOf(ctx, &clusterv1.Cluster{}, nameSpaceFilter)).Should(Succeed())
-	Ω(k8sClient.DeleteAllOf(ctx, &infrav1.CloudStackCluster{}, nameSpaceFilter)).Should(Succeed())
-	Ω(k8sClient.DeleteAllOf(ctx, &infrav1.CloudStackMachine{}, nameSpaceFilter)).Should(Succeed())
-	Ω(k8sClient.DeleteAllOf(ctx, &infrav1.CloudStackZone{}, nameSpaceFilter)).Should(Succeed())
-	Ω(k8sClient.DeleteAllOf(ctx, &infrav1.CloudStackAffinityGroup{}, nameSpaceFilter)).Should(Succeed())
-	Ω(k8sClient.DeleteAllOf(ctx, &infrav1.CloudStackIsolatedNetwork{}, nameSpaceFilter)).Should(Succeed())
-	Ω(k8sClient.DeleteAllOf(ctx, &corev1.Secret{}, nameSpaceFilter)).Should(Succeed())
-}
+var _ = AfterSuite(func() {})
 
 // setClusterReady patches the clsuter with ready status true.
 func setClusterReady() {

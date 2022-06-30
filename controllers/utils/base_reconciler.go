@@ -273,6 +273,10 @@ func (r *ReconciliationRunner) PatchChangesBackToAPI() (res ctrl.Result, retErr 
 
 // RequeueWithMessage is a convenience method to log requeue message and then return a result with RequeueAfter set.
 func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...interface{}) (ctrl.Result, error) {
+	// Add requeueing to message if not present. Might turn this into a lint check later.
+	if !strings.Contains(strings.ToLower(msg), "requeue") {
+		msg = msg + " Requeueing."
+	}
 	r.Log.Info(msg, keysAndValues...)
 	return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 }
