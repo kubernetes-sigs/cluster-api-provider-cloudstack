@@ -26,14 +26,13 @@ import (
 )
 
 var _ = Describe("CloudStackClusterReconciler", func() {
-	Context("With k8s like test environment", func() {
+	Context("With k8s like test environment.", func() {
 		BeforeEach(func() {
 			SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
 			Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack ClusterReconciler.
 		})
 
-		It("Should create a CloudStackZone", func() {
-			// Test that the CloudStackCluster controller creates a CloudStackZone CRD.
+		It("Should create a CloudStackZone.", func() {
 			tempZone := &infrav1.CloudStackZone{}
 			Eventually(func() bool {
 				key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Spec.Zones[0].Name}

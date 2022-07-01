@@ -22,10 +22,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,15 +30,6 @@ import (
 )
 
 var _ = Describe("CloudStackMachineReconciler", func() {
-	createBootStrapSecret := func() {
-		dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = pointer.String("asdf")
-		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: dummies.ClusterNameSpace,
-				Name:      *dummies.CAPIMachine.Spec.Bootstrap.DataSecretName},
-			Data: map[string][]byte{"value": make([]byte, 0)}}
-		Ω(k8sClient.Create(ctx, secret)).Should(Succeed())
-	}
 	Context("With machine controller running.", func() {
 		BeforeEach(func() {
 			SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
@@ -49,11 +37,15 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 
 			dummies.SetDummyVars()
 
-			createBootStrapSecret()
+			// Point CAPI machine Bootstrap secret ref to dummy bootstrap secret.
+			dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = &dummies.BootstrapSecret.Name
+			Ω(k8sClient.Create(ctx, dummies.BootstrapSecret)).Should(Succeed())
 
+			// Setup a zone for the machine reconciler to find.
 			Ω(k8sClient.Create(ctx, dummies.CSZone1)).Should(Succeed())
 			setClusterReady()
 		})
+
 		It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(

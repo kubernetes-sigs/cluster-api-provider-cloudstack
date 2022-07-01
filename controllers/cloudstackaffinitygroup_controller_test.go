@@ -31,10 +31,10 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 	BeforeEach(func() {
 		SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
 		dummies.SetDummyVars()
-		Ω(AffinityGReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack ZoneReconciler.
+		Ω(AffinityGReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack AffinityGReconciler.
 	})
 
-	It("Should do something cool with ags", func() {
+	It("Should patch back the affinity group as ready after calling GetOrCreateAffinityGroup.", func() {
 		Ω(k8sClient.Create(ctx, dummies.CSAffinityGroup)).Should(Succeed())
 
 		mockCloudClient.EXPECT().GetOrCreateAffinityGroup(gomock.Any()).AnyTimes()
@@ -50,7 +50,5 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 			}
 			return false
 		}, timeout).WithPolling(2 * time.Second).Should(BeTrue())
-	})
-	It("is another test.", func() {
 	})
 })

@@ -28,7 +28,7 @@ import (
 )
 
 var _ = Describe("CloudStackIsolatedNetworkReconciler", func() {
-	Context("With k8s like test environment", func() {
+	Context("With k8s like test environment.", func() {
 		BeforeEach(func() {
 			SetupTestEnvironment()                                             // Must happen before setting up managers/reconcilers.
 			Ω(IsoNetReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack IsoNetReconciler.
@@ -39,10 +39,9 @@ var _ = Describe("CloudStackIsolatedNetworkReconciler", func() {
 			mockCloudClient.EXPECT().AddClusterTag(g.Any(), g.Any(), g.Any()).AnyTimes()
 
 			Ω(k8sClient.Create(ctx, dummies.CSISONet1)).Should(Succeed())
-			// Test that the ...
-			tempIsoNet := &infrav1.CloudStackIsolatedNetwork{}
 			Eventually(func() bool {
-				key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.ISONet1.Name}
+				tempIsoNet := &infrav1.CloudStackIsolatedNetwork{}
+				key := client.ObjectKeyFromObject(dummies.CSISONet1)
 				if err := k8sClient.Get(ctx, key, tempIsoNet); err == nil {
 					return true
 				}
