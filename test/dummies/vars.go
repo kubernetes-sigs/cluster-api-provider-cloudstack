@@ -273,7 +273,7 @@ func SetDummyCAPCClusterVars() {
 		Spec:       capcv1.CloudStackAffinityGroupSpec{Name: AffinityGroup.Name, Type: AffinityGroup.Type, ID: AffinityGroup.ID}}
 	Net1 = capcv1.Network{Name: GetYamlVal("CLOUDSTACK_NETWORK_NAME"), Type: cloud.NetworkTypeShared}
 	Net2 = capcv1.Network{Name: "SharedGuestNet2", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID2"}
-	ISONet1 = capcv1.Network{Name: "IsoGuestNet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
+	ISONet1 = capcv1.Network{Name: "isoguestnet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
 	CSCluster = &capcv1.CloudStackCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,
@@ -296,6 +296,12 @@ func SetDummyCAPCClusterVars() {
 		Status: capcv1.CloudStackClusterStatus{Zones: map[string]capcv1.Zone{}},
 	}
 	CSISONet1 = &capcv1.CloudStackIsolatedNetwork{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ISONet1.Name,
+			Namespace: "default",
+			UID:       "0",
+			Labels:    ClusterLabel,
+		},
 		Spec: capcv1.CloudStackIsolatedNetworkSpec{
 			ControlPlaneEndpoint: CSCluster.Spec.ControlPlaneEndpoint}}
 	CSISONet1.Spec.Name = ISONet1.Name
