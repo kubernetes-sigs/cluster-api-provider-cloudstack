@@ -127,12 +127,6 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
-	fmt.Println("here")
-	fmt.Println("here")
-	fmt.Println("here")
-	fmt.Println("here")
-	fmt.Println("here")
-
 	// Set ZoneID on csMachine.
 	if util.IsControlPlaneMachine(r.CAPIMachine) { // Use failure domain zone.
 		r.ReconciliationSubject.Status.ZoneID = *r.CAPIMachine.Spec.FailureDomain
@@ -154,7 +148,6 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", r.ReconciliationSubject.Spec.ZoneName)
 			}
 		} else { // No Zone Specified, pick a Random Zone.
-			// TODO: Add an additional controller test for this once controller test upgrades are merged.
 			if len(r.Zones.Items) < 1 { // Double check that zones are present.
 				return r.RequeueWithMessage("no zones found, requeueing")
 			}

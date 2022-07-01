@@ -43,6 +43,7 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -103,13 +104,14 @@ func getFilePathToCAPICRDs(root string) string {
 
 var (
 	// TestEnv vars...
-	testEnv    *envtest.Environment
-	k8sClient  client.Client
-	ctx        context.Context
-	cancel     context.CancelFunc
-	k8sManager manager.Manager
-	cfg        *rest.Config
-	logger     logr.Logger
+	testEnv        *envtest.Environment
+	k8sClient      client.Client
+	ctx            context.Context
+	cancel         context.CancelFunc
+	k8sManager     manager.Manager
+	cfg            *rest.Config
+	logger         logr.Logger
+	fakeCtrlClient client.Client
 
 	// Mock Vars.
 	mockCtrl        *gomock.Controller
@@ -213,8 +215,41 @@ func SetupTestEnvironment() {
 
 	DeferCleanup(func() {
 		// Cancelling the context shuts down any outstanding requests and the test environment.
+		Ω(testEnv.Stop()).Should(Succeed())
 		cancel()
 		k8sManager = nil
+	})
+}
+
+// Sets up a fake k8s controller runtime client with CAPI and CloudStack clusters.
+func setupFakeTestClient() {
+	dummies.SetDummyVars()
+
+	// Make a fake k8s client with CloudStack and CAPI cluster.
+	fakeCtrlClient = fake.NewClientBuilder().WithObjects(dummies.CSCluster, dummies.CAPICluster).Build()
+
+	// Setup mock clients.
+	mockCSAPIClient = cloudstack.NewMockClient(mockCtrl)
+	mockCloudClient = mocks.NewMockClient(mockCtrl)
+
+	// Base reconciler shared across reconcilers.
+	base := csCtrlrUtils.ReconcilerBase{
+		K8sClient:  fakeCtrlClient,
+		Scheme:     scheme.Scheme,
+		CSClient:   mockCloudClient,
+		BaseLogger: logger}
+
+	ctx, cancel = context.WithCancel(context.TODO())
+
+	// Setup each specific reconciler.
+	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
+	MachineReconciler = &csReconcilers.CloudStackMachineReconciler{ReconcilerBase: base}
+	ZoneReconciler = &csReconcilers.CloudStackZoneReconciler{ReconcilerBase: base}
+	IsoNetReconciler = &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
+	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
+
+	DeferCleanup(func() {
+		cancel()
 	})
 }
 
@@ -232,6 +267,7 @@ var _ = JustBeforeEach(func() {
 			defer GinkgoRecover()
 			Ω(k8sManager.Start(ctx)).Should(Succeed(), "failed to run manager")
 		}()
+		time.Sleep(time.Second)
 	}
 })
 

@@ -323,10 +323,12 @@ func (r *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackReconcil
 // subject, get CAPI and CloudStackClusters, and call either r.Reconcile or r.ReconcileDelete.
 func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, retErr error) {
 	defer func() {
-		if err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject); err != nil {
-			if !strings.Contains(err.Error(), "is invalid: status.ready") {
-				err = errors.Wrapf(err, "error patching reconciliation subject")
-				retErr = multierror.Append(retErr, err)
+		if r.Patcher != nil {
+			if err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject); err != nil {
+				if !strings.Contains(err.Error(), "is invalid: status.ready") {
+					err = errors.Wrapf(err, "error patching reconciliation subject")
+					retErr = multierror.Append(retErr, err)
+				}
 			}
 		}
 	}()
@@ -341,12 +343,6 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 		r.IfDeletionTimestampIsZero(r.Reconcile),
 		r.Else(r.ReconcileDelete),
 	)
-}
-
-// SetReturnEarly sets the runner to return early. This causes the runner to break from running further
-// reconciliation stages and return whatever result the current method returns.
-func (r *ReconciliationRunner) SetReturnEarly() {
-	r.returnEarly = true
 }
 
 // CheckIfPaused returns with requeue later set if paused.
@@ -364,7 +360,7 @@ func (r *ReconciliationRunner) GetReconciliationSubject() (res ctrl.Result, rete
 	r.Log.V(1).Info("Getting reconciliation subject.")
 	err := client.IgnoreNotFound(r.K8sClient.Get(r.RequestCtx, r.Request.NamespacedName, r.ReconciliationSubject))
 	if r.ReconciliationSubject.GetName() == "" {
-		r.SetReturnEarly()
+		return ctrl.Result{}, errors.Errorf("Could not fetch object by namespaced name: %s", r.Request.NamespacedName)
 	}
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "fetching reconciliation subject")

@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var _ = Describe("CloudStackMachineReconciler", func() {
@@ -53,7 +54,6 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 
 			Ω(k8sClient.Create(ctx, dummies.CSZone1)).Should(Succeed())
 			setClusterReady()
-			setupMachineCRDs()
 		})
 		It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
@@ -63,6 +63,9 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 				func(arg1, _, _, _, _, _ interface{}) {
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
 				}).AnyTimes()
+
+			// Have to do this here or the reconcile call to GetOrCreateVMInstance may happen too early.
+			setupMachineCRDs()
 
 			// Eventually the machine should set ready to true.
 			Eventually(func() bool {
@@ -80,19 +83,39 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 
 	Context("With no machine controller running.", func() {
 		BeforeEach(func() {
-			SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
-
 			dummies.SetDummyVars()
+			SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
 
 			createBootStrapSecret()
 
 			setClusterReady()
 			setupMachineCRDs()
 		})
+
 		It("Should exit having not found a zone.", func() {
-			mockCloudClient.EXPECT().GetOrCreateVMInstance(
-				gomock.Any(), gomock.Any(), gomock.Any(),
-				gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			fakeCtrlClient := fake.NewClientBuilder().WithObjects(dummies.CSCluster, dummies.CAPICluster).Build()
+
+			key := client.ObjectKeyFromObject(dummies.CSCluster)
+			tempCluster := &infrav1.CloudStackCluster{}
+			Ω(fakeCtrlClient.Get(ctx, key, tempCluster)).Should(Succeed())
+
+			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(res.RequeueAfter).ShouldNot(BeZero())
+		})
+	})
+
+	Context("With a fake ctrlRuntimeClient and no test Env at all.", func() {
+		BeforeEach(func() {
+			dummies.SetDummyVars()
+			setupFakeTestClient()
+		})
+
+		It("Should exit having not found a zone to place the machine in.", func() {
+			key := client.ObjectKeyFromObject(dummies.CSCluster)
+			Ω(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).Should(Succeed())
+			Ω(fakeCtrlClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 
 			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
