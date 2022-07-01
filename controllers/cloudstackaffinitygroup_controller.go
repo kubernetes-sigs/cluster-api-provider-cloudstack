@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -66,7 +65,6 @@ func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.AffinityGroupFinalizer)
 	affinityGroup := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Spec.Name, Type: r.ReconciliationSubject.Spec.Type}
 	if err := r.CSUser.GetOrCreateAffinityGroup(affinityGroup); err != nil {
-		fmt.Println("here")
 		return ctrl.Result{}, err
 	}
 	r.ReconciliationSubject.Spec.ID = affinityGroup.ID

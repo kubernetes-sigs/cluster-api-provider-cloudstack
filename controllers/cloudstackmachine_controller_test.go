@@ -24,20 +24,16 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("CloudStackMachineReconciler", func() {
-	BeforeEach(func() {
-		SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
-		Ω(MachineReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register the CloudStack MachineReconciler.
-
-		dummies.SetDummyVars()
-
-		// Create the kubeadm bootstrap secret.
+	createBootStrapSecret := func() {
 		dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = pointer.String("asdf")
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -45,31 +41,63 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 				Name:      *dummies.CAPIMachine.Spec.Bootstrap.DataSecretName},
 			Data: map[string][]byte{"value": make([]byte, 0)}}
 		Ω(k8sClient.Create(ctx, secret)).Should(Succeed())
+	}
+	Context("With machine controller running.", func() {
+		BeforeEach(func() {
+			SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
+			Ω(MachineReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register the CloudStack MachineReconciler.
 
-		Ω(k8sClient.Create(ctx, dummies.CSZone1)).Should(Succeed())
-		setClusterReady()
-		setupMachineCRDs()
+			dummies.SetDummyVars()
+
+			createBootStrapSecret()
+
+			Ω(k8sClient.Create(ctx, dummies.CSZone1)).Should(Succeed())
+			setClusterReady()
+			setupMachineCRDs()
+		})
+		It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
+			// Mock a call to GetOrCreateVMInstance and set the machine to running.
+			mockCloudClient.EXPECT().GetOrCreateVMInstance(
+				gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _, _ interface{}) {
+					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
+				}).AnyTimes()
+
+			// Eventually the machine should set ready to true.
+			Eventually(func() bool {
+				tempMachine := &infrav1.CloudStackMachine{}
+				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
+					if tempMachine.Status.Ready == true {
+						return true
+					}
+				}
+				return false
+			}, timeout).WithPolling(2 * time.Second).Should(BeTrue())
+		})
 	})
 
-	It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
-		// Mock a call to GetOrCreateVMInstance and set the machine to running.
-		mockCloudClient.EXPECT().GetOrCreateVMInstance(
-			gomock.Any(), gomock.Any(), gomock.Any(),
-			gomock.Any(), gomock.Any(), gomock.Any()).Do(
-			func(arg1, _, _, _, _, _ interface{}) {
-				arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
-			}).AnyTimes()
+	Context("With no machine controller running.", func() {
+		BeforeEach(func() {
+			SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
 
-		// Eventually the machine should set ready to true.
-		Eventually(func() bool {
-			tempMachine := &infrav1.CloudStackMachine{}
-			key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
-			if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
-				if tempMachine.Status.Ready == true {
-					return true
-				}
-			}
-			return false
-		}, timeout).WithPolling(2 * time.Second).Should(BeTrue())
+			dummies.SetDummyVars()
+
+			createBootStrapSecret()
+
+			setClusterReady()
+			setupMachineCRDs()
+		})
+		It("Should exit having not found a zone.", func() {
+			mockCloudClient.EXPECT().GetOrCreateVMInstance(
+				gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(res.RequeueAfter).ShouldNot(BeZero())
+		})
 	})
 })
