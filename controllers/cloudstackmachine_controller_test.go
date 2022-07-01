@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var _ = Describe("CloudStackMachineReconciler", func() {
@@ -78,31 +77,6 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 				}
 				return false
 			}, timeout).WithPolling(2 * time.Second).Should(BeTrue())
-		})
-	})
-
-	Context("With no machine controller running.", func() {
-		BeforeEach(func() {
-			dummies.SetDummyVars()
-			SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
-
-			createBootStrapSecret()
-
-			setClusterReady()
-			setupMachineCRDs()
-		})
-
-		It("Should exit having not found a zone.", func() {
-			fakeCtrlClient := fake.NewClientBuilder().WithObjects(dummies.CSCluster, dummies.CAPICluster).Build()
-
-			key := client.ObjectKeyFromObject(dummies.CSCluster)
-			tempCluster := &infrav1.CloudStackCluster{}
-			Ω(fakeCtrlClient.Get(ctx, key, tempCluster)).Should(Succeed())
-
-			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
-			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(res.RequeueAfter).ShouldNot(BeZero())
 		})
 	})
 
