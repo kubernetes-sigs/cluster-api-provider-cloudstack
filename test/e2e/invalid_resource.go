@@ -20,15 +20,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
+	"os"
+	"path/filepath"
+	"sigs.k8s.io/cluster-api/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -45,7 +48,6 @@ var (
 
 // InvalidResourceSpec implements a test that verifies that creating a new cluster fails when the specified resource does not exist
 func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
-
 	BeforeEach(func() {
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
 		input = inputGetter()
@@ -97,6 +99,65 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 		testInvalidResource(ctx, input, "invalid-disk-offering-size-for-customized", "is customized, disk size can not be 0 GB")
 	})
 
+	Context("When starting with a healthy cluster", func() {
+		var logFolder string
+
+		BeforeEach(func() {
+			logFolder = generateLogFolderPath()
+
+			By("Creating a workload cluster")
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy:    input.BootstrapClusterProxy,
+				CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                logFolder,
+					ClusterctlConfigPath:     input.ClusterctlConfigPath,
+					KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+					Flavor:                   "insufficient-compute-resources-for-upgrade",
+					Namespace:                namespace.Name,
+					ClusterName:              generateClusterName(),
+					KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					WorkerMachineCount:       pointer.Int64Ptr(1),
+				},
+				WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+				WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			}, clusterResources)
+		})
+
+		It("Should fail to upgrade worker machine due to insufficient compute resources", func() {
+			By("Making sure the expected error didn't occur yet")
+			expectedError := "Unable to create a deployment for VM"
+			Expect(errorExistsInLog(logFolder, expectedError)).To(BeFalse())
+
+			By("Increasing the machine deployment instance size")
+			deployment := clusterResources.MachineDeployments[0]
+			deployment.Spec.Template.Spec.InfrastructureRef.Name =
+				strings.Replace(deployment.Spec.Template.Spec.InfrastructureRef.Name, "-md-0", "-upgrade-md-0", 1)
+			upgradeMachineDeploymentInfrastructureRef(ctx, deployment)
+
+			By("Checking for the expected error")
+			waitForErrorInLog(logFolder, expectedError)
+		})
+
+		It("Should fail to upgrade control plane machine due to insufficient compute resources", func() {
+			By("Making sure the expected error didn't occur yet")
+			expectedError := "Unable to create a deployment for VM"
+			Expect(errorExistsInLog(logFolder, expectedError)).To(BeFalse())
+
+			By("Increasing the machine deployment instance size")
+			cp := clusterResources.ControlPlane
+			cp.Spec.MachineTemplate.InfrastructureRef.Name =
+				strings.Replace(cp.Spec.MachineTemplate.InfrastructureRef.Name, "-control-plane", "-upgrade-control-plane", 1)
+			upgradeControlPlaneInfrastructureRef(ctx, cp)
+
+			By("Checking for the expected error")
+			waitForErrorInLog(logFolder, expectedError)
+		})
+	})
+
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
@@ -105,8 +166,8 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 }
 
 func testInvalidResource(ctx context.Context, input CommonSpecInput, flavor string, expectedError string) {
-	logFolder := filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName())
-	clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+	logFolder := generateLogFolderPath()
+	clusterName := generateClusterName()
 
 	By("Configuring a cluster")
 	workloadClusterTemplate := clusterctl.ConfigCluster(ctx, clusterctl.ConfigClusterInput{
@@ -131,27 +192,116 @@ func testInvalidResource(ctx context.Context, input CommonSpecInput, flavor stri
 		Namespace: namespace.Name,
 	})
 
-	Byf("Waiting for %q error to occur", expectedError)
-	Eventually(func() (string, error) {
-		err := filepath.Walk(logFolder, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if strings.Contains(path, "capc-controller-manager") && strings.Contains(path, "manager.log") {
-				log, _ := os.ReadFile(path)
-				if strings.Contains(string(log), expectedError) {
-					Byf("Found %q error", expectedError)
-					return errors.New("expected error found")
-				}
-			}
-			return nil
-		})
-		if err == nil {
-			return "expected error not found", nil
-		} else {
-			return err.Error(), nil
-		}
-	}, input.E2EConfig.GetIntervals(specName, "wait-errors")...).Should(Equal(string("expected error found")))
+	waitForErrorInLog(logFolder, expectedError)
 
 	By("PASSED!")
+}
+
+func generateLogFolderPath() string {
+	return filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName())
+}
+
+func generateClusterName() string {
+	return fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+}
+
+// errorExistsInLog looks for a specific error message in the CAPC controller log files.  Because the logs may contain
+// entries from previous test runs, or from previous tests in the same run, the function also requires that the log
+// line contains the namespace and cluster names.
+func errorExistsInLog(logFolder string, expectedError string) (bool, error) {
+	expectedErrorFound := errors.New("expected error found")
+	controllerLogPath := filepath.Join(logFolder, "controllers", "capc-controller-manager")
+
+	err := filepath.Walk(controllerLogPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if strings.Contains(path, "manager.log") {
+			log, _ := os.ReadFile(path)
+			logLines := strings.Split(string(log), "\n")
+			for _, line := range logLines {
+				if strings.Contains(line, expectedError) &&
+					strings.Contains(line, clusterResources.Cluster.Namespace) &&
+					strings.Contains(line, clusterResources.Cluster.Name) {
+					Byf("Found %q error", expectedError)
+					return expectedErrorFound
+				}
+			}
+		}
+
+		return nil
+	})
+
+	if err == nil {
+		return false, nil
+	} else if err == expectedErrorFound {
+		return true, nil
+	}
+	return false, err
+}
+
+func waitForErrorInLog(logFolder string, expectedError string) {
+	Byf("Waiting for %q error to occur", expectedError)
+	Eventually(func() (bool, error) {
+		return errorExistsInLog(logFolder, expectedError)
+	}, input.E2EConfig.GetIntervals(specName, "wait-errors")...).Should(BeTrue())
+}
+
+// upgradeMachineDeploymentInfrastructureRef updates a machine deployment infrastructure ref and returns immediately.
+// The logic was borrowed from framework.UpgradeMachineDeploymentInfrastructureRefAndWait.
+func upgradeMachineDeploymentInfrastructureRef(ctx context.Context, deployment *v1beta1.MachineDeployment) {
+	By("Patching the machine deployment infrastructure ref")
+	mgmtClient := input.BootstrapClusterProxy.GetClient()
+
+	// Create a new infrastructure ref based on the existing one
+	infraRef := deployment.Spec.Template.Spec.InfrastructureRef
+	newInfraObjName := createNewInfrastructureRef(ctx, infraRef)
+
+	// Patch the new infra object's ref to the machine deployment
+	patchHelper, err := patch.NewHelper(deployment, mgmtClient)
+	Expect(err).ToNot(HaveOccurred())
+	infraRef.Name = newInfraObjName
+	deployment.Spec.Template.Spec.InfrastructureRef = infraRef
+	Expect(patchHelper.Patch(ctx, deployment)).To(Succeed())
+}
+
+// upgradeControlPlane upgrades a control plane deployment infrastructure ref and returns immediately.
+func upgradeControlPlaneInfrastructureRef(ctx context.Context, controlPlane *controlplanev1.KubeadmControlPlane) {
+	By("Patching the control plane infrastructure ref")
+	mgmtClient := input.BootstrapClusterProxy.GetClient()
+
+	// Create a new infrastructure ref based on the existing one
+	infraRef := controlPlane.Spec.MachineTemplate.InfrastructureRef
+	newInfraObjName := createNewInfrastructureRef(ctx, infraRef)
+
+	// Patch the control plane to use the new infrastructure ref
+	patchHelper, err := patch.NewHelper(controlPlane, mgmtClient)
+	Expect(err).ToNot(HaveOccurred())
+	infraRef.Name = newInfraObjName
+	controlPlane.Spec.MachineTemplate.InfrastructureRef = infraRef
+	Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
+}
+
+// createNewInfrastructureRef creates a new infrastructure ref that's based on an existing one, but has a new name.  The
+// new name is returned.
+func createNewInfrastructureRef(ctx context.Context, sourceInfrastructureRef corev1.ObjectReference) string {
+	mgmtClient := input.BootstrapClusterProxy.GetClient()
+
+	// Retrieve the existing infrastructure ref object
+	infraObj := &unstructured.Unstructured{}
+	infraObj.SetGroupVersionKind(sourceInfrastructureRef.GroupVersionKind())
+	key := client.ObjectKey{
+		Namespace: clusterResources.Cluster.Namespace,
+		Name:      sourceInfrastructureRef.Name,
+	}
+	Expect(mgmtClient.Get(ctx, key, infraObj)).NotTo(HaveOccurred())
+
+	// Creates a new infrastructure ref object
+	newInfraObj := infraObj
+	newInfraObjName := fmt.Sprintf("%s-%s", sourceInfrastructureRef.Name, util.RandomString(6))
+	newInfraObj.SetName(newInfraObjName)
+	newInfraObj.SetResourceVersion("")
+	Expect(mgmtClient.Create(ctx, newInfraObj)).NotTo(HaveOccurred())
+	return newInfraObjName
 }
