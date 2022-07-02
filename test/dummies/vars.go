@@ -23,59 +23,61 @@ func GetYamlVal(variable string) string {
 }
 
 var ( // Declare exported dummy vars.
-	AffinityGroup      *cloud.AffinityGroup
-	CSAffinityGroup    *capcv1.CloudStackAffinityGroup
-	CSCluster          *capcv1.CloudStackCluster
-	CAPIMachine        *capiv1.Machine
-	CSMachine1         *capcv1.CloudStackMachine
-	CAPICluster        *capiv1.Cluster
-	ClusterLabel       map[string]string
-	ClusterName        string
-	ClusterNameSpace   string
-	CSMachineTemplate1 *capcv1.CloudStackMachineTemplate
-	Zone1              capcv1.Zone
-	Zone2              capcv1.Zone
-	CSZone1            *capcv1.CloudStackZone
-	CSZone2            *capcv1.CloudStackZone
-	Net1               capcv1.Network
-	Net2               capcv1.Network
-	ISONet1            capcv1.Network
-	CSISONet1          *capcv1.CloudStackIsolatedNetwork
-	Domain             cloud.Domain
-	DomainPath         string
-	DomainName         string
-	DomainID           string
-	Level2Domain       cloud.Domain
-	Level2DomainPath   string
-	Level2DomainName   string
-	Level2DomainID     string
-	Account            cloud.Account
-	AccountName        string
-	AccountID          string
-	Level2Account      cloud.Account
-	Level2AccountName  string
-	Level2AccountID    string
-	Tags               map[string]string
-	Tag1               map[string]string
-	Tag2               map[string]string
-	Tag1Key            string
-	Tag1Val            string
-	Tag2Key            string
-	Tag2Val            string
-	CSApiVersion       string
-	CSClusterKind      string
-	TestTags           map[string]string
-	CSClusterTagKey    string
-	CSClusterTagVal    string
-	CSClusterTag       map[string]string
-	CreatedByCapcKey   string
-	CreatedByCapcVal   string
-	LBRuleID           string
-	PublicIPID         string
-	EndPointHost       string
-	EndPointPort       int32
-	CSConf             *simpleyaml.Yaml
-	DiskOffering       capcv1.CloudStackResourceDiskOffering
+	AffinityGroup       *cloud.AffinityGroup
+	CSAffinityGroup     *capcv1.CloudStackAffinityGroup
+	CSCluster           *capcv1.CloudStackCluster
+	CAPIMachine         *capiv1.Machine
+	CSMachine1          *capcv1.CloudStackMachine
+	CAPICluster         *capiv1.Cluster
+	ClusterLabel        map[string]string
+	ClusterName         string
+	ClusterNameSpace    string
+	CSMachineTemplate1  *capcv1.CloudStackMachineTemplate
+	Zone1               capcv1.Zone
+	Zone2               capcv1.Zone
+	CSZone1             *capcv1.CloudStackZone
+	CSZone2             *capcv1.CloudStackZone
+	Net1                capcv1.Network
+	Net2                capcv1.Network
+	ISONet1             capcv1.Network
+	CSISONet1           *capcv1.CloudStackIsolatedNetwork
+	Domain              cloud.Domain
+	DomainPath          string
+	DomainName          string
+	DomainID            string
+	Level2Domain        cloud.Domain
+	Level2DomainPath    string
+	Level2DomainName    string
+	Level2DomainID      string
+	Account             cloud.Account
+	AccountName         string
+	AccountID           string
+	Level2Account       cloud.Account
+	Level2AccountName   string
+	Level2AccountID     string
+	Tags                map[string]string
+	Tag1                map[string]string
+	Tag2                map[string]string
+	Tag1Key             string
+	Tag1Val             string
+	Tag2Key             string
+	Tag2Val             string
+	CSApiVersion        string
+	CSClusterKind       string
+	TestTags            map[string]string
+	CSClusterTagKey     string
+	CSClusterTagVal     string
+	CSClusterTag        map[string]string
+	CreatedByCapcKey    string
+	CreatedByCapcVal    string
+	LBRuleID            string
+	PublicIPID          string
+	EndPointHost        string
+	EndPointPort        int32
+	CSConf              *simpleyaml.Yaml
+	DiskOffering        capcv1.CloudStackResourceDiskOffering
+	BootstrapSecret     *corev1.Secret
+	BootstrapSecretName string
 )
 
 // SetDummyVars sets/resets all dummy vars.
@@ -99,6 +101,7 @@ func SetDummyVars() {
 	SetDummyCSMachineTemplateVars()
 	SetDummyCSMachineVars()
 	SetDummyTagVars()
+	SetDummyBootstrapSecretVar()
 	LBRuleID = "FakeLBRuleID"
 }
 
@@ -346,6 +349,15 @@ func SetDummyIsoNetToNameOnly() {
 	ISONet1.ID = ""
 	ISONet1.Type = ""
 	Zone1.Network = ISONet1
+}
+
+func SetDummyBootstrapSecretVar() {
+	BootstrapSecretName := "such-secret-much-wow"
+	BootstrapSecret = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ClusterNameSpace,
+			Name:      BootstrapSecretName},
+		Data: map[string][]byte{"value": make([]byte, 0)}}
 }
 
 // Fills in cluster status vars.

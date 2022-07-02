@@ -248,6 +248,13 @@ func setupFakeTestClient() {
 	IsoNetReconciler = &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
 	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
 
+	// Set on reconcilers. The mock client wasn't available at suite startup, so set it now.
+	ClusterReconciler.CSClient = mockCloudClient
+	ZoneReconciler.CSClient = mockCloudClient
+	IsoNetReconciler.CSClient = mockCloudClient
+	MachineReconciler.CSClient = mockCloudClient
+	AffinityGReconciler.CSClient = mockCloudClient
+
 	DeferCleanup(func() {
 		cancel()
 	})
@@ -267,7 +274,6 @@ var _ = JustBeforeEach(func() {
 			defer GinkgoRecover()
 			Ω(k8sManager.Start(ctx)).Should(Succeed(), "failed to run manager")
 		}()
-		time.Sleep(time.Second)
 	}
 })
 
