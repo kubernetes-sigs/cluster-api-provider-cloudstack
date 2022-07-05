@@ -10,9 +10,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // GetYamlVal fetches the values in test/e2e/config/cloudstack.yaml by yaml node. A common config file.
@@ -24,23 +24,25 @@ func GetYamlVal(variable string) string {
 
 var ( // Declare exported dummy vars.
 	AffinityGroup       *cloud.AffinityGroup
-	CSAffinityGroup     *capcv1.CloudStackAffinityGroup
-	CSCluster           *capcv1.CloudStackCluster
-	CAPIMachine         *capiv1.Machine
-	CSMachine1          *capcv1.CloudStackMachine
-	CAPICluster         *capiv1.Cluster
+	CSAffinityGroup     *infrav1.CloudStackAffinityGroup
+	CSCluster           *infrav1.CloudStackCluster
+	CAPIMachine         *clusterv1.Machine
+	CSMachine1          *infrav1.CloudStackMachine
+	CAPICluster         *clusterv1.Cluster
 	ClusterLabel        map[string]string
 	ClusterName         string
 	ClusterNameSpace    string
-	CSMachineTemplate1  *capcv1.CloudStackMachineTemplate
-	Zone1               capcv1.Zone
-	Zone2               capcv1.Zone
-	CSZone1             *capcv1.CloudStackZone
-	CSZone2             *capcv1.CloudStackZone
-	Net1                capcv1.Network
-	Net2                capcv1.Network
-	ISONet1             capcv1.Network
-	CSISONet1           *capcv1.CloudStackIsolatedNetwork
+	CSMachineTemplate1  *infrav1.CloudStackMachineTemplate
+	Zone1               infrav1.Zone
+	Zone2               infrav1.Zone
+	CSZone1             *infrav1.CloudStackZone
+	CSZone2             *infrav1.CloudStackZone
+	CSFailureDomain1    *infrav1.CloudStackFailureDomain
+	CSFailureDomain2    *infrav1.CloudStackFailureDomain
+	Net1                infrav1.Network
+	Net2                infrav1.Network
+	ISONet1             infrav1.Network
+	CSISONet1           *infrav1.CloudStackIsolatedNetwork
 	Domain              cloud.Domain
 	DomainPath          string
 	DomainName          string
@@ -75,7 +77,7 @@ var ( // Declare exported dummy vars.
 	EndPointHost        string
 	EndPointPort        int32
 	CSConf              *simpleyaml.Yaml
-	DiskOffering        capcv1.CloudStackResourceDiskOffering
+	DiskOffering        infrav1.CloudStackResourceDiskOffering
 	BootstrapSecret     *corev1.Secret
 	BootstrapSecretName string
 )
@@ -106,7 +108,7 @@ func SetDummyVars() {
 }
 
 func SetDiskOfferingVars() {
-	DiskOffering = capcv1.CloudStackResourceDiskOffering{CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{Name: "Small"},
+	DiskOffering = infrav1.CloudStackResourceDiskOffering{CloudStackResourceIdentifier: infrav1.CloudStackResourceIdentifier{Name: "Small"},
 		MountPath:  "/data",
 		Device:     "/dev/vdb",
 		Filesystem: "ext4",
@@ -114,7 +116,7 @@ func SetDiskOfferingVars() {
 	}
 }
 
-func CAPCNetToCSAPINet(net *capcv1.Network) *csapi.Network {
+func CAPCNetToCSAPINet(net *infrav1.Network) *csapi.Network {
 	return &csapi.Network{
 		Name: net.Name,
 		Id:   net.ID,
@@ -122,7 +124,7 @@ func CAPCNetToCSAPINet(net *capcv1.Network) *csapi.Network {
 	}
 }
 
-func CAPCZoneToCSAPIZone(net *capcv1.Zone) *csapi.Zone {
+func CAPCZoneToCSAPIZone(net *infrav1.Zone) *csapi.Zone {
 	return &csapi.Zone{
 		Name: net.Name,
 		Id:   net.ID,
@@ -147,7 +149,7 @@ func SetDummyTagVars() {
 
 // SetDummyCSMachineTemplateVars resets the values in each of the exported CloudStackMachinesTemplate dummy variables.
 func SetDummyCSMachineTemplateVars() {
-	CSMachineTemplate1 = &capcv1.CloudStackMachineTemplate{
+	CSMachineTemplate1 = &infrav1.CloudStackMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 			Kind:       "CloudStackMachineTemplate",
@@ -156,21 +158,21 @@ func SetDummyCSMachineTemplateVars() {
 			Name:      "test-machinetemplate-1",
 			Namespace: "default",
 		},
-		Spec: capcv1.CloudStackMachineTemplateSpec{
-			Spec: capcv1.CloudStackMachineTemplateResource{
+		Spec: infrav1.CloudStackMachineTemplateSpec{
+			Spec: infrav1.CloudStackMachineTemplateResource{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-machinetemplateresource",
 					Namespace: "default",
 				},
-				Spec: capcv1.CloudStackMachineSpec{
-					IdentityRef: &capcv1.CloudStackIdentityReference{
+				Spec: infrav1.CloudStackMachineSpec{
+					IdentityRef: &infrav1.CloudStackIdentityReference{
 						Kind: "Secret",
 						Name: "IdentitySecret",
 					},
-					Template: capcv1.CloudStackResourceIdentifier{
+					Template: infrav1.CloudStackResourceIdentifier{
 						Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
 					},
-					Offering: capcv1.CloudStackResourceIdentifier{
+					Offering: infrav1.CloudStackResourceIdentifier{
 						Name: GetYamlVal("CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING"),
 					},
 					DiskOffering: DiskOffering,
@@ -185,7 +187,7 @@ func SetDummyCSMachineTemplateVars() {
 
 // SetDummyCSMachineVars resets the values in each of the exported CloudStackMachine dummy variables.
 func SetDummyCSMachineVars() {
-	CSMachine1 = &capcv1.CloudStackMachine{
+	CSMachine1 = &infrav1.CloudStackMachine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,
 			Kind:       "CloudStackMachine",
@@ -195,21 +197,21 @@ func SetDummyCSMachineVars() {
 			Namespace: "default",
 			Labels:    ClusterLabel,
 		},
-		Spec: capcv1.CloudStackMachineSpec{
+		Spec: infrav1.CloudStackMachineSpec{
 			Name: "test-machine-1",
-			IdentityRef: &capcv1.CloudStackIdentityReference{
+			IdentityRef: &infrav1.CloudStackIdentityReference{
 				Kind: "Secret",
 				Name: "IdentitySecret",
 			},
 			InstanceID: pointer.String("Instance1"),
-			Template: capcv1.CloudStackResourceIdentifier{
+			Template: infrav1.CloudStackResourceIdentifier{
 				Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
 			},
-			Offering: capcv1.CloudStackResourceIdentifier{
+			Offering: infrav1.CloudStackResourceIdentifier{
 				Name: GetYamlVal("CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING"),
 			},
-			DiskOffering: capcv1.CloudStackResourceDiskOffering{
-				CloudStackResourceIdentifier: capcv1.CloudStackResourceIdentifier{
+			DiskOffering: infrav1.CloudStackResourceDiskOffering{
+				CloudStackResourceIdentifier: infrav1.CloudStackResourceIdentifier{
 					Name: "DiskOffering",
 				},
 				MountPath:  "/data",
@@ -225,25 +227,25 @@ func SetDummyCSMachineVars() {
 }
 
 func SetDummyZoneVars() {
-	Zone1 = capcv1.Zone{Network: Net1}
+	Zone1 = infrav1.Zone{Network: Net1}
 	Zone1.Name = GetYamlVal("CLOUDSTACK_ZONE_NAME")
-	Zone2 = capcv1.Zone{Network: Net2}
+	Zone2 = infrav1.Zone{Network: Net2}
 	Zone2.Name = "Zone2"
 	Zone2.ID = "FakeZone2ID"
-	CSZone1 = &capcv1.CloudStackZone{
+	CSZone1 = &infrav1.CloudStackZone{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ClusterName + "-" + Zone1.Name,
 			Namespace: "default",
 			Labels:    ClusterLabel,
 		},
-		Spec: capcv1.CloudStackZoneSpec(Zone1)}
-	CSZone2 = &capcv1.CloudStackZone{
+		Spec: infrav1.CloudStackZoneSpec(Zone1)}
+	CSZone2 = &infrav1.CloudStackZone{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ClusterName + "-" + Zone2.Name,
 			Namespace: "default",
 			Labels:    ClusterLabel,
 		},
-		Spec: capcv1.CloudStackZoneSpec(Zone2)}
+		Spec: infrav1.CloudStackZoneSpec(Zone2)}
 }
 
 // SetDummyCAPCClusterVars resets the values in each of the exported CloudStackCluster related dummy variables.
@@ -266,18 +268,20 @@ func SetDummyCAPCClusterVars() {
 	EndPointPort = int32(5309)
 	PublicIPID = "FakePublicIPID"
 	ClusterNameSpace = "default"
-	ClusterLabel = map[string]string{capiv1.ClusterLabelName: ClusterName}
+	ClusterLabel = map[string]string{clusterv1.ClusterLabelName: ClusterName}
 	AffinityGroup = &cloud.AffinityGroup{
 		Name: "fakeaffinitygroup",
 		Type: cloud.AffinityGroupType,
 		ID:   "FakeAffinityGroupID"}
-	CSAffinityGroup = &capcv1.CloudStackAffinityGroup{
+	CSAffinityGroup = &infrav1.CloudStackAffinityGroup{
 		ObjectMeta: metav1.ObjectMeta{Name: AffinityGroup.Name, Namespace: "default", UID: "0", Labels: ClusterLabel},
-		Spec:       capcv1.CloudStackAffinityGroupSpec{Name: AffinityGroup.Name, Type: AffinityGroup.Type, ID: AffinityGroup.ID}}
-	Net1 = capcv1.Network{Name: GetYamlVal("CLOUDSTACK_NETWORK_NAME"), Type: cloud.NetworkTypeShared}
-	Net2 = capcv1.Network{Name: "SharedGuestNet2", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID2"}
-	ISONet1 = capcv1.Network{Name: "isoguestnet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
-	CSCluster = &capcv1.CloudStackCluster{
+		Spec:       infrav1.CloudStackAffinityGroupSpec{Name: AffinityGroup.Name, Type: AffinityGroup.Type, ID: AffinityGroup.ID}}
+	Net1 = infrav1.Network{Name: GetYamlVal("CLOUDSTACK_NETWORK_NAME"), Type: cloud.NetworkTypeShared}
+	Net2 = infrav1.Network{Name: "SharedGuestNet2", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID2"}
+	ISONet1 = infrav1.Network{Name: "isoguestnet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
+	CSFailureDomain1 = &infrav1.CloudStackFailureDomain{Spec: infrav1.CloudStackFailureDomainSpec{Zone: Zone1}}
+	CSFailureDomain2 = &infrav1.CloudStackFailureDomain{Spec: infrav1.CloudStackFailureDomainSpec{Zone: Zone1}}
+	CSCluster = &infrav1.CloudStackCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,
 			Kind:       CSClusterKind,
@@ -288,24 +292,24 @@ func SetDummyCAPCClusterVars() {
 			UID:       "0",
 			Labels:    ClusterLabel,
 		},
-		Spec: capcv1.CloudStackClusterSpec{
-			IdentityRef: &capcv1.CloudStackIdentityReference{
+		Spec: infrav1.CloudStackClusterSpec{
+			IdentityRef: &infrav1.CloudStackIdentityReference{
 				Kind: "Secret",
 				Name: "IdentitySecret",
 			},
-			ControlPlaneEndpoint: capiv1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
-			Zones:                []capcv1.Zone{Zone1, Zone2},
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
+			FailureDomains:       []infrav1.CloudStackFailureDomainSpec{CSFailureDomain1.Spec, CSFailureDomain2.Spec},
 		},
-		Status: capcv1.CloudStackClusterStatus{Zones: map[string]capcv1.Zone{}},
+		Status: infrav1.CloudStackClusterStatus{Zones: map[string]infrav1.Zone{}},
 	}
-	CSISONet1 = &capcv1.CloudStackIsolatedNetwork{
+	CSISONet1 = &infrav1.CloudStackIsolatedNetwork{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ISONet1.Name,
 			Namespace: "default",
 			UID:       "0",
 			Labels:    ClusterLabel,
 		},
-		Spec: capcv1.CloudStackIsolatedNetworkSpec{
+		Spec: infrav1.CloudStackIsolatedNetworkSpec{
 			ControlPlaneEndpoint: CSCluster.Spec.ControlPlaneEndpoint}}
 	CSISONet1.Spec.Name = ISONet1.Name
 	CSISONet1.Spec.ID = ISONet1.ID
@@ -330,14 +334,14 @@ func SetDummyDomainID() {
 
 // SetDummyCapiCluster resets the values in each of the exported CAPICluster related dummy variables.
 func SetDummyCAPIClusterVars() {
-	CAPICluster = &capiv1.Cluster{
+	CAPICluster = &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ClusterName,
 			Namespace: ClusterNameSpace,
 		},
-		Spec: capiv1.ClusterSpec{
+		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: capcv1.GroupVersion.String(),
+				APIVersion: infrav1.GroupVersion.String(),
 				Kind:       "CloudStackCluster",
 				Name:       "somename",
 			},
@@ -362,29 +366,30 @@ func SetDummyBootstrapSecretVar() {
 
 // Fills in cluster status vars.
 func SetDummyClusterStatus() {
-	CSCluster.Status.Zones = capcv1.ZoneStatusMap{Zone1.ID: Zone1, Zone2.ID: Zone2}
+	CSCluster.Status.Zones = infrav1.ZoneStatusMap{Zone1.ID: Zone1, Zone2.ID: Zone2}
 	CSCluster.Status.LBRuleID = LBRuleID
 }
 
 // Sets cluster spec to specified network.
-func SetClusterSpecToNet(net *capcv1.Network) {
+func SetClusterSpecToNet(net *infrav1.Network) {
 	Zone1.Network = *net
-	CSCluster.Spec.Zones = []capcv1.Zone{Zone1}
+	CSFailureDomain1 = &infrav1.CloudStackFailureDomain{Spec: infrav1.CloudStackFailureDomainSpec{Zone: Zone1}}
+	CSCluster.Spec.FailureDomains = []infrav1.CloudStackFailureDomainSpec{CSFailureDomain1.Spec}
 }
 
 func SetDummyCAPIMachineVars() {
-	CAPIMachine = &capiv1.Machine{
+	CAPIMachine = &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "capi-test-machine-",
 			Namespace:    "default",
 			Labels:       ClusterLabel,
 		},
-		Spec: capiv1.MachineSpec{
+		Spec: clusterv1.MachineSpec{
 			ClusterName:   ClusterName,
 			FailureDomain: pointer.String(Zone1.ID)},
 	}
 }
 
 func SetDummyCSMachineStatuses() {
-	CSMachine1.Status = capcv1.CloudStackMachineStatus{ZoneID: Zone1.ID}
+	CSMachine1.Status = infrav1.CloudStackMachineStatus{ZoneID: Zone1.ID}
 }
