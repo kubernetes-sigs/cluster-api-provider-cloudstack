@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 )
@@ -64,7 +64,7 @@ var _ = Describe("Network", func() {
 	It("calls to create an isolated network when not found", func() {
 		dummies.Zone1.Network = dummies.ISONet1
 		dummies.Zone1.Network.ID = ""
-		dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
+		dummies.CSCluster.Status.Zones = infrav1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
 		dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
 
 		nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
@@ -109,7 +109,7 @@ var _ = Describe("Network", func() {
 	Context("for a closed firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall", func() {
 			dummies.Zone1.Network = dummies.ISONet1
-			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
+			dummies.CSCluster.Status.Zones = infrav1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
 			dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, cloud.NetworkProtocolTCP).
 				Return(&csapi.CreateEgressFirewallRuleParams{})
@@ -123,7 +123,7 @@ var _ = Describe("Network", func() {
 	Context("for an open firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
 			dummies.Zone1.Network = dummies.ISONet1
-			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
+			dummies.CSCluster.Status.Zones = infrav1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
 			dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
 
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, "tcp").
@@ -211,7 +211,7 @@ var _ = Describe("Network", func() {
 			dummies.CSISONet1.Spec.ID = ""                        // Make CAPC methods resolve this.
 			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = "" // Make CAPC methods resolve this.
 			dummies.CSZone1.Spec.ID = ""                          // Make CAPC methods resolve this.
-			dummies.CSCluster.Status.Zones = capcv1.ZoneStatusMap{}
+			dummies.CSCluster.Status.Zones = infrav1.ZoneStatusMap{}
 
 			FetchIntegTestResources()
 		})

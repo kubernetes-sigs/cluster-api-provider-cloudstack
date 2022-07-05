@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/hashicorp/go-multierror"
@@ -32,7 +32,7 @@ import (
 )
 
 type VMIface interface {
-	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, *infrav1.CloudStackAffinityGroup, string) error
+	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *clusterv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, *infrav1.CloudStackAffinityGroup, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
 	DestroyVMInstance(*infrav1.CloudStackMachine) error
 }
@@ -199,7 +199,7 @@ func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOff
 // sets the infrastructure machine spec and status accordingly.
 func (c *client) GetOrCreateVMInstance(
 	csMachine *infrav1.CloudStackMachine,
-	capiMachine *capiv1.Machine,
+	capiMachine *clusterv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
 	zone *infrav1.CloudStackZone,
 	affinity *infrav1.CloudStackAffinityGroup,

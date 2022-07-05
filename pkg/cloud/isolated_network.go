@@ -23,21 +23,21 @@ import (
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 )
 
 type IsoNetworkIface interface {
-	GetOrCreateIsolatedNetwork(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) error
+	GetOrCreateIsolatedNetwork(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
 
-	AssociatePublicIPAddress(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) error
-	GetOrCreateLoadBalancerRule(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) error
-	OpenFirewallRules(*capcv1.CloudStackIsolatedNetwork) error
-	GetPublicIP(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
-	ResolveLoadBalancerRuleDetails(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) error
+	AssociatePublicIPAddress(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
+	GetOrCreateLoadBalancerRule(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
+	OpenFirewallRules(*infrav1.CloudStackIsolatedNetwork) error
+	GetPublicIP(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
+	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
 
-	AssignVMToLoadBalancerRule(isoNet *capcv1.CloudStackIsolatedNetwork, instanceID string) error
-	DeleteNetwork(capcv1.Network) error
-	DisposeIsoNetResources(*capcv1.CloudStackZone, *capcv1.CloudStackIsolatedNetwork, *capcv1.CloudStackCluster) error
+	AssignVMToLoadBalancerRule(isoNet *infrav1.CloudStackIsolatedNetwork, instanceID string) error
+	DeleteNetwork(infrav1.Network) error
+	DisposeIsoNetResources(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
 }
 
 // getOfferingID fetches an offering id.
@@ -53,9 +53,9 @@ func (c *client) getOfferingID() (string, error) {
 
 // AssociatePublicIPAddress Gets a PublicIP and associates the public IP to passed isolated network.
 func (c *client) AssociatePublicIPAddress(
-	zone *capcv1.CloudStackZone,
-	isoNet *capcv1.CloudStackIsolatedNetwork,
-	csCluster *capcv1.CloudStackCluster,
+	zone *infrav1.CloudStackZone,
+	isoNet *infrav1.CloudStackIsolatedNetwork,
+	csCluster *infrav1.CloudStackCluster,
 ) (retErr error) {
 	// Check specified IP address is available or get an unused one if not specified.
 	publicAddress, err := c.GetPublicIP(zone, isoNet, csCluster)
@@ -90,7 +90,7 @@ func (c *client) AssociatePublicIPAddress(
 }
 
 // CreateIsolatedNetwork creates an isolated network in the relevant Zone per passed network specification.
-func (c *client) CreateIsolatedNetwork(zone *capcv1.CloudStackZone, isoNet *capcv1.CloudStackIsolatedNetwork) (retErr error) {
+func (c *client) CreateIsolatedNetwork(zone *infrav1.CloudStackZone, isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
 	// Get network offering ID.
 	offeringID, err := c.getOfferingID()
 	if err != nil {
@@ -108,7 +108,7 @@ func (c *client) CreateIsolatedNetwork(zone *capcv1.CloudStackZone, isoNet *capc
 }
 
 // OpenFirewallRules opens a CloudStack firewall for an isolated network.
-func (c *client) OpenFirewallRules(isoNet *capcv1.CloudStackIsolatedNetwork) (retErr error) {
+func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
 	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, NetworkProtocolTCP)
 	_, retErr = c.cs.Firewall.CreateEgressFirewallRule(p)
 	if retErr != nil && strings.Contains(strings.ToLower(retErr.Error()), "there is already") { // Already a firewall rule here.
@@ -119,9 +119,9 @@ func (c *client) OpenFirewallRules(isoNet *capcv1.CloudStackIsolatedNetwork) (re
 
 // GetPublicIP gets a public IP with ID for cluster endpoint.
 func (c *client) GetPublicIP(
-	zone *capcv1.CloudStackZone,
-	isoNet *capcv1.CloudStackIsolatedNetwork,
-	csCluster *capcv1.CloudStackCluster,
+	zone *infrav1.CloudStackZone,
+	isoNet *infrav1.CloudStackIsolatedNetwork,
+	csCluster *infrav1.CloudStackCluster,
 ) (*cloudstack.PublicIpAddress, error) {
 	ip := csCluster.Spec.ControlPlaneEndpoint.Host
 
@@ -153,7 +153,7 @@ func (c *client) GetPublicIP(
 }
 
 // GetIsolatedNetwork gets an isolated network in the relevant Zone.
-func (c *client) GetIsolatedNetwork(isoNet *capcv1.CloudStackIsolatedNetwork) (retErr error) {
+func (c *client) GetIsolatedNetwork(isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
 	netDetails, count, err := c.cs.Network.GetNetworkByName(isoNet.Spec.Name)
 	if err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Network ID from %s", isoNet.Spec.Name))
@@ -177,9 +177,9 @@ func (c *client) GetIsolatedNetwork(isoNet *capcv1.CloudStackIsolatedNetwork) (r
 
 // ResolveLoadBalancerRuleDetails resolves the details of a load balancer rule by PublicIPID and Port.
 func (c *client) ResolveLoadBalancerRuleDetails(
-	zone *capcv1.CloudStackZone,
-	isoNet *capcv1.CloudStackIsolatedNetwork,
-	csCluster *capcv1.CloudStackCluster,
+	zone *infrav1.CloudStackZone,
+	isoNet *infrav1.CloudStackIsolatedNetwork,
+	csCluster *infrav1.CloudStackCluster,
 ) error {
 	p := c.cs.LoadBalancer.NewListLoadBalancerRulesParams()
 	p.SetPublicipid(isoNet.Status.PublicIPID)
@@ -199,9 +199,9 @@ func (c *client) ResolveLoadBalancerRuleDetails(
 
 // GetOrCreateLoadBalancerRule Create a load balancer rule that can be assigned to instances.
 func (c *client) GetOrCreateLoadBalancerRule(
-	zone *capcv1.CloudStackZone,
-	isoNet *capcv1.CloudStackIsolatedNetwork,
-	csCluster *capcv1.CloudStackCluster,
+	zone *infrav1.CloudStackZone,
+	isoNet *infrav1.CloudStackIsolatedNetwork,
+	csCluster *infrav1.CloudStackCluster,
 ) (retErr error) {
 	// Check/set ports.
 	// Prefer control plane endpoint. Take iso net port if CP missing. Set to default if both missing.
@@ -237,9 +237,9 @@ func (c *client) GetOrCreateLoadBalancerRule(
 
 // GetOrCreateIsolatedNetwork fetches or builds out the necessary structures for isolated network use.
 func (c *client) GetOrCreateIsolatedNetwork(
-	zone *capcv1.CloudStackZone,
-	isoNet *capcv1.CloudStackIsolatedNetwork,
-	csCluster *capcv1.CloudStackCluster,
+	zone *infrav1.CloudStackZone,
+	isoNet *infrav1.CloudStackIsolatedNetwork,
+	csCluster *infrav1.CloudStackCluster,
 ) error {
 	// Get or create the isolated network itself and resolve details into passed custom resources.
 	net := isoNet.Network()
@@ -272,7 +272,7 @@ func (c *client) GetOrCreateIsolatedNetwork(
 }
 
 // AssignVMToLoadBalancerRule assigns a VM instance to a load balancing rule (specifying lb membership).
-func (c *client) AssignVMToLoadBalancerRule(isoNet *capcv1.CloudStackIsolatedNetwork, instanceID string) (retErr error) {
+func (c *client) AssignVMToLoadBalancerRule(isoNet *infrav1.CloudStackIsolatedNetwork, instanceID string) (retErr error) {
 
 	// Check that the instance isn't already in LB rotation.
 	lbRuleInstances, retErr := c.cs.LoadBalancer.ListLoadBalancerRuleInstances(
@@ -294,16 +294,16 @@ func (c *client) AssignVMToLoadBalancerRule(isoNet *capcv1.CloudStackIsolatedNet
 }
 
 // DeleteNetwork deletes an isolated network.
-func (c *client) DeleteNetwork(net capcv1.Network) error {
+func (c *client) DeleteNetwork(net infrav1.Network) error {
 	_, err := c.cs.Network.DeleteNetwork(c.cs.Network.NewDeleteNetworkParams(net.ID))
 	return errors.Wrapf(err, "deleting network with id %s", net.ID)
 }
 
 // DisposeIsoNetResources cleans up isolated network resources.
 func (c *client) DisposeIsoNetResources(
-	zone *capcv1.CloudStackZone,
-	isoNet *capcv1.CloudStackIsolatedNetwork,
-	csCluster *capcv1.CloudStackCluster,
+	zone *infrav1.CloudStackZone,
+	isoNet *infrav1.CloudStackIsolatedNetwork,
+	csCluster *infrav1.CloudStackCluster,
 ) (retError error) {
 	if isoNet.Status.PublicIPID != "" {
 		if err := c.DeleteClusterTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID, csCluster); err != nil {
@@ -324,7 +324,7 @@ func (c *client) DisposeIsoNetResources(
 }
 
 // DeleteNetworkIfNotInUse deletes an isolated network if the network is no longer in use (indicated by in use tags).
-func (c *client) DeleteNetworkIfNotInUse(csCluster *capcv1.CloudStackCluster, net capcv1.Network) (retError error) {
+func (c *client) DeleteNetworkIfNotInUse(csCluster *infrav1.CloudStackCluster, net infrav1.Network) (retError error) {
 	tags, err := c.GetTags(ResourceTypeNetwork, net.ID)
 	if err != nil {
 		return err
@@ -346,7 +346,7 @@ func (c *client) DeleteNetworkIfNotInUse(csCluster *capcv1.CloudStackCluster, ne
 
 // DisassociatePublicIPAddressIfNotInUse removes a CloudStack public IP association from passed isolated network
 // if it is no longer in use (indicated by in use tags).
-func (c *client) DisassociatePublicIPAddressIfNotInUse(isoNet *capcv1.CloudStackIsolatedNetwork) (retError error) {
+func (c *client) DisassociatePublicIPAddressIfNotInUse(isoNet *infrav1.CloudStackIsolatedNetwork) (retError error) {
 	if tagsAllowDisposal, err := c.DoClusterTagsAllowDisposal(ResourceTypeIPAddress, isoNet.Status.PublicIPID); err != nil {
 		return err
 	} else if publicIP, _, err := c.cs.Address.GetPublicIpAddressByID(isoNet.Status.PublicIPID); err != nil {
@@ -360,7 +360,7 @@ func (c *client) DisassociatePublicIPAddressIfNotInUse(isoNet *capcv1.CloudStack
 }
 
 // DisassociatePublicIPAddress removes a CloudStack public IP association from passed isolated network.
-func (c *client) DisassociatePublicIPAddress(isoNet *capcv1.CloudStackIsolatedNetwork) (retErr error) {
+func (c *client) DisassociatePublicIPAddress(isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
 	// Remove the CAPC creation tag, so it won't be there the next time this address is associated.
 	retErr = c.DeleteCreatedByCAPCTag(ResourceTypeIPAddress, isoNet.Status.PublicIPID)
 	if retErr != nil {
