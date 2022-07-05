@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"github.com/onsi/ginkgo/v2"
 	"context"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -55,7 +54,6 @@ func NewCSAGReconciliationRunner() *CloudStackAGReconciliationRunner {
 }
 
 func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	defer ginkgo.GinkgoRecover()
 	return NewCSAGReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -64,7 +62,6 @@ func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Conte
 }
 
 func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {
-	defer ginkgo.GinkgoRecover()
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.AffinityGroupFinalizer)
 	affinityGroup := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Spec.Name, Type: r.ReconciliationSubject.Spec.Type}
 	if err := r.CSUser.GetOrCreateAffinityGroup(affinityGroup); err != nil {

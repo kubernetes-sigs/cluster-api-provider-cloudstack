@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

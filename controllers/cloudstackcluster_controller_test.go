@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
