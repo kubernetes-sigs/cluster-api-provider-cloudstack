@@ -18,9 +18,9 @@ package cloud_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
 
 	. "github.com/onsi/gomega"
 )
@@ -36,22 +36,17 @@ var _ = Describe("User Credentials", func() {
 	AfterEach(func() {
 	})
 
-	Context("UserCred Semi-Integ Tests", func() {
-		client, connectionErr := cloud.NewClient("../../cloud-config")
+	Context("UserCred Integ Tests", Label("integ"), func() {
 		var domain cloud.Domain
 		var account cloud.Account
 		var user cloud.User
 
 		BeforeEach(func() {
-			if connectionErr != nil { // Only do these tests if an actual ACS instance is available via cloud-config.
-				Skip(errors.Wrapf(connectionErr, "Could not connect to ACS instance").Error())
-			}
+			client = realCloudClient
 
-			// Settup dummies.
-			// TODO: move these to the test dummies package.
-			domain = cloud.Domain{Path: "ROOT/blah/blah/subsub"}
-			account = cloud.Account{Name: "SuperNested", Domain: domain}
-			user = cloud.User{Name: "SubSub", Account: account}
+			domain = cloud.Domain{Path: testDomainPath}
+			account = cloud.Account{Domain: domain}
+			user = cloud.User{Name: helpers.TempUserName, Account: account}
 		})
 
 		It("can resolve a domain from the path", func() {

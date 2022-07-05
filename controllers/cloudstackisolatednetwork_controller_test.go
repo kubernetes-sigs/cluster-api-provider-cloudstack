@@ -17,37 +17,36 @@ limitations under the License.
 package controllers_test
 
 import (
+	"time"
+
+	g "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("CloudStackClusterReconciler", func() {
+var _ = Describe("CloudStackIsolatedNetworkReconciler", func() {
 	Context("With k8s like test environment.", func() {
 		BeforeEach(func() {
-			SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
-			Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack ClusterReconciler.
+			SetupTestEnvironment()                                             // Must happen before setting up managers/reconcilers.
+			Ω(IsoNetReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack IsoNetReconciler.
 		})
 
-		It("Should create a CloudStackZone.", func() {
-			tempZone := &infrav1.CloudStackZone{}
+		It("Should set itself to ready if there are no errors in calls to CloudStack methods.", func() {
+			mockCloudClient.EXPECT().GetOrCreateIsolatedNetwork(g.Any(), g.Any(), g.Any()).AnyTimes()
+			mockCloudClient.EXPECT().AddClusterTag(g.Any(), g.Any(), g.Any()).AnyTimes()
+
+			Ω(k8sClient.Create(ctx, dummies.CSISONet1)).Should(Succeed())
 			Eventually(func() bool {
-				key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Spec.Zones[0].Name}
-				if err := k8sClient.Get(ctx, key, tempZone); err != nil {
+				tempIsoNet := &infrav1.CloudStackIsolatedNetwork{}
+				key := client.ObjectKeyFromObject(dummies.CSISONet1)
+				if err := k8sClient.Get(ctx, key, tempIsoNet); err == nil {
 					return true
 				}
 				return false
-			}, timeout).Should(BeTrue())
-		})
-	})
-
-	Context("Without a k8s test environment.", func() {
-		It("Should create a reconciliation runner with a Cloudstack Cluster as the reconciliation subject.", func() {
-			reconRunenr := controllers.NewCSClusterReconciliationRunner()
-			Ω(reconRunenr.ReconciliationSubject).ShouldNot(BeNil())
+			}, timeout).WithPolling(2 * time.Second).Should(BeTrue())
 		})
 	})
 })

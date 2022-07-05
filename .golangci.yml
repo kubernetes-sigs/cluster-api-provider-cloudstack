@@ -33,3 +33,11 @@ run:
   skip-dirs:
     - pkg/mocks
     - test
+
+issues:
+  # Excluding configuration per-path, per-linter, per-text and per-source
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gosec

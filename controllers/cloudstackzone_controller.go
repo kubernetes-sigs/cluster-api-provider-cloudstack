@@ -73,13 +73,9 @@ func (reconciler *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) e
 
 // Reconcile attempts to move the state of CRs to the requested state.
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-	if res, err := r.RequeueIfMissingBaseCRs(); r.ShouldReturn(res, err) {
-		return res, err
-	}
 	// Prevent premature deletion.
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.ZoneFinalizer)
 
-	r.Log.V(1).Info("Reconciling CloudStackZone.", "zoneSpec", r.ReconciliationSubject.Spec)
 	// Start by purely data fetching information about the zone and specified network.
 	if err := r.CSUser.ResolveZone(r.ReconciliationSubject); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information")

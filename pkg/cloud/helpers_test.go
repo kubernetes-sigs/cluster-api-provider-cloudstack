@@ -33,9 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
-const (
-	FixturePath = "test/fixtures/cloud-config-files"
-)
+var FixturePath = path.Join(os.Getenv("PROJECT_DIR"), "test/fixtures/cloud-config-files")
 
 var _ = Describe("Helpers", func() {
 
@@ -65,8 +63,7 @@ var _ = Describe("Helpers", func() {
 })
 
 func getConfigPath(filename string) string {
-	dir, _ := os.Getwd()
-	return path.Join(dir, FixturePath, filename)
+	return path.Join(FixturePath, filename)
 }
 
 // This matcher is used to make gomega matching compatible with gomock parameter matching.

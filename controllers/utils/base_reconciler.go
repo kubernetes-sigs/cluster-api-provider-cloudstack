@@ -111,11 +111,13 @@ func (r *ReconciliationRunner) WithRequestCtx(ctx context.Context) *Reconciliati
 // SetupLogger sets up the reconciler's logger to log with name and namespace values.
 func (r *ReconciliationRunner) SetupLogger() (res ctrl.Result, retErr error) {
 	r.Log = r.BaseLogger.WithValues("name", r.Request.Name, "namespace", r.Request.Namespace)
+	r.Log.V(1).Info("Logger setup complete.")
 	return ctrl.Result{}, nil
 }
 
 func (r *ReconciliationRunner) IfDeletionTimestampIsZero(fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
+		r.Log.V(1).Info("Checking for deletion timestamp.")
 		if r.ConditionalResult = r.ReconciliationSubject.GetDeletionTimestamp().IsZero(); r.ConditionalResult {
 			return fn()
 		}
@@ -134,6 +136,7 @@ func (r *ReconciliationRunner) Else(fn CloudStackReconcilerMethod) CloudStackRec
 
 // GetCAPICluster gets the CAPI cluster the reconciliation subject belongs to.
 func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
+	r.Log.V(1).Info("Getting CAPI cluster.")
 	name := r.ReconciliationSubject.GetLabels()[capiv1.ClusterLabelName]
 	if name == "" {
 		r.Log.V(1).Info("Reconciliation Subject is missing cluster label or cluster does not exist. Skipping CAPI Cluster fetch.",
@@ -155,6 +158,7 @@ func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
 
 // GetCSCluster gets the CAPI cluster the reconciliation subject belongs to.
 func (r *ReconciliationRunner) GetCSCluster() (ctrl.Result, error) {
+	r.Log.V(1).Info("Getting CloudStackCluster cluster.")
 	name := r.ReconciliationSubject.GetLabels()[capiv1.ClusterLabelName]
 	if name == "" {
 		r.Log.V(1).Info("Reconciliation Subject is missing cluster label or cluster does not exist. Skipping CloudStackCluster fetch.",
@@ -269,6 +273,10 @@ func (r *ReconciliationRunner) PatchChangesBackToAPI() (res ctrl.Result, retErr 
 
 // RequeueWithMessage is a convenience method to log requeue message and then return a result with RequeueAfter set.
 func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...interface{}) (ctrl.Result, error) {
+	// Add requeueing to message if not present. Might turn this into a lint check later.
+	if !strings.Contains(strings.ToLower(msg), "requeue") {
+		msg = msg + " Requeueing."
+	}
 	r.Log.Info(msg, keysAndValues...)
 	return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 }
@@ -315,16 +323,19 @@ func (r *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackReconcil
 // subject, get CAPI and CloudStackClusters, and call either r.Reconcile or r.ReconcileDelete.
 func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, retErr error) {
 	defer func() {
-		if err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject); err != nil {
-			if !strings.Contains(err.Error(), "is invalid: status.ready") {
-				err = errors.Wrapf(err, "error patching reconciliation subject")
-				retErr = multierror.Append(retErr, err)
+		if r.Patcher != nil {
+			if err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject); err != nil {
+				if !strings.Contains(err.Error(), "is invalid: status.ready") {
+					err = errors.Wrapf(err, "error patching reconciliation subject")
+					retErr = multierror.Append(retErr, err)
+				}
 			}
 		}
 	}()
 	return r.RunReconciliationStages(
 		r.SetupLogger,
 		r.GetReconciliationSubject,
+		r.SetupPatcher,
 		r.GetCAPICluster,
 		r.GetCSCluster,
 		r.RequeueIfMissingBaseCRs,
@@ -332,12 +343,6 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 		r.IfDeletionTimestampIsZero(r.Reconcile),
 		r.Else(r.ReconcileDelete),
 	)
-}
-
-// SetReturnEarly sets the runner to return early. This causes the runner to break from running further
-// reconciliation stages and return whatever result the current method returns.
-func (r *ReconciliationRunner) SetReturnEarly() {
-	r.returnEarly = true
 }
 
 // CheckIfPaused returns with requeue later set if paused.
@@ -355,12 +360,12 @@ func (r *ReconciliationRunner) GetReconciliationSubject() (res ctrl.Result, rete
 	r.Log.V(1).Info("Getting reconciliation subject.")
 	err := client.IgnoreNotFound(r.K8sClient.Get(r.RequestCtx, r.Request.NamespacedName, r.ReconciliationSubject))
 	if r.ReconciliationSubject.GetName() == "" {
-		r.SetReturnEarly()
+		return ctrl.Result{}, errors.Errorf("Could not fetch object by namespaced name: %s", r.Request.NamespacedName)
 	}
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "fetching reconciliation subject")
 	}
-	return r.SetupPatcher()
+	return ctrl.Result{}, nil
 }
 
 // SetReconciliationSubjectToConcreteSubject sets reconciliation subject to passed concrete object.
@@ -412,6 +417,7 @@ func (r *ReconciliationRunner) NewChildObjectMeta(name string) metav1.ObjectMeta
 // RequeueIfMissingBaseCRs checks that the ReconciliationSubject, CAPI Cluster, and CloudStackCluster objects were
 // actually fetched and reques if not. The base reconciliation stages will continue even if not so as to allow deletion.
 func (r *ReconciliationRunner) RequeueIfMissingBaseCRs() (ctrl.Result, error) {
+	r.Log.V(1).Info("Requeueing if missing ReconciliationSubject, CloudStack cluster, or CAPI cluster.")
 	if r.ReconciliationSubject.GetName() == "" {
 		return r.RequeueWithMessage("Reconciliation subject wasn't found. Requeueing.")
 	} else if r.CSCluster.GetName() == "" {

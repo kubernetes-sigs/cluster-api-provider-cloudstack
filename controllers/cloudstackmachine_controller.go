@@ -90,7 +90,7 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 
 func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
-		r.GetZones(r.Zones),
+		r.GetZonesAndRequeueIfMissing(r.Zones),
 		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
 		r.RequeueIfCloudStackClusterNotReady,
 		r.ConsiderAffinity,
@@ -148,6 +148,9 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 				return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", r.ReconciliationSubject.Spec.ZoneName)
 			}
 		} else { // No Zone Specified, pick a Random Zone.
+			if len(r.Zones.Items) < 1 { // Double check that zones are present.
+				return r.RequeueWithMessage("no zones found, requeueing")
+			}
 			randNum := (rand.Int() % len(r.Zones.Items)) // #nosec G404 -- weak crypt rand doesn't matter here.
 			r.ReconciliationSubject.Status.ZoneID = r.Zones.Items[randNum].Spec.ID
 		}

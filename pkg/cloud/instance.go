@@ -18,6 +18,7 @@ package cloud
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -41,7 +42,11 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 	csMachine.Spec.ProviderID = pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
 	csMachine.Spec.InstanceID = pointer.StringPtr(vmResponse.Id)
 	csMachine.Status.Addresses = []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vmResponse.Ipaddress}}
-	csMachine.Status.InstanceState = infrav1.InstanceState(vmResponse.State)
+	newInstanceState := infrav1.InstanceState(vmResponse.State)
+	if newInstanceState != csMachine.Status.InstanceState || (newInstanceState != "" && csMachine.Status.InstanceStateLastUpdated.IsZero()) {
+		csMachine.Status.InstanceState = newInstanceState
+		csMachine.Status.InstanceStateLastUpdated = metav1.Now()
+	}
 }
 
 // ResolveVMInstanceDetails Retrieves VM instance details by csMachine.Spec.InstanceID or csMachine.Name, and
