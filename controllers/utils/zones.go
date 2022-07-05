@@ -23,7 +23,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 
 	"github.com/pkg/errors"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -67,7 +67,7 @@ func (r *ReconciliationRunner) CreateZones(zoneSpecs []infrav1.Zone) CloudStackR
 func (r *ReconciliationRunner) GetZones(zones *infrav1.CloudStackZoneList) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		capiClusterLabel := map[string]string{
-			capiv1.ClusterLabelName: r.CSCluster.GetLabels()[capiv1.ClusterLabelName]}
+			clusterv1.ClusterLabelName: r.CSCluster.GetLabels()[clusterv1.ClusterLabelName]}
 		if err := r.K8sClient.List(
 			r.RequestCtx,
 			zones,

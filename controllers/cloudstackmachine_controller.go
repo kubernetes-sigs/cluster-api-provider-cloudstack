@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"github.com/onsi/ginkgo/v2"
 	"context"
 	"fmt"
 	"math/rand"
@@ -36,7 +37,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
@@ -50,7 +51,7 @@ import (
 type CloudStackMachineReconciliationRunner struct {
 	utils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackMachine
-	CAPIMachine           *capiv1.Machine
+	CAPIMachine           *clusterv1.Machine
 	StateChecker          *infrav1.CloudStackMachineStateChecker
 	Zones                 *infrav1.CloudStackZoneList
 	FailureDomain         *infrav1.CloudStackZone
@@ -67,7 +68,7 @@ type CloudStackMachineReconciler struct {
 func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 	// Set concrete type and init pointers.
 	r := &CloudStackMachineReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachine{}}
-	r.CAPIMachine = &capiv1.Machine{}
+	r.CAPIMachine = &clusterv1.Machine{}
 	r.StateChecker = &infrav1.CloudStackMachineStateChecker{}
 	r.Zones = &infrav1.CloudStackZoneList{}
 	r.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
@@ -81,6 +82,7 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	return NewCSMachineReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -89,6 +91,7 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 }
 
 func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+	defer ginkgo.GinkgoRecover()
 	return r.RunReconciliationStages(
 		r.GetZonesAndRequeueIfMissing(r.Zones),
 		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
@@ -314,13 +317,13 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager
 	// Queues a reconcile request for owned CloudStackMachine on change.
 	// Used to update when bootstrap data becomes available.
 	if err = controller.Watch(
-		&source.Kind{Type: &capiv1.Machine{}},
+		&source.Kind{Type: &clusterv1.Machine{}},
 		handler.EnqueueRequestsFromMapFunc(
 			util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine"))),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldMachine := e.ObjectOld.(*capiv1.Machine)
-				newMachine := e.ObjectNew.(*capiv1.Machine)
+				oldMachine := e.ObjectOld.(*clusterv1.Machine)
+				newMachine := e.ObjectNew.(*clusterv1.Machine)
 
 				return oldMachine.Spec.Bootstrap.DataSecretName == nil && newMachine.Spec.Bootstrap.DataSecretName != nil
 			},
@@ -337,16 +340,16 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager
 
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
 	return controller.Watch(
-		&source.Kind{Type: &capiv1.Cluster{}},
+		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(csMachineMapper),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*capiv1.Cluster)
-				newCluster := e.ObjectNew.(*capiv1.Cluster)
+				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+				newCluster := e.ObjectNew.(*clusterv1.Cluster)
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
 			CreateFunc: func(e event.CreateEvent) bool {
-				_, ok := e.Object.GetAnnotations()[capiv1.PausedAnnotation]
+				_, ok := e.Object.GetAnnotations()[clusterv1.PausedAnnotation]
 				return ok
 			},
 		},

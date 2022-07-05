@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"github.com/onsi/ginkgo/v2"
 	"context"
 	"strings"
 	"time"
@@ -25,7 +26,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinestatecheckers,verbs=get;list;watch;create;update;patch;delete
@@ -38,7 +39,7 @@ type CloudStackMachineStateCheckerReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	MachineStateCheckers  *infrav1.CloudStackMachineStateCheckerList
 	ReconciliationSubject *infrav1.CloudStackMachineStateChecker
-	CAPIMachine           *capiv1.Machine
+	CAPIMachine           *clusterv1.Machine
 	CSMachine             *infrav1.CloudStackMachine
 }
 
@@ -51,7 +52,7 @@ type CloudStackMachineStateCheckerReconciler struct {
 func NewCSMachineStateCheckerReconciliationRunner() *CloudStackMachineStateCheckerReconciliationRunner {
 	// Set concrete type and init pointers.
 	runner := &CloudStackMachineStateCheckerReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachineStateChecker{}}
-	runner.CAPIMachine = &capiv1.Machine{}
+	runner.CAPIMachine = &clusterv1.Machine{}
 	runner.CSMachine = &infrav1.CloudStackMachine{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
 	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
@@ -59,6 +60,7 @@ func NewCSMachineStateCheckerReconciliationRunner() *CloudStackMachineStateCheck
 }
 
 func (r *CloudStackMachineStateCheckerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	defer ginkgo.GinkgoRecover()
 	return NewCSMachineStateCheckerReconciliationRunner().
 		UsingBaseReconciler(r.ReconcilerBase).
 		ForRequest(req).
@@ -67,6 +69,7 @@ func (r *CloudStackMachineStateCheckerReconciler) Reconcile(ctx context.Context,
 }
 
 func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Result, error) {
+	defer ginkgo.GinkgoRecover()
 	if res, err := r.GetParent(r.ReconciliationSubject, r.CSMachine)(); r.ShouldReturn(res, err) {
 		return res, err
 	}

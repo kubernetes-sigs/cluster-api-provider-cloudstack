@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -74,7 +74,7 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 }
 
 // The computed affinity group name relevant to this machine.
-func GenerateAffinityGroupName(csm infrav1.CloudStackMachine, capiMachine *capiv1.Machine) (string, error) {
+func GenerateAffinityGroupName(csm infrav1.CloudStackMachine, capiMachine *clusterv1.Machine) (string, error) {
 	managerOwnerRef := GetManagementOwnerRef(capiMachine)
 	if managerOwnerRef == nil {
 		return "", errors.Errorf("could not find owner UID for %s/%s", csm.Namespace, csm.Name)

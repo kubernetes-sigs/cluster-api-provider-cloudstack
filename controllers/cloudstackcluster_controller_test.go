@@ -32,11 +32,11 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 			Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack ClusterReconciler.
 		})
 
-		It("Should create a CloudStackZone.", func() {
-			tempZone := &infrav1.CloudStackZone{}
+		It("Should create a CloudStackFailureDomain.", func() {
+			tempfd := &infrav1.CloudStackFailureDomain{}
 			Eventually(func() bool {
-				key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Spec.Zones[0].Name}
-				if err := k8sClient.Get(ctx, key, tempZone); err != nil {
+				key := client.ObjectKeyFromObject(dummies.CSFailureDomain1)
+				if err := k8sClient.Get(ctx, key, tempfd); err != nil {
 					return true
 				}
 				return false

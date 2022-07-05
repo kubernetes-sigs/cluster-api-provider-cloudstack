@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -54,7 +54,7 @@ type CloudStackBaseContext struct {
 	Log         logr.Logger
 	RequestCtx  context.Context
 	Request     ctrl.Request
-	CAPICluster *capiv1.Cluster
+	CAPICluster *clusterv1.Cluster
 	CSCluster   *infrav1.CloudStackCluster
 	Patcher     *patch.Helper
 }
@@ -80,7 +80,7 @@ type ConcreteRunner interface {
 func NewRunner(concreteRunner ConcreteRunner, subject client.Object) ReconciliationRunner {
 	r := ReconciliationRunner{}
 	r.CSCluster = &infrav1.CloudStackCluster{}
-	r.CAPICluster = &capiv1.Cluster{}
+	r.CAPICluster = &clusterv1.Cluster{}
 	r.ReconciliationSubject = subject
 	r.Reconcile = concreteRunner.Reconcile
 	r.ReconcileDelete = concreteRunner.ReconcileDelete
@@ -137,13 +137,13 @@ func (r *ReconciliationRunner) Else(fn CloudStackReconcilerMethod) CloudStackRec
 // GetCAPICluster gets the CAPI cluster the reconciliation subject belongs to.
 func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
 	r.Log.V(1).Info("Getting CAPI cluster.")
-	name := r.ReconciliationSubject.GetLabels()[capiv1.ClusterLabelName]
+	name := r.ReconciliationSubject.GetLabels()[clusterv1.ClusterLabelName]
 	if name == "" {
 		r.Log.V(1).Info("Reconciliation Subject is missing cluster label or cluster does not exist. Skipping CAPI Cluster fetch.",
 			"SubjectKind", r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind)
 		return ctrl.Result{}, nil
 	}
-	r.CAPICluster = &capiv1.Cluster{}
+	r.CAPICluster = &clusterv1.Cluster{}
 	key := client.ObjectKey{
 		Namespace: r.ReconciliationSubject.GetNamespace(),
 		Name:      name,
@@ -159,7 +159,7 @@ func (r *ReconciliationRunner) GetCAPICluster() (ctrl.Result, error) {
 // GetCSCluster gets the CAPI cluster the reconciliation subject belongs to.
 func (r *ReconciliationRunner) GetCSCluster() (ctrl.Result, error) {
 	r.Log.V(1).Info("Getting CloudStackCluster cluster.")
-	name := r.ReconciliationSubject.GetLabels()[capiv1.ClusterLabelName]
+	name := r.ReconciliationSubject.GetLabels()[clusterv1.ClusterLabelName]
 	if name == "" {
 		r.Log.V(1).Info("Reconciliation Subject is missing cluster label or cluster does not exist. Skipping CloudStackCluster fetch.",
 			"SubjectKind", r.ReconciliationSubject.GetObjectKind().GroupVersionKind().Kind)
@@ -406,7 +406,7 @@ func (r *ReconciliationRunner) NewChildObjectMeta(name string) metav1.ObjectMeta
 	return metav1.ObjectMeta{
 		Name:      strings.ToLower(name),
 		Namespace: r.Request.Namespace,
-		Labels: map[string]string{capiv1.ClusterLabelName: r.CAPICluster.Name,
+		Labels: map[string]string{clusterv1.ClusterLabelName: r.CAPICluster.Name,
 			infrav1.CloudStackClusterLabelName: r.CSCluster.ClusterName},
 		OwnerReferences: []metav1.OwnerReference{
 			*metav1.NewControllerRef(r.ReconciliationSubject, ownerGVK),

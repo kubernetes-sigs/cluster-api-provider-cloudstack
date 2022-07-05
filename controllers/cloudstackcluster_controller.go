@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"github.com/onsi/ginkgo/v2"
 	"context"
 	"fmt"
 	"reflect"
@@ -31,7 +32,7 @@ import (
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -50,7 +51,7 @@ import (
 // The runner does the actual reconciliation.
 type CloudStackClusterReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
-	Zones                 *infrav1.CloudStackZoneList
+	FailureDomains        *infrav1.CloudStackFailureDomainList
 	ReconciliationSubject *infrav1.CloudStackCluster
 }
 
@@ -64,7 +65,7 @@ type CloudStackClusterReconciler struct {
 func NewCSClusterReconciliationRunner() *CloudStackClusterReconciliationRunner {
 	// Set concrete type and init pointers.
 	r := &CloudStackClusterReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackCluster{}}
-	r.Zones = &infrav1.CloudStackZoneList{}
+	r.FailureDomains = &infrav1.CloudStackFailureDomainList{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
 	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
 	// For the CloudStackCluster, the ReconciliationSubject is the CSCluster
@@ -76,6 +77,7 @@ func NewCSClusterReconciliationRunner() *CloudStackClusterReconciliationRunner {
 
 // Reconcile is the method k8s will call upon a reconciliation request.
 func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	return NewCSClusterReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -85,11 +87,12 @@ func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, re
 
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
+	defer ginkgo.GinkgoRecover()
 	return r.RunReconciliationStages(
 		r.RequeueIfMissingBaseCRs,
-		r.CreateZones(r.ReconciliationSubject.Spec.Zones),
+		r.CreateFailureDomains(r.ReconciliationSubject.Spec.FailureDomains),
 		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackZone")),
-		r.GetZones(r.Zones),
+		r.GetFailureDomains(r.FailureDomains),
 		r.VerifyZoneCRDs,
 		r.SetFailureDomains,
 		r.SetReady)
@@ -102,16 +105,16 @@ func (r *CloudStackClusterReconciliationRunner) SetReady() (ctrl.Result, error) 
 	return ctrl.Result{}, nil
 }
 
-// CheckZoneDetails verifies the Zone CRDs found match against those requested.
+// VerifyFailureDomainCRDs verifies the Zone CRDs found match against those requested.
 func (r *CloudStackClusterReconciliationRunner) VerifyZoneCRDs() (ctrl.Result, error) {
-	expected := len(r.ReconciliationSubject.Spec.Zones)
-	actual := len(r.Zones.Items)
+	expected := len(r.ReconciliationSubject.Spec.FailureDomains)
+	actual := len(r.FailureDomains.Items)
 	if expected != actual {
 		return r.RequeueWithMessage(fmt.Sprintf("Expected %d Zones, but found %d", expected, actual))
 	}
-	for _, zone := range r.Zones.Items {
-		if !zone.Status.Ready {
-			return r.RequeueWithMessage(fmt.Sprintf("Zone %s/%s not ready, requeueing.", zone.Namespace, zone.Name))
+	for _, fd := range r.FailureDomains.Items {
+		if !fd.Status.Ready {
+			return r.RequeueWithMessage(fmt.Sprintf("Zone %s/%s not ready, requeueing.", fd.Namespace, fd.Name))
 		}
 	}
 	return ctrl.Result{}, nil
@@ -119,9 +122,9 @@ func (r *CloudStackClusterReconciliationRunner) VerifyZoneCRDs() (ctrl.Result, e
 
 // SetFailureDomains sets failure domains to be used for CAPI machine placement.
 func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result, error) {
-	r.ReconciliationSubject.Status.FailureDomains = capiv1.FailureDomains{}
-	for _, zone := range r.Zones.Items {
-		r.ReconciliationSubject.Status.FailureDomains[zone.Spec.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
+	r.ReconciliationSubject.Status.FailureDomains = clusterv1.FailureDomains{}
+	for _, fdSpec := range r.FailureDomains.Items {
+		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{ControlPlane: true}
 	}
 	return ctrl.Result{}, nil
 }
@@ -129,12 +132,12 @@ func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result
 // ReconcileDelete cleans up resources used by the cluster and finally removes the CloudStackCluster's finalizers.
 func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
 	r.Log.Info("Deleting CloudStackCluster.")
-	if res, err := r.GetZones(r.Zones)(); r.ShouldReturn(res, err) {
+	if res, err := r.GetFailureDomains(r.FailureDomains)(); r.ShouldReturn(res, err) {
 		return res, err
 	}
-	if len(r.Zones.Items) > 0 {
-		for idx := range r.Zones.Items {
-			if err := r.K8sClient.Delete(r.RequestCtx, &r.Zones.Items[idx]); err != nil {
+	if len(r.FailureDomains.Items) > 0 {
+		for idx := range r.FailureDomains.Items {
+			if err := r.K8sClient.Delete(r.RequestCtx, &r.FailureDomains.Items[idx]); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -176,13 +179,13 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
 	err = controller.Watch(
-		&source.Kind{Type: &capiv1.Cluster{}},
+		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(
 			util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*capiv1.Cluster)
-				newCluster := e.ObjectNew.(*capiv1.Cluster)
+				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+				newCluster := e.ObjectNew.(*clusterv1.Cluster)
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool { return false },
