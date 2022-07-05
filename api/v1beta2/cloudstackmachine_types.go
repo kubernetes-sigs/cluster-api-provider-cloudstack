@@ -130,6 +130,10 @@ type CloudStackMachineStatus struct {
 	// +optional
 	InstanceState InstanceState `json:"instanceState,omitempty"`
 
+	// InstanceStateLastUpdated is the time the instance state was last updated.
+	// +optional
+	InstanceStateLastUpdated metav1.Time `json:"instanceStateLastUpdated,omitempty"`
+
 	// Ready indicates the readiness of the provider resource.
 	Ready bool `json:"ready"`
 }
