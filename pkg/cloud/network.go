@@ -19,7 +19,7 @@ package cloud
 import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 )
 
 type NetworkIface interface {

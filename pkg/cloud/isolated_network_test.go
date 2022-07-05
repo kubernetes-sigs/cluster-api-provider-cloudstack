@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 )

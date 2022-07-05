@@ -22,7 +22,7 @@ import (
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
 
