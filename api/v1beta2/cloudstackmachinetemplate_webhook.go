@@ -39,7 +39,7 @@ func (r *CloudStackMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) er
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackmachinetemplate,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta1,name=mcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta1
+//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachinetemplate,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta2,name=mcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta2
 var _ webhook.Defaulter = &CloudStackMachineTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
@@ -48,7 +48,7 @@ func (r *CloudStackMachineTemplate) Default() {
 	// No defaulted values supported yet.
 }
 
-//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackmachinetemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta1,name=vcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta1
+//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachinetemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta2,name=vcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta2
 
 var _ webhook.Validator = &CloudStackMachineTemplate{}
 

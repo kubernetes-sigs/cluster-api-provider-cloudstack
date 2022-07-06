@@ -46,6 +46,7 @@ type CloudStackAffinityGroupStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 
 // CloudStackAffinityGroup is the Schema for the cloudstackaffinitygroups API
 type CloudStackAffinityGroup struct {

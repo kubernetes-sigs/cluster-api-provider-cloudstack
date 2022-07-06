@@ -16,7 +16,7 @@ spec:
     singular: cloudstackfailuredomain
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - name: v1beta2
     schema:
       openAPIV3Schema:
         description: CloudStackFailureDomain is the Schema for the cloudstackfailuredomains
@@ -47,68 +47,49 @@ spec:
               domain:
                 description: CloudStack domain.
                 type: string
+              name:
+                description: The failure domain unique name.
+                type: string
               zone:
                 description: The ACS Zone for this failure domain.
                 properties:
-                  apiVersion:
-                    description: 'APIVersion defines the versioned schema of this
-                      representation of an object. Servers should convert recognized
-                      schemas to the latest internal value, and may reject unrecognized
-                      values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                  id:
+                    description: ID.
                     type: string
-                  kind:
-                    description: 'Kind is a string value representing the REST resource
-                      this object represents. Servers may infer this from the endpoint
-                      the client submits requests to. Cannot be updated. In CamelCase.
-                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                  name:
+                    description: Name.
                     type: string
-                  metadata:
-                    type: object
-                  spec:
-                    description: CloudStackZoneSpec defines the desired state of CloudStackZone
+                  network:
+                    description: The network within the Zone to use.
                     properties:
                       id:
-                        description: ID.
+                        description: Cloudstack Network ID the cluster is built in.
                         type: string
                       name:
-                        description: Name.
+                        description: Cloudstack Network Name the cluster is built
+                          in.
                         type: string
-                      network:
-                        description: The network within the Zone to use.
-                        properties:
-                          id:
-                            description: Cloudstack Network ID the cluster is built
-                              in.
-                            type: string
-                          name:
-                            description: Cloudstack Network Name the cluster is built
-                              in.
-                            type: string
-                          type:
-                            description: Cloudstack Network Type the cluster is built
-                              in.
-                            type: string
-                        type: object
-                    required:
-                    - network
+                      type:
+                        description: Cloudstack Network Type the cluster is built
+                          in.
+                        type: string
                     type: object
-                  status:
-                    description: CloudStackZoneStatus defines the observed state of
-                      CloudStackZone
-                    properties:
-                      ready:
-                        description: Reflects the readiness of the CloudStack zone.
-                        type: boolean
-                    required:
-                    - ready
-                    type: object
+                required:
+                - network
                 type: object
             required:
+            - name
             - zone
             type: object
           status:
             description: CloudStackFailureDomainStatus defines the observed state
               of CloudStackFailureDomain
+            properties:
+              ready:
+                description: Reflects the readiness of the CloudStack Failure Domain.
+                type: boolean
+            required:
+            - ready
             type: object
         type: object
     served: true

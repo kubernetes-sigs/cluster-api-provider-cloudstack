@@ -132,6 +132,7 @@ type CloudStackClusterStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 
 // CloudStackCluster is the Schema for the cloudstackclusters API
 type CloudStackCluster struct {

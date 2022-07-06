@@ -35,6 +35,7 @@ type CloudStackMachineTemplateSpec struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 
 // CloudStackMachineTemplate is the Schema for the cloudstackmachinetemplates API
 type CloudStackMachineTemplate struct {

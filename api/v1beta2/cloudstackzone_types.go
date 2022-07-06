@@ -46,6 +46,7 @@ type CloudStackZoneStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 
 // CloudStackZone is the Schema for the cloudstackzones API
 type CloudStackZone struct {

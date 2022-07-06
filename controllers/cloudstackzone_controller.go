@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"github.com/onsi/ginkgo/v2"
 	"context"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,6 +58,7 @@ func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
 
 // Reconciler Reconcile adapts the runner to the runner to what k8s expects.
 func (reconciler *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	return NewCSZoneReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -73,6 +75,7 @@ func (reconciler *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) e
 
 // Reconcile attempts to move the state of CRs to the requested state.
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+	defer ginkgo.GinkgoRecover()
 	// Prevent premature deletion.
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.ZoneFinalizer)
 

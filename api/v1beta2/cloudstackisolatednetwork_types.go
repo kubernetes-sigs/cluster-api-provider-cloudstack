@@ -61,6 +61,7 @@ func (n *CloudStackIsolatedNetwork) Network() *Network {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 
 // CloudStackIsolatedNetwork is the Schema for the cloudstackisolatednetworks API
 type CloudStackIsolatedNetwork struct {
