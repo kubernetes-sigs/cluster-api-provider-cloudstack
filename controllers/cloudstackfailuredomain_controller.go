@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"github.com/onsi/ginkgo/v2"
 	"context"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,7 +38,6 @@ type CloudStackFailureDomainReconciler struct {
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains/finalizers,verbs=update
 
 func (r *CloudStackFailureDomainReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	defer ginkgo.GinkgoRecover()
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
