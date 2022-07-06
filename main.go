@@ -167,13 +167,6 @@ func main() {
 
 	setupReconcilers(base, mgr)
 
-	if err = (&controllers.CloudStackFailureDomainReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CloudStackFailureDomain")
-		os.Exit(1)
-	}
 	// +kubebuilder:scaffold:builder
 
 	// Add health and ready checks.
@@ -230,6 +223,10 @@ func setupReconcilers(base utils.ReconcilerBase, mgr manager.Manager) {
 	}
 	if err := (&controllers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackAffinityGroup")
+		os.Exit(1)
+	}
+	if err := (&controllers.CloudStackFailureDomainReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackFailureDomain")
 		os.Exit(1)
 	}
 }
