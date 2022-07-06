@@ -20,35 +20,29 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("CloudStackClusterReconciler", func() {
+var _ = Describe("CloudStackFailureDomainReconciler", func() {
 	Context("With k8s like test environment.", func() {
 		BeforeEach(func() {
+			dummies.SetDummyVars()
 			SetupTestEnvironment()                                                    // Must happen before setting up managers/reconcilers.
-			Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())       // Register CloudStack ClusterReconciler.
-			Ω(FailureDomainReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack ClusterReconciler.
+			Ω(FailureDomainReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack FailureDomainReconciler.
 		})
 
-		It("Should create a CloudStackFailureDomain.", func() {
+		It("Should set failure domain Status.Ready to true.", func() {
+			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
+
 			tempfd := &infrav1.CloudStackFailureDomain{}
 			Eventually(func() bool {
 				key := client.ObjectKeyFromObject(dummies.CSFailureDomain1)
-				if err := k8sClient.Get(ctx, key, tempfd); err != nil {
-					return true
+				if err := k8sClient.Get(ctx, key, tempfd); err == nil {
+					return tempfd.Status.Ready
 				}
 				return false
 			}, timeout).Should(BeTrue())
-		})
-	})
-
-	Context("Without a k8s test environment.", func() {
-		It("Should create a reconciliation runner with a Cloudstack Cluster as the reconciliation subject.", func() {
-			reconRunenr := controllers.NewCSClusterReconciliationRunner()
-			Ω(reconRunenr.ReconciliationSubject).ShouldNot(BeNil())
 		})
 	})
 })

@@ -279,8 +279,30 @@ func SetDummyCAPCClusterVars() {
 	Net1 = infrav1.Network{Name: GetYamlVal("CLOUDSTACK_NETWORK_NAME"), Type: cloud.NetworkTypeShared}
 	Net2 = infrav1.Network{Name: "SharedGuestNet2", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID2"}
 	ISONet1 = infrav1.Network{Name: "isoguestnet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
-	CSFailureDomain1 = &infrav1.CloudStackFailureDomain{Spec: infrav1.CloudStackFailureDomainSpec{Zone: Zone1}}
-	CSFailureDomain2 = &infrav1.CloudStackFailureDomain{Spec: infrav1.CloudStackFailureDomainSpec{Zone: Zone1}}
+	CSFailureDomain1 = &infrav1.CloudStackFailureDomain{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: CSApiVersion,
+			Kind:       "CloudStackFailureDomain",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fd1",
+			Namespace: "default",
+			UID:       "0",
+			Labels:    ClusterLabel,
+		},
+		Spec: infrav1.CloudStackFailureDomainSpec{Name: "fd1", Zone: Zone1}}
+	CSFailureDomain2 = &infrav1.CloudStackFailureDomain{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: CSApiVersion,
+			Kind:       "CloudStackFailureDomain",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fd2",
+			Namespace: "default",
+			UID:       "0",
+			Labels:    ClusterLabel,
+		},
+		Spec: infrav1.CloudStackFailureDomainSpec{Zone: Zone1}}
 	CSCluster = &infrav1.CloudStackCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,

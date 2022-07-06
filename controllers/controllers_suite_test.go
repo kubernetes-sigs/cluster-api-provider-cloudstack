@@ -119,11 +119,12 @@ var (
 	mockCSAPIClient *cloudstack.CloudStackClient
 
 	// Reconcilers
-	MachineReconciler   *csReconcilers.CloudStackMachineReconciler
-	ClusterReconciler   *csReconcilers.CloudStackClusterReconciler
-	ZoneReconciler      *csReconcilers.CloudStackZoneReconciler
-	IsoNetReconciler    *csReconcilers.CloudStackIsoNetReconciler
-	AffinityGReconciler *csReconcilers.CloudStackAffinityGroupReconciler
+	MachineReconciler       *csReconcilers.CloudStackMachineReconciler
+	ClusterReconciler       *csReconcilers.CloudStackClusterReconciler
+	FailureDomainReconciler *csReconcilers.CloudStackFailureDomainReconciler
+	ZoneReconciler          *csReconcilers.CloudStackZoneReconciler
+	IsoNetReconciler        *csReconcilers.CloudStackIsoNetReconciler
+	AffinityGReconciler     *csReconcilers.CloudStackAffinityGroupReconciler
 )
 
 var projectDir = os.Getenv("PROJECT_DIR")
@@ -192,8 +193,10 @@ func SetupTestEnvironment() {
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	MachineReconciler = &csReconcilers.CloudStackMachineReconciler{ReconcilerBase: base}
 	ZoneReconciler = &csReconcilers.CloudStackZoneReconciler{ReconcilerBase: base}
+	FailureDomainReconciler = &csReconcilers.CloudStackFailureDomainReconciler{ReconcilerBase: base}
 	IsoNetReconciler = &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
 	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
+
 	ctx, cancel = context.WithCancel(context.TODO())
 
 	// Setup mock clients.
@@ -206,6 +209,7 @@ func SetupTestEnvironment() {
 	IsoNetReconciler.CSClient = mockCloudClient
 	MachineReconciler.CSClient = mockCloudClient
 	AffinityGReconciler.CSClient = mockCloudClient
+	FailureDomainReconciler.CSClient = mockCloudClient
 
 	setupClusterCRDs()
 
@@ -245,6 +249,7 @@ func setupFakeTestClient() {
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	MachineReconciler = &csReconcilers.CloudStackMachineReconciler{ReconcilerBase: base}
 	ZoneReconciler = &csReconcilers.CloudStackZoneReconciler{ReconcilerBase: base}
+	FailureDomainReconciler = &csReconcilers.CloudStackFailureDomainReconciler{ReconcilerBase: base}
 	IsoNetReconciler = &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
 	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
 
@@ -253,6 +258,7 @@ func setupFakeTestClient() {
 	ZoneReconciler.CSClient = mockCloudClient
 	IsoNetReconciler.CSClient = mockCloudClient
 	MachineReconciler.CSClient = mockCloudClient
+	FailureDomainReconciler.CSClient = mockCloudClient
 	AffinityGReconciler.CSClient = mockCloudClient
 
 	DeferCleanup(func() {
