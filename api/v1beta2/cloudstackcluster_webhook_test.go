@@ -21,13 +21,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 )
 
 var _ = Describe("CloudStackCluster webhooks", func() {
 	var ctx context.Context
 	forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
-	// requiredRegex := "admission webhook.*denied the request.*Required value\\: %s"
+	requiredRegex := "admission webhook.*denied the request.*Required value\\: %s"
 
 	BeforeEach(func() { // Reset test vars to initial state.
 		ctx = context.Background()
@@ -41,18 +42,18 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 			Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
 		})
 
-		// TODO update for failure domains.
-		// It("Should reject a CloudStackCluster with missing Zones.Network attribute", func() {
-		// 	dummies.CSCluster.Spec.Zones = []infrav1.Zone{{}}
-		// 	dummies.CSCluster.Spec.Zones[0].Name = "ZoneWNoNetwork"
-		// 	Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(
-		// 		MatchError(MatchRegexp(requiredRegex, "each Zone requires a Network specification")))
-		// })
+		It("Should reject a CloudStackCluster with missing Zones.Network attribute", func() {
+			dummies.CSCluster.Spec.FailureDomains = []infrav1.CloudStackFailureDomainSpec{{}}
+			dummies.CSCluster.Spec.FailureDomains[0].Zone.Name = "ZoneWNoNetwork"
+			Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(
+				MatchError(MatchRegexp(requiredRegex, "each Zone requires a Network specification")))
+		})
 
-		// It("Should reject a CloudStackCluster with missing Zones attribute", func() {
-		// 	dummies.CSCluster.Spec.Zones = []infrav1.Zone{}
-		// 	Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(requiredRegex, "Zones")))
-		// })
+		It("Should reject a CloudStackCluster with missing Zone attribute", func() {
+			dummies.CSCluster.Spec.FailureDomains[0].Zone = infrav1.Zone{}
+			Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(requiredRegex,
+				"each Zone requires a Network specification")))
+		})
 
 		It("Should reject a CloudStackCluster with IdentityRef not of kind 'Secret'", func() {
 			dummies.CSCluster.Spec.IdentityRef.Kind = "NewType"
@@ -66,15 +67,14 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 			Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
 		})
 
-		// TODO update for failure domains.
-		// It("Should reject updates to CloudStackCluster Zones", func() {
-		// 	dummies.CSCluster.Spec.Zones = []infrav1.Zone{dummies.Zone1}
-		// 	Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(forbiddenRegex, "Zones and sub")))
-		// })
-		// It("Should reject updates to Networks specified in CloudStackCluster Zones", func() {
-		// 	dummies.CSCluster.Spec.Zones[0].Network.Name = "ArbitraryUpdateNetworkName"
-		// 	Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(forbiddenRegex, "Zones and sub")))
-		// })
+		It("Should reject updates to CloudStackCluster FailureDomains", func() {
+			dummies.CSCluster.Spec.FailureDomains[0].Zone.Name = "SomeRandomUpdate"
+			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(forbiddenRegex, "Zones and sub")))
+		})
+		It("Should reject updates to Networks specified in CloudStackCluster Zones", func() {
+			dummies.CSCluster.Spec.FailureDomains[0].Zone.Network.Name = "ArbitraryUpdateNetworkName"
+			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(forbiddenRegex, "Zones and sub")))
+		})
 		It("Should reject updates to CloudStackCluster controlplaneendpoint.host", func() {
 			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = "1.1.1.1"
 			Ω(k8sClient.Update(ctx, dummies.CSCluster)).
