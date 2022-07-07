@@ -17,7 +17,12 @@ limitations under the License.
 package v1beta2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	FailuDomainFinalizer = "cloudstackzone.infrastructure.cluster.x-k8s.io"
 )
 
 // CloudStackFailureDomainSpec defines the desired state of CloudStackFailureDomain
@@ -36,9 +41,9 @@ type CloudStackFailureDomainSpec struct {
 	// +optional
 	Domain string `json:"domain,omitempty"`
 
-	// Apache CloudStack Endpoint.
+	// Apache CloudStack Endpoint secret reference.
 	// +optional
-	ACSEndpoint string `json:"ACSEndpoint,omitempty"`
+	ACSEndpoint corev1.SecretReference `json:"ACSEndpoint,omitempty"`
 }
 
 // CloudStackFailureDomainStatus defines the observed state of CloudStackFailureDomain

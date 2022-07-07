@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 
+	"github.com/onsi/ginkgo/v2"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -57,6 +59,7 @@ func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
 
 // Reconciler Reconcile adapts the runner to the runner to what k8s expects.
 func (reconciler *CloudStackZoneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	return NewCSZoneReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -73,8 +76,9 @@ func (reconciler *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) e
 
 // Reconcile attempts to move the state of CRs to the requested state.
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+	defer ginkgo.GinkgoRecover()
 	// Prevent premature deletion.
-	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.ZoneFinalizer)
+	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.FailuDomainFinalizer)
 
 	// Start by purely data fetching information about the zone and specified network.
 	if err := r.CSUser.ResolveZone(r.ReconciliationSubject); err != nil {

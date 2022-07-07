@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/onsi/ginkgo/v2"
 	"strings"
 
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -57,6 +58,7 @@ func NewCSIsoNetReconciliationRunner() *CloudStackIsoNetReconciliationRunner {
 }
 
 func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	return NewCSIsoNetReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -65,6 +67,7 @@ func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	if res, err := r.RequeueIfMissingBaseCRs(); r.ShouldReturn(res, err) {
 		return res, err
 	}

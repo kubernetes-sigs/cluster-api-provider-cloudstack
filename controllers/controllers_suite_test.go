@@ -215,7 +215,7 @@ func SetupTestEnvironment() {
 
 	// See reconciliation results. Left commented as it's noisy otherwise.
 	// TODO: find a way to see controller output without the additional setup output.
-	// ctrl.SetLogger(logger)
+	ctrl.SetLogger(logger)
 
 	DeferCleanup(func() {
 		// Cancelling the context shuts down any outstanding requests and the test environment.
