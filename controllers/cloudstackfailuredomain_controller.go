@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 
-	"github.com/onsi/ginkgo/v2"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -59,7 +58,6 @@ func NewCSFailureDomainReconciliationRunner() *CloudStackFailureDomainReconcilia
 
 // Reconcile is the method k8s will call upon a reconciliation request.
 func (reconciler *CloudStackFailureDomainReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	defer ginkgo.GinkgoRecover()
 	return NewCSFailureDomainReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -69,7 +67,6 @@ func (reconciler *CloudStackFailureDomainReconciler) Reconcile(ctx context.Conte
 
 // Reconcile on the ReconciliationRunner actually attempts to modify or create the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	defer ginkgo.GinkgoRecover()
 	endpointCredentials := &corev1.Secret{}
 	ref := r.ReconciliationSubject.Spec.ACSEndpoint
 	key := client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}

@@ -33,6 +33,8 @@ var ( // Declare exported dummy vars.
 	ClusterName         string
 	ClusterNameSpace    string
 	CSMachineTemplate1  *infrav1.CloudStackMachineTemplate
+	ACSEndpointSecret1  *corev1.Secret
+	ACSEndpointSecret2  *corev1.Secret
 	Zone1               infrav1.Zone
 	Zone2               infrav1.Zone
 	CSZone1             *infrav1.CloudStackZone
@@ -97,6 +99,7 @@ func SetDummyVars() {
 	// These need to be in order as they build upon eachother.
 	SetDummyZoneVars()
 	SetDiskOfferingVars()
+	SetACSEndpointSecretVars()
 	SetDummyCAPCClusterVars()
 	SetDummyCAPIClusterVars()
 	SetDummyCAPIMachineVars()
@@ -282,27 +285,30 @@ func SetDummyCAPCClusterVars() {
 	CSFailureDomain1 = &infrav1.CloudStackFailureDomain{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,
-			Kind:       "CloudStackFailureDomain",
-		},
+			Kind:       "CloudStackFailureDomain"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "fd1",
 			Namespace: "default",
 			UID:       "0",
-			Labels:    ClusterLabel,
-		},
-		Spec: infrav1.CloudStackFailureDomainSpec{Name: "fd1", Zone: Zone1}}
+			Labels:    ClusterLabel},
+		Spec: infrav1.CloudStackFailureDomainSpec{Name: "fd1", Zone: Zone1,
+			ACSEndpoint: corev1.SecretReference{
+				Namespace: ClusterNameSpace,
+				Name:      ACSEndpointSecret1.Name}}}
 	CSFailureDomain2 = &infrav1.CloudStackFailureDomain{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,
-			Kind:       "CloudStackFailureDomain",
-		},
+			Kind:       "CloudStackFailureDomain"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "fd2",
 			Namespace: "default",
 			UID:       "0",
-			Labels:    ClusterLabel,
-		},
-		Spec: infrav1.CloudStackFailureDomainSpec{Zone: Zone1}}
+			Labels:    ClusterLabel},
+		Spec: infrav1.CloudStackFailureDomainSpec{Name: "fd2", Zone: Zone2,
+			ACSEndpoint: corev1.SecretReference{
+				Namespace: ClusterNameSpace,
+				Name:      ACSEndpointSecret2.Name}}}
+
 	CSCluster = &infrav1.CloudStackCluster{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: CSApiVersion,
@@ -335,6 +341,27 @@ func SetDummyCAPCClusterVars() {
 			ControlPlaneEndpoint: CSCluster.Spec.ControlPlaneEndpoint}}
 	CSISONet1.Spec.Name = ISONet1.Name
 	CSISONet1.Spec.ID = ISONet1.ID
+}
+
+func SetACSEndpointSecretVars() {
+	ACSEndpointSecret1 = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ClusterNameSpace,
+			Name:      "acsendpointsecret1"},
+		StringData: map[string]string{
+			"api-key":    "someKey1",
+			"secret-key": "someSecretKey1",
+			"api-url":    "http://someUri1:8080/client/api"},
+	}
+	ACSEndpointSecret2 = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ClusterNameSpace,
+			Name:      "acsendpointsecret2"},
+		StringData: map[string]string{
+			"api-key":    "someKey2",
+			"secret-key": "someSecretKey2",
+			"api-url":    "http://someUri2:8080/client/api"},
+	}
 }
 
 // SetClusterDummyDomainAndAccount sets domain and account in the CSCluster Spec. This is not the default.

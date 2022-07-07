@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/onsi/ginkgo/v2"
 	"math/rand"
 	"reflect"
 
@@ -82,7 +81,6 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	defer ginkgo.GinkgoRecover()
 	return NewCSMachineReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -91,7 +89,6 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 }
 
 func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-	defer ginkgo.GinkgoRecover()
 	return r.RunReconciliationStages(
 		r.GetZonesAndRequeueIfMissing(r.Zones),
 		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
