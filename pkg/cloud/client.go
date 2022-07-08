@@ -17,6 +17,7 @@ limitations under the License.
 package cloud
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
@@ -47,10 +48,10 @@ type client struct {
 
 // cloud-config ini structure.
 type Config struct {
-	APIURL    string `ini:"api-url"`
-	APIKey    string `ini:"api-key"`
-	SecretKey string `ini:"secret-key"`
-	VerifySSL bool   `ini:"verify-ssl"`
+	APIURL    string `json:"api-url"`
+	APIKey    string `json:"api-key"`
+	SecretKey string `json:"secret-key"`
+	VerifySSL bool   `json:"verify-ssl"`
 }
 
 func NewClient(ccPath string) (Client, error) {
@@ -102,4 +103,23 @@ func (origC *client) NewClientFromSpec(cfg Config) (Client, error) {
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
 	c := &client{cs: cs, csAsync: cs}
 	return c
+}
+
+// Creates a new Cloud Client form a map of strings to strings.
+func NewClientFromMap(rawCfg map[string]string) (Client, error) {
+	cfg := Config{VerifySSL: true} // Set sane defautl for verify-ssl.
+	// Use JSON methods to enforce schema in parsing.
+	if bytes, err := json.Marshal(rawCfg); err != nil {
+		return nil, err
+	} else if err := json.Unmarshal(bytes, &cfg); err != nil {
+		return nil, err
+	}
+
+	// The client returned from NewAsyncClient works in a synchronous way. On the other hand,
+	// a client returned from NewClient works in an asynchronous way. Dive into the constructor definition
+	// comments for more details
+	c := &client{config: cfg}
+	c.cs = cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+	c.csAsync = cloudstack.NewClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+	return c, nil
 }

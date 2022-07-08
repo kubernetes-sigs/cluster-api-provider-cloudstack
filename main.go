@@ -20,15 +20,12 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"strings"
 	"time"
 
 	"k8s.io/klog/v2/klogr"
 
 	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-
-	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 
 	goflag "flag"
 
@@ -128,17 +125,6 @@ func main() {
 
 	ctrl.SetLogger(klogr.New())
 
-	// Setup CloudStack api client.
-	client, err := cloud.NewClient(opts.CloudConfigFile)
-	if err != nil {
-		if !strings.Contains(strings.ToLower(err.Error()), "timeout") {
-			setupLog.Error(err, "unable to start manager")
-			os.Exit(1)
-		}
-		setupLog.Info("cannot connect to CloudStack via client at startup time.  Pressing onward...")
-	}
-	setupLog.Info("CloudStack client initialized.")
-
 	// Create the controller manager.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -162,8 +148,7 @@ func main() {
 	base := utils.ReconcilerBase{
 		K8sClient:  mgr.GetClient(),
 		BaseLogger: ctrl.Log.WithName("controllers"),
-		Scheme:     mgr.GetScheme(),
-		CSClient:   client}
+		Scheme:     mgr.GetScheme()}
 
 	setupReconcilers(base, mgr)
 

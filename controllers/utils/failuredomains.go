@@ -19,7 +19,9 @@ package utils
 import (
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -78,3 +80,42 @@ func (r *ReconciliationRunner) GetFailureDomainssAndRequeueIfMissing(fds *infrav
 		return ctrl.Result{}, nil
 	}
 }
+
+// AsFailureDomainUser uses the credentials specified in the failure domain to set the ReconciliationSubject's CSUser client.
+func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		endpointCredentials := &corev1.Secret{}
+		key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}
+		if err := r.K8sClient.Get(r.RequestCtx, key, endpointCredentials); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
+		}
+
+
+		r.CSUser = r.CSClient
+		cloud.NewClient()
+		if r.CSCluster.Spec.Account != "" {
+			user := &cloud.User{}
+			user.Account.Domain.Path = r.CSCluster.Spec.Domain
+			user.Account.Name = r.CSCluster.Spec.Account
+			if found, err := r.CSClient.GetUserWithKeys(user); err != nil {
+				return ctrl.Result{}, err
+			} else if !found {
+				return ctrl.Result{}, errors.Errorf("could not find sufficient user (with API keys) in domain/account %s/%s",
+					r.CSCluster.Spec.Domain, r.CSCluster.Spec.Account)
+			}
+			cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
+			client, err := r.CSClient.NewClientFromSpec(cfg)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			r.CSUser = client
+		}
+
+		return ctrl.Result{}, nil
+	}
+}
+
+		endpointCredentials.StringData["api-key"]
+		endpointCredentials.StringData["api-url"]
+		endpointCredentials.StringData["secret-key"]
+		endpointCredentials.StringData["verify-ssl"]
