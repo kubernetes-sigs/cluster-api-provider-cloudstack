@@ -45,14 +45,7 @@ func (r *CloudStackCluster) Default() {
 	// No defaulted values supported yet.
 }
 
-// +kubebuilder:webhook:
-// name=vcloudstackcluster.kb.io
-// groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters
-// versions=v1beta2
-// verbs=create;update
-// path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster
-// mutating=false,failurePolicy=fail,sideEffects=None
-// admissionReviewVersions=v1beta2
+// +kubebuilder:webhook:name=vcloudstackcluster.kb.io,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,versions=v1beta2,verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster,mutating=false,failurePolicy=fail,sideEffects=None,admissionReviewVersions=v1beta1
 
 var _ webhook.Validator = &CloudStackCluster{}
 
@@ -82,6 +75,11 @@ func (r *CloudStackCluster) ValidateCreate() error {
 				errorList = append(errorList, field.Required(
 					field.NewPath("spec", "FailureDomains", "Zone", "Network"),
 					"each Zone requires a Network specification"))
+			}
+			if fdSpec.ACSEndpoint.Name == "" || fdSpec.ACSEndpoint.Namespace == "" {
+				errorList = append(errorList, field.Required(
+					field.NewPath("spec", "FailureDomains", "ACSEndpoint"),
+					"Name and Namespace are required"))
 			}
 		}
 	}

@@ -122,7 +122,10 @@ spec:
                 description: FailureDomain -- the FailureDomain the network is placed
                   in.
                 properties:
-                  ACSEndpoint:
+                  account:
+                    description: CloudStack account.
+                    type: string
+                  acsendpoint:
                     description: Apache CloudStack Endpoint secret reference.
                     properties:
                       name:
@@ -134,9 +137,6 @@ spec:
                           secret name must be unique.
                         type: string
                     type: object
-                  account:
-                    description: CloudStack account.
-                    type: string
                   domain:
                     description: CloudStack domain.
                     type: string

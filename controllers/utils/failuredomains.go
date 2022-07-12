@@ -90,11 +90,25 @@ func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec infrav1.CloudStackFail
 			return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
 		}
 
+		config := map[string]interface{}{}
+		for k, v := range endpointCredentials.Data {
+			config[k] = string(v)
+		}
+		// TODO change secret parsing manner.
+		if val, present := config["verify-ssl"]; present {
+			if val == "true" {
+				config["verify-ssl"] = true
+			} else if val == "false" {
+				config["verify-ssl"] = false
+			}
+		}
+
 		var err error
-		if r.CSClient, err = cloud.NewClientFromMap(endpointCredentials.StringData); err != nil {
+		if r.CSClient, err = cloud.NewClientFromMap(config); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "parsing ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
 		}
 
+		// Transfer Cluster Domain & Account to FailureDomain as needed.
 		if fdSpec.Account == "" {
 			if r.CSCluster.Spec.Account != "" {
 				fdSpec.Account = r.CSCluster.Spec.Account
@@ -102,7 +116,7 @@ func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec infrav1.CloudStackFail
 			}
 		}
 
-		if r.CSCluster.Spec.Account != "" {
+		if r.CSCluster.Spec.Account != "" { // Set r.CSUser CloudStack Client per Account and Domain.
 			user := &cloud.User{}
 			user.Account.Domain.Path = r.CSCluster.Spec.Domain
 			user.Account.Name = r.CSCluster.Spec.Account
@@ -112,7 +126,7 @@ func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec infrav1.CloudStackFail
 				return ctrl.Result{}, errors.Errorf("could not find sufficient user (with API keys) in domain/account %s/%s",
 					r.CSCluster.Spec.Domain, r.CSCluster.Spec.Account)
 			}
-			newUser := endpointCredentials.StringData
+			newUser := config
 			newUser["api-key"] = user.APIKey
 			newUser["secret-key"] = user.SecretKey
 
@@ -121,6 +135,8 @@ func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec infrav1.CloudStackFail
 				return ctrl.Result{}, err
 			}
 			r.CSUser = client
+		} else { // Set r.CSUser CloudStack Client to r.CSClient since Account & Domain weren't provided.
+			r.CSUser = r.CSClient
 		}
 
 		return ctrl.Result{}, nil

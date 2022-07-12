@@ -49,7 +49,7 @@ type Config struct {
 }
 
 // Creates a new Cloud Client form a map of strings to strings.
-func NewClientFromMap(rawCfg map[string]string) (Client, error) {
+func NewClientFromMap(rawCfg map[string]interface{}) (Client, error) {
 	cfg := Config{VerifySSL: true} // Set sane defautl for verify-ssl.
 	// Use JSON methods to enforce schema in parsing.
 	if bytes, err := json.Marshal(rawCfg); err != nil {

@@ -38,7 +38,10 @@ spec:
             description: CloudStackFailureDomainSpec defines the desired state of
               CloudStackFailureDomain
             properties:
-              ACSEndpoint:
+              account:
+                description: CloudStack account.
+                type: string
+              acsendpoint:
                 description: Apache CloudStack Endpoint secret reference.
                 properties:
                   name:
@@ -50,9 +53,6 @@ spec:
                       name must be unique.
                     type: string
                 type: object
-              account:
-                description: CloudStack account.
-                type: string
               domain:
                 description: CloudStack domain.
                 type: string

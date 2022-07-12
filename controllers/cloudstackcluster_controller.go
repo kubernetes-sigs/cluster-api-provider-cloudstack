@@ -88,9 +88,9 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 	return r.RunReconciliationStages(
 		r.RequeueIfMissingBaseCRs,
 		r.CreateFailureDomains(r.ReconciliationSubject.Spec.FailureDomains),
-		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackZone")),
+		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackFailureDomain")),
 		r.GetFailureDomains(r.FailureDomains),
-		r.VerifyZoneCRDs,
+		r.VerifyFailureDomainCRDs,
 		r.SetFailureDomains,
 		r.SetReady)
 }
@@ -102,16 +102,16 @@ func (r *CloudStackClusterReconciliationRunner) SetReady() (ctrl.Result, error) 
 	return ctrl.Result{}, nil
 }
 
-// VerifyFailureDomainCRDs verifies the Zone CRDs found match against those requested.
-func (r *CloudStackClusterReconciliationRunner) VerifyZoneCRDs() (ctrl.Result, error) {
+// VerifyFailureDomainCRDs verifies the FailureDomains found match against those requested.
+func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.Result, error) {
 	expected := len(r.ReconciliationSubject.Spec.FailureDomains)
 	actual := len(r.FailureDomains.Items)
 	if expected != actual {
-		return r.RequeueWithMessage(fmt.Sprintf("Expected %d Zones, but found %d", expected, actual))
+		return r.RequeueWithMessage(fmt.Sprintf("Expected %d FailureDomains, but found %d", expected, actual))
 	}
 	for _, fd := range r.FailureDomains.Items {
 		if !fd.Status.Ready {
-			return r.RequeueWithMessage(fmt.Sprintf("Zone %s/%s not ready, requeueing.", fd.Namespace, fd.Name))
+			return r.RequeueWithMessage(fmt.Sprintf("FailureDomains %s/%s not ready, requeueing.", fd.Namespace, fd.Name))
 		}
 	}
 	return ctrl.Result{}, nil
@@ -138,7 +138,7 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 				return ctrl.Result{}, err
 			}
 		}
-		return r.RequeueWithMessage("Child Zones still present, requeueing.")
+		return r.RequeueWithMessage("Child FailureDomains still present, requeueing.")
 	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
 	return ctrl.Result{}, nil
