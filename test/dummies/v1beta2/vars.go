@@ -291,7 +291,7 @@ func SetDummyCAPCClusterVars() {
 			Namespace: "default",
 			UID:       "0",
 			Labels:    ClusterLabel},
-		Spec: infrav1.CloudStackFailureDomainSpec{Name: "fd1", Zone: Zone1,
+		Spec: infrav1.CloudStackFailureDomainSpec{Name: "fd1", Zone: CSZone1.Spec,
 			ACSEndpoint: corev1.SecretReference{
 				Namespace: ClusterNameSpace,
 				Name:      ACSEndpointSecret1.Name}}}
@@ -304,7 +304,7 @@ func SetDummyCAPCClusterVars() {
 			Namespace: "default",
 			UID:       "0",
 			Labels:    ClusterLabel},
-		Spec: infrav1.CloudStackFailureDomainSpec{Name: "fd2", Zone: Zone2,
+		Spec: infrav1.CloudStackFailureDomainSpec{Name: "fd2", Zone: CSZone2.Spec,
 			ACSEndpoint: corev1.SecretReference{
 				Namespace: ClusterNameSpace,
 				Name:      ACSEndpointSecret2.Name}}}
@@ -422,7 +422,7 @@ func SetDummyClusterStatus() {
 // Sets cluster spec to specified network.
 func SetClusterSpecToNet(net *infrav1.Network) {
 	Zone1.Network = *net
-	CSFailureDomain1 = &infrav1.CloudStackFailureDomain{Spec: infrav1.CloudStackFailureDomainSpec{Zone: Zone1}}
+	CSFailureDomain1 = &infrav1.CloudStackFailureDomain{Spec: infrav1.CloudStackFailureDomainSpec{Zone: CSZone1.Spec}}
 	CSCluster.Spec.FailureDomains = []infrav1.CloudStackFailureDomainSpec{CSFailureDomain1.Spec}
 }
 

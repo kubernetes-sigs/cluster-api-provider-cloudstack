@@ -90,9 +90,18 @@ func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec infrav1.CloudStackFail
 			return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
 		}
 
+		var err error
+		if r.CSClient, err = cloud.NewClientFromMap(endpointCredentials.StringData); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "parsing ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
+		}
 
-		r.CSUser = r.CSClient
-		cloud.NewClient()
+		if fdSpec.Account == "" {
+			if r.CSCluster.Spec.Account != "" {
+				fdSpec.Account = r.CSCluster.Spec.Account
+				fdSpec.Domain = r.CSCluster.Spec.Domain
+			}
+		}
+
 		if r.CSCluster.Spec.Account != "" {
 			user := &cloud.User{}
 			user.Account.Domain.Path = r.CSCluster.Spec.Domain
@@ -103,8 +112,11 @@ func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec infrav1.CloudStackFail
 				return ctrl.Result{}, errors.Errorf("could not find sufficient user (with API keys) in domain/account %s/%s",
 					r.CSCluster.Spec.Domain, r.CSCluster.Spec.Account)
 			}
-			cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
-			client, err := r.CSClient.NewClientFromSpec(cfg)
+			newUser := endpointCredentials.StringData
+			newUser["api-key"] = user.APIKey
+			newUser["secret-key"] = user.SecretKey
+
+			client, err := cloud.NewClientFromMap(newUser)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -114,8 +126,3 @@ func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec infrav1.CloudStackFail
 		return ctrl.Result{}, nil
 	}
 }
-
-		endpointCredentials.StringData["api-key"]
-		endpointCredentials.StringData["api-url"]
-		endpointCredentials.StringData["secret-key"]
-		endpointCredentials.StringData["verify-ssl"]

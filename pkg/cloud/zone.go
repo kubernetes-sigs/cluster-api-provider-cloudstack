@@ -23,37 +23,35 @@ import (
 )
 
 type ZoneIFace interface {
-	ResolveZone(*infrav1.CloudStackZone) error
-	ResolveNetworkForZone(*infrav1.CloudStackZone) error
+	ResolveZone(*infrav1.CloudStackZoneSpec) error
+	ResolveNetworkForZone(*infrav1.CloudStackZoneSpec) error
 }
 
-func (c *client) ResolveZone(zone *infrav1.CloudStackZone) (retErr error) {
-	if zoneID, count, err := c.cs.Zone.GetZoneID(zone.Spec.Name); err != nil {
-		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %v", zone))
+func (c *client) ResolveZone(zSpec *infrav1.CloudStackZoneSpec) (retErr error) {
+	if zoneID, count, err := c.cs.Zone.GetZoneID(zSpec.Name); err != nil {
+		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %v", zSpec.Name))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
-			"expected 1 Zone with name %s, but got %d", zone.Spec.Name, count))
+			"expected 1 Zone with name %s, but got %d", zSpec.Name, count))
 	} else {
-		zone.Spec.ID = zoneID
+		zSpec.ID = zoneID
 	}
 
-	if resp, count, err := c.cs.Zone.GetZoneByID(zone.Spec.ID); err != nil {
-		return multierror.Append(retErr, errors.Wrapf(err, "could not get Zone by ID %v", zone.Spec.ID))
+	if resp, count, err := c.cs.Zone.GetZoneByID(zSpec.ID); err != nil {
+		return multierror.Append(retErr, errors.Wrapf(err, "could not get Zone by ID %v", zSpec.ID))
 	} else if count != 1 {
 		return multierror.Append(retErr, errors.Errorf(
-			"expected 1 Zone with UUID %s, but got %d", zone.Spec.ID, count))
+			"expected 1 Zone with UUID %s, but got %d", zSpec.ID, count))
 	} else {
-		zone.Spec.Name = resp.Name
+		zSpec.Name = resp.Name
 	}
 
 	return nil
 }
 
 // ResolveNetworkForZone fetches details on Zone's specified network.
-func (c *client) ResolveNetworkForZone(zone *infrav1.CloudStackZone) (retErr error) {
-	// TODO rebuild this to consider cases with networks in many zones.
-	// Use ListNetworks instead.
-	netName := zone.Spec.Network.Name
+func (c *client) ResolveNetworkForZone(zSpec *infrav1.CloudStackZoneSpec) (retErr error) {
+	netName := zSpec.Network.Name
 	netDetails, count, err := c.cs.Network.GetNetworkByName(netName)
 	if err != nil {
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Network ID from %v", netName))
@@ -61,20 +59,20 @@ func (c *client) ResolveNetworkForZone(zone *infrav1.CloudStackZone) (retErr err
 		retErr = multierror.Append(retErr, errors.Errorf(
 			"expected 1 Network with name %s, but got %d", netName, count))
 	} else { // Got netID from the network's name.
-		zone.Spec.Network.ID = netDetails.Id
-		zone.Spec.Network.Type = netDetails.Type
+		zSpec.Network.ID = netDetails.Id
+		zSpec.Network.Type = netDetails.Type
 		return nil
 	}
 
 	// Now get network details.
-	netDetails, count, err = c.cs.Network.GetNetworkByID(zone.Spec.Network.ID)
+	netDetails, count, err = c.cs.Network.GetNetworkByID(zSpec.Network.ID)
 	if err != nil {
-		return multierror.Append(retErr, errors.Wrapf(err, "could not get Network by ID %s", zone.Spec.Network.ID))
+		return multierror.Append(retErr, errors.Wrapf(err, "could not get Network by ID %s", zSpec.Network.ID))
 	} else if count != 1 {
-		return multierror.Append(retErr, errors.Errorf("expected 1 Network with UUID %v, but got %d", zone.Spec.Network.ID, count))
+		return multierror.Append(retErr, errors.Errorf("expected 1 Network with UUID %v, but got %d", zSpec.Network.ID, count))
 	}
-	zone.Spec.Network.Name = netDetails.Name
-	zone.Spec.Network.ID = netDetails.Id
-	zone.Spec.Network.Type = netDetails.Type
+	zSpec.Network.Name = netDetails.Name
+	zSpec.Network.ID = netDetails.Id
+	zSpec.Network.Type = netDetails.Type
 	return nil
 }

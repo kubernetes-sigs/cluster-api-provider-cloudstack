@@ -20,9 +20,8 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
@@ -66,26 +65,23 @@ func (reconciler *CloudStackFailureDomainReconciler) Reconcile(ctx context.Conte
 
 // Reconcile on the ReconciliationRunner actually attempts to modify or create the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	endpointCredentials := &corev1.Secret{}
-	ref := r.ReconciliationSubject.Spec.ACSEndpoint
-	key := client.ObjectKey{Name: ref.Name, Namespace: ref.Namespace}
-	if err := r.K8sClient.Get(r.RequestCtx, key, endpointCredentials); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", ref)
+	res, err := r.AsFailureDomainUser(r.ReconciliationSubject.Spec)()
+	if r.ShouldReturn(res, err) {
+		return res, err
+	}
+	// Prevent premature deletion.
+	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.FailureDomainFinalizer)
+
+	// Start by purely data fetching information about the zone and specified network.
+	if err := r.CSUser.ResolveZone(&r.ReconciliationSubject.Spec.Zone); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information")
+	}
+	if err := r.CSUser.ResolveNetworkForZone(&r.ReconciliationSubject.Spec.Zone); err != nil &&
+		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
+		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information")
 	}
 
-	// // Prevent premature deletion.
-	// controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.)
-
-	// // Start by purely data fetching information about the zone and specified network.
-	// if err := r.CSUser.ResolveZone(r.ReconciliationSubject); err != nil {
-	// 	return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information")
-	// }
-	// if err := r.CSUser.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
-	// 	!csCtrlrUtils.ContainsNoMatchSubstring(err) {
-	// 	return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information")
-	// }
-
-	// // Address Isolated Networks.
+	// TODO: Address Isolated Networks.
 	// // Check if the passed network was an isolated network or the network was missing. In either case, create a
 	// // CloudStackIsolatedNetwork to manage the many intricacies and wait until CloudStackIsolatedNetwork is ready.
 	// if r.ReconciliationSubject.Spec.Network.ID == "" || r.ReconciliationSubject.Spec.Network.Type == infrav1.NetworkTypeIsolated {
@@ -108,7 +104,9 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 
 // ReconcileDelete on the ReconciliationRunner actually attempts to delete the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
-	r.Log.Info("blah3")
+	// TODO: Consider owned resources.
+	// Allow deletion.
+	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.FailureDomainFinalizer)
 	return ctrl.Result{}, nil
 }
 

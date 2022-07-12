@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apache/cloudstack-go/cloudstack"
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -227,24 +226,25 @@ func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness(gvks ...schema.GroupVe
 
 // SetCSUser sets the CSUser client to any user that can operate in specified domain and account if specified.
 func (r *ReconciliationRunner) SetCSUser() (ctrl.Result, error) {
-	r.CSUser = r.CSClient
-	if r.CSCluster.Spec.Account != "" {
-		user := &cloud.User{}
-		user.Account.Domain.Path = r.CSCluster.Spec.Domain
-		user.Account.Name = r.CSCluster.Spec.Account
-		if found, err := r.CSClient.GetUserWithKeys(user); err != nil {
-			return ctrl.Result{}, err
-		} else if !found {
-			return ctrl.Result{}, errors.Errorf("could not find sufficient user (with API keys) in domain/account %s/%s",
-				r.CSCluster.Spec.Domain, r.CSCluster.Spec.Account)
-		}
-		cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
-		client, err := r.CSClient.NewClientFromSpec(cfg)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		r.CSUser = client
-	}
+	// TODO: Remove no-op.
+	// r.CSUser = r.CSClient
+	// if r.CSCluster.Spec.Account != "" {
+	// 	user := &cloud.User{}
+	// 	user.Account.Domain.Path = r.CSCluster.Spec.Domain
+	// 	user.Account.Name = r.CSCluster.Spec.Account
+	// 	if found, err := r.CSClient.GetUserWithKeys(user); err != nil {
+	// 		return ctrl.Result{}, err
+	// 	} else if !found {
+	// 		return ctrl.Result{}, errors.Errorf("could not find sufficient user (with API keys) in domain/account %s/%s",
+	// 			r.CSCluster.Spec.Domain, r.CSCluster.Spec.Account)
+	// 	}
+	// 	cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
+	// 	client, err := r.CSClient.NewClientFromSpec(cfg)
+	// 	if err != nil {
+	// 		return ctrl.Result{}, err
+	// 	}
+	// 	r.CSUser = client
+	// }
 	return ctrl.Result{}, nil
 }
 
@@ -340,7 +340,6 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 		r.GetCAPICluster,
 		r.GetCSCluster,
 		r.RequeueIfMissingBaseCRs,
-		r.SetCSUser,
 		r.IfDeletionTimestampIsZero(r.Reconcile),
 		r.Else(r.ReconcileDelete),
 	)
@@ -441,26 +440,4 @@ func (r *ReconciliationRunner) GetObjectByName(name string, target client.Object
 		return r.ReturnWrappedError(
 			client.IgnoreNotFound(r.K8sClient.Get(r.RequestCtx, objectKey, target)), "failed to get object")
 	}
-}
-
-// NewClientFromSpec generates a new client from an existing client.
-// VerifySSL will be set to true if either the old or new configs is true.
-func (origC *client) NewClientFromSpec(cfg Config) (Client, error) {
-	newC := &client{config: cfg}
-	newC.config.VerifySSL = cfg.VerifySSL || origC.config.VerifySSL // Prefer the most secure setting given.
-	if newC.config.APIURL == "" {
-		newC.config.APIURL = origC.config.APIURL
-	}
-
-	// The client returned from NewAsyncClient works in a synchronous way. On the other hand,
-	// a client returned from NewClient works in an asynchronous way. Dive into the constructor definition
-	// comments for more details
-	newC.cs = cloudstack.NewAsyncClient(newC.config.APIURL, newC.config.APIKey, newC.config.SecretKey, newC.config.VerifySSL)
-	newC.csAsync = cloudstack.NewClient(newC.config.APIURL, newC.config.APIKey, newC.config.SecretKey, newC.config.VerifySSL)
-
-	_, err := newC.cs.APIDiscovery.ListApis(newC.cs.APIDiscovery.NewListApisParams())
-	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
-		return newC, errors.Wrap(err, "timeout while checking CloudStack API Client connectivity")
-	}
-	return newC, errors.Wrap(err, "checking CloudStack API Client connectivity")
 }

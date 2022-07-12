@@ -19,11 +19,9 @@ package controllers
 import (
 	"context"
 
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 )
@@ -75,16 +73,16 @@ func (reconciler *CloudStackZoneReconciler) SetupWithManager(mgr ctrl.Manager) e
 // Reconcile attempts to move the state of CRs to the requested state.
 func (r *CloudStackZoneReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
 	// Prevent premature deletion.
-	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.FailuDomainFinalizer)
+	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.FailureDomainFinalizer)
 
-	// Start by purely data fetching information about the zone and specified network.
-	if err := r.CSUser.ResolveZone(r.ReconciliationSubject); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information")
-	}
-	if err := r.CSUser.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
-		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
-		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information")
-	}
+	// // Start by purely data fetching information about the zone and specified network.
+	// if err := r.CSUser.ResolveZone(r.ReconciliationSubject); err != nil {
+	// 	return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information")
+	// }
+	// if err := r.CSUser.ResolveNetworkForZone(r.ReconciliationSubject); err != nil &&
+	// 	!csCtrlrUtils.ContainsNoMatchSubstring(err) {
+	// 	return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information")
+	// }
 
 	// Address Isolated Networks.
 	// Check if the passed network was an isolated network or the network was missing. In either case, create a

@@ -84,7 +84,7 @@ func TestCloud(t *testing.T) {
 
 // FetchIntegTestResources runs through basic CloudStack Client setup methods needed to test others.
 func FetchIntegTestResources() {
-	Ω(realCloudClient.ResolveZone(dummies.CSZone1)).Should(Succeed())
+	Ω(realCloudClient.ResolveZone(&dummies.CSZone1.Spec)).Should(Succeed())
 	Ω(dummies.CSZone1.Spec.ID).ShouldNot(BeEmpty())
 	dummies.CSMachine1.Status.ZoneID = dummies.CSZone1.Spec.ID
 	dummies.CSMachine1.Spec.DiskOffering.Name = ""

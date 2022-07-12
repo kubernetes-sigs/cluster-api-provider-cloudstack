@@ -18,7 +18,6 @@ package v1beta2
 
 import (
 	"fmt"
-	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,8 +37,6 @@ func (r *CloudStackCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1beta2,name=mcloudstackcluster.kb.io,admissionReviewVersions=v1beta1
-
 var _ webhook.Defaulter = &CloudStackCluster{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
@@ -48,7 +45,14 @@ func (r *CloudStackCluster) Default() {
 	// No defaulted values supported yet.
 }
 
-//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1beta2,name=vcloudstackcluster.kb.io,admissionReviewVersions=v1beta1
+// +kubebuilder:webhook:
+// name=vcloudstackcluster.kb.io
+// groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters
+// versions=v1beta2
+// verbs=create;update
+// path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster
+// mutating=false,failurePolicy=fail,sideEffects=None
+// admissionReviewVersions=v1beta2
 
 var _ webhook.Validator = &CloudStackCluster{}
 
@@ -101,10 +105,10 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 
 	// No spec fields may be updated.
 	errorList := field.ErrorList(nil)
-	if !reflect.DeepEqual(oldSpec.FailureDomains, spec.FailureDomains) {
-		errorList = append(errorList, field.Forbidden(
-			field.NewPath("spec", "Zones"), "Zones and sub-attributes may not be modified after creation"))
-	}
+	// if !reflect.DeepEqual(oldSpec.FailureDomains, spec.FailureDomains) {
+	// 	errorList = append(errorList, field.Forbidden(
+	// 		field.NewPath("spec", "Zones"), "Zones and sub-attributes may not be modified after creation"))
+	// }
 	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpoint.host", errorList)

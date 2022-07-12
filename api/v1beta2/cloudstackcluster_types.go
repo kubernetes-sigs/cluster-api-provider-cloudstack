@@ -118,15 +118,19 @@ type CloudStackClusterStatus struct {
 	Ready bool `json:"ready"`
 
 	// Cloudstack Domain ID the cluster is built in.
+	// +optional
 	DomainID string `json:"domainID,omitempty"`
 
 	// The CS public IP ID to use for the k8s endpoint.
+	// +optional
 	PublicIPID string `json:"publicIPID,omitempty"`
 
 	// The ID of the network the PublicIP is in.
+	// +optional
 	PublicIPNetworkID string `json:"publicIPNetworkID,omitempty"`
 
 	// The ID of the lb rule used to assign VMs to the lb.
+	// +optional
 	LBRuleID string `json:"loadBalancerRuleID,omitempty"`
 }
 

@@ -50,7 +50,7 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 		})
 
 		It("Should reject a CloudStackCluster with missing Zone attribute", func() {
-			dummies.CSCluster.Spec.FailureDomains[0].Zone = infrav1.Zone{}
+			dummies.CSCluster.Spec.FailureDomains[0].Zone = infrav1.CloudStackZoneSpec{}
 			Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(requiredRegex,
 				"each Zone requires a Network specification")))
 		})

@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	FailuDomainFinalizer = "cloudstackzone.infrastructure.cluster.x-k8s.io"
+	FailureDomainFinalizer = "cloudstackfailuredomain.infrastructure.cluster.x-k8s.io"
 )
 
 // CloudStackFailureDomainSpec defines the desired state of CloudStackFailureDomain
@@ -31,7 +31,7 @@ type CloudStackFailureDomainSpec struct {
 	Name string `json:"name"`
 
 	// The ACS Zone for this failure domain.
-	Zone Zone `json:"zone"`
+	Zone CloudStackZoneSpec `json:"zone"`
 
 	// CloudStack account.
 	// +optional
