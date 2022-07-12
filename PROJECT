@@ -83,6 +83,6 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackFailureDomain
-  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1
-  version: v1beta1
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2
+  version: v1beta2
 version: "3"
