@@ -22,6 +22,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/pkg/errors"
@@ -57,27 +58,17 @@ func NewCSIsoNetReconciliationRunner() *CloudStackIsoNetReconciliationRunner {
 }
 
 func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	return NewCSIsoNetReconciliationRunner().
-		UsingBaseReconciler(reconciler.ReconcilerBase).
-		ForRequest(req).
-		WithRequestCtx(ctx).
-		RunBaseReconciliationStages()
+	r := NewCSIsoNetReconciliationRunner()
+	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
+	r.WithAdditionalCommonStages(
+		r.GetParent(r.ReconciliationSubject, r.FailureDomain),
+		r.CheckPresent(map[string]client.Object{"CloudStackFailureDomain": r.FailureDomain}),
+		r.AsFailureDomainUser(&r.FailureDomain.Spec),
+	)
+	return r.RunBaseReconciliationStages()
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	if res, err := r.GetParent(r.ReconciliationSubject, r.FailureDomain)(); r.ShouldReturn(res, err) {
-		return res, err
-	}
-	if r.FailureDomain.Spec.Name == "" {
-		return ctrl.Result{}, errors.New("couldn't get parent Failure Domain for placement")
-	}
-	res, err := r.AsFailureDomainUser(&r.FailureDomain.Spec)()
-	if r.ShouldReturn(res, err) {
-		return res, err
-	}
-	if res, err := r.RequeueIfMissingBaseCRs(); r.ShouldReturn(res, err) {
-		return res, err
-	}
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.IsolatedNetworkFinalizer)
 
 	// Setup isolated network, endpoint, egress, and load balancing.

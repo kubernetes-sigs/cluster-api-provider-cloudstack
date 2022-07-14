@@ -82,22 +82,21 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	return NewCSMachineReconciliationRunner().
-		UsingBaseReconciler(reconciler.ReconcilerBase).
-		ForRequest(req).
-		WithRequestCtx(ctx).
-		RunBaseReconciliationStages()
-}
-
-func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-	return r.RunReconciliationStages(
+	r := NewCSMachineReconciliationRunner()
+	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
+	r.WithAdditionalCommonStages(
 		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
 		r.RequeueIfCloudStackClusterNotReady,
 		r.SetFailureDomainOnCSMachine,
 		r.GetObjectByName("placeholder", r.FailureDomain,
 			func() string { return r.ReconciliationSubject.Spec.FailureDomain.Name }),
 		r.CheckPresent(map[string]client.Object{"CloudStackFailureDomain": r.FailureDomain}),
-		r.AsFailureDomainUser(&r.FailureDomain.Spec),
+		r.AsFailureDomainUser(&r.FailureDomain.Spec))
+	return r.RunBaseReconciliationStages()
+}
+
+func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+	return r.RunReconciliationStages(
 		r.GetObjectByName("placeholder", r.IsoNet,
 			func() string { return r.IsoNetMetaName(r.FailureDomain.Spec.Zone.Network.Name) }),
 		r.RunIf(func() bool { return r.FailureDomain.Spec.Zone.Network.Type == cloud.NetworkTypeIsolated },
@@ -145,7 +144,7 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 	return ctrl.Result{}, nil
 }
 
-// GetOrCreateVMInstance creates or gets a VM instance.
+// GetOrCreateVMInstance gets or creates a VM instance.
 // Implicitly it also fetches its bootstrap secret in order to create said instance.
 func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes ctrl.Result, reterr error) {
 	if r.CAPIMachine.Spec.Bootstrap.DataSecretName == nil {
@@ -224,9 +223,6 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 }
 
 func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
-	if res, err := r.AsFailureDomainUser(&r.ReconciliationSubject.Spec.FailureDomain)(); r.ShouldReturn(res, err) {
-		return res, err
-	}
 	if r.ReconciliationSubject.Spec.InstanceID != nil {
 		r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
 		// Use CSClient instead of CSUser here to expunge as admin.
@@ -247,7 +243,6 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 
 // SetupWithManager registers the machine reconciler to the CAPI controller manager.
 func (reconciler *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackMachine{}).
 		WithEventFilter(

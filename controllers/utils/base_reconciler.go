@@ -63,13 +63,14 @@ type CloudStackBaseContext struct {
 type ReconciliationRunner struct {
 	ReconcilerBase
 	CloudStackBaseContext
-	ReconciliationSubject client.Object // Underlying crd interface.
-	ConditionalResult     bool          // Stores a conidtinal result for stringing if else type methods.
-	returnEarly           bool          // A signal that the reconcile should return early.
-	ReconcileDelete       CloudStackReconcilerMethod
-	Reconcile             CloudStackReconcilerMethod
-	CSUser                cloud.Client
-	ControllerKind        string
+	ReconciliationSubject  client.Object // Underlying crd interface.
+	ConditionalResult      bool          // Stores a conidtinal result for stringing if else type methods.
+	returnEarly            bool          // A signal that the reconcile should return early.
+	additionalCommonStages []CloudStackReconcilerMethod
+	ReconcileDelete        CloudStackReconcilerMethod
+	Reconcile              CloudStackReconcilerMethod
+	CSUser                 cloud.Client
+	ControllerKind         string
 }
 
 type ConcreteRunner interface {
@@ -107,6 +108,12 @@ func (r *ReconciliationRunner) ForRequest(req ctrl.Request) *ReconciliationRunne
 // WithRequestCtx sets the request context.
 func (r *ReconciliationRunner) WithRequestCtx(ctx context.Context) *ReconciliationRunner {
 	r.RequestCtx = ctx
+	return r
+}
+
+// WithRequestCtx sets the request context.
+func (r *ReconciliationRunner) WithAdditionalCommonStages(fns ...CloudStackReconcilerMethod) *ReconciliationRunner {
+	r.additionalCommonStages = fns
 	return r
 }
 
@@ -237,30 +244,6 @@ func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness(gvks ...schema.GroupVe
 	}
 }
 
-// SetCSUser sets the CSUser client to any user that can operate in specified domain and account if specified.
-func (r *ReconciliationRunner) SetCSUser() (ctrl.Result, error) {
-	// TODO: Remove no-op.
-	// r.CSUser = r.CSClient
-	// if r.CSCluster.Spec.Account != "" {
-	// 	user := &cloud.User{}
-	// 	user.Account.Domain.Path = r.CSCluster.Spec.Domain
-	// 	user.Account.Name = r.CSCluster.Spec.Account
-	// 	if found, err := r.CSClient.GetUserWithKeys(user); err != nil {
-	// 		return ctrl.Result{}, err
-	// 	} else if !found {
-	// 		return ctrl.Result{}, errors.Errorf("could not find sufficient user (with API keys) in domain/account %s/%s",
-	// 			r.CSCluster.Spec.Domain, r.CSCluster.Spec.Account)
-	// 	}
-	// 	cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
-	// 	client, err := r.CSClient.NewClientFromSpec(cfg)
-	// 	if err != nil {
-	// 		return ctrl.Result{}, err
-	// 	}
-	// 	r.CSUser = client
-	// }
-	return ctrl.Result{}, nil
-}
-
 // RequeueIfCloudStackClusterNotReady requeues the reconciliation request if the CloudStackCluster is not ready.
 func (r *ReconciliationRunner) RequeueIfCloudStackClusterNotReady() (ctrl.Result, error) {
 	if !r.CSCluster.Status.Ready {
@@ -357,16 +340,21 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 			}
 		}
 	}()
-	return r.RunReconciliationStages(
+
+	// Inject common stages prior to calling Reconcile or ReconcileDelete.
+	baseStages := []CloudStackReconcilerMethod{
 		r.SetupLogger,
 		r.GetReconciliationSubject,
 		r.SetupPatcher,
 		r.GetCAPICluster,
 		r.GetCSCluster,
-		r.RequeueIfMissingBaseCRs,
+		r.RequeueIfMissingBaseCRs}
+	baseStages = append(
+		append(baseStages, r.additionalCommonStages...),
 		r.IfDeletionTimestampIsZero(r.Reconcile),
-		r.Else(r.ReconcileDelete),
-	)
+		r.Else(r.ReconcileDelete))
+
+	return r.RunReconciliationStages(baseStages...)
 }
 
 // CheckIfPaused returns with requeue later set if paused.
@@ -378,13 +366,19 @@ func (r *ReconciliationRunner) CheckIfPaused() (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
+// SetReturnEarly sets the runner to return early. This causes the runner to break from running further
+// reconciliation stages and return whatever result the current method returns.
+func (r *ReconciliationRunner) SetReturnEarly() {
+	r.returnEarly = true
+}
+
 // GetReconcilationSubject gets the reconciliation subject of type defined by the concrete reconciler. It also sets up
 // a patch helper at this point.
 func (r *ReconciliationRunner) GetReconciliationSubject() (res ctrl.Result, reterr error) {
 	r.Log.V(1).Info("Getting reconciliation subject.")
 	err := client.IgnoreNotFound(r.K8sClient.Get(r.RequestCtx, r.Request.NamespacedName, r.ReconciliationSubject))
-	if r.ReconciliationSubject.GetName() == "" {
-		return ctrl.Result{}, errors.Errorf("Could not fetch object by namespaced name: %s", r.Request.NamespacedName)
+	if r.ReconciliationSubject.GetName() == "" { // Resource does not exist. No need to reconcile.
+		r.SetReturnEarly()
 	}
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "fetching reconciliation subject")
@@ -403,7 +397,7 @@ func (r *ReconciliationRunner) SetReconciliationSubjectToConcreteSubject(subject
 // InitFromMgr just initiates a ReconcilerBase using given manager's fields/methods.
 func (r *ReconcilerBase) InitFromMgr(mgr ctrl.Manager, client cloud.Client) {
 	r.K8sClient = mgr.GetClient()
-	r.BaseLogger = ctrl.Log.WithName("controllers").WithName("name")
+	r.BaseLogger = ctrl.Log.WithName("controllers")
 	r.Scheme = mgr.GetScheme()
 	r.CSClient = client
 }

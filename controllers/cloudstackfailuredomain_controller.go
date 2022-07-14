@@ -106,7 +106,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 
 // ReconcileDelete on the ReconciliationRunner actually attempts to delete the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
-	r.Log.Info("Deleting CloudStackZone")
+	r.Log.Info("Deleting CloudStackFailureDomain")
 	// Address Isolated Networks.
 	if r.ReconciliationSubject.Spec.Zone.Network.Type == infrav1.NetworkTypeIsolated {
 		netName := r.ReconciliationSubject.Spec.Zone.Network.Name
