@@ -44,9 +44,9 @@ func TestCloud(t *testing.T) {
 		suiteConfig, _ := GinkgoConfiguration()
 		if !strings.Contains(suiteConfig.LabelFilter, "!integ") { // Skip if integ tests are filtered out.
 			// Create a real cloud client.
-			projDir := os.Getenv("PROJECT_DIR")
+			repoRoot := os.Getenv("REPO_ROOT")
 			var connectionErr error
-			realCloudClient, connectionErr = cloud.NewClient(projDir + "/cloud-config")
+			realCloudClient, connectionErr = cloud.NewClient(repoRoot + "/cloud-config")
 			Ω(connectionErr).ShouldNot(HaveOccurred())
 
 			// Create a real CloudStack client.

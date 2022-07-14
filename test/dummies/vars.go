@@ -79,8 +79,8 @@ var ( // Declare exported dummy vars.
 
 // SetDummyVars sets/resets all dummy vars.
 func SetDummyVars() {
-	projDir := os.Getenv("PROJECT_DIR")
-	source, err := ioutil.ReadFile(projDir + "/test/e2e/config/cloudstack.yaml")
+	repoRoot := os.Getenv("REPO_ROOT")
+	source, err := ioutil.ReadFile(repoRoot + "/test/e2e/config/cloudstack.yaml")
 	if err != nil {
 		panic(err)
 	}
