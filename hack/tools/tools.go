@@ -21,7 +21,11 @@ package tools
 import (
 	_ "github.com/a8m/envsubst"
 	_ "github.com/golang/mock/mockgen"
+	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+	_ "github.com/onsi/ginkgo"
 	_ "github.com/onsi/ginkgo/ginkgo"
+	_ "github.com/onsi/ginkgo/v2/ginkgo"
+	_ "honnef.co/go/tools/cmd/staticcheck"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
 	_ "sigs.k8s.io/cluster-api/hack/tools/mdbook/embed"
 	_ "sigs.k8s.io/cluster-api/hack/tools/mdbook/releaselink"
