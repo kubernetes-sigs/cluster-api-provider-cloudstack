@@ -27,17 +27,17 @@ import (
 )
 
 type IsoNetworkIface interface {
-	GetOrCreateIsolatedNetwork(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
+	GetOrCreateIsolatedNetwork(*infrav1.CloudStackFailureDomain, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
 
-	AssociatePublicIPAddress(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
-	GetOrCreateLoadBalancerRule(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
+	AssociatePublicIPAddress(*infrav1.CloudStackFailureDomain, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
+	GetOrCreateLoadBalancerRule(*infrav1.CloudStackFailureDomain, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
 	OpenFirewallRules(*infrav1.CloudStackIsolatedNetwork) error
-	GetPublicIP(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
-	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
+	GetPublicIP(*infrav1.CloudStackFailureDomain, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) (*cloudstack.PublicIpAddress, error)
+	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackFailureDomain, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
 
 	AssignVMToLoadBalancerRule(isoNet *infrav1.CloudStackIsolatedNetwork, instanceID string) error
 	DeleteNetwork(infrav1.Network) error
-	DisposeIsoNetResources(*infrav1.CloudStackZone, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
+	DisposeIsoNetResources(*infrav1.CloudStackFailureDomain, *infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
 }
 
 // getOfferingID fetches an offering id.
@@ -53,12 +53,12 @@ func (c *client) getOfferingID() (string, error) {
 
 // AssociatePublicIPAddress Gets a PublicIP and associates the public IP to passed isolated network.
 func (c *client) AssociatePublicIPAddress(
-	zone *infrav1.CloudStackZone,
+	fd *infrav1.CloudStackFailureDomain,
 	isoNet *infrav1.CloudStackIsolatedNetwork,
 	csCluster *infrav1.CloudStackCluster,
 ) (retErr error) {
 	// Check specified IP address is available or get an unused one if not specified.
-	publicAddress, err := c.GetPublicIP(zone, isoNet, csCluster)
+	publicAddress, err := c.GetPublicIP(fd, isoNet, csCluster)
 	if err != nil {
 		return errors.Wrapf(err, "fetching a public IP address")
 	}
@@ -89,8 +89,8 @@ func (c *client) AssociatePublicIPAddress(
 	return nil
 }
 
-// CreateIsolatedNetwork creates an isolated network in the relevant Zone per passed network specification.
-func (c *client) CreateIsolatedNetwork(zone *infrav1.CloudStackZone, isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
+// CreateIsolatedNetwork creates an isolated network in the relevant FailureDomain per passed network specification.
+func (c *client) CreateIsolatedNetwork(fd *infrav1.CloudStackFailureDomain, isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
 	// Get network offering ID.
 	offeringID, err := c.getOfferingID()
 	if err != nil {
@@ -98,7 +98,7 @@ func (c *client) CreateIsolatedNetwork(zone *infrav1.CloudStackZone, isoNet *inf
 	}
 
 	// Do isolated network creation.
-	p := c.cs.Network.NewCreateNetworkParams(isoNet.Spec.Name, isoNet.Spec.Name, offeringID, zone.Spec.ID)
+	p := c.cs.Network.NewCreateNetworkParams(isoNet.Spec.Name, isoNet.Spec.Name, offeringID, fd.Spec.Zone.ID)
 	resp, err := c.cs.Network.CreateNetwork(p)
 	if err != nil {
 		return errors.Wrapf(err, "creating network with name %s", isoNet.Spec.Name)
@@ -119,7 +119,7 @@ func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (r
 
 // GetPublicIP gets a public IP with ID for cluster endpoint.
 func (c *client) GetPublicIP(
-	zone *infrav1.CloudStackZone,
+	fd *infrav1.CloudStackFailureDomain,
 	isoNet *infrav1.CloudStackIsolatedNetwork,
 	csCluster *infrav1.CloudStackCluster,
 ) (*cloudstack.PublicIpAddress, error) {
@@ -127,7 +127,7 @@ func (c *client) GetPublicIP(
 
 	p := c.cs.Address.NewListPublicIpAddressesParams()
 	p.SetAllocatedonly(false)
-	p.SetZoneid(zone.Spec.ID)
+	p.SetZoneid(fd.Spec.Zone.ID)
 	setIfNotEmpty(ip, p.SetIpaddress)
 	publicAddresses, err := c.cs.Address.ListPublicIpAddresses(p)
 	if err != nil {
@@ -177,7 +177,7 @@ func (c *client) GetIsolatedNetwork(isoNet *infrav1.CloudStackIsolatedNetwork) (
 
 // ResolveLoadBalancerRuleDetails resolves the details of a load balancer rule by PublicIPID and Port.
 func (c *client) ResolveLoadBalancerRuleDetails(
-	zone *infrav1.CloudStackZone,
+	fd *infrav1.CloudStackFailureDomain,
 	isoNet *infrav1.CloudStackIsolatedNetwork,
 	csCluster *infrav1.CloudStackCluster,
 ) error {
@@ -199,7 +199,7 @@ func (c *client) ResolveLoadBalancerRuleDetails(
 
 // GetOrCreateLoadBalancerRule Create a load balancer rule that can be assigned to instances.
 func (c *client) GetOrCreateLoadBalancerRule(
-	zone *infrav1.CloudStackZone,
+	fd *infrav1.CloudStackFailureDomain,
 	isoNet *infrav1.CloudStackIsolatedNetwork,
 	csCluster *infrav1.CloudStackCluster,
 ) (retErr error) {
@@ -215,7 +215,7 @@ func (c *client) GetOrCreateLoadBalancerRule(
 	}
 
 	// Check if rule exists.
-	if err := c.ResolveLoadBalancerRuleDetails(zone, isoNet, csCluster); err == nil ||
+	if err := c.ResolveLoadBalancerRuleDetails(fd, isoNet, csCluster); err == nil ||
 		!strings.Contains(strings.ToLower(err.Error()), "no load balancer rule found") {
 		return errors.Wrap(err, "resolving load balancer rule details")
 	}
@@ -237,14 +237,14 @@ func (c *client) GetOrCreateLoadBalancerRule(
 
 // GetOrCreateIsolatedNetwork fetches or builds out the necessary structures for isolated network use.
 func (c *client) GetOrCreateIsolatedNetwork(
-	zone *infrav1.CloudStackZone,
+	fd *infrav1.CloudStackFailureDomain,
 	isoNet *infrav1.CloudStackIsolatedNetwork,
 	csCluster *infrav1.CloudStackCluster,
 ) error {
 	// Get or create the isolated network itself and resolve details into passed custom resources.
 	net := isoNet.Network()
 	if err := c.ResolveNetwork(net); err != nil { // Doesn't exist, create isolated network.
-		if err = c.CreateIsolatedNetwork(zone, isoNet); err != nil {
+		if err = c.CreateIsolatedNetwork(fd, isoNet); err != nil {
 			return errors.Wrap(err, "creating a new isolated network")
 		}
 	} else { // Network existed and was resolved. Set ID on isoNet CloudStackIsolatedNetwork in case it only had name set.
@@ -258,12 +258,12 @@ func (c *client) GetOrCreateIsolatedNetwork(
 	}
 
 	// Associate Public IP with CloudStackIsolatedNetwork
-	if err := c.AssociatePublicIPAddress(zone, isoNet, csCluster); err != nil {
+	if err := c.AssociatePublicIPAddress(fd, isoNet, csCluster); err != nil {
 		return errors.Wrapf(err, "associating public IP address to csCluster")
 	}
 
 	// Setup a load balancing rule to map VMs to Public IP.
-	if err := c.GetOrCreateLoadBalancerRule(zone, isoNet, csCluster); err != nil {
+	if err := c.GetOrCreateLoadBalancerRule(fd, isoNet, csCluster); err != nil {
 		return errors.Wrap(err, "getting or creating load balancing rule")
 	}
 
@@ -301,7 +301,7 @@ func (c *client) DeleteNetwork(net infrav1.Network) error {
 
 // DisposeIsoNetResources cleans up isolated network resources.
 func (c *client) DisposeIsoNetResources(
-	zone *infrav1.CloudStackZone,
+	zone *infrav1.CloudStackFailureDomain,
 	isoNet *infrav1.CloudStackIsolatedNetwork,
 	csCluster *infrav1.CloudStackCluster,
 ) (retError error) {

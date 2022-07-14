@@ -69,8 +69,8 @@ func (r *ReconciliationRunner) GetFailureDomains(fds *infrav1.CloudStackFailureD
 	}
 }
 
-// GetFailureDomainssAndRequeueIfMissing gets CloudStackFailureDomains owned by a CloudStackCluster and requeues if none are found.
-func (r *ReconciliationRunner) GetFailureDomainssAndRequeueIfMissing(fds *infrav1.CloudStackFailureDomainList) CloudStackReconcilerMethod {
+// GetFailureDomainsAndRequeueIfMissing gets CloudStackFailureDomains owned by a CloudStackCluster and requeues if none are found.
+func (r *ReconciliationRunner) GetFailureDomainsAndRequeueIfMissing(fds *infrav1.CloudStackFailureDomainList) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		if res, err := r.GetFailureDomains(fds)(); r.ShouldReturn(res, err) {
 			return res, err
@@ -82,7 +82,7 @@ func (r *ReconciliationRunner) GetFailureDomainssAndRequeueIfMissing(fds *infrav
 }
 
 // AsFailureDomainUser uses the credentials specified in the failure domain to set the ReconciliationSubject's CSUser client.
-func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
+func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec *infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		endpointCredentials := &corev1.Secret{}
 		key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}

@@ -69,6 +69,7 @@ type ReconciliationRunner struct {
 	ReconcileDelete       CloudStackReconcilerMethod
 	Reconcile             CloudStackReconcilerMethod
 	CSUser                cloud.Client
+	ControllerKind        string
 }
 
 type ConcreteRunner interface {
@@ -77,13 +78,14 @@ type ConcreteRunner interface {
 	GetReconcilationSubject() client.Object
 }
 
-func NewRunner(concreteRunner ConcreteRunner, subject client.Object) ReconciliationRunner {
+func NewRunner(concreteRunner ConcreteRunner, subject client.Object, kind string) ReconciliationRunner {
 	r := ReconciliationRunner{}
 	r.CSCluster = &infrav1.CloudStackCluster{}
 	r.CAPICluster = &clusterv1.Cluster{}
 	r.ReconciliationSubject = subject
 	r.Reconcile = concreteRunner.Reconcile
 	r.ReconcileDelete = concreteRunner.ReconcileDelete
+	r.ControllerKind = kind
 	return r
 }
 
@@ -110,7 +112,7 @@ func (r *ReconciliationRunner) WithRequestCtx(ctx context.Context) *Reconciliati
 
 // SetupLogger sets up the reconciler's logger to log with name and namespace values.
 func (r *ReconciliationRunner) SetupLogger() (res ctrl.Result, retErr error) {
-	r.Log = r.BaseLogger.WithValues("name", r.Request.Name, "namespace", r.Request.Namespace)
+	r.Log = r.BaseLogger.WithName(r.ControllerKind).WithValues("name", r.Request.Name, "namespace", r.Request.Namespace)
 	r.Log.V(1).Info("Logger setup complete.")
 	return ctrl.Result{}, nil
 }
@@ -119,6 +121,17 @@ func (r *ReconciliationRunner) IfDeletionTimestampIsZero(fn CloudStackReconciler
 	return func() (ctrl.Result, error) {
 		r.Log.V(1).Info("Checking for deletion timestamp.")
 		if r.ConditionalResult = r.ReconciliationSubject.GetDeletionTimestamp().IsZero(); r.ConditionalResult {
+			return fn()
+		}
+		return ctrl.Result{}, nil
+	}
+}
+
+// RunIf accepts a conditional method and CloudStackReconcilerMethod and runs the CloudStackBaseContext if the conditional
+// method is true.
+func (r *ReconciliationRunner) RunIf(conditional func() bool, fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		if r.ConditionalResult = conditional(); r.ConditionalResult {
 			return fn()
 		}
 		return ctrl.Result{}, nil
@@ -282,6 +295,17 @@ func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...i
 	return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 }
 
+// RequeueWithMessageStage is a convenience method to log requeue message and then return a result with RequeueAfter set.
+func (r *ReconciliationRunner) RequeueWithMessageStage(msg string, keysAndValues ...interface{}) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		if !strings.Contains(strings.ToLower(msg), "requeue") {
+			msg = msg + " Requeueing."
+		}
+		r.Log.Info(msg, keysAndValues...)
+		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+	}
+}
+
 // ReturnWrappedError is a convenience method to log requeue message and then return a result with RequeueAfter set.
 func (r *ReconciliationRunner) ReturnWrappedError(err error, msg string) (ctrl.Result, error) {
 	return ctrl.Result{}, errors.Wrap(err, msg)
@@ -439,5 +463,17 @@ func (r *ReconciliationRunner) GetObjectByName(name string, target client.Object
 		objectKey := client.ObjectKey{Name: strings.ToLower(name), Namespace: r.Request.Namespace}
 		return r.ReturnWrappedError(
 			client.IgnoreNotFound(r.K8sClient.Get(r.RequestCtx, objectKey, target)), "failed to get object")
+	}
+}
+
+// CheckPresent checks that each object given was fetched.
+func (r *ReconciliationRunner) CheckPresent(objs map[string]client.Object) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		for kind, obj := range objs {
+			if obj.GetName() == "" {
+				return r.RequeueWithMessage(fmt.Sprintf("missing dependent object of kind %s", kind))
+			}
+		}
+		return ctrl.Result{}, nil
 	}
 }

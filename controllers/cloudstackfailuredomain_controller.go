@@ -42,14 +42,16 @@ type CloudStackFailureDomainReconciler struct {
 type CloudStackFailureDomainReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackFailureDomain
+	IsoNet                *infrav1.CloudStackIsolatedNetwork
 }
 
 // Initialize a new CloudStackFailureDomain reconciliation runner with concrete types and initialized member fields.
 func NewCSFailureDomainReconciliationRunner() *CloudStackFailureDomainReconciliationRunner {
 	// Set concrete type and init pointers.
 	r := &CloudStackFailureDomainReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackFailureDomain{}}
+	r.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject, "CloudStackFailureDomain")
 
 	return r
 }
@@ -65,7 +67,7 @@ func (reconciler *CloudStackFailureDomainReconciler) Reconcile(ctx context.Conte
 
 // Reconcile on the ReconciliationRunner actually attempts to modify or create the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	res, err := r.AsFailureDomainUser(r.ReconciliationSubject.Spec)()
+	res, err := r.AsFailureDomainUser(&r.ReconciliationSubject.Spec)()
 	if r.ShouldReturn(res, err) {
 		return res, err
 	}
@@ -81,31 +83,43 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information")
 	}
 
-	// TODO: Address Isolated Networks.
-	// // Check if the passed network was an isolated network or the network was missing. In either case, create a
-	// // CloudStackIsolatedNetwork to manage the many intricacies and wait until CloudStackIsolatedNetwork is ready.
-	// if r.ReconciliationSubject.Spec.Network.ID == "" || r.ReconciliationSubject.Spec.Network.Type == infrav1.NetworkTypeIsolated {
-	// 	netName := r.ReconciliationSubject.Spec.Network.Name
-	// 	if res, err := r.GenerateIsolatedNetwork(netName)(); r.ShouldReturn(res, err) {
-	// 		return res, err
-	// 	} else if res, err := r.GetObjectByName(r.IsoNetMetaName(netName), r.IsoNet)(); r.ShouldReturn(res, err) {
-	// 		return res, err
-	// 	}
-	// 	if r.IsoNet.Name == "" {
-	// 		return r.RequeueWithMessage("Couldn't find isolated network.")
-	// 	}
-	// 	if !r.IsoNet.Status.Ready {
-	// 		return r.RequeueWithMessage("Isolated network dependency not ready.")
-	// 	}
-	// }
+	// Check if the passed network was an isolated network or the network was missing. In either case, create a
+	// CloudStackIsolatedNetwork to manage the many intricacies and wait until CloudStackIsolatedNetwork is ready.
+	if r.ReconciliationSubject.Spec.Zone.Network.ID == "" ||
+		r.ReconciliationSubject.Spec.Zone.Network.Type == infrav1.NetworkTypeIsolated {
+		netName := r.ReconciliationSubject.Spec.Zone.Network.Name
+		if res, err := r.GenerateIsolatedNetwork(netName)(); r.ShouldReturn(res, err) {
+			return res, err
+		} else if res, err := r.GetObjectByName(r.IsoNetMetaName(netName), r.IsoNet)(); r.ShouldReturn(res, err) {
+			return res, err
+		}
+		if r.IsoNet.Name == "" {
+			return r.RequeueWithMessage("Couldn't find isolated network.")
+		}
+		if !r.IsoNet.Status.Ready {
+			return r.RequeueWithMessage("Isolated network dependency not ready.")
+		}
+	}
 	r.ReconciliationSubject.Status.Ready = true
 	return ctrl.Result{}, nil
 }
 
 // ReconcileDelete on the ReconciliationRunner actually attempts to delete the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
-	// TODO: Consider owned resources.
-	// Allow deletion.
+	r.Log.Info("Deleting CloudStackZone")
+	// Address Isolated Networks.
+	if r.ReconciliationSubject.Spec.Zone.Network.Type == infrav1.NetworkTypeIsolated {
+		netName := r.ReconciliationSubject.Spec.Zone.Network.Name
+		if res, err := r.GetObjectByName(r.IsoNetMetaName(netName), r.IsoNet)(); r.ShouldReturn(res, err) {
+			return res, err
+		}
+		if r.IsoNet.Name != "" {
+			if err := r.K8sClient.Delete(r.RequestCtx, r.IsoNet); err != nil {
+				return ctrl.Result{}, err
+			}
+			return r.RequeueWithMessage("Child IsolatedNetwork still present, requeueing.")
+		}
+	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.FailureDomainFinalizer)
 	return ctrl.Result{}, nil
 }

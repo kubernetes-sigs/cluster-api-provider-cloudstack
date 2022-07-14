@@ -42,7 +42,7 @@ type CloudStackIsoNetReconciler struct {
 // CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack isolated network reconciliation.
 type CloudStackIsoNetReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
-	Zone                  *infrav1.CloudStackZone
+	FailureDomain         *infrav1.CloudStackFailureDomain
 	ReconciliationSubject *infrav1.CloudStackIsolatedNetwork
 }
 
@@ -50,9 +50,9 @@ type CloudStackIsoNetReconciliationRunner struct {
 func NewCSIsoNetReconciliationRunner() *CloudStackIsoNetReconciliationRunner {
 	// Set concrete type and init pointers.
 	r := &CloudStackIsoNetReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackIsolatedNetwork{}}
-	r.Zone = &infrav1.CloudStackZone{}
+	r.FailureDomain = &infrav1.CloudStackFailureDomain{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject, "CloudStackIsolatedNetwork")
 	return r
 }
 
@@ -65,10 +65,17 @@ func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	if res, err := r.RequeueIfMissingBaseCRs(); r.ShouldReturn(res, err) {
+	if res, err := r.GetParent(r.ReconciliationSubject, r.FailureDomain)(); r.ShouldReturn(res, err) {
 		return res, err
 	}
-	if res, err := r.GetParent(r.ReconciliationSubject, r.Zone)(); r.ShouldReturn(res, err) {
+	if r.FailureDomain.Spec.Name == "" {
+		return ctrl.Result{}, errors.New("couldn't get parent Failure Domain for placement")
+	}
+	res, err := r.AsFailureDomainUser(&r.FailureDomain.Spec)()
+	if r.ShouldReturn(res, err) {
+		return res, err
+	}
+	if res, err := r.RequeueIfMissingBaseCRs(); r.ShouldReturn(res, err) {
 		return res, err
 	}
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.IsolatedNetworkFinalizer)
@@ -79,7 +86,7 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 	if err != nil {
 		return r.ReturnWrappedError(retErr, "setting up CloudStackCluster patcher")
 	}
-	if err := r.CSUser.GetOrCreateIsolatedNetwork(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+	if err := r.CSUser.GetOrCreateIsolatedNetwork(r.FailureDomain, r.ReconciliationSubject, r.CSCluster); err != nil {
 		return ctrl.Result{}, err
 	}
 	// Tag the created network.
@@ -95,8 +102,18 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
+	if res, err := r.GetParent(r.ReconciliationSubject, r.FailureDomain)(); r.ShouldReturn(res, err) {
+		return res, err
+	}
+	if r.FailureDomain.Spec.Name == "" {
+		return ctrl.Result{}, errors.New("couldn't get parent Failure Domain for placement")
+	}
+	res, err := r.AsFailureDomainUser(&r.FailureDomain.Spec)()
+	if r.ShouldReturn(res, err) {
+		return res, err
+	}
 	r.Log.Info("Deleting IsolatedNetwork.")
-	if err := r.CSUser.DisposeIsoNetResources(r.Zone, r.ReconciliationSubject, r.CSCluster); err != nil {
+	if err := r.CSUser.DisposeIsoNetResources(r.FailureDomain, r.ReconciliationSubject, r.CSCluster); err != nil {
 		if !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			return ctrl.Result{}, err
 		}

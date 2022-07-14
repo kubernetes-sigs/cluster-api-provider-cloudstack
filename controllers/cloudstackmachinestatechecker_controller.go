@@ -22,6 +22,7 @@ import (
 	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
@@ -38,6 +39,7 @@ type CloudStackMachineStateCheckerReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	MachineStateCheckers  *infrav1.CloudStackMachineStateCheckerList
 	ReconciliationSubject *infrav1.CloudStackMachineStateChecker
+	FailureDomain         *infrav1.CloudStackFailureDomain
 	CAPIMachine           *clusterv1.Machine
 	CSMachine             *infrav1.CloudStackMachine
 }
@@ -53,8 +55,9 @@ func NewCSMachineStateCheckerReconciliationRunner() *CloudStackMachineStateCheck
 	runner := &CloudStackMachineStateCheckerReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachineStateChecker{}}
 	runner.CAPIMachine = &clusterv1.Machine{}
 	runner.CSMachine = &infrav1.CloudStackMachine{}
+	runner.FailureDomain = &infrav1.CloudStackFailureDomain{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject)
+	runner.ReconciliationRunner = csCtrlrUtils.NewRunner(runner, runner.ReconciliationSubject, "CloudStackMachineStateChecker")
 	return runner
 }
 
@@ -67,11 +70,16 @@ func (r *CloudStackMachineStateCheckerReconciler) Reconcile(ctx context.Context,
 }
 
 func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Result, error) {
-	if res, err := r.GetParent(r.ReconciliationSubject, r.CSMachine)(); r.ShouldReturn(res, err) {
-		return res, err
-	}
-
-	if res, err := r.GetParent(r.CSMachine, r.CAPIMachine)(); r.ShouldReturn(res, err) {
+	if res, err := r.RunReconciliationStages(
+		r.GetParent(r.ReconciliationSubject, r.CSMachine),
+		r.GetParent(r.CSMachine, r.CAPIMachine),
+		r.CheckPresent(map[string]client.Object{"CloudStackMachine": r.CSMachine, "Machine": r.CAPIMachine}),
+		r.GetObjectByName(r.CSMachine.Spec.FailureDomain.Name, r.FailureDomain),
+		r.GetObjectByName("placeholder", r.FailureDomain,
+			func() string { return r.CSMachine.Spec.FailureDomain.Name }),
+		r.CheckPresent(map[string]client.Object{"CloudStackFailureDomain": r.FailureDomain}),
+		r.AsFailureDomainUser(&r.FailureDomain.Spec),
+	); r.ShouldReturn(res, err) {
 		return res, err
 	}
 

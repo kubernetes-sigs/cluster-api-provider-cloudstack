@@ -50,7 +50,7 @@ func NewCSZoneReconciliationRunner() *CloudStackZoneReconciliationRunner {
 	r.Zones = &infrav1.CloudStackZoneList{}
 	r.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
 	// Setup the base r. Initializes pointers and links reconciliation methods.
-	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject, "CloudStackZone")
 	return r
 }
 

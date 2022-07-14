@@ -449,7 +449,6 @@ spec:
                             type: string
                         type: object
                     required:
-                    - failureDomain
                     - offering
                     - template
                     type: object

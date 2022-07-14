@@ -66,7 +66,7 @@ func NewCSClusterReconciliationRunner() *CloudStackClusterReconciliationRunner {
 	r := &CloudStackClusterReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackCluster{}}
 	r.FailureDomains = &infrav1.CloudStackFailureDomainList{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject, "CloudStackCluster")
 	// For the CloudStackCluster, the ReconciliationSubject is the CSCluster
 	// Have to do after or the setup method will overwrite the link.
 	r.CSCluster = r.ReconciliationSubject

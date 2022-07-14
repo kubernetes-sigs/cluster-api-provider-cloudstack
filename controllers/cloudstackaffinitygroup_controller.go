@@ -49,7 +49,7 @@ func NewCSAGReconciliationRunner() *CloudStackAGReconciliationRunner {
 	// Set concrete type and init pointers.
 	r := &CloudStackAGReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackAffinityGroup{}}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject, "CloudStackAffinityGroup")
 	return r
 }
 

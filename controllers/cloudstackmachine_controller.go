@@ -19,14 +19,15 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"reflect"
-
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -74,7 +75,7 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 	r.AffinityGroup = &infrav1.CloudStackAffinityGroup{}
 	r.FailureDomain = &infrav1.CloudStackFailureDomain{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	r.ReconciliationRunner = utils.NewRunner(r, r.ReconciliationSubject)
+	r.ReconciliationRunner = utils.NewRunner(r, r.ReconciliationSubject, "CloudStackMachine")
 	return r
 }
 
@@ -90,13 +91,18 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 
 func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
-		r.AsFailureDomainUser(r.ReconciliationSubject.Spec.FailureDomain),
-		r.GetZonesAndRequeueIfMissing(r.Zones),
 		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
 		r.RequeueIfCloudStackClusterNotReady,
-		r.ConsiderAffinity,
 		r.SetFailureDomainOnCSMachine,
-		r.GetObjectByName("placeholder", r.IsoNet, func() string { return r.IsoNetMetaName(r.FailureDomain.Spec.Zone.Network.Name) }),
+		r.GetObjectByName("placeholder", r.FailureDomain,
+			func() string { return r.ReconciliationSubject.Spec.FailureDomain.Name }),
+		r.CheckPresent(map[string]client.Object{"CloudStackFailureDomain": r.FailureDomain}),
+		r.AsFailureDomainUser(&r.FailureDomain.Spec),
+		r.GetObjectByName("placeholder", r.IsoNet,
+			func() string { return r.IsoNetMetaName(r.FailureDomain.Spec.Zone.Network.Name) }),
+		r.RunIf(func() bool { return r.FailureDomain.Spec.Zone.Network.Type == cloud.NetworkTypeIsolated },
+			r.CheckPresent(map[string]client.Object{"CloudStackIsolatedNetwork": r.IsoNet})),
+		r.ConsiderAffinity,
 		r.GetOrCreateVMInstance,
 		r.RequeueIfInstanceNotRunning,
 		r.AddToLBIfNeeded,
@@ -128,40 +134,14 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
-	// // Set ZoneID on csMachine.
-	// if util.IsControlPlaneMachine(r.CAPIMachine) { // Use failure domain zone.
-	// 	r.ReconciliationSubject.Status.ZoneID = *r.CAPIMachine.Spec.FailureDomain
-	// } else { // Specified by Machine Template or Random zone.
-	// 	if r.ReconciliationSubject.Spec.FailureDomain.Name != "" {
-	// 		if zone, foundZone := r.CSCluster.Status.Zones[r.ReconciliationSubject.Spec.ZoneID]; foundZone { // ZoneID Specified.
-	// 			r.ReconciliationSubject.Status.ZoneID = zone.ID
-	// 		} else {
-	// 			return ctrl.Result{}, errors.Errorf("could not find zone by zoneID: %s", r.ReconciliationSubject.Spec.ZoneID)
-	// 		}
-	// 	} else if r.ReconciliationSubject.Spec.ZoneName != "" {
-	// 		for _, zone := range r.Zones.Items {
-	// 			if zone.Spec.Name == r.ReconciliationSubject.Spec.ZoneName {
-	// 				r.ReconciliationSubject.Status.ZoneID = zone.Spec.ID
-	// 				break
-	// 			}
-	// 		}
-	// 		if r.ReconciliationSubject.Status.ZoneID == "" {
-	// 			return ctrl.Result{}, errors.Errorf("could not find zone by zoneName: %s", r.ReconciliationSubject.Spec.ZoneName)
-	// 		}
-	// 	} else { // No Zone Specified, pick a Random Zone.
-	// 		if len(r.Zones.Items) < 1 { // Double check that zones are present.
-	// 			return r.RequeueWithMessage("no zones found, requeueing")
-	// 		}
-	// 		randNum := (rand.Int() % len(r.Zones.Items)) // #nosec G404 -- weak crypt rand doesn't matter here.
-	// 		r.ReconciliationSubject.Status.ZoneID = r.Zones.Items[randNum].Spec.ID
-	// 	}
-	// }
-	// for idx, zone := range r.Zones.Items {
-	// 	if zone.Spec.ID == r.ReconciliationSubject.Status.ZoneID {
-	// 		r.FailureDomain = &r.Zones.Items[idx]
-	// 		break
-	// 	}
-	// }
+	if r.ReconciliationSubject.Spec.FailureDomain.Name == "" { // Needs random FD, but not yet set.
+		if util.IsControlPlaneMachine(r.CAPIMachine) { // Is control plane machine -- CAPI will specify.
+			r.ReconciliationSubject.Spec.FailureDomain.Name = *r.CAPIMachine.Spec.FailureDomain
+		} else { // Not a control plane machine. Place randomly.
+			randNum := (rand.Int() % len(r.CSCluster.Spec.FailureDomains)) // #nosec G404 -- weak crypt rand doesn't matter here.
+			r.ReconciliationSubject.Spec.FailureDomain.Name = r.CSCluster.Spec.FailureDomains[randNum].Name
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -172,15 +152,6 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 		return r.RequeueWithMessage("Bootstrap DataSecretName not yet available.")
 	}
 	r.Log.Info("Got Bootstrap DataSecretName.")
-
-	// Get the CloudStackZone for the Machine.
-	var machineZone infrav1.CloudStackZone
-	for _, zone := range r.Zones.Items {
-		machineZone = zone
-		if zone.Spec.ID == r.ReconciliationSubject.Status.ZoneID {
-			break
-		}
-	}
 
 	// Get the kubeadm bootstrap secret for this machine.
 	secret := &corev1.Secret{}
@@ -193,7 +164,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
-	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, &machineZone, r.AffinityGroup, string(data))
+	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, string(data))
 
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
@@ -253,7 +224,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 }
 
 func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
-	if res, err := r.AsFailureDomainUser(r.ReconciliationSubject.Spec.FailureDomain)(); r.ShouldReturn(res, err) {
+	if res, err := r.AsFailureDomainUser(&r.ReconciliationSubject.Spec.FailureDomain)(); r.ShouldReturn(res, err) {
 		return res, err
 	}
 	if r.ReconciliationSubject.Spec.InstanceID != nil {
