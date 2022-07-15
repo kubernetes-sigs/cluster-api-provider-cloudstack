@@ -105,7 +105,7 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		r.GetOrCreateVMInstance,
 		r.RequeueIfInstanceNotRunning,
 		r.AddToLBIfNeeded,
-		r.GetOrCreateMachineStateChecker,
+		// r.GetOrCreateMachineStateChecker,
 	)
 }
 

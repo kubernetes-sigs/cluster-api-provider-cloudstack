@@ -86,7 +86,6 @@ func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, re
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
-		r.RequeueIfMissingBaseCRs,
 		r.CreateFailureDomains(r.ReconciliationSubject.Spec.FailureDomains),
 		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackFailureDomain")),
 		r.GetFailureDomains(r.FailureDomains),

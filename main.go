@@ -194,10 +194,10 @@ func setupReconcilers(base utils.ReconcilerBase, mgr manager.Manager) {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
 		os.Exit(1)
 	}
-	if err := (&controllers.CloudStackMachineStateCheckerReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachineStateChecker")
-		os.Exit(1)
-	}
+	// if err := (&controllers.CloudStackMachineStateCheckerReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachineStateChecker")
+	// 	os.Exit(1)
+	// }
 	if err := (&controllers.CloudStackIsoNetReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsoNetReconciler")
 		os.Exit(1)

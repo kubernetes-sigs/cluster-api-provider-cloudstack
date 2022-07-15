@@ -124,21 +124,16 @@ func (r *ReconciliationRunner) SetupLogger() (res ctrl.Result, retErr error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *ReconciliationRunner) IfDeletionTimestampIsZero(fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
-	return func() (ctrl.Result, error) {
-		r.Log.V(1).Info("Checking for deletion timestamp.")
-		if r.ConditionalResult = r.ReconciliationSubject.GetDeletionTimestamp().IsZero(); r.ConditionalResult {
-			return fn()
-		}
-		return ctrl.Result{}, nil
-	}
-}
-
 // RunIf accepts a conditional method and CloudStackReconcilerMethod and runs the CloudStackBaseContext if the conditional
 // method is true.
 func (r *ReconciliationRunner) RunIf(conditional func() bool, fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		if r.ConditionalResult = conditional(); r.ConditionalResult {
+		// Set conditional post stage since the interim stage may change it.
+		placeholder := conditional()
+		defer func() {
+			r.ConditionalResult = placeholder
+		}()
+		if placeholder {
 			return fn()
 		}
 		return ctrl.Result{}, nil
@@ -148,6 +143,8 @@ func (r *ReconciliationRunner) RunIf(conditional func() bool, fn CloudStackRecon
 func (r *ReconciliationRunner) Else(fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		if !r.ConditionalResult {
+			r.Log.Info("Deleting ASDF.")
+			fmt.Println(r.ConditionalResult)
 			return fn()
 		}
 		return ctrl.Result{}, nil
@@ -351,7 +348,7 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 		r.RequeueIfMissingBaseCRs}
 	baseStages = append(
 		append(baseStages, r.additionalCommonStages...),
-		r.IfDeletionTimestampIsZero(r.Reconcile),
+		r.RunIf(func() bool { return r.ReconciliationSubject.GetDeletionTimestamp().IsZero() }, r.Reconcile),
 		r.Else(r.ReconcileDelete))
 
 	return r.RunReconciliationStages(baseStages...)
@@ -436,9 +433,7 @@ func (r *ReconciliationRunner) NewChildObjectMeta(name string) metav1.ObjectMeta
 // actually fetched and reques if not. The base reconciliation stages will continue even if not so as to allow deletion.
 func (r *ReconciliationRunner) RequeueIfMissingBaseCRs() (ctrl.Result, error) {
 	r.Log.V(1).Info("Requeueing if missing ReconciliationSubject, CloudStack cluster, or CAPI cluster.")
-	if r.ReconciliationSubject.GetName() == "" {
-		return r.RequeueWithMessage("Reconciliation subject wasn't found. Requeueing.")
-	} else if r.CSCluster.GetName() == "" {
+	if r.CSCluster.GetName() == "" {
 		return r.RequeueWithMessage("CloudStackCluster wasn't found. Requeueing.")
 	} else if r.CAPICluster.GetName() == "" {
 		return r.RequeueWithMessage("CAPI Cluster wasn't found. Requeueing.")
