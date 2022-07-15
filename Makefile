@@ -1,6 +1,10 @@
 # Image URL to use all building/pushing image targets
-IMG ?= public.ecr.aws/a4z9h2b1/cluster-api-provider-capc:latest
-IMG_LOCAL ?= localhost:5000/cluster-api-provider-cloudstack:latest
+STAGING_REGISTRY := gcr.io/k8s-staging-capi-cloudstack
+REGISTRY ?= $(STAGING_REGISTRY)
+IMAGE_NAME ?= capi-cloudstack-controller
+TAG ?= dev
+IMG ?= $(REGISTRY)/$(IMAGE_NAME):$(TAG)
+IMG_LOCAL ?= localhost:5000/$(IMAGE_NAME):$(TAG)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -45,7 +49,7 @@ help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
  MANIFEST_GEN_INPUTS=$(shell find ./api ./controllers -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
- 
+
 # Using a flag file here as config output is too complicated to be a target.
 # The following triggers manifest building if $(IMG) differs from that found in config/default/manager_image_patch.yaml.
 $(shell	grep -qs "$(IMG)" config/default/manager_image_patch_edited.yaml || rm -f config/.flag.mk)
@@ -58,7 +62,7 @@ config/.flag.mk: bin/controller-gen $(MANIFEST_GEN_INPUTS)
 
 .PHONY: release-manifests
 RELEASE_MANIFEST_TARGETS=$(RELEASE_DIR)/infrastructure-components.yaml $(RELEASE_DIR)/metadata.yaml
-RELEASE_MANIFEST_INPUTS=bin/kustomize config/.flag.mk $(shell find config) 
+RELEASE_MANIFEST_INPUTS=bin/kustomize config/.flag.mk $(shell find config)
 release-manifests: $(RELEASE_MANIFEST_TARGETS) ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
 $(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
 	@mkdir -p $(RELEASE_DIR)
@@ -146,7 +150,7 @@ bin/golangci-lint: ## Install golangci-lint to bin.
 bin/staticcheck: ## Install staticcheck to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install honnef.co/go/tools/cmd/staticcheck@v0.3.1
 bin/ginkgo: bin/ginkgo_v1 bin/ginkgo_v2 ## Install ginkgo to bin.
-bin/ginkgo_v2: 
+bin/ginkgo_v2:
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.4
 	mv $(PROJECT_DIR)/bin/ginkgo $(PROJECT_DIR)/bin/ginkgo_v2
 bin/ginkgo_v1:
@@ -180,7 +184,7 @@ test: generate-mocks lint bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## 
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@ginkgo_v2 --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
-	
+
 .PHONY: generate-mocks
 generate-mocks: bin/mockgen generate-deepcopy pkg/mocks/mock_client.go $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
 pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
@@ -188,7 +192,7 @@ pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -p
 
 ##@ Tilt
 
-.PHONY: tilt-up 
+.PHONY: tilt-up
 tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests cloud-config ## Setup and run tilt for development.
 	export CLOUDSTACK_B64ENCODED_SECRET=$$(base64 -w0 -i cloud-config 2>/dev/null || base64 -b 0 -i cloud-config) && cd cluster-api && tilt up
 
