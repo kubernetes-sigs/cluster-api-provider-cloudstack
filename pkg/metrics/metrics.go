@@ -24,14 +24,14 @@ import (
 )
 
 // AcsCustomMetrics encapsulates all CloudStack custom metrics defined for the controller.
-type AcsCustomMetrics struct {
+type ACSCustomMetrics struct {
 	acsReconciliationErrorCount *prometheus.CounterVec
 	errorCodeRegexp             *regexp.Regexp
 }
 
-// NewCustomMetrics constructs an AcsCustomMetrics with all desired CloudStack custom metrics and any supporting resources.
-func NewCustomMetrics() AcsCustomMetrics {
-	customMetrics := AcsCustomMetrics{}
+// NewCustomMetrics constructs an ACSCustomMetrics with all desired CloudStack custom metrics and any supporting resources.
+func NewCustomMetrics() ACSCustomMetrics {
+	customMetrics := ACSCustomMetrics{}
 	customMetrics.acsReconciliationErrorCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "acs_reconciliation_errors",
@@ -55,9 +55,9 @@ func NewCustomMetrics() AcsCustomMetrics {
 	return customMetrics
 }
 
-// IncrementAcsReconciliationErrors accepts a CloudStack error message and increments the custom
-// acs_reconciliation_errors counter, labeled with the error code if present in the error message.
-func (m *AcsCustomMetrics) EvaluateErrorAndIncrementAcsReconciliationErrorCounter(acsError error) {
+// EvaluateErrorAndIncrementAcsReconciliationErrorCounter accepts a CloudStack error message and increments
+// the custom acs_reconciliation_errors counter, labeled with the error code if present in the error message.
+func (m *ACSCustomMetrics) EvaluateErrorAndIncrementAcsReconciliationErrorCounter(acsError error) {
 	if acsError != nil {
 		matches := m.errorCodeRegexp.FindStringSubmatch(acsError.Error())
 		if len(matches) > 1 {

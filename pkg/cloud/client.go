@@ -44,7 +44,7 @@ type client struct {
 	cs            *cloudstack.CloudStackClient
 	csAsync       *cloudstack.CloudStackClient
 	config        Config
-	customMetrics metrics.AcsCustomMetrics
+	customMetrics metrics.ACSCustomMetrics
 }
 
 // cloud-config ini structure.
