@@ -89,7 +89,7 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 		r.RequeueIfCloudStackClusterNotReady,
 		r.SetFailureDomainOnCSMachine,
 		r.GetObjectByName("placeholder", r.FailureDomain,
-			func() string { return r.ReconciliationSubject.Spec.FailureDomain.Name }),
+			func() string { return r.ReconciliationSubject.Spec.FailureDomainName }),
 		r.CheckPresent(map[string]client.Object{"CloudStackFailureDomain": r.FailureDomain}),
 		r.AsFailureDomainUser(&r.FailureDomain.Spec))
 	return r.RunBaseReconciliationStages()
@@ -133,12 +133,12 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
-	if r.ReconciliationSubject.Spec.FailureDomain.Name == "" { // Needs random FD, but not yet set.
+	if r.ReconciliationSubject.Spec.FailureDomainName == "" { // Needs random FD, but not yet set.
 		if util.IsControlPlaneMachine(r.CAPIMachine) { // Is control plane machine -- CAPI will specify.
-			r.ReconciliationSubject.Spec.FailureDomain.Name = *r.CAPIMachine.Spec.FailureDomain
+			r.ReconciliationSubject.Spec.FailureDomainName = *r.CAPIMachine.Spec.FailureDomain
 		} else { // Not a control plane machine. Place randomly.
 			randNum := (rand.Int() % len(r.CSCluster.Spec.FailureDomains)) // #nosec G404 -- weak crypt rand doesn't matter here.
-			r.ReconciliationSubject.Spec.FailureDomain.Name = r.CSCluster.Spec.FailureDomains[randNum].Name
+			r.ReconciliationSubject.Spec.FailureDomainName = r.CSCluster.Spec.FailureDomains[randNum].Name
 		}
 	}
 	return ctrl.Result{}, nil

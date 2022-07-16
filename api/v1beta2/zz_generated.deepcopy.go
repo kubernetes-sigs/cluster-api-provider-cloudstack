@@ -519,7 +519,6 @@ func (in *CloudStackMachineSpec) DeepCopyInto(out *CloudStackMachineSpec) {
 		*out = new(string)
 		**out = **in
 	}
-	out.FailureDomain = in.FailureDomain
 	if in.IdentityRef != nil {
 		in, out := &in.IdentityRef, &out.IdentityRef
 		*out = new(CloudStackIdentityReference)

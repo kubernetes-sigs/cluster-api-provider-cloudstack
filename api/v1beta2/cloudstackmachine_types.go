@@ -79,9 +79,9 @@ type CloudStackMachineSpec struct {
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
-	// FailureDomain -- the FailureDomain the machine is placed in.
+	// FailureDomainName -- the name of the FailureDomain the machine is placed in.
 	// +optional
-	FailureDomain CloudStackFailureDomainSpec `json:"failureDomain,omitempty"`
+	FailureDomainName string `json:"failureDomainName,omitempty"`
 
 	// IdentityRef is a reference to a identity to be used when reconciling this cluster
 	// +optional
