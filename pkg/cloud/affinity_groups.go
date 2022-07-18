@@ -45,6 +45,7 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByID(group.ID)
 		if err != nil {
 			// handle via multierr
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return err
 		} else if count > 1 {
 			// handle via creating a new error.
@@ -59,6 +60,7 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByName(group.Name)
 		if err != nil {
 			// handle via multierr
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return err
 		} else if count > 1 {
 			// handle via creating a new error.
@@ -78,6 +80,7 @@ func (c *client) GetOrCreateAffinityGroup(group *AffinityGroup) (retErr error) {
 		p.SetName(group.Name)
 		resp, err := c.cs.AffinityGroup.CreateAffinityGroup(p)
 		if err != nil {
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return err
 		}
 		group.ID = resp.Id
@@ -90,6 +93,7 @@ func (c *client) DeleteAffinityGroup(group *AffinityGroup) (retErr error) {
 	setIfNotEmpty(group.ID, p.SetId)
 	setIfNotEmpty(group.Name, p.SetName)
 	_, retErr = c.cs.AffinityGroup.DeleteAffinityGroup(p)
+	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 	return retErr
 }
 
@@ -98,6 +102,7 @@ type affinityGroups []AffinityGroup
 func (c *client) getCurrentAffinityGroups(csMachine *infrav1.CloudStackMachine) (affinityGroups, error) {
 	// Start by fetching VM details which includes an array of currently associated affinity groups.
 	if virtM, count, err := c.cs.VirtualMachine.GetVirtualMachineByID(*csMachine.Spec.InstanceID); err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return nil, err
 	} else if count > 1 {
 		return nil, errors.Errorf("found more than one VM for ID: %s", *csMachine.Spec.InstanceID)
@@ -149,15 +154,18 @@ func (c *client) stopAndModifyAffinityGroups(csMachine *infrav1.CloudStackMachin
 
 	p1 := c.cs.VirtualMachine.NewStopVirtualMachineParams(string(*csMachine.Spec.InstanceID))
 	if _, err := c.cs.VirtualMachine.StopVirtualMachine(p1); err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return err
 	}
 
 	if _, err := c.cs.AffinityGroup.UpdateVMAffinityGroup(agp); err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return err
 	}
 
 	p2 := c.cs.VirtualMachine.NewStartVirtualMachineParams(string(*csMachine.Spec.InstanceID))
 	_, err := c.cs.VirtualMachine.StartVirtualMachine(p2)
+	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 	return err
 }
 
