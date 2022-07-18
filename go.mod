@@ -11,6 +11,7 @@ require (
 	github.com/onsi/gomega v1.19.0
 	github.com/pkg/errors v0.9.1
 	github.com/smallfish/simpleyaml v0.1.0
+	github.com/prometheus/client_golang v1.11.0
 	github.com/spf13/pflag v1.0.5
 	gopkg.in/ini.v1 v1.63.2
 	k8s.io/api v0.23.0
