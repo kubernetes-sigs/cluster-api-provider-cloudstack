@@ -40,7 +40,6 @@ type CloudStackFailureDomainSpec struct {
 	// CloudStack domain.
 	// +optional
 	Domain string `json:"domain,omitempty"`
-
 	// Apache CloudStack Endpoint secret reference.
 	// +optional
 	ACSEndpoint corev1.SecretReference `json:"acsendpoint,omitempty"`
@@ -55,6 +54,7 @@ type CloudStackFailureDomainStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:storageversion
+//+ks8:conversion-gen=false
 
 // CloudStackFailureDomain is the Schema for the cloudstackfailuredomains API
 type CloudStackFailureDomain struct {

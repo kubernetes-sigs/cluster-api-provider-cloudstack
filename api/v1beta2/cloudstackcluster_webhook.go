@@ -37,6 +37,8 @@ func (r *CloudStackCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
+//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1beta2,name=mcloudstackcluster.kb.io,admissionReviewVersions=v1beta1
+
 var _ webhook.Defaulter = &CloudStackCluster{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
@@ -54,15 +56,9 @@ func (r *CloudStackCluster) ValidateCreate() error {
 	cloudstackclusterlog.V(1).Info("entered validate create webhook", "api resource name", r.Name)
 
 	var errorList field.ErrorList
-
-	// IdentityRefs must be Secrets.
-	if r.Spec.IdentityRef != nil && r.Spec.IdentityRef.Kind != defaultIdentityRefKind {
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
-	}
-
-	if (r.Spec.Account != "") && (r.Spec.Domain == "") {
-		errorList = append(errorList, field.Required(
-			field.NewPath("spec", "account"), "specifying account requires additionally specifying domain"))
+	// Require Failure Domains and their respective Specs.
+	if len(r.Spec.FailureDomains) <= 0 {
+		errorList = append(errorList, field.Required(field.NewPath("spec", "failureDomains"), "failureDomains"))
 	}
 
 	// Require FailureDomains and their respective fields.
@@ -103,27 +99,12 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 
 	// No spec fields may be updated.
 	errorList := field.ErrorList(nil)
-	// if !reflect.DeepEqual(oldSpec.FailureDomains, spec.FailureDomains) {
-	// 	errorList = append(errorList, field.Forbidden(
-	// 		field.NewPath("spec", "Zones"), "Zones and sub-attributes may not be modified after creation"))
-	// }
 	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpoint.host", errorList)
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			string(spec.ControlPlaneEndpoint.Port), string(oldSpec.ControlPlaneEndpoint.Port),
 			"controlplaneendpoint.port", errorList)
-	}
-	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
-		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityref.kind", errorList)
-		errorList = webhookutil.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name,
-			"identityref.name", errorList)
-	}
-
-	// IdentityRefs must be Secrets.
-	if spec.IdentityRef != nil && spec.IdentityRef.Kind != defaultIdentityRefKind {
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)

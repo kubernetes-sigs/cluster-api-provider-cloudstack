@@ -79,15 +79,16 @@ type CloudStackMachineSpec struct {
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
+	// +k8s:conversion-gen=false
 	// Optionally settable Zone ID to land the machine in.
 	ZoneID string `json:"zoneID,omitempty"`
 
+	// +k8s:conversion-gen=false
 	// Optionally settable Zone Name to land the machine in.
 	ZoneName string `json:"zoneName,omitempty"`
 
-	// IdentityRef is a reference to a identity to be used when reconciling this cluster
+	// IdentityRef is a reference to an identity to be used when reconciling this cluster
 	// +optional
-	// +k8s:conversion-gen=false
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 

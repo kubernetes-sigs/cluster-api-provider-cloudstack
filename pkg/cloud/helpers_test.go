@@ -101,7 +101,7 @@ func (p paramMatcher) Matches(x interface{}) (retVal bool) {
 //      p := &CreateNewSomethingParams{Domainid: "FakeDomainID"}
 //      Ω(p).DomainIDEquals("FakeDomainID")
 func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
-	return (func(expected string) types.GomegaMatcher {
+	return func(expected string) types.GomegaMatcher {
 		return WithTransform(
 			func(x interface{}) string {
 				meth := reflect.ValueOf(x).MethodByName(fetchFunc)
@@ -109,7 +109,7 @@ func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
 
 				return meth.Call(nil)[0].String()
 			}, Equal(expected))
-	})
+	}
 }
 
 var (

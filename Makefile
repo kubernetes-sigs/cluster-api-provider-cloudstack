@@ -72,6 +72,14 @@ generate-deepcopy: $(DEEPCOPY_GEN_TARGETS) ## Generate code containing DeepCopy,
 api/%/zz_generated.deepcopy.go: bin/controller-gen $(DEEPCOPY_GEN_INPUTS)
 	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+CONVERSION_GEN_TARGET=$(shell find api -type d -name "v*1" -exec echo {}\/zz_generated.conversion.go \;)
+CONVERSION_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_generated*" -prune -o -type f -print)
+.PHONY: generate-conversion
+generate-conversion: $(CONVERSION_GEN_TARGET) ## Generate code to convert api/v1beta1 to api/v1beta2
+api/%/zz_generated.conversion.go: bin/conversion-gen $(CONVERSION_GEN_INPUTS)
+	conversion-gen --go-header-file "./hack/boilerplate.go.txt" --input-dirs "./api/v1beta1" \
+	--output-base "." --output-file-base="zz_generated.conversion" --skip-unsafe=true
+
 ##@ Build
 
 MANAGER_BIN_INPUTS=$(shell find ./controllers ./api ./pkg -name "*mock*" -prune -o -name "*test*" -prune -o -type f -print) main.go go.mod go.sum
@@ -88,13 +96,13 @@ bin/manager-linux-amd64: $(MANAGER_BIN_INPUTS)
     	-o bin/manager-linux-amd64 main.go
 
 .PHONY: run
-run: generate-deepcopy ## Run a controller from your host.
+run: generate-deepcopy generate-conversion ## Run a controller from your host.
 	go run ./main.go
 
 # Using a flag file here as docker build doesn't produce a target file.
 DOCKER_BUILD_INPUTS=$(MANAGER_BIN_INPUTS) Dockerfile
 .PHONY: docker-build
-docker-build: generate-deepcopy build-for-docker .dockerflag.mk ## Build docker image containing the controller manager.
+docker-build: generate-deepcopy generate-conversion build-for-docker .dockerflag.mk ## Build docker image containing the controller manager.
 .dockerflag.mk: $(DOCKER_BUILD_INPUTS)
 	docker build -t ${IMG} .
 	@touch .dockerflag.mk
@@ -128,7 +136,7 @@ lint: bin/golangci-lint bin/staticcheck generate-mocks ## Run linting for the pr
 ##@ Deployment
 
 .PHONY: deploy
-deploy: generate-deepcopy manifests bin/kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+deploy: generate-deepcopy generate-conversion manifests bin/kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && kustomize edit set image controller=${IMG}
 	kustomize build config/default | kubectl apply -f -
 
@@ -138,9 +146,11 @@ undeploy: bin/kustomize ## Undeploy controller from the K8s cluster specified in
 ##@ Binaries
 
 .PHONY: binaries
-binaries: bin/controller-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/staticcheck bin/mockgen bin/kubectl ## Locally install all needed bins.
+binaries: bin/controller-gen bin/conversion-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/staticcheck bin/mockgen bin/kubectl ## Locally install all needed bins.
 bin/controller-gen: ## Install controller-gen to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
+bin/conversion-gen: ## Install conversion-gen to bin.
+    GOBIN=$(PROJECT_DIR)/bin go install k8s.io/code-generator/cmd/conversion-gen@0.23.0
 bin/golangci-lint: ## Install golangci-lint to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.0
 bin/staticcheck: ## Install staticcheck to bin.

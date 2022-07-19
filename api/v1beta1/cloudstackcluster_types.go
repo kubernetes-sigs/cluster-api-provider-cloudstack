@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	ClusterFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
-	// defaultIdentityRefKind     = "Secret"
+	ClusterFinalizer           = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
+	DefaultIdentityRefKind     = "Secret"
 	CloudStackClusterLabelName = "cloudstackcluster.infrastructure.cluster.x-k8s.io/name"
 	NetworkTypeIsolated        = "Isolated"
 	NetworkTypeShared          = "Shared"
@@ -82,6 +82,7 @@ func (z *Zone) MetaName() string {
 	return strings.ToLower(s)
 }
 
+//+k8s:conversion-gen=false
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
 type CloudStackClusterSpec struct {
 	Zones []Zone `json:"zones"`
@@ -98,10 +99,10 @@ type CloudStackClusterSpec struct {
 	Domain string `json:"domain,omitempty"`
 
 	// +optional
-	// +k8s:conversion-gen=false
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
+//+k8s:conversion-gen=false
 // The status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
 type CloudStackClusterStatus struct {
 
@@ -132,7 +133,7 @@ type CloudStackClusterStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
+// +k8s:conversion-gen=false
 // CloudStackCluster is the Schema for the cloudstackclusters API
 type CloudStackCluster struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -145,6 +146,7 @@ type CloudStackCluster struct {
 }
 
 //+kubebuilder:object:root=true
+// +k8s:conversion-gen=false
 
 // CloudStackClusterList contains a list of CloudStackCluster
 type CloudStackClusterList struct {
