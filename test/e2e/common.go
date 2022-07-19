@@ -47,19 +47,18 @@ import (
 
 // Test suite constants for e2e config variables.
 const (
-	KubernetesVersionManagement  = "KUBERNETES_VERSION_MANAGEMENT"
-	KubernetesVersion            = "KUBERNETES_VERSION"
-	CNIPath                      = "CNI"
-	CNIResources                 = "CNI_RESOURCES"
-	IPFamily                     = "IP_FAMILY"
-	InvalidZoneName              = "CLOUDSTACK_INVALID_ZONE_NAME"
-	InvalidDiskOfferingName      = "CLOUDSTACK_INVALID_DISK_OFFERING_NAME"
-	InvalidNetworkName           = "CLOUDSTACK_INVALID_NETWORK_NAME"
-	InvalidAccountName           = "CLOUDSTACK_INVALID_ACCOUNT_NAME"
-	InvalidDomainName            = "CLOUDSTACK_INVALID_DOMAIN_NAME"
-	InvalidTemplateName          = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
-	InvalidCPOfferingName        = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
-	ExtremelyLargeCPOfferingName = "CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING"
+	KubernetesVersionManagement = "KUBERNETES_VERSION_MANAGEMENT"
+	KubernetesVersion           = "KUBERNETES_VERSION"
+	CNIPath                     = "CNI"
+	CNIResources                = "CNI_RESOURCES"
+	IPFamily                    = "IP_FAMILY"
+	InvalidZoneName             = "CLOUDSTACK_INVALID_ZONE_NAME"
+	InvalidDiskOfferingName     = "CLOUDSTACK_INVALID_DISK_OFFERING_NAME"
+	InvalidNetworkName          = "CLOUDSTACK_INVALID_NETWORK_NAME"
+	InvalidAccountName          = "CLOUDSTACK_INVALID_ACCOUNT_NAME"
+	InvalidDomainName           = "CLOUDSTACK_INVALID_DOMAIN_NAME"
+	InvalidTemplateName         = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
+	InvalidCPOfferingName       = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
 )
 
 const (
