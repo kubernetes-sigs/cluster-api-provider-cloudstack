@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -120,6 +121,9 @@ func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.
 func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result, error) {
 	r.ReconciliationSubject.Status.FailureDomains = clusterv1.FailureDomains{}
 	for _, fdSpec := range r.FailureDomains.Items {
+		if !strings.HasSuffix(fdSpec.Name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
+			fdSpec.Name = fdSpec.Name + "-" + r.CAPICluster.Name
+		}
 		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{ControlPlane: true}
 	}
 	return ctrl.Result{}, nil

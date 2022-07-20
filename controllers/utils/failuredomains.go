@@ -43,6 +43,9 @@ func (r *ReconciliationRunner) CreateFailureDomain(fdSpec infrav1.CloudStackFail
 func (r *ReconciliationRunner) CreateFailureDomains(fdSpecs []infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		for _, fdSpec := range fdSpecs {
+			if !strings.HasSuffix(fdSpec.Name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
+				fdSpec.Name = fdSpec.Name + "-" + r.CAPICluster.Name
+			}
 			if err := r.CreateFailureDomain(fdSpec); err != nil {
 				if !strings.Contains(strings.ToLower(err.Error()), "already exists") {
 					return reconcile.Result{}, errors.Wrap(err, "creating CloudStackFailureDomains")
@@ -84,6 +87,9 @@ func (r *ReconciliationRunner) GetFailureDomainsAndRequeueIfMissing(fds *infrav1
 // AsFailureDomainUser uses the credentials specified in the failure domain to set the ReconciliationSubject's CSUser client.
 func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec *infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
+		if !strings.HasSuffix(fdSpec.Name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
+			fdSpec.Name = fdSpec.Name + "-" + r.CAPICluster.Name
+		}
 		endpointCredentials := &corev1.Secret{}
 		key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}
 		if err := r.K8sClient.Get(r.RequestCtx, key, endpointCredentials); err != nil {
