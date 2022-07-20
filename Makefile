@@ -63,11 +63,16 @@ config/.flag.mk: bin/controller-gen $(MANIFEST_GEN_INPUTS)
 .PHONY: release-manifests
 RELEASE_MANIFEST_TARGETS=$(RELEASE_DIR)/infrastructure-components.yaml $(RELEASE_DIR)/metadata.yaml
 RELEASE_MANIFEST_INPUTS=bin/kustomize config/.flag.mk $(shell find config)
+RELEASE_MANIFEST_SOURCE_BASE ?= config/default
 release-manifests: $(RELEASE_MANIFEST_TARGETS) ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
 $(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
 	@mkdir -p $(RELEASE_DIR)
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
-	kustomize build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
+	kustomize build $(RELEASE_MANIFEST_SOURCE_BASE) > $(RELEASE_DIR)/infrastructure-components.yaml
+
+.PHONY: release-manifests-metrics-port
+RELEASE_MANIFEST_SOURCE_BASE = config/default-with-metrics-port
+release-manifests-metrics-port: release-manifests
 
 DEEPCOPY_GEN_TARGETS=$(shell find api -type d -name "v*" -exec echo {}\/zz_generated.deepcopy.go \;)
 DEEPCOPY_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_generated*" -prune -o -type f -print)
