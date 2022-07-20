@@ -20,6 +20,7 @@ import (
 	"context"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
@@ -37,6 +38,7 @@ import (
 type CloudStackAGReconciliationRunner struct {
 	csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackAffinityGroup
+	FailureDomain         *infrav1.CloudStackFailureDomain
 }
 
 // CloudStackAGReconciler is the base reconciler to adapt to k8s.
@@ -48,17 +50,21 @@ type CloudStackAffinityGroupReconciler struct {
 func NewCSAGReconciliationRunner() *CloudStackAGReconciliationRunner {
 	// Set concrete type and init pointers.
 	r := &CloudStackAGReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackAffinityGroup{}}
+	r.FailureDomain = &infrav1.CloudStackFailureDomain{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
 	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject, "CloudStackAffinityGroup")
 	return r
 }
 
 func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return NewCSAGReconciliationRunner().
-		UsingBaseReconciler(reconciler.ReconcilerBase).
-		ForRequest(req).
-		WithRequestCtx(ctx).
-		RunBaseReconciliationStages()
+	r := NewCSAGReconciliationRunner()
+	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
+	r.WithAdditionalCommonStages(
+		r.GetObjectByName("placeholder", r.FailureDomain,
+			func() string { return r.ReconciliationSubject.Spec.FailureDomainName }),
+		r.CheckPresent(map[string]client.Object{"CloudStackFailureDomain": r.FailureDomain}),
+		r.AsFailureDomainUser(&r.FailureDomain.Spec))
+	return r.RunBaseReconciliationStages()
 }
 
 func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {

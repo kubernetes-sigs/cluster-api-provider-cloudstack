@@ -36,6 +36,10 @@ type CloudStackAffinityGroupSpec struct {
 	// ID.
 	//+optional
 	ID string `json:"id,omitempty"`
+
+	// FailureDomainName -- the name of the FailureDomain the machine is placed in.
+	// +optional
+	FailureDomainName string `json:"failureDomainName,omitempty"`
 }
 
 // CloudStackAffinityGroupStatus defines the observed state of CloudStackAffinityGroup

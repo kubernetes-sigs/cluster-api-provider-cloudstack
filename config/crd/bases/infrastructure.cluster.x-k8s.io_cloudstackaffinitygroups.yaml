@@ -87,6 +87,10 @@ spec:
             description: CloudStackAffinityGroupSpec defines the desired state of
               CloudStackAffinityGroup
             properties:
+              failureDomainName:
+                description: FailureDomainName -- the name of the FailureDomain the
+                  machine is placed in.
+                type: string
               id:
                 description: ID.
                 type: string
