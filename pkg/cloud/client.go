@@ -17,6 +17,7 @@ limitations under the License.
 package cloud
 
 import (
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/metrics"
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
@@ -40,9 +41,10 @@ type Client interface {
 }
 
 type client struct {
-	cs      *cloudstack.CloudStackClient
-	csAsync *cloudstack.CloudStackClient
-	config  Config
+	cs            *cloudstack.CloudStackClient
+	csAsync       *cloudstack.CloudStackClient
+	config        Config
+	customMetrics metrics.ACSCustomMetrics
 }
 
 // cloud-config ini structure.
@@ -68,6 +70,7 @@ func NewClient(ccPath string) (Client, error) {
 	// comments for more details
 	c.cs = cloudstack.NewAsyncClient(c.config.APIURL, c.config.APIKey, c.config.SecretKey, c.config.VerifySSL)
 	c.csAsync = cloudstack.NewClient(c.config.APIURL, c.config.APIKey, c.config.SecretKey, c.config.VerifySSL)
+	c.customMetrics = metrics.NewCustomMetrics()
 
 	_, err := c.cs.APIDiscovery.ListApis(c.cs.APIDiscovery.NewListApisParams())
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
@@ -91,6 +94,7 @@ func (origC *client) NewClientFromSpec(cfg Config) (Client, error) {
 	// comments for more details
 	newC.cs = cloudstack.NewAsyncClient(newC.config.APIURL, newC.config.APIKey, newC.config.SecretKey, newC.config.VerifySSL)
 	newC.csAsync = cloudstack.NewClient(newC.config.APIURL, newC.config.APIKey, newC.config.SecretKey, newC.config.VerifySSL)
+	newC.customMetrics = metrics.NewCustomMetrics()
 
 	_, err := newC.cs.APIDiscovery.ListApis(newC.cs.APIDiscovery.NewListApisParams())
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "i/o timeout") {
@@ -100,6 +104,6 @@ func (origC *client) NewClientFromSpec(cfg Config) (Client, error) {
 }
 
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
-	c := &client{cs: cs, csAsync: cs}
+	c := &client{cs: cs, csAsync: cs, customMetrics: metrics.NewCustomMetrics()}
 	return c
 }

@@ -50,6 +50,7 @@ func (c *client) ResolveNetwork(net *capcv1.Network) (retErr error) {
 	netName := net.Name
 	netDetails, count, err := c.cs.Network.GetNetworkByName(netName)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Network ID from %s", netName))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
@@ -65,6 +66,7 @@ func (c *client) ResolveNetwork(net *capcv1.Network) (retErr error) {
 	if err != nil {
 		return multierror.Append(retErr, errors.Wrapf(err, "could not get Network by ID %s", net.ID))
 	} else if count != 1 {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return multierror.Append(retErr, errors.Errorf("expected 1 Network with UUID %s, but got %d", net.ID, count))
 	}
 	net.Name = netDetails.Name
