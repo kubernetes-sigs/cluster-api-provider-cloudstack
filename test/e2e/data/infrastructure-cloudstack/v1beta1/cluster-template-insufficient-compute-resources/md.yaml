@@ -6,7 +6,7 @@ spec:
   template:
     spec:
       offering: 
-        name: ${CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING}
+        name: ${CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING}
       template: 
         name: ${CLOUDSTACK_TEMPLATE_NAME}
       sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
