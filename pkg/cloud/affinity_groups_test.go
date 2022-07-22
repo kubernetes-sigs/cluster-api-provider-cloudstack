@@ -32,6 +32,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		mockCtrl   *gomock.Controller
 		mockClient *cloudstack.CloudStackClient
 		ags        *cloudstack.MockAffinityGroupServiceIface
+		vms        *cloudstack.MockVirtualMachineServiceIface
 		client     cloud.Client
 	)
 
@@ -40,6 +41,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = cloudstack.NewMockClient(mockCtrl)
 		ags = mockClient.AffinityGroup.(*cloudstack.MockAffinityGroupServiceIface)
+		vms = mockClient.VirtualMachine.(*cloudstack.MockVirtualMachineServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
 	})
@@ -96,5 +98,31 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 			Ω(client.DeleteAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 			Ω(client.FetchAffinityGroup(dummies.AffinityGroup)).ShouldNot(Succeed())
 		})
+	})
+
+	It("Associate affinity group", func() {
+		uagp := &cloudstack.UpdateVMAffinityGroupParams{}
+		vmp := &cloudstack.StartVirtualMachineParams{}
+		vms.EXPECT().GetVirtualMachineByID(*dummies.CSMachine1.Spec.InstanceID).Return(&cloudstack.VirtualMachine{}, 1, nil)
+		ags.EXPECT().NewUpdateVMAffinityGroupParams(*dummies.CSMachine1.Spec.InstanceID).Return(uagp)
+		vms.EXPECT().NewStopVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).Return(&cloudstack.StopVirtualMachineParams{})
+		vms.EXPECT().StopVirtualMachine(&cloudstack.StopVirtualMachineParams{}).Return(&cloudstack.StopVirtualMachineResponse{State: "Stopping"}, nil)
+		ags.EXPECT().UpdateVMAffinityGroup(uagp).Return(&cloudstack.UpdateVMAffinityGroupResponse{}, nil)
+		vms.EXPECT().NewStartVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).Return(vmp)
+		vms.EXPECT().StartVirtualMachine(vmp).Return(&cloudstack.StartVirtualMachineResponse{}, nil)
+		Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
+	})
+
+	It("Disassociate affinity group", func() {
+		uagp := &cloudstack.UpdateVMAffinityGroupParams{}
+		vmp := &cloudstack.StartVirtualMachineParams{}
+		vms.EXPECT().GetVirtualMachineByID(*dummies.CSMachine1.Spec.InstanceID).Return(&cloudstack.VirtualMachine{}, 1, nil)
+		ags.EXPECT().NewUpdateVMAffinityGroupParams(*dummies.CSMachine1.Spec.InstanceID).Return(uagp)
+		vms.EXPECT().NewStopVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).Return(&cloudstack.StopVirtualMachineParams{})
+		vms.EXPECT().StopVirtualMachine(&cloudstack.StopVirtualMachineParams{}).Return(&cloudstack.StopVirtualMachineResponse{State: "Stopping"}, nil)
+		ags.EXPECT().UpdateVMAffinityGroup(uagp).Return(&cloudstack.UpdateVMAffinityGroupResponse{}, nil)
+		vms.EXPECT().NewStartVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).Return(vmp)
+		vms.EXPECT().StartVirtualMachine(vmp).Return(&cloudstack.StartVirtualMachineResponse{}, nil)
+		Ω(client.DisassociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
 	})
 })
