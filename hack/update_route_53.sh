@@ -4,6 +4,8 @@ set -eu
 zone_name=
 profile="default"
 
+export AWS_DEFAULT_OUTPUT="json"
+
 help() {
   echo "Continually queries Kubernetes for control plane machines and adds their IP address to an Amazon Route 53"
   echo "recordset.  The recordset name will be cp, and it will be created in the specified zone.  If a recordset"
@@ -71,6 +73,7 @@ fi
 
 recordset_name="cp.$zone_name"
 
+echo "Getting the zone ID from AWS"
 zone_id=$(aws route53 list-hosted-zones --profile "$profile" | jq -r '.HostedZones[] | select(.Name == "'"$zone_name"'").Id | split("/")[2]')
 if [[ -n $zone_id ]]
 then
