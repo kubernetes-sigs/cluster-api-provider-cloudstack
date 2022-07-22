@@ -112,7 +112,7 @@ echo "Watching for control plane machines..."
 old_addresses=
 while true
 do
-  addresses=$(kubectl get machine -o json | jq -r '.items[] | select(.metadata.labels."cluster.x-k8s.io/control-plane" != null) | .status | select(.addresses!=null) | .addresses[].address')
+  addresses=$(kubectl get machines -A -o json | jq -r '.items[] | select(.metadata.labels."cluster.x-k8s.io/control-plane" != null) | .status | select(.addresses!=null) | .addresses[].address')
   if [[ $addresses != "$old_addresses" ]]
   then
     upsert_addresses "$addresses"
