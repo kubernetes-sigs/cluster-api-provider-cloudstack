@@ -88,7 +88,8 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 			// Make the created VM go away quickly by force stopping it.
 			p := realCSClient.VirtualMachine.NewStopVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID)
 			p.SetForced(true)
-			Ω(realCSClient.VirtualMachine.StopVirtualMachine(p)).Should(Succeed())
+			_, err := realCSClient.VirtualMachine.StopVirtualMachine(p)
+			Ω(err).ShouldNot(HaveOccurred())
 		})
 
 		It("Creates and deletes an affinity group.", func() {

@@ -57,6 +57,7 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 	if csMachine.Spec.InstanceID != nil {
 		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID)
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return err
 		} else if count > 1 {
 			return fmt.Errorf("found more than one VM Instance with ID %s", *csMachine.Spec.InstanceID)
@@ -70,6 +71,7 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 	if csMachine.Name != "" {
 		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name) // add opts usage
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match") {
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return err
 		} else if count > 1 {
 			return fmt.Errorf("found more than one VM Instance with name %s", csMachine.Name)
@@ -85,6 +87,7 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (o
 	if len(csMachine.Spec.Offering.ID) > 0 {
 		csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering.ID)
 		if err != nil {
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return "", multierror.Append(retErr, errors.Wrapf(
 				err, "could not get Service Offering by ID %s", csMachine.Spec.Offering.ID))
 		} else if count != 1 {
@@ -100,6 +103,7 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (o
 	}
 	offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering.Name)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return "", multierror.Append(retErr, errors.Wrapf(
 			err, "could not get Service Offering ID from %s", csMachine.Spec.Offering.Name))
 	} else if count != 1 {
@@ -117,6 +121,7 @@ func (c *client) ResolveTemplate(
 	if len(csMachine.Spec.Template.ID) > 0 {
 		csTemplate, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template.ID, "executable")
 		if err != nil {
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return "", multierror.Append(retErr, errors.Wrapf(
 				err, "could not get Template by ID %s", csMachine.Spec.Template.ID))
 		} else if count != 1 {
@@ -132,6 +137,7 @@ func (c *client) ResolveTemplate(
 	}
 	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template.Name, "executable", zoneID)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return "", multierror.Append(retErr, errors.Wrapf(
 			err, "could not get Template ID from %s", csMachine.Spec.Template.Name))
 	} else if count != 1 {
@@ -149,6 +155,7 @@ func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine) (disk
 	if len(csMachine.Spec.DiskOffering.Name) > 0 {
 		diskID, count, err := c.cs.DiskOffering.GetDiskOfferingID(csMachine.Spec.DiskOffering.Name)
 		if err != nil {
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return "", multierror.Append(retErr, errors.Wrapf(
 				err, "could not get DiskOffering ID from %s", csMachine.Spec.DiskOffering.Name))
 		} else if count != 1 {
@@ -175,6 +182,7 @@ func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine) (disk
 func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOfferingID string, retErr error) (string, error) {
 	csDiskOffering, count, err := c.cs.DiskOffering.GetDiskOfferingByID(diskOfferingID)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return "", multierror.Append(retErr, errors.Wrapf(
 			err, "could not get DiskOffering by ID %s", diskOfferingID))
 	} else if count != 1 {
@@ -256,6 +264,8 @@ func (c *client) GetOrCreateVMInstance(
 
 	deployVMResp, err := c.cs.VirtualMachine.DeployVirtualMachine(p)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
+
 		// Just because an error was returned doesn't mean a (failed) VM wasn't created and will need to be dealt with.
 		// Regretfully the deployVMResp may be nil, so we need to get the VM ID with a separate query, so we
 		// can return it to the caller, so they can clean it up.
@@ -266,6 +276,8 @@ func (c *client) GetOrCreateVMInstance(
 		listVirtualMachineParams.SetName(csMachine.Name)
 		if listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams); err2 == nil && listVirtualMachinesResponse.Count > 0 {
 			csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)
+		} else {
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err2)
 		}
 		return err
 	}
@@ -291,6 +303,7 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 		// VM doesn't exist. Success...
 		return nil
 	} else if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return err
 	}
 
@@ -317,6 +330,7 @@ func (c *client) listVMInstanceDatadiskVolumeIDs(instanceID string) ([]string, e
 
 	listVOLResp, err := c.csAsync.Volume.ListVolumes(p)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return nil, err
 	}
 

@@ -19,6 +19,8 @@ package cloud
 import (
 	"encoding/json"
 
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/metrics"
+
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 )
 
@@ -35,9 +37,10 @@ type Client interface {
 }
 
 type client struct {
-	cs      *cloudstack.CloudStackClient
-	csAsync *cloudstack.CloudStackClient
-	config  Config
+	cs            *cloudstack.CloudStackClient
+	csAsync       *cloudstack.CloudStackClient
+	config        Config
+	customMetrics metrics.ACSCustomMetrics
 }
 
 // cloud-config ini structure.
@@ -64,5 +67,6 @@ func NewClientFromMap(rawCfg map[string]interface{}) (Client, error) {
 	c := &client{config: cfg}
 	c.cs = cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
 	c.csAsync = cloudstack.NewClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+	c.customMetrics = metrics.NewCustomMetrics()
 	return c, nil
 }

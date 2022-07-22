@@ -119,6 +119,7 @@ func (c *client) DoClusterTagsAllowDisposal(resourceType ResourceType, resourceI
 func (c *client) AddTags(resourceType ResourceType, resourceID string, tags map[string]string) error {
 	p := c.cs.Resourcetags.NewCreateTagsParams([]string{resourceID}, string(resourceType), tags)
 	_, err := c.cs.Resourcetags.CreateTags(p)
+	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 	return ignoreAlreadyPresentErrors(err, resourceType, resourceID)
 }
 
@@ -130,6 +131,7 @@ func (c *client) GetTags(resourceType ResourceType, resourceID string) (map[stri
 	p.SetListall(true)
 	listTagResponse, err := c.cs.Resourcetags.ListTags(p)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return nil, err
 	}
 	tags := make(map[string]string, listTagResponse.Count)
@@ -146,8 +148,10 @@ func (c *client) DeleteTags(resourceType ResourceType, resourceID string, tagsTo
 		p := c.cs.Resourcetags.NewDeleteTagsParams([]string{resourceID}, string(resourceType))
 		p.SetTags(tagsToDelete)
 		if _, err1 := c.cs.Resourcetags.DeleteTags(p); err1 != nil { // Error in deletion attempt. Check for tag.
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err1)
 			currTag := map[string]string{tagkey: tagval}
 			if tags, err2 := c.GetTags(resourceType, resourceID); len(tags) != 0 {
+				c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err2)
 				if _, foundTag := tags[tagkey]; foundTag {
 					return errors.Wrapf(multierror.Append(err1, err2),
 						"could not remove tag %s from %s with ID %s", currTag, resourceType, resourceID)

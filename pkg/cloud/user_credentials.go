@@ -91,6 +91,7 @@ func (c *client) ResolveDomain(domain *Domain) error {
 
 	resp, retErr := c.cs.Domain.ListDomains(p)
 	if retErr != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 		return retErr
 	}
 
@@ -139,6 +140,7 @@ func (c *client) ResolveAccount(account *Account) error {
 	setIfNotEmpty(account.Name, p.SetName)
 	resp, retErr := c.cs.Account.ListAccounts(p)
 	if retErr != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 		return retErr
 	} else if resp.Count == 0 {
 		return errors.Errorf("could not find account %s", account.Name)
@@ -164,6 +166,7 @@ func (c *client) ResolveUser(user *User) error {
 	p.SetListall(true)
 	resp, err := c.cs.User.ListUsers(p)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return err
 	} else if resp.Count != 1 {
 		return errors.Errorf("expected 1 User with username %s but got %d", user.Name, resp.Count)
@@ -185,6 +188,7 @@ func (c *client) ResolveUserKeys(user *User) error {
 	p := c.cs.User.NewGetUserKeysParams(user.ID)
 	resp, err := c.cs.User.GetUserKeys(p)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return errors.Errorf("error encountered when resolving user api keys for user %s", user.Name)
 	}
 	user.APIKey = resp.Apikey
@@ -207,6 +211,7 @@ func (c *client) GetUserWithKeys(user *User) (bool, error) {
 	p.SetListall(true)
 	resp, err := c.cs.User.ListUsers(p)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return false, err
 	}
 

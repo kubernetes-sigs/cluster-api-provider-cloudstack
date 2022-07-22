@@ -80,6 +80,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-template.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-cp-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-insufficient-compute-resources.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-insufficient-compute-resources-for-upgrade.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-node-drain.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-machine-remediation.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-affinity-group-pro.yaml"
@@ -101,6 +102,8 @@ providers:
         replacements:
           - old: --metrics-bind-addr=localhost:8080
             new: --metrics-bind-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect\n        - --metrics-bind-addr=:8080"
 
 variables:
   KUBERNETES_VERSION_MANAGEMENT: "v1.20.10"
@@ -123,8 +126,9 @@ variables:
   CLUSTER_ENDPOINT_IP_2: 172.16.2.198
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
-  CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING: "Extremely Large Instance"
+  CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING: "Impossible Instance"
   CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
+  CLOUDSTACK_IMPOSSIBLE_WORKER_MACHINE_OFFERING: "Impossible Instance"
   CLOUDSTACK_TEMPLATE_NAME: kube-v1.20.10/ubuntu-2004
   CLOUDSTACK_INVALID_TEMPLATE_NAME: templateXXXX
   CLOUDSTACK_SSH_KEY_NAME: CAPCKeyPair6
