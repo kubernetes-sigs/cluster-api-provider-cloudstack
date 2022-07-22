@@ -122,7 +122,6 @@ var (
 	MachineReconciler       *csReconcilers.CloudStackMachineReconciler
 	ClusterReconciler       *csReconcilers.CloudStackClusterReconciler
 	FailureDomainReconciler *csReconcilers.CloudStackFailureDomainReconciler
-	ZoneReconciler          *csReconcilers.CloudStackZoneReconciler
 	IsoNetReconciler        *csReconcilers.CloudStackIsoNetReconciler
 	AffinityGReconciler     *csReconcilers.CloudStackAffinityGroupReconciler
 )
@@ -192,7 +191,6 @@ func SetupTestEnvironment() {
 	// Setup each specific reconciler.
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	MachineReconciler = &csReconcilers.CloudStackMachineReconciler{ReconcilerBase: base}
-	ZoneReconciler = &csReconcilers.CloudStackZoneReconciler{ReconcilerBase: base}
 	FailureDomainReconciler = &csReconcilers.CloudStackFailureDomainReconciler{ReconcilerBase: base}
 	IsoNetReconciler = &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
 	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
@@ -205,7 +203,6 @@ func SetupTestEnvironment() {
 
 	// Set on reconcilers. The mock client wasn't available at suite startup, so set it now.
 	ClusterReconciler.CSClient = mockCloudClient
-	ZoneReconciler.CSClient = mockCloudClient
 	IsoNetReconciler.CSClient = mockCloudClient
 	MachineReconciler.CSClient = mockCloudClient
 	AffinityGReconciler.CSClient = mockCloudClient
@@ -248,14 +245,12 @@ func setupFakeTestClient() {
 	// Setup each specific reconciler.
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	MachineReconciler = &csReconcilers.CloudStackMachineReconciler{ReconcilerBase: base}
-	ZoneReconciler = &csReconcilers.CloudStackZoneReconciler{ReconcilerBase: base}
 	FailureDomainReconciler = &csReconcilers.CloudStackFailureDomainReconciler{ReconcilerBase: base}
 	IsoNetReconciler = &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
 	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
 
 	// Set on reconcilers. The mock client wasn't available at suite startup, so set it now.
 	ClusterReconciler.CSClient = mockCloudClient
-	ZoneReconciler.CSClient = mockCloudClient
 	IsoNetReconciler.CSClient = mockCloudClient
 	MachineReconciler.CSClient = mockCloudClient
 	FailureDomainReconciler.CSClient = mockCloudClient

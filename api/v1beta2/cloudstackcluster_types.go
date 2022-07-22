@@ -57,24 +57,9 @@ type Network struct {
 	Name string `json:"name"`
 }
 
-type ZoneStatusMap map[string]Zone
-
-type Zone struct {
-	// Name.
-	//+optional
-	Name string `json:"name,omitempty"`
-
-	// ID.
-	//+optional
-	ID string `json:"id,omitempty"`
-
-	// The network within the Zone to use.
-	Network Network `json:"network"`
-}
-
 // MetaName returns a lower cased name to be used in a k8s object meta.
 // It prefers the zone's name, but will use the ID if that's the only present identifier.
-func (z *Zone) MetaName() string {
+func (z *CloudStackZoneSpec) MetaName() string {
 	s := z.Name
 	if s == "" {
 		s = z.ID
@@ -104,10 +89,6 @@ type CloudStackClusterSpec struct {
 
 // The status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
 type CloudStackClusterStatus struct {
-
-	// The status of the cluster's ACS Zones.
-	// +optional
-	Zones ZoneStatusMap `json:"zones,omitempty"`
 
 	// CAPI recognizes failure domains as a method to spread machines.
 	// CAPC sets failure domains to indicate functioning Zones.

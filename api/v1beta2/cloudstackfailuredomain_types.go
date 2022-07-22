@@ -25,6 +25,20 @@ const (
 	FailureDomainFinalizer = "cloudstackfailuredomain.infrastructure.cluster.x-k8s.io"
 )
 
+// CloudStackZoneSpec specifies a Zone's details.
+type CloudStackZoneSpec struct {
+	// Name.
+	//+optional
+	Name string `json:"name,omitempty"`
+
+	// ID.
+	//+optional
+	ID string `json:"id,omitempty"`
+
+	// The network within the Zone to use.
+	Network Network `json:"network"`
+}
+
 // CloudStackFailureDomainSpec defines the desired state of CloudStackFailureDomain
 type CloudStackFailureDomainSpec struct {
 	// The failure domain unique name.

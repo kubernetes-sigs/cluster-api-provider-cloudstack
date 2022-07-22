@@ -54,7 +54,6 @@ type CloudStackMachineReconciliationRunner struct {
 	ReconciliationSubject *infrav1.CloudStackMachine
 	CAPIMachine           *clusterv1.Machine
 	StateChecker          *infrav1.CloudStackMachineStateChecker
-	Zones                 *infrav1.CloudStackZoneList
 	FailureDomain         *infrav1.CloudStackFailureDomain
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
 	AffinityGroup         *infrav1.CloudStackAffinityGroup
@@ -71,7 +70,6 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 	r := &CloudStackMachineReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachine{}}
 	r.CAPIMachine = &clusterv1.Machine{}
 	r.StateChecker = &infrav1.CloudStackMachineStateChecker{}
-	r.Zones = &infrav1.CloudStackZoneList{}
 	r.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
 	r.AffinityGroup = &infrav1.CloudStackAffinityGroup{}
 	r.FailureDomain = &infrav1.CloudStackFailureDomain{}
