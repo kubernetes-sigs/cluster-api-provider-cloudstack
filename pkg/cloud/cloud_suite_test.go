@@ -38,15 +38,25 @@ var (
 	testDomainPath  string // Needed in before and in after suite.
 )
 
+type Config struct {
+	APIVersion string            `yaml:"apiVersion"`
+	Kind       string            `yaml:"kind"`
+	Tind       string            `yaml:"type"`
+	Metadata   map[string]string `yaml:"metadata"`
+	StringData cloud.Config      `yaml:"stringData"`
+}
+
 func TestCloud(t *testing.T) {
 	RegisterFailHandler(Fail)
 	BeforeSuite(func() {
 		suiteConfig, _ := GinkgoConfiguration()
 		if !strings.Contains(suiteConfig.LabelFilter, "!integ") { // Skip if integ tests are filtered out.
 			// Create a real cloud client.
-			projDir := os.Getenv("PROJECT_DIR")
 			var connectionErr error
-			realCloudClient, connectionErr = cloud.NewClient(projDir + "/cloud-config")
+			realCSClient, connectionErr = helpers.NewCSClient()
+			Ω(connectionErr).ShouldNot(HaveOccurred())
+
+			realCloudClient, connectionErr = cloud.NewClientFromYamlPath(os.Getenv("PROJECT_DIR") + "/cloud-config.yaml")
 			Ω(connectionErr).ShouldNot(HaveOccurred())
 
 			// Create a real CloudStack client.
@@ -65,8 +75,8 @@ func TestCloud(t *testing.T) {
 			Ω(newUser.APIKey).ShouldNot(BeEmpty())
 
 			// Switch to test account user.
-			cfg := cloud.Config{APIKey: newUser.APIKey, SecretKey: newUser.SecretKey}
-			realCloudClient, connectionErr = realCloudClient.NewClientFromSpec(cfg)
+			realCloudClient, connectionErr = realCloudClient.NewClientInDomainAndAccount(
+				newAccount.Domain.Name, newAccount.Name)
 			Ω(connectionErr).ShouldNot(HaveOccurred())
 		}
 	})
@@ -84,10 +94,11 @@ func TestCloud(t *testing.T) {
 
 // FetchIntegTestResources runs through basic CloudStack Client setup methods needed to test others.
 func FetchIntegTestResources() {
-	Ω(realCloudClient.ResolveZone(&dummies.CSZone1.Spec)).Should(Succeed())
-	Ω(dummies.CSZone1.Spec.ID).ShouldNot(BeEmpty())
-	dummies.CSMachine1.Status.ZoneID = dummies.CSZone1.Spec.ID
+	Ω(realCloudClient.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(Succeed())
+	Ω(dummies.CSFailureDomain1.Spec.Zone).ShouldNot(BeEmpty())
+	dummies.CSMachine1.Status.ZoneID = dummies.CSFailureDomain1.Spec.Zone.ID
 	dummies.CSMachine1.Spec.DiskOffering.Name = ""
 	dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""
-	Ω(realCloudClient.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+	Ω(realCloudClient.GetOrCreateIsolatedNetwork(
+		dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 }

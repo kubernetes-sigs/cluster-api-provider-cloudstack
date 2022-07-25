@@ -37,6 +37,7 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 			tempfd := &infrav1.CloudStackFailureDomain{}
 			Eventually(func() bool {
 				key := client.ObjectKeyFromObject(dummies.CSFailureDomain1)
+				key.Name = key.Name + "-" + dummies.CSCluster.Name
 				if err := k8sClient.Get(ctx, key, tempfd); err != nil {
 					return true
 				}

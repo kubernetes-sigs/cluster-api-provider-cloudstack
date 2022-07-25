@@ -41,7 +41,7 @@ var _ = Describe("Helpers", func() {
 		It("Gets API configuration", func() {
 			filepath := getConfigPath("cloud-config-no-global")
 
-			client, err := cloud.NewClient(filepath)
+			client, err := cloud.NewClientFromYamlPath(filepath)
 
 			Ω(client).Should(BeNil())
 			Ω(err.Error()).Should(ContainSubstring("section Global not found"))

@@ -54,7 +54,7 @@ var _ = Describe("Zone", func() {
 			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return("", -1, expectedErr)
 			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(nil, -1, expectedErr)
 
-			err := client.ResolveZone(dummies.CSZone1)
+			err := client.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)
 			Expect(errors.Cause(err)).To(MatchError(expectedErr))
 		})
 
@@ -62,7 +62,7 @@ var _ = Describe("Zone", func() {
 			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 2, nil)
 			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(nil, -1, fmt.Errorf("Not found"))
 
-			Ω(client.ResolveZone(dummies.CSZone1)).Should(MatchError(And(
+			Ω(client.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(MatchError(And(
 				ContainSubstring("expected 1 Zone with name "+dummies.Zone1.Name+", but got 2"),
 				ContainSubstring("could not get Zone by ID "+dummies.Zone1.ID+": Not found"))))
 		})

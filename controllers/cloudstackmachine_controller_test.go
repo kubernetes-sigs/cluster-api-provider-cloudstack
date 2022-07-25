@@ -42,7 +42,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			Ω(k8sClient.Create(ctx, dummies.BootstrapSecret)).Should(Succeed())
 
 			// Setup a zone for the machine reconciler to find.
-			Ω(k8sClient.Create(ctx, dummies.CSZone1)).Should(Succeed())
+			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
 			setClusterReady()
 		})
 
@@ -78,7 +78,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			setupFakeTestClient()
 		})
 
-		It("Should exit having not found a zone to place the machine in.", func() {
+		It("Should exit having not found a failure domain to place the machine in.", func() {
 			key := client.ObjectKeyFromObject(dummies.CSCluster)
 			Ω(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).Should(Succeed())
 			Ω(fakeCtrlClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())

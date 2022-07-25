@@ -17,11 +17,17 @@ limitations under the License.
 package cloud
 
 import (
-	"encoding/json"
+	"bytes"
+	"fmt"
+	"os"
 
+	corev1 "k8s.io/api/core/v1"
+
+	"gopkg.in/yaml.v3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/metrics"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/pkg/errors"
 )
 
 //go:generate mockgen -destination=../mocks/mock_client.go -package=mocks sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud Client
@@ -34,6 +40,15 @@ type Client interface {
 	ZoneIFace
 	IsoNetworkIface
 	UserCredIFace
+	NewClientInDomainAndAccount(string, string) (Client, error)
+}
+
+// cloud-config ini structure.
+type Config struct {
+	APIUrl    string `yaml:"api-url"`
+	APIKey    string `yaml:"api-key"`
+	SecretKey string `yaml:"secret-key"`
+	VerifySSL string `yaml:"verify-ssl"`
 }
 
 type client struct {
@@ -43,30 +58,77 @@ type client struct {
 	customMetrics metrics.ACSCustomMetrics
 }
 
-// cloud-config ini structure.
-type Config struct {
-	APIURL    string `json:"api-url"`
-	APIKey    string `json:"api-key"`
-	SecretKey string `json:"secret-key"`
-	VerifySSL bool   `json:"verify-ssl"`
+func NewClientFromK8sSecret(endpointSecret *corev1.Secret) (Client, error) {
+	fmt.Println(endpointSecret)
+	endpointSecretStrings := map[string]string{}
+	for k, v := range endpointSecret.Data {
+		endpointSecretStrings[k] = string(v)
+	}
+	fmt.Println(endpointSecretStrings)
+	bytes, err := yaml.Marshal(endpointSecretStrings)
+	if err != nil {
+		return nil, err
+	}
+	return NewClientFromBytesConfig(bytes)
+}
+
+// NewClientFromBytesConfig returns a client from a bytes array that unmarshals to a yaml config.
+func NewClientFromBytesConfig(conf []byte) (Client, error) {
+	r := bytes.NewReader(conf)
+	dec := yaml.NewDecoder(r)
+	var config Config
+	if err := dec.Decode(&config); err != nil {
+		return nil, err
+	}
+
+	return NewClientFromConf(config)
+}
+
+// NewClientFromYamlPath returns a client from a yaml config at path.
+func NewClientFromYamlPath(confPath string) (Client, error) {
+	conf, err := os.ReadFile(confPath)
+	if err != nil {
+		return nil, err
+	}
+	return NewClientFromBytesConfig(conf)
 }
 
 // Creates a new Cloud Client form a map of strings to strings.
-func NewClientFromMap(rawCfg map[string]interface{}) (Client, error) {
-	cfg := Config{VerifySSL: true} // Set sane defautl for verify-ssl.
-	// Use JSON methods to enforce schema in parsing.
-	if bytes, err := json.Marshal(rawCfg); err != nil {
-		return nil, err
-	} else if err := json.Unmarshal(bytes, &cfg); err != nil {
-		return nil, err
+func NewClientFromConf(conf Config) (Client, error) {
+	verifySSL := true
+	if conf.VerifySSL == "false" {
+		verifySSL = false
 	}
 
 	// The client returned from NewAsyncClient works in a synchronous way. On the other hand,
 	// a client returned from NewClient works in an asynchronous way. Dive into the constructor definition
 	// comments for more details
-	c := &client{config: cfg}
-	c.cs = cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
-	c.csAsync = cloudstack.NewClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
+	c := &client{config: conf}
+	c.cs = cloudstack.NewAsyncClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
+	c.csAsync = cloudstack.NewClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
 	c.customMetrics = metrics.NewCustomMetrics()
 	return c, nil
+}
+
+// NewClientInDomainAndAccount returns a new client in the specified domain and account.
+func (c *client) NewClientInDomainAndAccount(domain string, account string) (Client, error) {
+	user := &User{}
+	user.Account.Domain.Path = domain
+	user.Account.Name = account
+	if found, err := c.GetUserWithKeys(user); err != nil {
+		return nil, err
+	} else if !found {
+		return nil, errors.Errorf(
+			"could not find sufficient user (with API keys) in domain/account %s/%s", domain, account)
+	}
+	c.config.APIKey = user.APIKey
+	c.config.SecretKey = user.SecretKey
+
+	return NewClientFromConf(c.config)
+}
+
+// Create a client from a CloudStack-Go API client. Mostly used for testing.
+func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
+	c := &client{cs: cs, csAsync: cs, customMetrics: metrics.NewCustomMetrics()}
+	return c
 }

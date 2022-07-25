@@ -83,8 +83,7 @@ var _ = Describe("User Credentials", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(found).Should(BeTrue())
 			Ω(user.APIKey).ShouldNot(BeEmpty())
-			cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
-			newClient, err := client.NewClientFromSpec(cfg)
+			newClient, err := client.NewClientInDomainAndAccount(user.Account.Name, user.Account.Domain.Name)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(newClient).ShouldNot(BeNil())
 		})

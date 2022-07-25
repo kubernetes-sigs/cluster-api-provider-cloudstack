@@ -34,6 +34,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 
 		It("Should set failure domain Status.Ready to true.", func() {
 			Ω(k8sClient.Create(ctx, dummies.ACSEndpointSecret1))
+			dummies.CSFailureDomain1.Name = dummies.CSFailureDomain1.Name + "-" + dummies.CSCluster.Name
 			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
 
 			tempfd := &infrav1.CloudStackFailureDomain{}
