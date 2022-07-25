@@ -69,11 +69,11 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 
 		It("Should reject updates to CloudStackCluster FailureDomains", func() {
 			dummies.CSCluster.Spec.FailureDomains[0].Zone.Name = "SomeRandomUpdate"
-			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(forbiddenRegex, "Zones and sub")))
+			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(forbiddenRegex, "FailureDomains and sub")))
 		})
 		It("Should reject updates to Networks specified in CloudStackCluster Zones", func() {
 			dummies.CSCluster.Spec.FailureDomains[0].Zone.Network.Name = "ArbitraryUpdateNetworkName"
-			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(forbiddenRegex, "Zones and sub")))
+			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(MatchError(MatchRegexp(forbiddenRegex, "FailureDomains and sub")))
 		})
 		It("Should reject updates to CloudStackCluster controlplaneendpoint.host", func() {
 			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = "1.1.1.1"

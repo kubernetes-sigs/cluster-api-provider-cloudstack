@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,8 +66,7 @@ func (r *CloudStackCluster) ValidateCreate() error {
 			field.NewPath("spec", "account"), "specifying account requires additionally specifying domain"))
 	}
 
-	// Require FailureDomains and their respective fields.
-	// TODO flesh out verifications on FD fields.
+	// Require FailureDomains and their respective sub-fields.
 	if len(r.Spec.FailureDomains) <= 0 {
 		errorList = append(errorList, field.Required(field.NewPath("spec", "FailureDomains"), "FailureDomains"))
 	} else {
@@ -91,9 +91,7 @@ func (r *CloudStackCluster) ValidateCreate() error {
 func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	cloudstackclusterlog.V(1).Info("entered validate update webhook", "api resource name", r.Name)
 
-	var (
-		spec = r.Spec
-	)
+	spec := r.Spec
 
 	oldCluster, ok := old.(*CloudStackCluster)
 	if !ok {
@@ -103,10 +101,10 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 
 	// No spec fields may be updated.
 	errorList := field.ErrorList(nil)
-	// if !reflect.DeepEqual(oldSpec.FailureDomains, spec.FailureDomains) {
-	// 	errorList = append(errorList, field.Forbidden(
-	// 		field.NewPath("spec", "Zones"), "Zones and sub-attributes may not be modified after creation"))
-	// }
+	if !reflect.DeepEqual(oldSpec.FailureDomains, spec.FailureDomains) {
+		errorList = append(errorList, field.Forbidden(
+			field.NewPath("spec", "FailureDomains"), "FailureDomains and sub-attributes may not be modified after creation"))
+	}
 	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpoint.host", errorList)
