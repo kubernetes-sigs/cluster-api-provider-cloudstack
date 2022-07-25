@@ -52,6 +52,11 @@ var ( // Declare exported dummy vars.
 	Level2Account      cloud.Account
 	Level2AccountName  string
 	Level2AccountID    string
+	User               cloud.User
+	UserID             string
+	Username           string
+	Apikey             string
+	SecretKey          string
 	Tags               map[string]string
 	Tag1               map[string]string
 	Tag2               map[string]string
@@ -346,4 +351,11 @@ func SetDummyCAPIMachineVars() {
 
 func SetDummyCSMachineStatuses() {
 	CSMachine1.Status = capcv1.CloudStackMachineStatus{ZoneID: Zone1.ID}
+}
+func SetDummyUserVars() {
+	User.Account = Account
+	UserID = "FakeUserId"
+	Username = "FakeUserName"
+	Apikey = "ApiKey"
+	SecretKey = "SecretKey"
 }

@@ -37,17 +37,6 @@ var FixturePath = path.Join(os.Getenv("PROJECT_DIR"), "test/fixtures/cloud-confi
 
 var _ = Describe("Helpers", func() {
 
-	Context("For a configuration with the 'Global' section missing", func() {
-		It("Gets API configuration", func() {
-			filepath := getConfigPath("cloud-config-no-global")
-
-			client, err := cloud.NewClient(filepath)
-
-			Ω(client).Should(BeNil())
-			Ω(err.Error()).Should(ContainSubstring("section Global not found"))
-		})
-	})
-
 	It("should compress and encode string", func() {
 		str := "Hello World"
 
