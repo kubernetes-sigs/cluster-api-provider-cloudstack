@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
-var FixturePath = path.Join(os.Getenv("PROJECT_DIR"), "test/fixtures/cloud-config-files")
+var FixturePath = path.Join(os.Getenv("REPO_ROOT"), "test/fixtures/cloud-config-files")
 
 var _ = Describe("Helpers", func() {
 
