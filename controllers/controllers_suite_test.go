@@ -150,8 +150,28 @@ var _ = BeforeSuite(func() {
 	logger = klogr.New()
 })
 
-func SetupTestEnvironment() {
+// A mock fo the CloudClient interface used in controller utils.
+type MockCtrlrCloudClientImplementation struct {
+	*csCtrlrUtils.ReconciliationRunner
+	csCtrlrUtils.CloudClientExtension
+}
 
+// AsFailureDomainUser is a method used in the reconciliation runner to set up the CloudStack client. Using this here
+// just sets the CSClient to a mock client.
+func (r *MockCtrlrCloudClientImplementation) AsFailureDomainUser(
+	*infrav1.CloudStackFailureDomainSpec) csCtrlrUtils.CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		r.CSUser = mockCloudClient
+
+		return ctrl.Result{}, nil
+	}
+}
+
+func (M *MockCtrlrCloudClientImplementation) RegisterExtension(r *csCtrlrUtils.ReconciliationRunner) csCtrlrUtils.CloudClientExtension {
+	return &MockCtrlrCloudClientImplementation{ReconciliationRunner: r}
+}
+
+func SetupTestEnvironment() {
 	crdPaths := []string{filepath.Join(projectDir, "config", "crd", "bases")}
 
 	// Append CAPI CRDs path
@@ -183,10 +203,12 @@ func SetupTestEnvironment() {
 
 	// Base reconciler shared across reconcilers.
 	base := csCtrlrUtils.ReconcilerBase{
-		K8sClient:  k8sManager.GetClient(),
-		Scheme:     k8sManager.GetScheme(),
-		CSClient:   mockCloudClient,
-		BaseLogger: logger}
+		K8sClient:            k8sManager.GetClient(),
+		Scheme:               k8sManager.GetScheme(),
+		CSClient:             mockCloudClient,
+		BaseLogger:           logger,
+		CloudClientExtension: &MockCtrlrCloudClientImplementation{},
+	}
 
 	// Setup each specific reconciler.
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}

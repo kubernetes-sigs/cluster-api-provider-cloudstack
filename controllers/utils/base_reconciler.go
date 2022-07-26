@@ -46,7 +46,7 @@ type ReconcilerBase struct {
 	Scheme     *runtime.Scheme
 	K8sClient  client.Client
 	CSClient   cloud.Client
-	CloudClient
+	CloudClientExtension
 }
 
 func (r *ReconcilerBase) GetBase() *ReconcilerBase {
@@ -67,7 +67,7 @@ type CloudStackBaseContext struct {
 // ReconciliationRunner is the base structure used to run reconciliation methods and implements several.
 type ReconciliationRunner struct {
 	*ReconcilerBase
-	CloudClient
+	CloudClientExtension
 	CloudStackBaseContext
 	ReconciliationSubject  client.Object // Underlying crd interface.
 	ConditionalResult      bool          // Stores a conidtinal result for stringing if else type methods.
@@ -94,9 +94,6 @@ func NewRunner(concreteRunner ConcreteRunner, subject client.Object, kind string
 	r.Reconcile = concreteRunner.Reconcile
 	r.ReconcileDelete = concreteRunner.ReconcileDelete
 	r.ControllerKind = kind
-	if r.CloudClient == nil {
-		r.CloudClient = NewCloudClient(&r)
-	}
 	return &r
 }
 
@@ -106,6 +103,12 @@ func (r *ReconciliationRunner) GetReconcilationSubject() client.Object {
 
 func (r *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *ReconciliationRunner {
 	*r.ReconcilerBase = base
+	// Now that we have the base either register the base fed extensions or default ones.
+	if base.CloudClientExtension == nil {
+		r.CloudClientExtension = (&CloudClientImplementation{}).RegisterExtension(r)
+	} else {
+		r.CloudClientExtension = base.CloudClientExtension.RegisterExtension(r)
+	}
 	return r
 }
 
@@ -153,7 +156,6 @@ func (r *ReconciliationRunner) RunIf(conditional func() bool, fn CloudStackRecon
 func (r *ReconciliationRunner) Else(fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		if !r.ConditionalResult {
-			r.Log.Info("Deleting ASDF.")
 			return fn()
 		}
 		return ctrl.Result{}, nil

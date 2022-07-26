@@ -17,6 +17,9 @@ limitations under the License.
 package controllers_test
 
 import (
+	"time"
+
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
@@ -37,6 +40,14 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 			dummies.CSFailureDomain1.Name = dummies.CSFailureDomain1.Name + "-" + dummies.CSCluster.Name
 			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
 
+			mockCloudClient.EXPECT().ResolveZone(gomock.Any()).AnyTimes()
+			mockCloudClient.EXPECT().ResolveNetworkForZone(gomock.Any()).AnyTimes()
+			// func(arg1 interface{}) {
+
+			// 	// arg1.(*infrav1.CloudStackZoneSpec).Status.InstanceState = "Running"
+			// }).AnyTimes()
+			//mockCloudClient.EXPECT().ResolveNetworkForZone(gomock.Any())
+
 			tempfd := &infrav1.CloudStackFailureDomain{}
 			Eventually(func() bool {
 				key := client.ObjectKeyFromObject(dummies.CSFailureDomain1)
@@ -44,7 +55,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 					return tempfd.Status.Ready
 				}
 				return false
-			}, timeout).Should(BeTrue())
+			}, 30*time.Second).WithPolling(time.Second).Should(BeTrue())
 		})
 	})
 })

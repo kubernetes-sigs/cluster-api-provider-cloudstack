@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 
+
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -74,10 +75,12 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 	// Prevent premature deletion.
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.FailureDomainFinalizer)
 
+	r.Log.Info("Blah far too much!")
 	// Start by purely data fetching information about the zone and specified network.
 	if err := r.CSUser.ResolveZone(&r.ReconciliationSubject.Spec.Zone); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information")
 	}
+	r.Log.Info("Blah far too muchtoo!")
 	if err := r.CSUser.ResolveNetworkForZone(&r.ReconciliationSubject.Spec.Zone); err != nil &&
 		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
 		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information")
