@@ -18,7 +18,6 @@ package cloud
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
@@ -59,12 +58,10 @@ type client struct {
 }
 
 func NewClientFromK8sSecret(endpointSecret *corev1.Secret) (Client, error) {
-	fmt.Println(endpointSecret)
 	endpointSecretStrings := map[string]string{}
 	for k, v := range endpointSecret.Data {
 		endpointSecretStrings[k] = string(v)
 	}
-	fmt.Println(endpointSecretStrings)
 	bytes, err := yaml.Marshal(endpointSecretStrings)
 	if err != nil {
 		return nil, err

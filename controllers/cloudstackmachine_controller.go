@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"github.com/onsi/ginkgo/v2"
 	"context"
 	"fmt"
 	"math/rand"
@@ -51,7 +50,7 @@ import (
 
 // CloudStackMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack machine reconciliation.
 type CloudStackMachineReconciliationRunner struct {
-	utils.ReconciliationRunner
+	*utils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackMachine
 	CAPIMachine           *clusterv1.Machine
 	StateChecker          *infrav1.CloudStackMachineStateChecker
@@ -82,7 +81,6 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	defer ginkgo.GinkgoRecover()
 	r := NewCSMachineReconciliationRunner()
 	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
 	r.WithAdditionalCommonStages(
@@ -97,7 +95,6 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 }
 
 func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
-	defer ginkgo.GinkgoRecover()
 	return r.RunReconciliationStages(
 		r.GetObjectByName("placeholder", r.IsoNet,
 			func() string { return r.IsoNetMetaName(r.FailureDomain.Spec.Zone.Network.Name) }),

@@ -30,6 +30,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+type CloudClient interface {
+	AsFailureDomainUser(*infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod
+}
+
+type CloudClientImplementation struct {
+	*ReconciliationRunner
+	CloudClient
+}
+
+func NewCloudClient(r *ReconciliationRunner) CloudClient {
+	return &CloudClientImplementation{ReconciliationRunner: r}
+}
+
 // CreateFailureDomain creates a specified CloudStackFailureDomain CRD owned by the ReconcilationSubject.
 func (r *ReconciliationRunner) CreateFailureDomain(fdSpec infrav1.CloudStackFailureDomainSpec) error {
 	csFD := &infrav1.CloudStackFailureDomain{
@@ -85,7 +98,7 @@ func (r *ReconciliationRunner) GetFailureDomainsAndRequeueIfMissing(fds *infrav1
 }
 
 // AsFailureDomainUser uses the credentials specified in the failure domain to set the ReconciliationSubject's CSUser client.
-func (r *ReconciliationRunner) AsFailureDomainUser(fdSpec *infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
+func (r *CloudClientImplementation) AsFailureDomainUser(fdSpec *infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		if !strings.HasSuffix(fdSpec.Name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
 			fdSpec.Name = fdSpec.Name + "-" + r.CAPICluster.Name

@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"github.com/onsi/ginkgo/v2"
 	"context"
 	"strings"
 
@@ -43,7 +42,7 @@ type CloudStackIsoNetReconciler struct {
 
 // CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack isolated network reconciliation.
 type CloudStackIsoNetReconciliationRunner struct {
-	csCtrlrUtils.ReconciliationRunner
+	*csCtrlrUtils.ReconciliationRunner
 	FailureDomain         *infrav1.CloudStackFailureDomain
 	ReconciliationSubject *infrav1.CloudStackIsolatedNetwork
 }
@@ -59,7 +58,6 @@ func NewCSIsoNetReconciliationRunner() *CloudStackIsoNetReconciliationRunner {
 }
 
 func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
-	defer ginkgo.GinkgoRecover()
 	r := NewCSIsoNetReconciliationRunner()
 	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
 	r.WithAdditionalCommonStages(
@@ -71,7 +69,6 @@ func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	defer ginkgo.GinkgoRecover()
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.IsolatedNetworkFinalizer)
 
 	// Setup isolated network, endpoint, egress, and load balancing.

@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"github.com/onsi/ginkgo/v2"
 	"context"
 	"strings"
 	"time"
@@ -37,7 +36,7 @@ import (
 
 // CloudStackMachineStateCheckerReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack machine state checker reconciliation.
 type CloudStackMachineStateCheckerReconciliationRunner struct {
-	csCtrlrUtils.ReconciliationRunner
+	*csCtrlrUtils.ReconciliationRunner
 	MachineStateCheckers  *infrav1.CloudStackMachineStateCheckerList
 	ReconciliationSubject *infrav1.CloudStackMachineStateChecker
 	FailureDomain         *infrav1.CloudStackFailureDomain
@@ -63,7 +62,6 @@ func NewCSMachineStateCheckerReconciliationRunner() *CloudStackMachineStateCheck
 }
 
 func (r *CloudStackMachineStateCheckerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	defer ginkgo.GinkgoRecover()
 	return NewCSMachineStateCheckerReconciliationRunner().
 		UsingBaseReconciler(r.ReconcilerBase).
 		ForRequest(req).
@@ -72,7 +70,6 @@ func (r *CloudStackMachineStateCheckerReconciler) Reconcile(ctx context.Context,
 }
 
 func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Result, error) {
-	defer ginkgo.GinkgoRecover()
 	if res, err := r.RunReconciliationStages(
 		r.GetParent(r.ReconciliationSubject, r.CSMachine),
 		r.GetParent(r.CSMachine, r.CAPIMachine),

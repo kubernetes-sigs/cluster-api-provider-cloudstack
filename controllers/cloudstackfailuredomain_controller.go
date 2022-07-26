@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"github.com/onsi/ginkgo/v2"
 	"context"
 
 	"github.com/pkg/errors"
@@ -41,7 +40,7 @@ type CloudStackFailureDomainReconciler struct {
 // CloudStackFailureDomainReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackFailureDomains.
 // The runner does the actual reconciliation.
 type CloudStackFailureDomainReconciliationRunner struct {
-	csCtrlrUtils.ReconciliationRunner
+	*csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackFailureDomain
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
 }
@@ -59,7 +58,6 @@ func NewCSFailureDomainReconciliationRunner() *CloudStackFailureDomainReconcilia
 
 // Reconcile is the method k8s will call upon a reconciliation request.
 func (reconciler *CloudStackFailureDomainReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	defer ginkgo.GinkgoRecover()
 	return NewCSFailureDomainReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -69,7 +67,6 @@ func (reconciler *CloudStackFailureDomainReconciler) Reconcile(ctx context.Conte
 
 // Reconcile on the ReconciliationRunner actually attempts to modify or create the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	defer ginkgo.GinkgoRecover()
 	res, err := r.AsFailureDomainUser(&r.ReconciliationSubject.Spec)()
 	if r.ShouldReturn(res, err) {
 		return res, err

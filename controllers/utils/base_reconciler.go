@@ -46,6 +46,11 @@ type ReconcilerBase struct {
 	Scheme     *runtime.Scheme
 	K8sClient  client.Client
 	CSClient   cloud.Client
+	CloudClient
+}
+
+func (r *ReconcilerBase) GetBase() *ReconcilerBase {
+	return r
 }
 
 // CloudStackBaseContext is the base CloudStack data structure created/copied for each reconciliation request to avoid
@@ -61,7 +66,8 @@ type CloudStackBaseContext struct {
 
 // ReconciliationRunner is the base structure used to run reconciliation methods and implements several.
 type ReconciliationRunner struct {
-	ReconcilerBase
+	*ReconcilerBase
+	CloudClient
 	CloudStackBaseContext
 	ReconciliationSubject  client.Object // Underlying crd interface.
 	ConditionalResult      bool          // Stores a conidtinal result for stringing if else type methods.
@@ -77,17 +83,21 @@ type ConcreteRunner interface {
 	ReconcileDelete() (ctrl.Result, error)
 	Reconcile() (ctrl.Result, error)
 	GetReconcilationSubject() client.Object
+	GetBase() *ReconcilerBase
 }
 
-func NewRunner(concreteRunner ConcreteRunner, subject client.Object, kind string) ReconciliationRunner {
-	r := ReconciliationRunner{}
+func NewRunner(concreteRunner ConcreteRunner, subject client.Object, kind string) *ReconciliationRunner {
+	r := ReconciliationRunner{ReconcilerBase: &ReconcilerBase{}}
 	r.CSCluster = &infrav1.CloudStackCluster{}
 	r.CAPICluster = &clusterv1.Cluster{}
 	r.ReconciliationSubject = subject
 	r.Reconcile = concreteRunner.Reconcile
 	r.ReconcileDelete = concreteRunner.ReconcileDelete
 	r.ControllerKind = kind
-	return r
+	if r.CloudClient == nil {
+		r.CloudClient = NewCloudClient(&r)
+	}
+	return &r
 }
 
 func (r *ReconciliationRunner) GetReconcilationSubject() client.Object {
@@ -95,7 +105,7 @@ func (r *ReconciliationRunner) GetReconcilationSubject() client.Object {
 }
 
 func (r *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *ReconciliationRunner {
-	r.ReconcilerBase = base
+	*r.ReconcilerBase = base
 	return r
 }
 
@@ -144,7 +154,6 @@ func (r *ReconciliationRunner) Else(fn CloudStackReconcilerMethod) CloudStackRec
 	return func() (ctrl.Result, error) {
 		if !r.ConditionalResult {
 			r.Log.Info("Deleting ASDF.")
-			fmt.Println(r.ConditionalResult)
 			return fn()
 		}
 		return ctrl.Result{}, nil
