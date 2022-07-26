@@ -71,8 +71,8 @@ $(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
 	kustomize build $(RELEASE_MANIFEST_SOURCE_BASE) > $(RELEASE_DIR)/infrastructure-components.yaml
 
 .PHONY: release-manifests-metrics-port
-RELEASE_MANIFEST_SOURCE_BASE = config/default-with-metrics-port
-release-manifests-metrics-port: release-manifests
+release-manifests-metrics-port:
+	make release-manifests RELEASE_MANIFEST_SOURCE_BASE=config/default-with-metrics-port
 
 DEEPCOPY_GEN_TARGETS=$(shell find api -type d -name "v*" -exec echo {}\/zz_generated.deepcopy.go \;)
 DEEPCOPY_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_generated*" -prune -o -type f -print)
