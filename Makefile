@@ -81,6 +81,7 @@ export PATH := $(TOOLS_BIN_DIR):$(PATH)
 
 all: build
 
+##@ Binaries
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
@@ -101,6 +102,7 @@ $(KUBECTL) $(API_SERVER) $(ETCD) &:
 	cd $(TOOLS_DIR) && curl --silent -L "https://go.kubebuilder.io/test-tools/${K8S_VERSION}/$(shell go env GOOS)/$(shell go env GOARCH)" --output - | \
 		tar -C ./ --strip-components=1 -zvxf -
 
+##@ Linting
 ## --------------------------------------
 ## Linting
 ## --------------------------------------
@@ -126,6 +128,7 @@ lint: $(GOLANGCI_LINT) $(STATIC_CHECK) generate-mocks ## Run linting for the pro
 		echo "Gingko statements not found in controllers... (passed)"
 
 
+##@ Generate
 ## --------------------------------------
 ## Generate
 ## --------------------------------------
@@ -161,7 +164,7 @@ config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
 	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	@touch config/.flag.mk
 
-
+##@ Build
 ## --------------------------------------
 ## Build
 ## --------------------------------------
@@ -183,6 +186,7 @@ $(BIN_DIR)/manager-linux-amd64: $(MANAGER_BIN_INPUTS)
 run: generate-deepcopy ## Run a controller from your host.
 	go run ./main.go
 
+##@ Deploy
 ## --------------------------------------
 ## Deploy
 ## --------------------------------------
@@ -196,7 +200,7 @@ deploy: generate-deepcopy generate-manifests $(KUSTOMIZE) ## Deploy controller t
 undeploy: $(KUSTOMIZE) ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
-
+##@ Docker
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
@@ -213,7 +217,7 @@ docker-build: generate-deepcopy build-for-docker .dockerflag.mk ## Build docker 
 docker-push: .dockerflag.mk ## Push docker image with the manager.
 	docker push ${IMG}
 
-
+##@ Tilt
 ## --------------------------------------
 ## Tilt Development
 ## --------------------------------------
@@ -232,7 +236,7 @@ cluster-api: ## Clone cluster-api repository for tilt use.
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
 
-
+##@ Tests
 ## --------------------------------------
 ## Tests
 ## --------------------------------------
@@ -263,7 +267,7 @@ run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select 
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
 	kind delete clusters capi-test
 
-
+##@ Cleanup
 ## --------------------------------------
 ## Cleanup
 ## --------------------------------------
@@ -275,7 +279,7 @@ clean: ## Cleans up everything.
 	rm -rf $(TOOLS_BIN_DIR)
 	rm -rf cluster-api
 
-
+##@ Release
 ## --------------------------------------
 ## Release
 ## --------------------------------------
