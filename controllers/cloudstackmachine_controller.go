@@ -23,6 +23,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/onsi/ginkgo/v2"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -81,6 +83,7 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	r := NewCSMachineReconciliationRunner()
 	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
 	r.WithAdditionalCommonStages(
@@ -95,6 +98,7 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 }
 
 func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
+	defer ginkgo.GinkgoRecover()
 	return r.RunReconciliationStages(
 		r.GetObjectByName("placeholder", r.IsoNet,
 			func() string { return r.IsoNetMetaName(r.FailureDomain.Spec.Zone.Network.Name) }),
@@ -104,7 +108,7 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		r.GetOrCreateVMInstance,
 		r.RequeueIfInstanceNotRunning,
 		r.AddToLBIfNeeded,
-		// r.GetOrCreateMachineStateChecker,
+		r.GetOrCreateMachineStateChecker,
 	)
 }
 
@@ -133,6 +137,7 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
+	r.Log.Info(r.ReconciliationSubject.Spec.FailureDomainName)
 	if r.ReconciliationSubject.Spec.FailureDomainName == "" { // Needs random FD, but not yet set.
 		if util.IsControlPlaneMachine(r.CAPIMachine) { // Is control plane machine -- CAPI will specify.
 			r.ReconciliationSubject.Spec.FailureDomainName = *r.CAPIMachine.Spec.FailureDomain

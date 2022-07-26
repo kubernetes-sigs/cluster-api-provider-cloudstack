@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"github.com/onsi/ginkgo/v2"
 	"context"
 	"strings"
 
@@ -58,6 +59,7 @@ func NewCSIsoNetReconciliationRunner() *CloudStackIsoNetReconciliationRunner {
 }
 
 func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	r := NewCSIsoNetReconciliationRunner()
 	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
 	r.WithAdditionalCommonStages(
@@ -69,6 +71,7 @@ func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.IsolatedNetworkFinalizer)
 
 	// Setup isolated network, endpoint, egress, and load balancing.

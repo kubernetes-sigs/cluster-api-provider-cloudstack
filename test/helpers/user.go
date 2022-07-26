@@ -137,6 +137,7 @@ func GetOrCreateAccount(csClient *cloudstack.CloudStackClient, account *cloud.Ac
 	p := csClient.Account.NewCreateAccountParams("blah@someDomain.net", "first", "last", "temp123", TempUserName)
 	p.SetDomainid(account.Domain.ID)
 	p.SetRoleid(roleDetails.Id)
+	p.SetAccount(account.Name)
 	resp, err := csClient.Account.CreateAccount(p)
 	if err != nil {
 		return err

@@ -18,6 +18,7 @@ package cloud
 
 import (
 	"bytes"
+	"io"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
@@ -57,6 +58,32 @@ type client struct {
 	customMetrics metrics.ACSCustomMetrics
 }
 
+type SecretConfig struct {
+	ApiVersion string            `yaml:"apiVersion"`
+	Kind       string            `yaml:"kind"`
+	Type       string            `yaml:"type"`
+	Metadata   map[string]string `yaml:"metadata"`
+	StringData Config            `yaml:"stringData"`
+}
+
+// UnmarshalAllSecretConfigs parses a yaml document for each secret.
+func UnmarshalAllSecretConfigs(in []byte, out *[]SecretConfig) error {
+	r := bytes.NewReader(in)
+	decoder := yaml.NewDecoder(r)
+	for {
+		var conf SecretConfig
+		if err := decoder.Decode(&conf); err != nil {
+			// Break when there are no more documents to decode
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+		*out = append(*out, conf)
+	}
+	return nil
+}
+
 func NewClientFromK8sSecret(endpointSecret *corev1.Secret) (Client, error) {
 	endpointSecretStrings := map[string]string{}
 	for k, v := range endpointSecret.Data {
@@ -82,12 +109,27 @@ func NewClientFromBytesConfig(conf []byte) (Client, error) {
 }
 
 // NewClientFromYamlPath returns a client from a yaml config at path.
-func NewClientFromYamlPath(confPath string) (Client, error) {
-	conf, err := os.ReadFile(confPath)
+func NewClientFromYamlPath(confPath string, secretName string) (Client, error) {
+	content, err := os.ReadFile(confPath)
 	if err != nil {
 		return nil, err
 	}
-	return NewClientFromBytesConfig(conf)
+	configs := &[]SecretConfig{}
+	if err := UnmarshalAllSecretConfigs(content, configs); err != nil {
+		return nil, err
+	}
+	var conf Config
+	for _, config := range *configs {
+		if config.Metadata["name"] == secretName {
+			conf = config.StringData
+			break
+		}
+	}
+	if conf.APIKey == "" {
+		return nil, errors.Errorf("config with secret name %s not found", secretName)
+	}
+
+	return NewClientFromConf(conf)
 }
 
 // Creates a new Cloud Client form a map of strings to strings.

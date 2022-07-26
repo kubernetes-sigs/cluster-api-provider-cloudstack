@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -36,17 +37,19 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 		})
 
 		It("Should set failure domain Status.Ready to true.", func() {
-			Ω(k8sClient.Create(ctx, dummies.ACSEndpointSecret1))
+			// Modify failure domain name the same way the cluster controller would.
 			dummies.CSFailureDomain1.Name = dummies.CSFailureDomain1.Name + "-" + dummies.CSCluster.Name
+
+			Ω(k8sClient.Create(ctx, dummies.ACSEndpointSecret1))
 			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
 
-			mockCloudClient.EXPECT().ResolveZone(gomock.Any()).AnyTimes()
-			mockCloudClient.EXPECT().ResolveNetworkForZone(gomock.Any()).AnyTimes()
-			// func(arg1 interface{}) {
+			mockCloudClient.EXPECT().ResolveZone(gomock.Any()).MinTimes(1)
 
-			// 	// arg1.(*infrav1.CloudStackZoneSpec).Status.InstanceState = "Running"
-			// }).AnyTimes()
-			//mockCloudClient.EXPECT().ResolveNetworkForZone(gomock.Any())
+			mockCloudClient.EXPECT().ResolveNetworkForZone(gomock.Any()).AnyTimes().Do(
+				func(arg1 interface{}) {
+					arg1.(*infrav1.CloudStackZoneSpec).Network.ID = "SomeID"
+					arg1.(*infrav1.CloudStackZoneSpec).Network.Type = cloud.NetworkTypeShared
+				}).MinTimes(1)
 
 			tempfd := &infrav1.CloudStackFailureDomain{}
 			Eventually(func() bool {

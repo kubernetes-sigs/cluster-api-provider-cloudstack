@@ -22,9 +22,11 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -32,16 +34,20 @@ import (
 var _ = Describe("CloudStackMachineReconciler", func() {
 	Context("With machine controller running.", func() {
 		BeforeEach(func() {
+			dummies.SetDummyVars()
+			dummies.CSCluster.Spec.FailureDomains = dummies.CSCluster.Spec.FailureDomains[:1]
+			dummies.CSCluster.Spec.FailureDomains[0].Name = dummies.CSFailureDomain1.Name
+			dummies.CSFailureDomain1.Spec.Name = dummies.CSFailureDomain1.Spec.Name + "-" + dummies.CSCluster.Name
+			dummies.CSFailureDomain1.Name = dummies.CSFailureDomain1.Spec.Name
+
 			SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
 			Ω(MachineReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register the CloudStack MachineReconciler.
-
-			dummies.SetDummyVars()
 
 			// Point CAPI machine Bootstrap secret ref to dummy bootstrap secret.
 			dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = &dummies.BootstrapSecret.Name
 			Ω(k8sClient.Create(ctx, dummies.BootstrapSecret)).Should(Succeed())
 
-			// Setup a zone for the machine reconciler to find.
+			// Setup a failure domain for the machine reconciler to find.
 			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
 			setClusterReady()
 		})
@@ -68,7 +74,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 					}
 				}
 				return false
-			}, timeout).WithPolling(2 * time.Second).Should(BeTrue())
+			}, 5).WithPolling(2 * time.Second).Should(BeTrue())
 		})
 	})
 
@@ -80,7 +86,15 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 
 		It("Should exit having not found a failure domain to place the machine in.", func() {
 			key := client.ObjectKeyFromObject(dummies.CSCluster)
+			dummies.CAPIMachine.Name = "someMachine"
+			dummies.CSMachine1.OwnerReferences = append(dummies.CSMachine1.OwnerReferences, metav1.OwnerReference{
+				Kind:       "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       dummies.CAPIMachine.Name,
+				UID:        "uniqueness",
+			})
 			Ω(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).Should(Succeed())
+			Ω(fakeCtrlClient.Create(ctx, dummies.CAPIMachine)).Should(Succeed())
 			Ω(fakeCtrlClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
 
 			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}

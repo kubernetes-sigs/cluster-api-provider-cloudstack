@@ -253,9 +253,6 @@ func SetDummyCAPCClusterVars() {
 		Name: "fakeaffinitygroup",
 		Type: cloud.AffinityGroupType,
 		ID:   "FakeAffinityGroupID"}
-	CSAffinityGroup = &infrav1.CloudStackAffinityGroup{
-		ObjectMeta: metav1.ObjectMeta{Name: AffinityGroup.Name, Namespace: "default", UID: "0", Labels: ClusterLabel},
-		Spec:       infrav1.CloudStackAffinityGroupSpec{Name: AffinityGroup.Name, Type: AffinityGroup.Type, ID: AffinityGroup.ID}}
 	Net1 = infrav1.Network{Name: GetYamlVal("CLOUDSTACK_NETWORK_NAME"), Type: cloud.NetworkTypeShared}
 	Net2 = infrav1.Network{Name: "SharedGuestNet2", Type: cloud.NetworkTypeShared, ID: "FakeSharedNetID2"}
 	ISONet1 = infrav1.Network{Name: "isoguestnet1", Type: cloud.NetworkTypeIsolated, ID: "FakeIsolatedNetID1"}
@@ -285,6 +282,14 @@ func SetDummyCAPCClusterVars() {
 			ACSEndpoint: corev1.SecretReference{
 				Namespace: ClusterNameSpace,
 				Name:      ACSEndpointSecret2.Name}}}
+
+	CSAffinityGroup = &infrav1.CloudStackAffinityGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: AffinityGroup.Name, Namespace: "default", UID: "0", Labels: ClusterLabel},
+		Spec: infrav1.CloudStackAffinityGroupSpec{
+			FailureDomainName: CSFailureDomain1.Spec.Name,
+			Name:              AffinityGroup.Name,
+			Type:              AffinityGroup.Type,
+			ID:                AffinityGroup.ID}}
 
 	CSCluster = &infrav1.CloudStackCluster{
 		TypeMeta: metav1.TypeMeta{

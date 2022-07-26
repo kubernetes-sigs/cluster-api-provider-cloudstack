@@ -38,14 +38,6 @@ var (
 	testDomainPath  string // Needed in before and in after suite.
 )
 
-type Config struct {
-	APIVersion string            `yaml:"apiVersion"`
-	Kind       string            `yaml:"kind"`
-	Tind       string            `yaml:"type"`
-	Metadata   map[string]string `yaml:"metadata"`
-	StringData cloud.Config      `yaml:"stringData"`
-}
-
 func TestCloud(t *testing.T) {
 	RegisterFailHandler(Fail)
 	BeforeSuite(func() {
@@ -56,7 +48,8 @@ func TestCloud(t *testing.T) {
 			realCSClient, connectionErr = helpers.NewCSClient()
 			Ω(connectionErr).ShouldNot(HaveOccurred())
 
-			realCloudClient, connectionErr = cloud.NewClientFromYamlPath(os.Getenv("PROJECT_DIR") + "/cloud-config.yaml")
+			realCloudClient, connectionErr = cloud.NewClientFromYamlPath(
+				os.Getenv("PROJECT_DIR")+"/cloud-config.yaml", "myendpoint")
 			Ω(connectionErr).ShouldNot(HaveOccurred())
 
 			// Create a real CloudStack client.
@@ -95,7 +88,7 @@ func TestCloud(t *testing.T) {
 // FetchIntegTestResources runs through basic CloudStack Client setup methods needed to test others.
 func FetchIntegTestResources() {
 	Ω(realCloudClient.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(Succeed())
-	Ω(dummies.CSFailureDomain1.Spec.Zone).ShouldNot(BeEmpty())
+	Ω(dummies.CSFailureDomain1.Spec.Zone.ID).ShouldNot(BeEmpty())
 	dummies.CSMachine1.Status.ZoneID = dummies.CSFailureDomain1.Spec.Zone.ID
 	dummies.CSMachine1.Spec.DiskOffering.Name = ""
 	dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""

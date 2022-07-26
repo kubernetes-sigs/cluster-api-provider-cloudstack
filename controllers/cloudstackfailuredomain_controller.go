@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 
+	"github.com/onsi/ginkgo/v2"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -59,6 +60,7 @@ func NewCSFailureDomainReconciliationRunner() *CloudStackFailureDomainReconcilia
 
 // Reconcile is the method k8s will call upon a reconciliation request.
 func (reconciler *CloudStackFailureDomainReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	return NewCSFailureDomainReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -68,6 +70,7 @@ func (reconciler *CloudStackFailureDomainReconciler) Reconcile(ctx context.Conte
 
 // Reconcile on the ReconciliationRunner actually attempts to modify or create the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
+	defer ginkgo.GinkgoRecover()
 	res, err := r.AsFailureDomainUser(&r.ReconciliationSubject.Spec)()
 	if r.ShouldReturn(res, err) {
 		return res, err
@@ -75,12 +78,10 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 	// Prevent premature deletion.
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.FailureDomainFinalizer)
 
-	r.Log.Info("Blah far too much!")
 	// Start by purely data fetching information about the zone and specified network.
 	if err := r.CSUser.ResolveZone(&r.ReconciliationSubject.Spec.Zone); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information")
 	}
-	r.Log.Info("Blah far too muchtoo!")
 	if err := r.CSUser.ResolveNetworkForZone(&r.ReconciliationSubject.Spec.Zone); err != nil &&
 		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
 		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information")

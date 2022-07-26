@@ -83,7 +83,7 @@ var _ = Describe("User Credentials", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(found).Should(BeTrue())
 			Ω(user.APIKey).ShouldNot(BeEmpty())
-			newClient, err := client.NewClientInDomainAndAccount(user.Account.Name, user.Account.Domain.Name)
+			newClient, err := client.NewClientInDomainAndAccount(user.Account.Domain.Name, user.Account.Name)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(newClient).ShouldNot(BeNil())
 		})
