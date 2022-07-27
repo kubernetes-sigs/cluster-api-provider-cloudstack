@@ -25,8 +25,6 @@ const (
 	ClusterFinalizer           = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
 	defaultIdentityRefKind     = "Secret"
 	CloudStackClusterLabelName = "cloudstackcluster.infrastructure.cluster.x-k8s.io/name"
-	NetworkTypeIsolated        = "Isolated"
-	NetworkTypeShared          = "Shared"
 )
 
 // CloudStackIdentityReference is a reference to an infrastructure
@@ -38,20 +36,6 @@ type CloudStackIdentityReference struct {
 	Kind string `json:"kind"`
 
 	// Name of the infrastructure identity to be used.
-	Name string `json:"name"`
-}
-
-type Network struct {
-	// Cloudstack Network ID the cluster is built in.
-	// +optional
-	ID string `json:"id,omitempty"`
-
-	// Cloudstack Network Type the cluster is built in.
-	// + optional
-	Type string `json:"type,omitempty"`
-
-	// Cloudstack Network Name the cluster is built in.
-	// +optional
 	Name string `json:"name"`
 }
 

@@ -23,7 +23,22 @@ import (
 
 const (
 	FailureDomainFinalizer = "cloudstackfailuredomain.infrastructure.cluster.x-k8s.io"
+	NetworkTypeIsolated    = "Isolated"
+	NetworkTypeShared      = "Shared"
 )
+
+type Network struct {
+	// Cloudstack Network ID the cluster is built in.
+	// +optional
+	ID string `json:"id"`
+
+	// Cloudstack Network Type the cluster is built in.
+	// + optional
+	Type string `json:"type"`
+
+	// Cloudstack Network Name the cluster is built in.
+	Name string `json:"name"`
+}
 
 // CloudStackZoneSpec specifies a Zone's details.
 type CloudStackZoneSpec struct {
