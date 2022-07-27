@@ -356,7 +356,8 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 		r.SetupPatcher,
 		r.GetCAPICluster,
 		r.GetCSCluster,
-		r.RequeueIfMissingBaseCRs}
+		r.RequeueIfMissingBaseCRs,
+		r.CheckIfPaused}
 	baseStages = append(
 		append(baseStages, r.additionalCommonStages...),
 		r.RunIf(func() bool { return r.ReconciliationSubject.GetDeletionTimestamp().IsZero() }, r.Reconcile),
