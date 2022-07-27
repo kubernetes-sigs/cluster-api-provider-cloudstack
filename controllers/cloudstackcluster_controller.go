@@ -17,7 +17,6 @@ limitations under the License.
 package controllers
 
 import (
-	"github.com/onsi/ginkgo/v2"
 	"context"
 	"fmt"
 	"reflect"
@@ -78,7 +77,6 @@ func NewCSClusterReconciliationRunner() *CloudStackClusterReconciliationRunner {
 
 // Reconcile is the method k8s will call upon a reconciliation request.
 func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, retErr error) {
-	defer ginkgo.GinkgoRecover()
 	return NewCSClusterReconciliationRunner().
 		UsingBaseReconciler(reconciler.ReconcilerBase).
 		ForRequest(req).
@@ -88,7 +86,6 @@ func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, re
 
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
-	defer ginkgo.GinkgoRecover()
 	return r.RunReconciliationStages(
 		r.CreateFailureDomains(r.ReconciliationSubject.Spec.FailureDomains),
 		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackFailureDomain")),
