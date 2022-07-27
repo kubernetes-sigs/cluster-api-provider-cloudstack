@@ -17,8 +17,6 @@ limitations under the License.
 package controllers_test
 
 import (
-	"time"
-
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -74,7 +72,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 					}
 				}
 				return false
-			}, 5).WithPolling(2 * time.Second).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
 		})
 	})
 

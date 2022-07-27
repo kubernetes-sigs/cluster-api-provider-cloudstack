@@ -68,7 +68,8 @@ var (
 )
 
 const (
-	timeout = time.Second * 30
+	timeout      = 10 * time.Second
+	pollInterval = 1 * time.Second
 )
 
 func envOr(envKey, defaultValue string) string {

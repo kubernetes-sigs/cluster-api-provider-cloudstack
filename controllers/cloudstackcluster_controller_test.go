@@ -42,7 +42,7 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 					return true
 				}
 				return false
-			}, timeout).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
 		})
 	})
 
