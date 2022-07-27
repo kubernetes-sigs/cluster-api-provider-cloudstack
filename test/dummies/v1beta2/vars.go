@@ -159,10 +159,6 @@ func SetDummyCSMachineTemplateVars() {
 					Namespace: "default",
 				},
 				Spec: infrav1.CloudStackMachineSpec{
-					IdentityRef: &infrav1.CloudStackIdentityReference{
-						Kind: "Secret",
-						Name: "IdentitySecret",
-					},
 					Template: infrav1.CloudStackResourceIdentifier{
 						Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
 					},
@@ -192,11 +188,7 @@ func SetDummyCSMachineVars() {
 			Labels:    ClusterLabel,
 		},
 		Spec: infrav1.CloudStackMachineSpec{
-			Name: "test-machine-1",
-			IdentityRef: &infrav1.CloudStackIdentityReference{
-				Kind: "Secret",
-				Name: "IdentitySecret",
-			},
+			Name:       "test-machine-1",
 			InstanceID: pointer.String("Instance1"),
 			Template: infrav1.CloudStackResourceIdentifier{
 				Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
@@ -303,10 +295,6 @@ func SetDummyCAPCClusterVars() {
 			Labels:    ClusterLabel,
 		},
 		Spec: infrav1.CloudStackClusterSpec{
-			IdentityRef: &infrav1.CloudStackIdentityReference{
-				Kind: "Secret",
-				Name: "IdentitySecret",
-			},
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
 			FailureDomains:       []infrav1.CloudStackFailureDomainSpec{CSFailureDomain1.Spec, CSFailureDomain2.Spec},
 		},
@@ -358,11 +346,6 @@ func SetDummyDomainAndAccount() {
 	CSCluster.Spec.Domain = DomainPath
 }
 
-// SetDummyDomainAndAccount sets domainID in the CSCluster Status. This is not the default.
-func SetDummyDomainID() {
-	CSCluster.Status.DomainID = "FakeDomainID"
-}
-
 // SetDummyCapiCluster resets the values in each of the exported CAPICluster related dummy variables.
 func SetDummyCAPIClusterVars() {
 	CAPICluster = &clusterv1.Cluster{
@@ -395,11 +378,6 @@ func SetDummyBootstrapSecretVar() {
 		Data: map[string][]byte{"value": make([]byte, 0)}}
 }
 
-// Fills in cluster status vars.
-func SetDummyClusterStatus() {
-	CSCluster.Status.LBRuleID = LBRuleID
-}
-
 // Sets cluster spec to specified network.
 func SetClusterSpecToNet(net *infrav1.Network) {
 	Zone1.Network = *net
@@ -418,8 +396,4 @@ func SetDummyCAPIMachineVars() {
 			ClusterName:   ClusterName,
 			FailureDomain: pointer.String(Zone1.ID)},
 	}
-}
-
-func SetDummyCSMachineStatuses() {
-	CSMachine1.Status = infrav1.CloudStackMachineStatus{ZoneID: Zone1.ID}
 }

@@ -53,7 +53,6 @@ var _ = Describe("Network", func() {
 		rs = mockClient.Resourcetags.(*csapi.MockResourcetagsServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
-		dummies.SetDummyClusterStatus()
 	})
 
 	AfterEach(func() {
@@ -63,7 +62,6 @@ var _ = Describe("Network", func() {
 	It("calls to create an isolated network when not found", func() {
 		dummies.Zone1.Network = dummies.ISONet1
 		dummies.Zone1.Network.ID = ""
-		dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
 
 		nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
 		ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -107,7 +105,6 @@ var _ = Describe("Network", func() {
 	Context("for a closed firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall", func() {
 			dummies.Zone1.Network = dummies.ISONet1
-			dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, cloud.NetworkProtocolTCP).
 				Return(&csapi.CreateEgressFirewallRuleParams{})
 			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
@@ -120,7 +117,6 @@ var _ = Describe("Network", func() {
 	Context("for an open firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
 			dummies.Zone1.Network = dummies.ISONet1
-			dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
 
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, "tcp").
 				Return(&csapi.CreateEgressFirewallRuleParams{})

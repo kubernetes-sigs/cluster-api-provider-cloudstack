@@ -29,8 +29,6 @@ var _ = Describe("User Credentials", func() {
 
 	BeforeEach(func() {
 		dummies.SetDummyVars()
-		dummies.SetDummyClusterStatus()
-		dummies.SetDummyCSMachineStatuses()
 	})
 
 	AfterEach(func() {

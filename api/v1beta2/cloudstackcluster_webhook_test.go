@@ -56,7 +56,6 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 		})
 
 		It("Should reject a CloudStackCluster with IdentityRef not of kind 'Secret'", func() {
-			dummies.CSCluster.Spec.IdentityRef.Kind = "NewType"
 			Ω(k8sClient.Create(ctx, dummies.CSCluster)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "must be a Secret")))
 		})
@@ -87,12 +86,10 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 				Should(MatchError(MatchRegexp(forbiddenRegex, "controlplaneendpoint\\.port")))
 		})
 		It("Should reject updates to the CloudStackCluster identity reference kind", func() {
-			dummies.CSCluster.Spec.IdentityRef.Kind = "NewType"
 			Ω(k8sClient.Update(ctx, dummies.CSCluster)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "identityref\\.kind")))
 		})
 		It("Should reject updates to the CloudStackCluster identity reference name", func() {
-			dummies.CSCluster.Spec.IdentityRef.Name = "NewType"
 			Ω(k8sClient.Update(ctx, dummies.CSCluster)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "identityref\\.name")))
 		})

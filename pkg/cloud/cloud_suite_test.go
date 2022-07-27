@@ -89,7 +89,6 @@ func TestCloud(t *testing.T) {
 func FetchIntegTestResources() {
 	Ω(realCloudClient.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(Succeed())
 	Ω(dummies.CSFailureDomain1.Spec.Zone.ID).ShouldNot(BeEmpty())
-	dummies.CSMachine1.Status.ZoneID = dummies.CSFailureDomain1.Spec.Zone.ID
 	dummies.CSMachine1.Spec.DiskOffering.Name = ""
 	dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""
 	Ω(realCloudClient.GetOrCreateIsolatedNetwork(
