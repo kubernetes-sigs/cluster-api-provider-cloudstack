@@ -13,7 +13,6 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_cloudstackzones.yaml
 - bases/infrastructure.cluster.x-k8s.io_cloudstackaffinitygroups.yaml
 - bases/infrastructure.cluster.x-k8s.io_cloudstackmachinestatecheckers.yaml
-- bases/infrastructure.cluster.x-k8s.io_cloudstackfailuredomains.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

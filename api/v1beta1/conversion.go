@@ -17,13 +17,18 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"fmt"
+	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	conv "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
-	"strings"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const DefaultEndpointCredential = "global"
 
 //nolint:golint,revive,stylecheck
 func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudStackCluster, out *v1beta2.CloudStackCluster, s conv.Scope) error {
@@ -36,9 +41,13 @@ func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudSta
 			return err
 		}
 	}
+	failureDomains, err := getFailureDomains(in)
+	if err != nil {
+		return err
+	}
 	out.Spec = v1beta2.CloudStackClusterSpec{
 		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
-		FailureDomains:       getFailureDomains(in),
+		FailureDomains:       failureDomains,
 		Account:              in.Spec.Account,
 		Domain:               in.Spec.Domain,
 		IdentityRef:          identifyRef,
@@ -46,17 +55,16 @@ func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudSta
 
 	zoneStatusMap := v1beta2.ZoneStatusMap{}
 	for zoneKey, zone := range in.Status.Zones {
-		zone1 := zone
-		zonev2 := &v1beta2.Zone{}
-		err := Convert_v1beta1_Zone_To_v1beta2_Zone(&zone1, zonev2, nil)
+		zoneV1 := zone
+		zoneV2 := &v1beta2.Zone{}
+		err := Convert_v1beta1_Zone_To_v1beta2_Zone(&zoneV1, zoneV2, nil)
 		if err != nil {
 			return err
 		}
-		zoneStatusMap[zoneKey] = *zonev2
+		zoneStatusMap[zoneKey] = *zoneV2
 	}
 	out.Status = v1beta2.CloudStackClusterStatus{
 		Zones: zoneStatusMap,
-		//CloudStackFailureDomainStatusMap: getFailureDomainsStatusMap(in),
 		FailureDomains:    in.Status.FailureDomains,
 		PublicIPID:        in.Status.PublicIPID,
 		PublicIPNetworkID: in.Status.PublicIPNetworkID,
@@ -125,57 +133,15 @@ func getZones(csCluster *v1beta2.CloudStackCluster) []Zone {
 	return zones
 }
 
-//func getZoneMap(csCluster *v1beta2.CloudStackCluster) (map[string]Zone, error) {
-//	zoneMap := map[string]Zone{}
-//	for key := range csCluster.Status.CloudStackFailureDomainStatusMap {
-//		zone, err := getZoneByMetaName(csCluster, key)
-//		if err != nil {
-//			return nil, err
-//		}
-//		zoneMap[key] = zone
-//	}
-//	return zoneMap, nil
-//}
-//
-//func getDomainID(csCluster *v1beta2.CloudStackCluster) (string, error) {
-//	var domainID string
-//	for _, value := range csCluster.Status.CloudStackFailureDomainStatusMap {
-//		if domainID == "" {
-//			domainID = value.DomainID
-//		} else if domainID != value.DomainID {
-//			return "", errors.Errorf("multiple domainId found in cloudstack failure domain status")
-//		}
-//	}
-//	return domainID, nil
-//}
-//
-//func getZoneByMetaName(csCluster *v1beta2.CloudStackCluster, metaName string) (Zone, error) {
-//	var zone Zone
-//	err := errors.Errorf("zone with meta %s not found", metaName)
-//	for _, failureDomain := range csCluster.Spec.FailureDomains {
-//		if failureDomain.Zone.MetaName() == metaName {
-//			err = nil
-//			zone = Zone{
-//				ID:   failureDomain.Zone.ID,
-//				Name: failureDomain.Zone.Name,
-//				Network: Network{
-//					ID:   failureDomain.Zone.Network.ID,
-//					Name: failureDomain.Zone.Network.Name,
-//					Type: failureDomain.Zone.Network.Type,
-//				},
-//			}
-//		}
-//	}
-//	return zone, err
-//}
-
-// getFailureDomains maps v1beta1 zones to v1beta2 failure domains
-func getFailureDomains(csCluster *CloudStackCluster) []v1beta2.CloudStackFailureDomainSpec {
+// getFailureDomains maps v1beta1 zones to v1beta2 failure domains.
+func getFailureDomains(csCluster *CloudStackCluster) ([]v1beta2.CloudStackFailureDomainSpec, error) {
 	var failureDomains []v1beta2.CloudStackFailureDomainSpec
-	index := 0
+	namespace := csCluster.Namespace
 	for _, zone := range csCluster.Spec.Zones {
-		index = index + 1
-		name := fmt.Sprintf("%s-%s-%d", csCluster.Name, "failuredomain", index)
+		name, err := GetDefaultFailureDomainName(namespace, csCluster.Name, zone.ID, zone.Name)
+		if err != nil {
+			return nil, err
+		}
 		failureDomains = append(failureDomains, v1beta2.CloudStackFailureDomainSpec{
 			Name: name,
 			Zone: v1beta2.CloudStackZoneSpec{
@@ -191,39 +157,81 @@ func getFailureDomains(csCluster *CloudStackCluster) []v1beta2.CloudStackFailure
 			Account: csCluster.Spec.Account,
 			ACSEndpoint: corev1.SecretReference{
 				Namespace: csCluster.ObjectMeta.Namespace,
-				Name:      name,
+				Name:      DefaultEndpointCredential,
 			},
 		})
 	}
-	return failureDomains
+	return failureDomains, nil
 }
 
-//
-//func getFailureDomainsStatusMap(csCluster *CloudStackCluster) map[string]v1beta2.CloudStackFailureDomainStatus {
-//	failureDomainsStatusMap := map[string]v1beta2.CloudStackFailureDomainStatus{}
-//	for _, zone := range csCluster.Spec.Zones {
-//		failureDomainsStatusMap[zone.MetaName()] = v1beta2.CloudStackFailureDomainStatus{
-//			DomainID: csCluster.Status.DomainID,
-//			Ready:    csCluster.Status.Ready,
-//		}
-//	}
-//	return failureDomainsStatusMap
-//}
-
-func GetDefaultFailureDomainName(clusterName string, zoneID string, zoneName string) (string, error) {
-	zoneMetaName := ""
-	if len(zoneName) > 0 {
-		zoneMetaName = zoneName
-	} else if len(zoneID) > 0 {
-		zoneMetaName = zoneID
+// GetDefaultFailureDomainName return zoneID as failuredomain name.
+// Default failure domain name is used when migrating an old cluster to a multiple-endpoints supported cluster, that
+// requires to convert each zone to a failure domain.
+// When upgrading cluster using eks-a, a secret named global will be created by eks-a, and it is used by following
+// method to get zoneID by calling cloudstack API.
+// When upgrading cluster using clusterctl directly, zoneID is fetched directly from kubernetes cluster in cloudstackzones.
+func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID string, zoneName string) (string, error) {
+	if len(zoneID) > 0 {
+		return zoneID, nil
 	}
 
-	if len(zoneMetaName) == 0 {
-		return "", errors.Errorf("failed to generate default failureDomainName: zone id and name both empty")
-	}
-	if len(clusterName) == 0 {
-		return "", errors.Errorf("failed to generate default failureDomainName: clusterName empty")
+	// try fetch zoneID using zoneName through cloudstack client
+	zoneID, err := fetchZoneIDUsingCloudStack(namespace, zoneName)
+	if err == nil {
+		return zoneID, nil
 	}
 
-	return strings.ToLower(fmt.Sprintf("%s-failuredomain-%s", clusterName, zoneMetaName)), nil
+	return fetchZoneIDUsingK8s(namespace, clusterName, zoneName)
+}
+
+func fetchZoneIDUsingK8s(namespace string, clusterName string, zoneName string) (string, error) {
+	zones := &v1beta2.CloudStackZoneList{}
+	capiClusterLabel := map[string]string{clusterv1.ClusterLabelName: clusterName}
+	if err := v1beta2.K8sClient.List(
+		context.TODO(),
+		zones,
+		client.InNamespace(namespace),
+		client.MatchingLabels(capiClusterLabel),
+	); err != nil {
+		return "", err
+	}
+
+	for _, zone := range zones.Items {
+		if zone.Spec.Name == zoneName {
+			return zone.Spec.ID, nil
+		}
+	}
+
+	return "", errors.Errorf("failed to generate default failureDomainName: zone id not found for zone name: %s", zoneName)
+}
+
+func fetchZoneIDUsingCloudStack(namespace string, zoneName string) (string, error) {
+	endpointCredentials := &corev1.Secret{}
+	key := client.ObjectKey{Name: DefaultEndpointCredential, Namespace: namespace}
+	if err := v1beta2.K8sClient.Get(context.TODO(), key, endpointCredentials); err != nil {
+		return "", err
+	}
+
+	config := map[string]interface{}{}
+	for k, v := range endpointCredentials.Data {
+		config[k] = string(v)
+	}
+	// TODO change secret parsing manner.
+	if val, present := config["verify-ssl"]; present {
+		if val == "true" {
+			config["verify-ssl"] = true
+		} else if val == "false" {
+			config["verify-ssl"] = false
+		}
+	}
+
+	csClient := cloudstack.NewAsyncClient(fmt.Sprint(config["api-url"]), fmt.Sprint(config["api-key"]), fmt.Sprint(config["secret-key"]), fmt.Sprint(config["verify-ssl"]) == "true")
+
+	if zoneID, count, err := csClient.Zone.GetZoneID(zoneName); err != nil {
+		return "", err
+	} else if count != 1 {
+		return "", errors.Errorf("%v zones found for zone name %s", count, zoneName)
+	} else {
+		return zoneID, nil
+	}
 }
