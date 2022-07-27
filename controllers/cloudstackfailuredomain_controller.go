@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 
-
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -105,7 +104,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 	return ctrl.Result{}, nil
 }
 
-// ReconcileDelete on the ReconciliationRunner actually attempts to delete the reconciliation subject.
+// ReconcileDelete on the ReconciliationRunner attempts to delete the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
 	r.Log.Info("Deleting CloudStackFailureDomain")
 	// Address Isolated Networks.

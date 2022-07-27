@@ -87,11 +87,10 @@ func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, re
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
+		r.SetFailureDomainsStatusMap,
 		r.CreateFailureDomains(r.ReconciliationSubject.Spec.FailureDomains),
-		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackFailureDomain")),
 		r.GetFailureDomains(r.FailureDomains),
 		r.VerifyFailureDomainCRDs,
-		r.SetFailureDomains,
 		r.SetReady)
 }
 
@@ -117,10 +116,10 @@ func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.
 	return ctrl.Result{}, nil
 }
 
-// SetFailureDomains sets failure domains to be used for CAPI machine placement.
-func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result, error) {
+// SetFailureDomainsStatusMap sets failure domains in CloudStackCluster status to be used for CAPI machine placement.
+func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ctrl.Result, error) {
 	r.ReconciliationSubject.Status.FailureDomains = clusterv1.FailureDomains{}
-	for _, fdSpec := range r.FailureDomains.Items {
+	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
 		if !strings.HasSuffix(fdSpec.Name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
 			fdSpec.Name = fdSpec.Name + "-" + r.CAPICluster.Name
 		}

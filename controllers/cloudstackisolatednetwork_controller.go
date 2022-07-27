@@ -96,13 +96,6 @@ func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Re
 	if res, err := r.GetParent(r.ReconciliationSubject, r.FailureDomain)(); r.ShouldReturn(res, err) {
 		return res, err
 	}
-	if r.FailureDomain.Spec.Name == "" {
-		return ctrl.Result{}, errors.New("couldn't get parent Failure Domain for placement")
-	}
-	res, err := r.AsFailureDomainUser(&r.FailureDomain.Spec)()
-	if r.ShouldReturn(res, err) {
-		return res, err
-	}
 	r.Log.Info("Deleting IsolatedNetwork.")
 	if err := r.CSUser.DisposeIsoNetResources(r.FailureDomain, r.ReconciliationSubject, r.CSCluster); err != nil {
 		if !strings.Contains(strings.ToLower(err.Error()), "no match found") {
