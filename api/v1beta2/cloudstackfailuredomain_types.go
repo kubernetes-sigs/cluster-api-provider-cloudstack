@@ -29,11 +29,11 @@ const (
 type CloudStackZoneSpec struct {
 	// Name.
 	//+optional
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 
 	// ID.
 	//+optional
-	ID string `json:"id,omitempty"`
+	ID string `json:"id"`
 
 	// The network within the Zone to use.
 	Network Network `json:"network"`
@@ -49,15 +49,14 @@ type CloudStackFailureDomainSpec struct {
 
 	// CloudStack account.
 	// +optional
-	Account string `json:"account,omitempty"`
+	Account string `json:"account"`
 
 	// CloudStack domain.
 	// +optional
-	Domain string `json:"domain,omitempty"`
+	Domain string `json:"domain"`
 
 	// Apache CloudStack Endpoint secret reference.
-	// +optional
-	ACSEndpoint corev1.SecretReference `json:"acsendpoint,omitempty"`
+	ACSEndpoint corev1.SecretReference `json:"acsendpoint"`
 }
 
 // CloudStackFailureDomainStatus defines the observed state of CloudStackFailureDomain
@@ -75,8 +74,8 @@ type CloudStackFailureDomain struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CloudStackFailureDomainSpec   `json:"spec,omitempty"`
-	Status CloudStackFailureDomainStatus `json:"status,omitempty"`
+	Spec   CloudStackFailureDomainSpec   `json:"spec"`
+	Status CloudStackFailureDomainStatus `json:"status"`
 }
 
 //+kubebuilder:object:root=true

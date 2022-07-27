@@ -75,11 +75,11 @@ type CloudStackClusterSpec struct {
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
-// The status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
+// The status of the CloudStackCluster object.
 type CloudStackClusterStatus struct {
 
 	// CAPI recognizes failure domains as a method to spread machines.
-	// CAPC sets failure domains to indicate functioning Zones.
+	// CAPC sets failure domains to indicate functioning CloudStackFailureDomains.
 	// +optional
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 

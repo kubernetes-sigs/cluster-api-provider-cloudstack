@@ -303,9 +303,6 @@ spec:
           status:
             description: The actual cluster state reported by CloudStack.
             properties:
-              domainID:
-                description: Cloudstack Domain ID the cluster is built in.
-                type: string
               failureDomains:
                 additionalProperties:
                   description: FailureDomainSpec is the Schema for Cluster API failure
@@ -324,17 +321,8 @@ spec:
                       type: boolean
                   type: object
                 description: CAPI recognizes failure domains as a method to spread
-                  machines. CAPC sets failure domains to indicate functioning Zones.
+                  machines. CAPC sets failure domains to indicate functioning CloudStackFailureDomains.
                 type: object
-              loadBalancerRuleID:
-                description: The ID of the lb rule used to assign VMs to the lb.
-                type: string
-              publicIPID:
-                description: The CS public IP ID to use for the k8s endpoint.
-                type: string
-              publicIPNetworkID:
-                description: The ID of the network the PublicIP is in.
-                type: string
               ready:
                 description: Reflects the readiness of the CS cluster.
                 type: boolean
