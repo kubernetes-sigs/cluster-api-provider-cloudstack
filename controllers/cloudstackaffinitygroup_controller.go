@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -61,7 +60,6 @@ func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Conte
 	r := NewCSAGReconciliationRunner()
 	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
 	r.WithAdditionalCommonStages(
-		r.LogReconciliationSubject,
 		r.GetObjectByName("placeholder", r.FailureDomain,
 			func() string { return r.ReconciliationSubject.Spec.FailureDomainName }),
 		r.CheckPresent(map[string]client.Object{"CloudStackFailureDomain": r.FailureDomain}),
