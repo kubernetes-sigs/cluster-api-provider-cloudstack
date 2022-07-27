@@ -17,8 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	"strings"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -55,16 +53,6 @@ type Network struct {
 	// Cloudstack Network Name the cluster is built in.
 	// +optional
 	Name string `json:"name"`
-}
-
-// MetaName returns a lower cased name to be used in a k8s object meta.
-// It prefers the zone's name, but will use the ID if that's the only present identifier.
-func (z *CloudStackZoneSpec) MetaName() string {
-	s := z.Name
-	if s == "" {
-		s = z.ID
-	}
-	return strings.ToLower(s)
 }
 
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
