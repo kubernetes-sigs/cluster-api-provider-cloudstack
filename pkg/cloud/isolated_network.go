@@ -318,7 +318,7 @@ func (c *client) DisposeIsoNetResources(
 	csCluster *infrav1.CloudStackCluster,
 ) (retError error) {
 	if isoNet.Status.PublicIPID != "" {
-		if err := c.DeleteClusterTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID, csCluster); err != nil {
+		if err := c.DeleteClusterTag(ResourceTypeIPAddress, isoNet.Status.PublicIPID, csCluster); err != nil {
 			return err
 		}
 		if err := c.DisassociatePublicIPAddressIfNotInUse(isoNet); err != nil {
