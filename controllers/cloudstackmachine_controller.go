@@ -23,7 +23,6 @@ import (
 	"reflect"
 	"strings"
 
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -136,7 +135,10 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
 	r.Log.Info(r.ReconciliationSubject.Spec.FailureDomainName)
 	if r.ReconciliationSubject.Spec.FailureDomainName == "" { // Needs random FD, but not yet set.
-		if util.IsControlPlaneMachine(r.CAPIMachine) { // Is control plane machine -- CAPI will specify.
+
+		if r.CAPIMachine.Spec.FailureDomain != nil &&
+			(util.IsControlPlaneMachine(r.CAPIMachine) || // Is control plane machine -- CAPI will specify.
+				*r.CAPIMachine.Spec.FailureDomain != "") { // Or potentially another machine controller specified.
 			r.ReconciliationSubject.Spec.FailureDomainName = *r.CAPIMachine.Spec.FailureDomain
 		} else { // Not a control plane machine. Place randomly.
 			randNum := (rand.Int() % len(r.CSCluster.Spec.FailureDomains)) // #nosec G404 -- weak crypt rand doesn't matter here.
