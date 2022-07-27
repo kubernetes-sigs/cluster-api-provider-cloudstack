@@ -49,10 +49,6 @@ type ReconcilerBase struct {
 	CloudClientExtension
 }
 
-func (r *ReconcilerBase) GetBase() *ReconcilerBase {
-	return r
-}
-
 // CloudStackBaseContext is the base CloudStack data structure created/copied for each reconciliation request to avoid
 // concurrent member access.
 type CloudStackBaseContext struct {
@@ -83,7 +79,6 @@ type ConcreteRunner interface {
 	ReconcileDelete() (ctrl.Result, error)
 	Reconcile() (ctrl.Result, error)
 	GetReconcilationSubject() client.Object
-	GetBase() *ReconcilerBase
 }
 
 func NewRunner(concreteRunner ConcreteRunner, subject client.Object, kind string) *ReconciliationRunner {
