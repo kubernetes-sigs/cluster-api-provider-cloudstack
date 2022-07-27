@@ -75,7 +75,6 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 
 		It("Associates an affinity group.", func() {
 			Ω(client.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(Succeed())
-			dummies.CSMachine1.Status.ZoneID = dummies.Zone1.ID
 			dummies.CSMachine1.Spec.DiskOffering.Name = ""
 
 			Ω(client.GetOrCreateVMInstance(
