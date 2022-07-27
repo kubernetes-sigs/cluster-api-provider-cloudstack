@@ -56,11 +56,6 @@ func (r *CloudStackCluster) ValidateCreate() error {
 
 	var errorList field.ErrorList
 
-	// IdentityRefs must be Secrets.
-	if r.Spec.IdentityRef != nil && r.Spec.IdentityRef.Kind != defaultIdentityRefKind {
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
-	}
-
 	if (r.Spec.Account != "") && (r.Spec.Domain == "") {
 		errorList = append(errorList, field.Required(
 			field.NewPath("spec", "account"), "specifying account requires additionally specifying domain"))
@@ -111,17 +106,6 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			string(spec.ControlPlaneEndpoint.Port), string(oldSpec.ControlPlaneEndpoint.Port),
 			"controlplaneendpoint.port", errorList)
-	}
-	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
-		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityref.kind", errorList)
-		errorList = webhookutil.EnsureStringFieldsAreEqual(spec.IdentityRef.Name, oldSpec.IdentityRef.Name,
-			"identityref.name", errorList)
-	}
-
-	// IdentityRefs must be Secrets.
-	if spec.IdentityRef != nil && spec.IdentityRef.Kind != defaultIdentityRefKind {
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
 	}
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)

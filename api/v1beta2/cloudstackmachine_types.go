@@ -82,11 +82,6 @@ type CloudStackMachineSpec struct {
 	// FailureDomainName -- the name of the FailureDomain the machine is placed in.
 	// +optional
 	FailureDomainName string `json:"failureDomainName,omitempty"`
-
-	// IdentityRef is a reference to a identity to be used when reconciling this cluster
-	// +optional
-	// +k8s:conversion-gen=false
-	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
 type CloudStackResourceIdentifier struct {

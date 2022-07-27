@@ -27,18 +27,6 @@ const (
 	CloudStackClusterLabelName = "cloudstackcluster.infrastructure.cluster.x-k8s.io/name"
 )
 
-// CloudStackIdentityReference is a reference to an infrastructure
-// provider identity to be used to provision cluster resources.
-type CloudStackIdentityReference struct {
-	// Kind of the identity. Must be supported by the infrastructure provider
-	// and may be either cluster or namespace-scoped.
-	// +kubebuilder:validation:MinLength=1
-	Kind string `json:"kind"`
-
-	// Name of the infrastructure identity to be used.
-	Name string `json:"name"`
-}
-
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
 type CloudStackClusterSpec struct {
 	FailureDomains []CloudStackFailureDomainSpec `json:"failureDomains"`
@@ -53,10 +41,6 @@ type CloudStackClusterSpec struct {
 	// CloudStack domain.
 	// +optional
 	Domain string `json:"domain,omitempty"`
-
-	// +optional
-	// +k8s:conversion-gen=false
-	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
 // The status of the CloudStackCluster object.
