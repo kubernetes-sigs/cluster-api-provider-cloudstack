@@ -109,21 +109,18 @@ type CloudStackResourceDiskOffering struct {
 	Label string `json:"label"`
 }
 
-// TODO: Review the use of this field/type.
-type InstanceState string
-
 // Type pulled mostly from the CloudStack API.
 type CloudStackMachineStatus struct {
 	// Zone ID is used so that the zone can be computed once per reconcile and then propagate.
 	// +optional
-	ZoneID string `json:"zoneID,omitempty"`
+	ZoneID string `json:"zoneID"`
 
 	// Addresses contains a CloudStack VM instance's IP addresses.
-	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
+	Addresses []corev1.NodeAddress `json:"addresses"`
 
 	// InstanceState is the state of the CloudStack instance for this machine.
 	// +optional
-	InstanceState InstanceState `json:"instanceState,omitempty"`
+	InstanceState string `json:"instanceState"`
 
 	// InstanceStateLastUpdated is the time the instance state was last updated.
 	// +optional
