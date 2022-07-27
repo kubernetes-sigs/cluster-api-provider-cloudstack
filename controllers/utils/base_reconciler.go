@@ -78,9 +78,9 @@ type ReconciliationRunner struct {
 type ConcreteRunner interface {
 	ReconcileDelete() (ctrl.Result, error)
 	Reconcile() (ctrl.Result, error)
-	GetReconcilationSubject() client.Object
 }
 
+// NewRunner creates a new ReconciliationRunner pointing to the concrete reconciliation subject.
 func NewRunner(concreteRunner ConcreteRunner, subject client.Object, kind string) *ReconciliationRunner {
 	r := ReconciliationRunner{ReconcilerBase: &ReconcilerBase{}}
 	r.CSCluster = &infrav1.CloudStackCluster{}
@@ -92,13 +92,11 @@ func NewRunner(concreteRunner ConcreteRunner, subject client.Object, kind string
 	return &r
 }
 
-func (r *ReconciliationRunner) GetReconcilationSubject() client.Object {
-	return r.ReconciliationSubject
-}
-
+// UsingBaseReconciler sets up the reconciler to use base reconciler data and either default or alternative
+// feature implementations.
 func (r *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *ReconciliationRunner {
 	*r.ReconcilerBase = base
-	// Now that we have the base either register the base fed extensions or default ones.
+	// Either register the base fed extensions or default ones.
 	if base.CloudClientExtension == nil {
 		r.CloudClientExtension = (&CloudClientImplementation{}).RegisterExtension(r)
 	} else {
@@ -148,6 +146,7 @@ func (r *ReconciliationRunner) RunIf(conditional func() bool, fn CloudStackRecon
 	}
 }
 
+// Else can be used to run a different stage if a previous conditional was false.
 func (r *ReconciliationRunner) Else(fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		if !r.ConditionalResult {
