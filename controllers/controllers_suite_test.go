@@ -159,16 +159,16 @@ type MockCtrlrCloudClientImplementation struct {
 
 // AsFailureDomainUser is a method used in the reconciliation runner to set up the CloudStack client. Using this here
 // just sets the CSClient to a mock client.
-func (r *MockCtrlrCloudClientImplementation) AsFailureDomainUser(
+func (m *MockCtrlrCloudClientImplementation) AsFailureDomainUser(
 	*infrav1.CloudStackFailureDomainSpec) csCtrlrUtils.CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		r.CSUser = mockCloudClient
+		m.CSUser = mockCloudClient
 
 		return ctrl.Result{}, nil
 	}
 }
 
-func (M *MockCtrlrCloudClientImplementation) RegisterExtension(r *csCtrlrUtils.ReconciliationRunner) csCtrlrUtils.CloudClientExtension {
+func (m *MockCtrlrCloudClientImplementation) RegisterExtension(r *csCtrlrUtils.ReconciliationRunner) csCtrlrUtils.CloudClientExtension {
 	return &MockCtrlrCloudClientImplementation{ReconciliationRunner: r}
 }
 

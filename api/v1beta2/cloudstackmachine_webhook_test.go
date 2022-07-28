@@ -70,11 +70,6 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(requiredRegex, "Template")))
 		})
-
-		It("should reject a CloudStackMachine with IdentityRef not of kind 'Secret'", func() {
-			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "must be a Secret")))
-		})
 	})
 
 	Context("When updating a CloudStackMachine", func() {
@@ -104,16 +99,6 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			dummies.CSMachine1.Spec.Details = map[string]string{"memoryOvercommitRatio": "1.5"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "details")))
-		})
-
-		It("should reject identity reference kind updates to the CloudStackMachine", func() {
-			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Kind")))
-		})
-
-		It("should reject identity reference name updates to the CloudStackMachine", func() {
-			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Name")))
 		})
 
 		It("should reject updates to the list of affinty groups of the CloudStackMachine", func() {

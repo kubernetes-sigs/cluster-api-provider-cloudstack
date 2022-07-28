@@ -273,7 +273,6 @@ spec:
                               type: string
                           required:
                           - name
-                          - type
                           type: object
                       required:
                       - network

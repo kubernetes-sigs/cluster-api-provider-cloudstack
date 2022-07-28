@@ -112,11 +112,11 @@ type CloudStackResourceDiskOffering struct {
 // Type pulled mostly from the CloudStack API.
 type CloudStackMachineStatus struct {
 	// Addresses contains a CloudStack VM instance's IP addresses.
-	Addresses []corev1.NodeAddress `json:"addresses"`
+	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
 	// InstanceState is the state of the CloudStack instance for this machine.
 	// +optional
-	InstanceState string `json:"instanceState"`
+	InstanceState string `json:"instanceState,omitempty"`
 
 	// InstanceStateLastUpdated is the time the instance state was last updated.
 	// +optional

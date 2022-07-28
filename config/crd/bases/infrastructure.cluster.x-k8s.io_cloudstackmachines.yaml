@@ -461,7 +461,6 @@ spec:
                 description: Ready indicates the readiness of the provider resource.
                 type: boolean
             required:
-            - addresses
             - ready
             type: object
         type: object

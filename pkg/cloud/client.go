@@ -59,7 +59,7 @@ type client struct {
 }
 
 type SecretConfig struct {
-	ApiVersion string            `yaml:"apiVersion"`
+	APIVersion string            `yaml:"apiVersion"`
 	Kind       string            `yaml:"kind"`
 	Type       string            `yaml:"type"`
 	Metadata   map[string]string `yaml:"metadata"`
