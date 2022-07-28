@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1beta2
 
 import (
 	"fmt"
@@ -39,7 +39,7 @@ func (r *CloudStackMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) er
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackmachinetemplate,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta1,name=mcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta1
+//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachinetemplate,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta2,name=mcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta1
 var _ webhook.Defaulter = &CloudStackMachineTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
@@ -48,7 +48,7 @@ func (r *CloudStackMachineTemplate) Default() {
 	// No defaulted values supported yet.
 }
 
-//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackmachinetemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta1,name=vcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta1
+//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachinetemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta2,name=vcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta1
 
 var _ webhook.Validator = &CloudStackMachineTemplate{}
 
@@ -60,11 +60,6 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 		errorList field.ErrorList
 		spec      = r.Spec.Spec.Spec // CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
 	)
-
-	// IdentityRefs must be Secrets.
-	if spec.IdentityRef != nil && spec.IdentityRef.Kind != defaultIdentityRefKind {
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
-	}
 
 	affinity := strings.ToLower(spec.Affinity)
 	if !(affinity == "" || affinity == "no" || affinity == "pro" || affinity == "anti") {
@@ -105,13 +100,6 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 
 	if !reflect.DeepEqual(spec.AffinityGroupIDs, oldSpec.AffinityGroupIDs) { // Equivalent to other Ensure funcs.
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"), "AffinityGroupIDs"))
-	}
-
-	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil { // Allow setting once.
-		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
-		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
 	}
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)

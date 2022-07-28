@@ -17,9 +17,12 @@ limitations under the License.
 package cloud_test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"gopkg.in/ini.v1"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
 )
 
 // Example cloud-config ini structure.
@@ -42,15 +45,15 @@ var _ = Describe("Instance", func() {
 	AfterEach(func() {
 	})
 
-	Context("When fetching an INI config.", func() {
+	Context("When fetching a YAML config.", func() {
 		It("Handles the positive case.", func() {
-			cfg := &Global{}
-			rawCfg, err := ini.Load("../../cloud-config")
-			Ω(rawCfg.Section("Global")).ShouldNot(BeNil())
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(rawCfg.Section("Global").MapTo(cfg)).Should(Succeed())
-			Ω(cfg.VerifySSL).Should(BeFalse())
-			Ω(cfg.APIURL).ShouldNot(BeEmpty())
+			// Create a real cloud client.
+			var connectionErr error
+			_, connectionErr = helpers.NewCSClient()
+			Ω(connectionErr).ShouldNot(HaveOccurred())
+
+			_, connectionErr = cloud.NewClientFromYamlPath(os.Getenv("PROJECT_DIR")+"/cloud-config.yaml", "myendpoint")
+			Ω(connectionErr).ShouldNot(HaveOccurred())
 		})
 	})
 })

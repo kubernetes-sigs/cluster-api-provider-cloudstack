@@ -17,70 +17,39 @@ limitations under the License.
 package controllers_test
 
 import (
-	"context"
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/patch"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	timeout = time.Second * 30
-)
-
 var _ = Describe("CloudStackClusterReconciler", func() {
-	ctx := context.Background()
+	Context("With k8s like test environment.", func() {
+		BeforeEach(func() {
+			SetupTestEnvironment()                                                    // Must happen before setting up managers/reconcilers.
+			Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())       // Register CloudStack ClusterReconciler.
+			Ω(FailureDomainReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack ClusterReconciler.
+		})
 
-	BeforeEach(func() {
-		dummies.SetDummyVars()
+		It("Should create a CloudStackFailureDomain.", func() {
+			tempfd := &infrav1.CloudStackFailureDomain{}
+			Eventually(func() bool {
+				key := client.ObjectKeyFromObject(dummies.CSFailureDomain1)
+				key.Name = key.Name + "-" + dummies.CSCluster.Name
+				if err := k8sClient.Get(ctx, key, tempfd); err != nil {
+					return true
+				}
+				return false
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		})
 	})
 
-	It("Should create a cluster", func() {
-		By("Fetching a CS Cluster Object")
-		// TODO make the tests work with other CRDs. This stage can't be reached yet.
-		// CS.EXPECT().GetOrCreateCluster(gomock.Any()).MinTimes(1)
-
-		// Create the CS Cluster object for the reconciler to fetch.
-		Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
-		// TODO: add deletion defer here.
-
-		By("Fetching the CAPI cluster object that owns this CS cluster object")
-		// Create the CAPI cluster (owner) object.
-		dummies.CAPICluster.Spec.InfrastructureRef.Name = dummies.CSCluster.Name
-		Ω(k8sClient.Create(ctx, dummies.CAPICluster)).Should(Succeed())
-		// TODO: add deletion defer here.
-
-		key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Name}
-		Eventually(func() error {
-			return k8sClient.Get(ctx, key, dummies.CSCluster)
-		}, timeout).Should(BeNil())
-
-		By("Setting the OwnerRef on the CloudStack cluster")
-		Eventually(func() error {
-			ph, err := patch.NewHelper(dummies.CSCluster, k8sClient)
-			Ω(err).ShouldNot(HaveOccurred())
-			dummies.CSCluster.OwnerReferences = append(dummies.CSCluster.OwnerReferences, metav1.OwnerReference{
-				Kind:       "Cluster",
-				APIVersion: clusterv1.GroupVersion.String(),
-				Name:       dummies.CAPICluster.Name,
-				UID:        "uniqueness",
-			})
-			return ph.Patch(ctx, dummies.CSCluster, patch.WithStatusObservedGeneration{})
-		}, timeout).Should(Succeed())
-
-		// Test that the CloudStackCluster controller creates a CloudStackZone CRD.
-		Eventually(func() bool {
-			key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Spec.Zones[0].Name}
-			if err := k8sClient.Get(ctx, key, dummies.CSCluster); err != nil {
-				return true
-			}
-			return false
-		}, timeout).Should(BeTrue())
-
+	Context("Without a k8s test environment.", func() {
+		It("Should create a reconciliation runner with a Cloudstack Cluster as the reconciliation subject.", func() {
+			reconRunenr := controllers.NewCSClusterReconciliationRunner()
+			Ω(reconRunenr.ReconciliationSubject).ShouldNot(BeNil())
+		})
 	})
 })

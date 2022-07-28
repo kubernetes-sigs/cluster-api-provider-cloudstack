@@ -19,7 +19,7 @@ package cloud_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
 
 	. "github.com/onsi/gomega"
@@ -29,8 +29,6 @@ var _ = Describe("User Credentials", func() {
 
 	BeforeEach(func() {
 		dummies.SetDummyVars()
-		dummies.SetDummyClusterStatus()
-		dummies.SetDummyCSMachineStatuses()
 	})
 
 	AfterEach(func() {
@@ -83,8 +81,7 @@ var _ = Describe("User Credentials", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(found).Should(BeTrue())
 			Ω(user.APIKey).ShouldNot(BeEmpty())
-			cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
-			newClient, err := client.NewClientFromSpec(cfg)
+			newClient, err := client.NewClientInDomainAndAccount(user.Account.Domain.Name, user.Account.Name)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(newClient).ShouldNot(BeNil())
 		})

@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1_test
+package v1beta2_test
 
 import (
 	"context"
 
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -60,21 +60,15 @@ var _ = Describe("CloudStackMachine webhook", func() {
 		})
 
 		It("should reject a CloudStackMachine with missing Offering attribute", func() {
-			dummies.CSMachine1.Spec.Offering = v1beta1.CloudStackResourceIdentifier{ID: "", Name: ""}
+			dummies.CSMachine1.Spec.Offering = infrav1.CloudStackResourceIdentifier{ID: "", Name: ""}
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(requiredRegex, "Offering")))
 		})
 
 		It("should reject a CloudStackMachine with missing Template attribute", func() {
-			dummies.CSMachine1.Spec.Template = v1beta1.CloudStackResourceIdentifier{ID: "", Name: ""}
+			dummies.CSMachine1.Spec.Template = infrav1.CloudStackResourceIdentifier{ID: "", Name: ""}
 			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(requiredRegex, "Template")))
-		})
-
-		It("should reject a CloudStackMachine with IdentityRef not of kind 'Secret'", func() {
-			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
-			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "must be a Secret")))
 		})
 	})
 
@@ -84,13 +78,13 @@ var _ = Describe("CloudStackMachine webhook", func() {
 		})
 
 		It("should reject VM offering updates to the CloudStackMachine", func() {
-			dummies.CSMachine1.Spec.Offering = v1beta1.CloudStackResourceIdentifier{Name: "ArbitraryUpdateOffering"}
+			dummies.CSMachine1.Spec.Offering = infrav1.CloudStackResourceIdentifier{Name: "ArbitraryUpdateOffering"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "offering")))
 		})
 
 		It("should reject VM template updates to the CloudStackMachine", func() {
-			dummies.CSMachine1.Spec.Template = v1beta1.CloudStackResourceIdentifier{Name: "ArbitraryUpdateTemplate"}
+			dummies.CSMachine1.Spec.Template = infrav1.CloudStackResourceIdentifier{Name: "ArbitraryUpdateTemplate"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "template")))
 		})
@@ -105,18 +99,6 @@ var _ = Describe("CloudStackMachine webhook", func() {
 			dummies.CSMachine1.Spec.Details = map[string]string{"memoryOvercommitRatio": "1.5"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "details")))
-		})
-
-		It("should reject identity reference kind updates to the CloudStackMachine", func() {
-			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
-			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Kind")))
-		})
-
-		It("should reject identity reference name updates to the CloudStackMachine", func() {
-			dummies.CSMachine1.Spec.IdentityRef.Name = "IdentityConfigMap"
-			Ω(k8sClient.Update(ctx, dummies.CSMachine1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Name")))
 		})
 
 		It("should reject updates to the list of affinty groups of the CloudStackMachine", func() {

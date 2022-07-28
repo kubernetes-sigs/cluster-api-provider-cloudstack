@@ -1,25 +1,57 @@
 package helpers
 
 import (
+	"bytes"
+	"io"
 	"os"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/pkg/errors"
-	"gopkg.in/ini.v1"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"gopkg.in/yaml.v3"
 )
 
-func NewCSClient() (*cloudstack.CloudStackClient, error) {
-	projDir := os.Getenv("PROJECT_DIR")
-	conf := cloud.Config{}
-	ccPath := projDir + "/cloud-config"
-	if rawCfg, err := ini.Load(ccPath); err != nil {
-		return nil, errors.Wrapf(err, "reading config at path %s:", ccPath)
-	} else if g := rawCfg.Section(cloud.GLOBAL); len(g.Keys()) == 0 {
-		return nil, errors.New("section Global not found")
-	} else if err = rawCfg.Section(cloud.GLOBAL).StrictMapTo(&conf); err != nil {
-		return nil, errors.Wrapf(err, "parsing [Global] section from config at path %s:", ccPath)
+type CSConf struct {
+	APIKey    string `yaml:"api-key"`
+	SecretKey string `yaml:"secret-key"`
+	APIUrl    string `yaml:"api-url"`
+	VerifySSL string `yaml:"verify-ssl"`
+}
+
+type Config struct {
+	ApiVersion string            `yaml:"apiVersion"`
+	Kind       string            `yaml:"kind"`
+	Tind       string            `yaml:"type"`
+	Metadata   map[string]string `yaml:"metadata"`
+	StringData CSConf            `yaml:"stringData"`
+}
+
+func UnmarshalAllConfigs(in []byte, out *[]Config) error {
+	r := bytes.NewReader(in)
+	decoder := yaml.NewDecoder(r)
+	for {
+		var conf Config
+		if err := decoder.Decode(&conf); err != nil {
+			// Break when there are no more documents to decode
+			if err != io.EOF {
+				return err
+			}
+			break
+		}
+		*out = append(*out, conf)
 	}
-	csClient := cloudstack.NewAsyncClient(conf.APIURL, conf.APIKey, conf.SecretKey, conf.VerifySSL)
-	return csClient, nil
+	return nil
+}
+
+// NewCSClient creates a CloudStack-Go client from the cloud-config file.
+func NewCSClient() (*cloudstack.CloudStackClient, error) {
+	content, err := os.ReadFile(os.Getenv("PROJECT_DIR") + "/cloud-config.yaml")
+	if err != nil {
+		return nil, err
+	}
+	configs := &[]Config{}
+	if err := UnmarshalAllConfigs(content, configs); err != nil {
+		return nil, err
+	}
+	config := (*configs)[0].StringData
+
+	return cloudstack.NewAsyncClient(config.APIUrl, config.APIKey, config.SecretKey, config.VerifySSL == "true"), nil
 }

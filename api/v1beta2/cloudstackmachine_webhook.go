@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1beta2
 
 import (
 	"fmt"
@@ -38,7 +38,7 @@ func (r *CloudStackMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackmachine,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=create;update,versions=v1beta1,name=mcloudstackmachine.kb.io,admissionReviewVersions=v1beta1
+//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachine,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=create;update,versions=v1beta2,name=mcloudstackmachine.kb.io,admissionReviewVersions=v1beta1
 
 var _ webhook.Defaulter = &CloudStackMachine{}
 
@@ -48,7 +48,7 @@ func (r *CloudStackMachine) Default() {
 	// No defaulted values supported yet.
 }
 
-//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-cloudstackmachine,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=create;update,versions=v1beta1,name=vcloudstackmachine.kb.io,admissionReviewVersions=v1beta1
+//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachine,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=create;update,versions=v1beta2,name=vcloudstackmachine.kb.io,admissionReviewVersions=v1beta1
 
 var _ webhook.Validator = &CloudStackMachine{}
 
@@ -57,11 +57,6 @@ func (r *CloudStackMachine) ValidateCreate() error {
 	cloudstackmachinelog.V(1).Info("entered validate create webhook", "api resource name", r.Name)
 
 	var errorList field.ErrorList
-
-	// IdentityRefs must be Secrets.
-	if r.Spec.IdentityRef != nil && r.Spec.IdentityRef.Kind != defaultIdentityRefKind {
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
-	}
 
 	errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Offering.ID, r.Spec.Offering.Name, "Offering", errorList)
 	errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Template.ID, r.Spec.Template.Name, "Template", errorList)
@@ -94,12 +89,6 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
 	errorList = webhookutil.EnsureBothFieldsAreEqual(r.Spec.Template.ID, r.Spec.Template.Name, oldSpec.Template.ID, oldSpec.Template.Name, "template", errorList)
 	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&r.Spec.Details, &oldSpec.Details, "details", errorList)
-	if r.Spec.IdentityRef != nil && oldSpec.IdentityRef != nil {
-		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			r.Spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
-		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			r.Spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
-	}
 	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.Affinity, oldSpec.Affinity, "affinity", errorList)
 
 	if !reflect.DeepEqual(r.Spec.AffinityGroupIDs, oldSpec.AffinityGroupIDs) { // Equivalent to other Ensure funcs.

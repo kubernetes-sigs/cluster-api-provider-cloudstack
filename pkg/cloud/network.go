@@ -19,11 +19,11 @@ package cloud
 import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
-	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 )
 
 type NetworkIface interface {
-	ResolveNetwork(*capcv1.Network) error
+	ResolveNetwork(*infrav1.Network) error
 }
 
 const (
@@ -36,7 +36,7 @@ const (
 
 // NetworkExists checks that the network already exists based on the presence of all fields.
 // Assumes that the a fetch has been done on network statuses prior.
-func NetworkExists(net capcv1.Network) bool {
+func NetworkExists(net infrav1.Network) bool {
 	if net.Name != "" && net.Type != "" && net.ID != "" {
 		return true
 	}
@@ -44,7 +44,7 @@ func NetworkExists(net capcv1.Network) bool {
 }
 
 // ResolveNetwork fetches networks' ID, Name, and Type.
-func (c *client) ResolveNetwork(net *capcv1.Network) (retErr error) {
+func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 	// TODO rebuild this to consider cases with networks in many zones.
 	// Use ListNetworks instead.
 	netName := net.Name
@@ -75,12 +75,12 @@ func (c *client) ResolveNetwork(net *capcv1.Network) (retErr error) {
 	return nil
 }
 
-func generateNetworkTagName(csCluster *capcv1.CloudStackCluster) string {
+func generateNetworkTagName(csCluster *infrav1.CloudStackCluster) string {
 	return ClusterTagNamePrefix + string(csCluster.UID)
 }
 
 // RemoveClusterTagFromNetwork the cluster in use tag from a network.
-func (c *client) RemoveClusterTagFromNetwork(csCluster *capcv1.CloudStackCluster, net capcv1.Network) (retError error) {
+func (c *client) RemoveClusterTagFromNetwork(csCluster *infrav1.CloudStackCluster, net infrav1.Network) (retError error) {
 	tags, err := c.GetTags(ResourceTypeNetwork, net.ID)
 	if err != nil {
 		return err
