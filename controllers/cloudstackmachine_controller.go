@@ -133,7 +133,6 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
-	r.Log.Info(r.ReconciliationSubject.Spec.FailureDomainName)
 	if r.ReconciliationSubject.Spec.FailureDomainName == "" { // Needs random FD, but not yet set.
 
 		if r.CAPIMachine.Spec.FailureDomain != nil &&
