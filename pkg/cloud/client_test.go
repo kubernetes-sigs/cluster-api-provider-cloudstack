@@ -34,9 +34,6 @@ var _ = Describe("Client", func() {
 	var ()
 
 	BeforeEach(func() {
-		// This test fixture is useful for development, but the actual method of parsing is confinded to the client's
-		// new client method. The parsing used here is more of a schema, and we don't need to test another library's
-		// abilities to parse said schema.
 	})
 
 	AfterEach(func() {
@@ -44,6 +41,10 @@ var _ = Describe("Client", func() {
 
 	Context("When fetching an INI config.", func() {
 		It("Handles the positive case.", func() {
+			// This test fixture is useful for development, but the actual method of parsing is confinded to the client's
+			// new client method. The parsing used here is more of a schema, and we don't need to test another library's
+			// abilities to parse said schema.
+			Skip("Dev test suite.")
 			cfg := &Global{}
 			rawCfg, err := ini.Load("../../cloud-config")
 			Ω(rawCfg.Section("Global")).ShouldNot(BeNil())
