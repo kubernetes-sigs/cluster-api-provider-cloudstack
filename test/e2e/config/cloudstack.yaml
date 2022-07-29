@@ -94,6 +94,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-custom-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-subdomain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-ip.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
       - name: v1.0.0
@@ -166,4 +167,4 @@ intervals:
   node-drain/wait-control-plane: ["15m", "10s"]
   node-drain/wait-machine-deleted: ["5m", "10s"]
 
-  
+
