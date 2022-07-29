@@ -20,18 +20,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -97,6 +98,10 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 
 	It("Should fail due to the specified disk offer is customized but the disk size is not specified", func() {
 		testInvalidResource(ctx, input, "invalid-disk-offering-size-for-customized", "is customized, disk size can not be 0 GB")
+	})
+
+	It("Should fail due to the public IP can not be found", func() {
+		testInvalidResource(ctx, input, "invalid-public-ip", "no public addresses found in available networks")
 	})
 
 	Context("When starting with a healthy cluster", func() {
