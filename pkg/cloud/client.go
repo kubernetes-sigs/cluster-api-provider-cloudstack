@@ -17,8 +17,9 @@ limitations under the License.
 package cloud
 
 import (
-	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/metrics"
 	"strings"
+
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/metrics"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"

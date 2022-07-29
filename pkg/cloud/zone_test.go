@@ -28,17 +28,24 @@ import (
 )
 
 var _ = Describe("Zone", func() {
+	const (
+		errorMessage = "Error"
+	)
+
+	fakeError := errors.New(errorMessage)
 	var (
 		client     cloud.Client
 		mockCtrl   *gomock.Controller
 		mockClient *csapi.CloudStackClient
 		zs         *csapi.MockZoneServiceIface
+		ns         *csapi.MockNetworkServiceIface
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = csapi.NewMockClient(mockCtrl)
 		zs = mockClient.Zone.(*csapi.MockZoneServiceIface)
+		ns = mockClient.Network.(*csapi.MockNetworkServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
 		dummies.SetDummyDomainAndAccount()
@@ -65,6 +72,44 @@ var _ = Describe("Zone", func() {
 			Ω(client.ResolveZone(dummies.CSZone1)).Should(MatchError(And(
 				ContainSubstring("expected 1 Zone with name "+dummies.Zone1.Name+", but got 2"),
 				ContainSubstring("could not get Zone by ID "+dummies.Zone1.ID+": Not found"))))
+		})
+
+		It("returns multiple zones for a given id", func() {
+			zs.EXPECT().GetZoneID(dummies.Zone1.Name).Return(dummies.Zone1.ID, 2, nil)
+			zs.EXPECT().GetZoneByID(dummies.Zone1.ID).Return(&csapi.Zone{}, 2, nil)
+
+			Ω(client.ResolveZone(dummies.CSZone1).Error()).
+				Should(ContainSubstring("expected 1 Zone with name " + dummies.Zone1.Name + ", but got 2"))
+		})
+	})
+
+	Context("Resolve network for zone", func() {
+		It("get network by name specfied in zone spec", func() {
+			ns.EXPECT().GetNetworkByName(dummies.Zone1.Network.Name).Return(&csapi.Network{}, 1, nil)
+
+			Ω(client.ResolveNetworkForZone(dummies.CSZone1)).Should(Succeed())
+		})
+
+		It("get network by name specfied in zone spec returns > 1 network", func() {
+			ns.EXPECT().GetNetworkByName(dummies.Zone2.Network.Name).Return(&csapi.Network{}, 2, nil)
+			ns.EXPECT().GetNetworkByID(dummies.Zone2.Network.ID).Return(&csapi.Network{}, 2, nil)
+
+			Ω(client.ResolveNetworkForZone(dummies.CSZone2)).Should(MatchError(And(
+				ContainSubstring(fmt.Sprintf("expected 1 Network with name %s, but got %d", dummies.Zone2.Network.Name, 2)),
+				ContainSubstring(fmt.Sprintf("expected 1 Network with UUID %v, but got %d", dummies.Zone2.Network.ID, 2)))))
+		})
+
+		It("get network by id specfied in zone spec", func() {
+			ns.EXPECT().GetNetworkByName(dummies.Zone2.Network.Name).Return(nil, -1, fakeError)
+			ns.EXPECT().GetNetworkByID(dummies.Zone2.Network.ID).Return(&csapi.Network{}, 1, nil)
+			Ω(client.ResolveNetworkForZone(dummies.CSZone2)).Should(Succeed())
+		})
+
+		It("get network by id fails", func() {
+			ns.EXPECT().GetNetworkByName(dummies.Zone2.Network.Name).Return(nil, -1, fakeError)
+			ns.EXPECT().GetNetworkByID(dummies.Zone2.Network.ID).Return(nil, -1, fakeError)
+
+			Ω(client.ResolveNetworkForZone(dummies.CSZone2).Error()).Should(ContainSubstring(fmt.Sprintf("could not get Network by ID %s", dummies.Zone2.Network.ID)))
 		})
 	})
 })

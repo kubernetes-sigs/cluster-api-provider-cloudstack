@@ -152,7 +152,7 @@ func (c *client) GetPublicIP(
 				return v, nil
 			}
 		}
-		return nil, errors.New("all Public IP Adresse(s) found were already allocated")
+		return nil, errors.New("all Public IP Address(es) found were already allocated")
 	}
 	return nil, errors.New("no public addresses found in available networks")
 }

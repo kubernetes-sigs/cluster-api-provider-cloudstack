@@ -24,6 +24,7 @@ import (
 
 type NetworkIface interface {
 	ResolveNetwork(*capcv1.Network) error
+	RemoveClusterTagFromNetwork(*capcv1.CloudStackCluster, capcv1.Network) error
 }
 
 const (

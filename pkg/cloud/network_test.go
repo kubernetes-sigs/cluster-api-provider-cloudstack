@@ -17,6 +17,9 @@ limitations under the License.
 package cloud_test
 
 import (
+	"errors"
+	"fmt"
+
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -30,6 +33,7 @@ var _ = Describe("Network", func() {
 		mockCtrl   *gomock.Controller
 		mockClient *csapi.CloudStackClient
 		ns         *csapi.MockNetworkServiceIface
+		rs         *csapi.MockResourcetagsServiceIface
 		client     cloud.Client
 	)
 
@@ -38,6 +42,7 @@ var _ = Describe("Network", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = csapi.NewMockClient(mockCtrl)
 		ns = mockClient.Network.(*csapi.MockNetworkServiceIface)
+		rs = mockClient.Resourcetags.(*csapi.MockResourcetagsServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
 		dummies.SetDummyClusterStatus()
@@ -59,6 +64,27 @@ var _ = Describe("Network", func() {
 			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
 
 			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
+		})
+
+		It("When there exists more than one network with the same name", func() {
+			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 2, nil)
+			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(nil, 2, errors.New("There is more then one result for Network UUID"))
+			err := client.ResolveNetwork(&dummies.ISONet1)
+			Ω(err).ShouldNot(Succeed())
+			Ω(err.Error()).Should(ContainSubstring(fmt.Sprintf("expected 1 Network with name %s, but got %d", dummies.ISONet1.Name, 2)))
+		})
+	})
+
+	Context("Remove cluster tag from network", func() {
+		It("Remove tag from network", func() {
+			rtdp := &csapi.DeleteTagsParams{}
+			createdByCAPCResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: dummies.CSClusterTagKey, Value: "1"}}}
+			rtlp := &csapi.ListTagsParams{}
+			rs.EXPECT().NewDeleteTagsParams(gomock.Any(), gomock.Any()).Return(rtdp)
+			rs.EXPECT().DeleteTags(rtdp).Return(&csapi.DeleteTagsResponse{}, nil)
+			rs.EXPECT().NewListTagsParams().Return(rtlp)
+			rs.EXPECT().ListTags(rtlp).Return(createdByCAPCResponse, nil)
+			Ω(client.RemoveClusterTagFromNetwork(dummies.CSCluster, dummies.ISONet1)).Should(Succeed())
 		})
 	})
 })
