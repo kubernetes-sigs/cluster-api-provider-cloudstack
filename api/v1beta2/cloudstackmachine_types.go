@@ -71,7 +71,7 @@ type CloudStackMachineSpec struct {
 	Affinity string `json:"affinity,omitempty"`
 
 	// Mutually exclusive parameter with AffinityGroupIDs.
-	// Is a reference to a CloudStack affiniity group CRD.
+	// Is a reference to a CloudStack affinity group CRD.
 	// +optional
 	AffinityGroupRef *corev1.ObjectReference `json:"cloudstackaffinityref,omitempty"`
 

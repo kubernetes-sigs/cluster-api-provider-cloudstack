@@ -50,7 +50,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			setClusterReady()
 		})
 
-		It("Shoueld call GetOrCreateVMInstance and set Status.Ready to true", func() {
+		It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),
