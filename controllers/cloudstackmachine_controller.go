@@ -121,13 +121,16 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 		r.Log.Info("getting affinity group name", err)
 	}
 
+	// Set failure domain name and owners.
 	r.AffinityGroup.Spec.FailureDomainName = r.ReconciliationSubject.Spec.FailureDomainName
-	if res, err := r.GetOrCreateAffinityGroup(agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup)(); r.ShouldReturn(res, err) {
+	if res, err := r.GetOrCreateAffinityGroup(
+		agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup, r.FailureDomain)(); r.ShouldReturn(res, err) {
 		return res, err
 	}
 	if !r.AffinityGroup.Status.Ready {
 		return r.RequeueWithMessage("Required affinity group not ready.")
 	}
+
 	return ctrl.Result{}, nil
 }
 

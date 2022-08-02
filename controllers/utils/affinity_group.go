@@ -28,10 +28,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// GenerateIsolatedNetwork of the passed name that's owned by the ReconciliationSubject.
-func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityType string, ag *infrav1.CloudStackAffinityGroup) CloudStackReconcilerMethod {
-	return func() (ctrl.Result, error) {
+// GetOrCreateAffinityGroup of the passed name that's owned by the failure domain of the reconciliation subject and
+// the control plane that manages it.
+func (r *ReconciliationRunner) GetOrCreateAffinityGroup(
+	name string,
+	affinityType string,
+	ag *infrav1.CloudStackAffinityGroup,
+	fd *infrav1.CloudStackFailureDomain) CloudStackReconcilerMethod {
 
+	return func() (ctrl.Result, error) {
 		// Start by attempting a fetch.
 		lowerName := strings.ToLower(name)
 		namespace := r.ReconciliationSubject.GetNamespace()
@@ -56,7 +61,7 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 		ag.Spec.Name = name
 		ag.ObjectMeta = r.NewChildObjectMeta(lowerName)
 
-		// Replace owner reference with controller of CAPI and CloudStack machines.
+		// Replace owner reference with controller of CAPI and CloudStack machines and FailureDomain.
 		for _, ref := range r.ReconciliationSubject.GetOwnerReferences() {
 			if strings.EqualFold(ref.Kind, "EtcdadmCluster") ||
 				strings.EqualFold(ref.Kind, "KubeadmControlPlane") ||
@@ -65,6 +70,13 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(name string, affinityTyp
 				break
 			}
 		}
+		ag.OwnerReferences = append(ag.OwnerReferences,
+			metav1.OwnerReference{
+				Name:       fd.Name,
+				Kind:       fd.Kind,
+				APIVersion: fd.APIVersion,
+				UID:        fd.UID,
+			})
 
 		if err := r.K8sClient.Create(r.RequestCtx, ag); err != nil && !ContainsAlreadyExistsSubstring(err) {
 			return r.ReturnWrappedError(err, "creating affinity group CRD")

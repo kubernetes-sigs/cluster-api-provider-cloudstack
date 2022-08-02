@@ -105,21 +105,21 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 }
 
 // ReconcileDelete on the ReconciliationRunner attempts to delete the reconciliation subject.
-func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
+func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
 	r.Log.Info("Deleting CloudStackFailureDomain")
-	// Address Isolated Networks.
-	if r.ReconciliationSubject.Spec.Zone.Network.Type == infrav1.NetworkTypeIsolated {
-		netName := r.ReconciliationSubject.Spec.Zone.Network.Name
-		if res, err := r.GetObjectByName(r.IsoNetMetaName(netName), r.IsoNet)(); r.ShouldReturn(res, err) {
-			return res, err
-		}
-		if r.IsoNet.Name != "" {
-			if err := r.K8sClient.Delete(r.RequestCtx, r.IsoNet); err != nil {
-				return ctrl.Result{}, err
-			}
-			return r.RequeueWithMessage("Child IsolatedNetwork still present, requeueing.")
-		}
-	}
+	return r.RunReconciliationStages(
+		r.DeleteOwnedObjects(
+			infrav1.GroupVersion.WithKind("CloudStackAffinityGroup"),
+			infrav1.GroupVersion.WithKind("CloudStackIsolatedNetwork")),
+		r.CheckOwnedObjectsDeleted(
+			infrav1.GroupVersion.WithKind("CloudStackAffinityGroup"),
+			infrav1.GroupVersion.WithKind("CloudStackIsolatedNetwork")),
+		r.RemoveFinalizer,
+	)
+}
+
+// RemoveFinalizer just removes the finalizer from the failure domain.
+func (r *CloudStackFailureDomainReconciliationRunner) RemoveFinalizer() (ctrl.Result, error) {
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.FailureDomainFinalizer)
 	return ctrl.Result{}, nil
 }
