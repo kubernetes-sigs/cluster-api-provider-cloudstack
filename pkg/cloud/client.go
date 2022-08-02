@@ -66,6 +66,8 @@ type SecretConfig struct {
 	StringData Config            `yaml:"stringData"`
 }
 
+var clientCache = map[Config]*client{}
+
 // UnmarshalAllSecretConfigs parses a yaml document for each secret.
 func UnmarshalAllSecretConfigs(in []byte, out *[]SecretConfig) error {
 	r := bytes.NewReader(in)
@@ -134,6 +136,10 @@ func NewClientFromYamlPath(confPath string, secretName string) (Client, error) {
 
 // Creates a new Cloud Client form a map of strings to strings.
 func NewClientFromConf(conf Config) (Client, error) {
+	if client, exists := clientCache[conf]; exists {
+		return client, nil
+	}
+
 	verifySSL := true
 	if conf.VerifySSL == "false" {
 		verifySSL = false
@@ -146,6 +152,8 @@ func NewClientFromConf(conf Config) (Client, error) {
 	c.cs = cloudstack.NewAsyncClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
 	c.csAsync = cloudstack.NewClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
 	c.customMetrics = metrics.NewCustomMetrics()
+	clientCache[conf] = c
+
 	return c, nil
 }
 
