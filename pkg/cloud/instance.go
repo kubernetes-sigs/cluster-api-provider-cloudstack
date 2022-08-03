@@ -319,7 +319,8 @@ func (c *client) DestroyVMInstance(csMachine *infrav1.CloudStackMachine) error {
 		return err
 	}
 
-	return errors.New("VM deletion in progress")
+	return nil
+	//return errors.New("VM deletion in progress")
 }
 
 func (c *client) listVMInstanceDatadiskVolumeIDs(instanceID string) ([]string, error) {

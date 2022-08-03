@@ -18,7 +18,6 @@ package v1beta2
 
 import (
 	"fmt"
-	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -94,12 +93,12 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	}
 	oldSpec := oldCluster.Spec
 
-	// No spec fields may be updated.
 	errorList := field.ErrorList(nil)
-	if !reflect.DeepEqual(oldSpec.FailureDomains, spec.FailureDomains) {
-		errorList = append(errorList, field.Forbidden(
-			field.NewPath("spec", "FailureDomains"), "FailureDomains and sub-attributes may not be modified after creation"))
+
+	if err := ValidateFailureDomainUpdates(oldSpec.FailureDomains, spec.FailureDomains); err != nil {
+		errorList = append(errorList, err)
 	}
+
 	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
 		errorList = webhookutil.EnsureStringFieldsAreEqual(
 			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpoint.host", errorList)
@@ -109,6 +108,43 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	}
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+}
+
+// ValidateFailureDomainUpdates verifies that at least one failure domain has not been deleted, and
+// failure domains that are held over have not been modified.
+func ValidateFailureDomainUpdates(oldFDs, newFDs []CloudStackFailureDomainSpec) *field.Error {
+	newFDsByName := map[string]CloudStackFailureDomainSpec{}
+	for _, newFD := range newFDs {
+		newFDsByName[newFD.Name] = newFD
+	}
+
+	atLeastOneRemains := false
+	for _, oldFD := range oldFDs {
+		if newFD, present := newFDsByName[oldFD.Name]; present {
+			atLeastOneRemains = true
+			if !FailureDomainsEqual(newFD, oldFD) {
+				return field.Forbidden(field.NewPath("spec", "FailureDomains"),
+					fmt.Sprintf("Cannot change FailureDomain %s", oldFD.Name))
+			}
+		}
+	}
+	if !atLeastOneRemains {
+		return field.Forbidden(field.NewPath("spec", "FailureDomains"), "At least one FailureDomain must be unchanged on udpate.")
+	}
+	return nil
+}
+
+// FailureDomainsEqual is a manual deep equal on failure domains.
+func FailureDomainsEqual(fd1, fd2 CloudStackFailureDomainSpec) bool {
+	return fd1.Name == fd2.Name &&
+		fd1.ACSEndpoint == fd2.ACSEndpoint &&
+		fd1.Account == fd2.Account &&
+		fd1.Domain == fd2.Domain &&
+		fd1.Zone.Name == fd2.Zone.Name &&
+		fd1.Zone.ID == fd2.Zone.ID &&
+		fd1.Zone.Network.Name == fd2.Zone.Network.Name &&
+		fd1.Zone.Network.ID == fd2.Zone.Network.ID &&
+		fd1.Zone.Network.Type == fd2.Zone.Network.Type
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
