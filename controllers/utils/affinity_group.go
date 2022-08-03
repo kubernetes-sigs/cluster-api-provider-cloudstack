@@ -79,5 +79,6 @@ func GenerateAffinityGroupName(csm infrav1.CloudStackMachine, capiMachine *clust
 	if managerOwnerRef == nil {
 		return "", errors.Errorf("could not find owner UID for %s/%s", csm.Namespace, csm.Name)
 	}
-	return fmt.Sprintf("%sAffinity-%s-%s", strings.Title(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID), nil
+	return fmt.Sprintf("%sAffinity-%s-%s-%s",
+		strings.Title(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID, csm.Spec.FailureDomainName), nil
 }

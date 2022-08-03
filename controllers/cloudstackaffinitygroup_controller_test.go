@@ -17,8 +17,6 @@ limitations under the License.
 package controllers_test
 
 import (
-	"time"
-
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,6 +33,11 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 	})
 
 	It("Should patch back the affinity group as ready after calling GetOrCreateAffinityGroup.", func() {
+		// Modify failure domain name the same way the cluster controller would.
+		dummies.CSFailureDomain1.Name = dummies.CSFailureDomain1.Name + "-" + dummies.CSCluster.Name
+		dummies.CSAffinityGroup.Spec.FailureDomainName = dummies.CSFailureDomain1.Name
+
+		Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
 		Ω(k8sClient.Create(ctx, dummies.CSAffinityGroup)).Should(Succeed())
 
 		mockCloudClient.EXPECT().GetOrCreateAffinityGroup(gomock.Any()).AnyTimes()
@@ -49,6 +52,6 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 				}
 			}
 			return false
-		}, timeout).WithPolling(2 * time.Second).Should(BeTrue())
+		}, timeout).WithPolling(pollInterval).Should(BeTrue())
 	})
 })

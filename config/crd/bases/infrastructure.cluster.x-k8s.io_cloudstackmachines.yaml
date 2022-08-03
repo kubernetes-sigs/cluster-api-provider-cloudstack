@@ -308,7 +308,7 @@ spec:
                 type: array
               cloudstackaffinityref:
                 description: Mutually exclusive parameter with AffinityGroupIDs. Is
-                  a reference to a CloudStack affiniity group CRD.
+                  a reference to a CloudStack affinity group CRD.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -390,22 +390,6 @@ spec:
               id:
                 description: ID.
                 type: string
-              identityRef:
-                description: IdentityRef is a reference to a identity to be used when
-                  reconciling this cluster
-                properties:
-                  kind:
-                    description: Kind of the identity. Must be supported by the infrastructure
-                      provider and may be either cluster or namespace-scoped.
-                    minLength: 1
-                    type: string
-                  name:
-                    description: Name of the infrastructure identity to be used.
-                    type: string
-                required:
-                - kind
-                - name
-                type: object
               instanceID:
                 description: Instance ID. Should only be useful to modify an existing
                   instance.
@@ -476,10 +460,6 @@ spec:
               ready:
                 description: Ready indicates the readiness of the provider resource.
                 type: boolean
-              zoneID:
-                description: Zone ID is used so that the zone can be computed once
-                  per reconcile and then propagate.
-                type: string
             required:
             - ready
             type: object

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -49,11 +50,10 @@ import (
 
 // CloudStackMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack machine reconciliation.
 type CloudStackMachineReconciliationRunner struct {
-	utils.ReconciliationRunner
+	*utils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackMachine
 	CAPIMachine           *clusterv1.Machine
 	StateChecker          *infrav1.CloudStackMachineStateChecker
-	Zones                 *infrav1.CloudStackZoneList
 	FailureDomain         *infrav1.CloudStackFailureDomain
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
 	AffinityGroup         *infrav1.CloudStackAffinityGroup
@@ -70,7 +70,6 @@ func NewCSMachineReconciliationRunner() *CloudStackMachineReconciliationRunner {
 	r := &CloudStackMachineReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachine{}}
 	r.CAPIMachine = &clusterv1.Machine{}
 	r.StateChecker = &infrav1.CloudStackMachineStateChecker{}
-	r.Zones = &infrav1.CloudStackZoneList{}
 	r.IsoNet = &infrav1.CloudStackIsolatedNetwork{}
 	r.AffinityGroup = &infrav1.CloudStackAffinityGroup{}
 	r.FailureDomain = &infrav1.CloudStackFailureDomain{}
@@ -105,7 +104,7 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		r.GetOrCreateVMInstance,
 		r.RequeueIfInstanceNotRunning,
 		r.AddToLBIfNeeded,
-		// r.GetOrCreateMachineStateChecker,
+		r.GetOrCreateMachineStateChecker,
 	)
 }
 
@@ -122,6 +121,7 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 		r.Log.Info("getting affinity group name", err)
 	}
 
+	r.AffinityGroup.Spec.FailureDomainName = r.ReconciliationSubject.Spec.FailureDomainName
 	if res, err := r.GetOrCreateAffinityGroup(agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup)(); r.ShouldReturn(res, err) {
 		return res, err
 	}
@@ -134,12 +134,20 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
 	if r.ReconciliationSubject.Spec.FailureDomainName == "" { // Needs random FD, but not yet set.
-		if util.IsControlPlaneMachine(r.CAPIMachine) { // Is control plane machine -- CAPI will specify.
+		name := ""
+		if r.CAPIMachine.Spec.FailureDomain != nil &&
+			(util.IsControlPlaneMachine(r.CAPIMachine) || // Is control plane machine -- CAPI will specify.
+				*r.CAPIMachine.Spec.FailureDomain != "") { // Or potentially another machine controller specified.
+			name = *r.CAPIMachine.Spec.FailureDomain
 			r.ReconciliationSubject.Spec.FailureDomainName = *r.CAPIMachine.Spec.FailureDomain
 		} else { // Not a control plane machine. Place randomly.
 			randNum := (rand.Int() % len(r.CSCluster.Spec.FailureDomains)) // #nosec G404 -- weak crypt rand doesn't matter here.
-			r.ReconciliationSubject.Spec.FailureDomainName = r.CSCluster.Spec.FailureDomains[randNum].Name
+			name = r.CSCluster.Spec.FailureDomains[randNum].Name
 		}
+		if !strings.HasSuffix(name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
+			name = name + "-" + r.CAPICluster.Name
+		}
+		r.ReconciliationSubject.Spec.FailureDomainName = name
 	}
 	return ctrl.Result{}, nil
 }

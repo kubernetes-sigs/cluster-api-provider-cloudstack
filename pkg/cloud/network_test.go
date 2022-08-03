@@ -40,7 +40,6 @@ var _ = Describe("Network", func() {
 		ns = mockClient.Network.(*csapi.MockNetworkServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
-		dummies.SetDummyClusterStatus()
 	})
 
 	AfterEach(func() {

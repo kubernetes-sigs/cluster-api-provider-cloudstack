@@ -61,11 +61,6 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 		spec      = r.Spec.Spec.Spec // CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
 	)
 
-	// IdentityRefs must be Secrets.
-	if spec.IdentityRef != nil && spec.IdentityRef.Kind != defaultIdentityRefKind {
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "identityRef", "kind"), "must be a Secret"))
-	}
-
 	affinity := strings.ToLower(spec.Affinity)
 	if !(affinity == "" || affinity == "no" || affinity == "pro" || affinity == "anti") {
 		errorList = append(errorList, field.Invalid(field.NewPath("spec", "Affinity"), spec.Affinity,
@@ -105,13 +100,6 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 
 	if !reflect.DeepEqual(spec.AffinityGroupIDs, oldSpec.AffinityGroupIDs) { // Equivalent to other Ensure funcs.
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"), "AffinityGroupIDs"))
-	}
-
-	if spec.IdentityRef != nil && oldSpec.IdentityRef != nil { // Allow setting once.
-		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			spec.IdentityRef.Kind, oldSpec.IdentityRef.Kind, "identityRef.Kind", errorList)
-		errorList = webhookutil.EnsureStringFieldsAreEqual(
-			spec.IdentityRef.Name, oldSpec.IdentityRef.Name, "identityRef.Name", errorList)
 	}
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)

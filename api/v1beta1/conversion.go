@@ -50,26 +50,11 @@ func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudSta
 		FailureDomains:       failureDomains,
 		Account:              in.Spec.Account,
 		Domain:               in.Spec.Domain,
-		IdentityRef:          identifyRef,
 	}
 
-	zoneStatusMap := v1beta2.ZoneStatusMap{}
-	for zoneKey, zone := range in.Status.Zones {
-		zoneV1 := zone
-		zoneV2 := &v1beta2.Zone{}
-		err := Convert_v1beta1_Zone_To_v1beta2_Zone(&zoneV1, zoneV2, nil)
-		if err != nil {
-			return err
-		}
-		zoneStatusMap[zoneKey] = *zoneV2
-	}
 	out.Status = v1beta2.CloudStackClusterStatus{
-		Zones: zoneStatusMap,
-		FailureDomains:    in.Status.FailureDomains,
-		PublicIPID:        in.Status.PublicIPID,
-		PublicIPNetworkID: in.Status.PublicIPNetworkID,
-		LBRuleID:          in.Status.LBRuleID,
-		Ready:             in.Status.Ready,
+		FailureDomains: in.Status.FailureDomains,
+		Ready:          in.Status.Ready,
 	}
 	return nil
 }
@@ -77,40 +62,16 @@ func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudSta
 //nolint:golint,revive,stylecheck
 func Convert_v1beta2_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta2.CloudStackCluster, out *CloudStackCluster, scope conv.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	var identifyRef *CloudStackIdentityReference
-	if in.Spec.IdentityRef != nil {
-		identifyRef = &CloudStackIdentityReference{}
-		err := Convert_v1beta2_CloudStackIdentityReference_To_v1beta1_CloudStackIdentityReference(in.Spec.IdentityRef, identifyRef, nil)
-		if err != nil {
-			return err
-		}
-	}
 	out.Spec = CloudStackClusterSpec{
 		Zones:                getZones(in),
 		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
 		Account:              in.Spec.Account,
 		Domain:               in.Spec.Domain,
-		IdentityRef:          identifyRef,
 	}
 
-	zoneStatusMap := ZoneStatusMap{}
-	for zoneKey, zone := range in.Status.Zones {
-		zonev1 := &Zone{}
-		zonev2 := zone
-		err := Convert_v1beta2_Zone_To_v1beta1_Zone(&zonev2, zonev1, nil)
-		if err != nil {
-			return err
-		}
-		zoneStatusMap[zoneKey] = *zonev1
-	}
 	out.Status = CloudStackClusterStatus{
-		Zones:             zoneStatusMap,
-		FailureDomains:    in.Status.FailureDomains,
-		Ready:             in.Status.Ready,
-		DomainID:          in.Status.DomainID,
-		PublicIPID:        in.Status.PublicIPID,
-		PublicIPNetworkID: in.Status.PublicIPNetworkID,
-		LBRuleID:          in.Status.LBRuleID,
+		FailureDomains: in.Status.FailureDomains,
+		Ready:          in.Status.Ready,
 	}
 	return nil
 }
@@ -172,20 +133,24 @@ func getFailureDomains(csCluster *CloudStackCluster) ([]v1beta2.CloudStackFailur
 // When upgrading cluster using clusterctl directly, zoneID is fetched directly from kubernetes cluster in cloudstackzones.
 func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID string, zoneName string) (string, error) {
 	if len(zoneID) > 0 {
-		return zoneID, nil
+		return zoneID + "-" + clusterName, nil
 	}
 
 	// try fetch zoneID using zoneName through cloudstack client
 	zoneID, err := fetchZoneIDUsingCloudStack(namespace, zoneName)
 	if err == nil {
-		return zoneID, nil
+		return zoneID + "-" + clusterName, nil
 	}
 
-	return fetchZoneIDUsingK8s(namespace, clusterName, zoneName)
+	zoneID, err = fetchZoneIDUsingK8s(namespace, clusterName, zoneName)
+	if err != nil {
+		return "", nil
+	}
+	return zoneID + "-" + clusterName, nil
 }
 
 func fetchZoneIDUsingK8s(namespace string, clusterName string, zoneName string) (string, error) {
-	zones := &v1beta2.CloudStackZoneList{}
+	zones := &CloudStackZoneList{}
 	capiClusterLabel := map[string]string{clusterv1.ClusterLabelName: clusterName}
 	if err := v1beta2.K8sClient.List(
 		context.TODO(),
@@ -206,10 +171,27 @@ func fetchZoneIDUsingK8s(namespace string, clusterName string, zoneName string) 
 }
 
 func fetchZoneIDUsingCloudStack(namespace string, zoneName string) (string, error) {
+	config, err := GetCloudStackConfig(namespace)
+	if err != nil {
+		return "", err
+	}
+
+	csClient := cloudstack.NewAsyncClient(fmt.Sprint(config["api-url"]), fmt.Sprint(config["api-key"]), fmt.Sprint(config["secret-key"]), fmt.Sprint(config["verify-ssl"]) == "true")
+
+	if zoneID, count, err := csClient.Zone.GetZoneID(zoneName); err != nil {
+		return "", err
+	} else if count != 1 {
+		return "", errors.Errorf("%v zones found for zone name %s", count, zoneName)
+	} else {
+		return zoneID, nil
+	}
+}
+
+func GetCloudStackConfig(namespace string) (map[string]interface{}, error) {
 	endpointCredentials := &corev1.Secret{}
 	key := client.ObjectKey{Name: DefaultEndpointCredential, Namespace: namespace}
 	if err := v1beta2.K8sClient.Get(context.TODO(), key, endpointCredentials); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	config := map[string]interface{}{}
@@ -224,14 +206,5 @@ func fetchZoneIDUsingCloudStack(namespace string, zoneName string) (string, erro
 			config["verify-ssl"] = false
 		}
 	}
-
-	csClient := cloudstack.NewAsyncClient(fmt.Sprint(config["api-url"]), fmt.Sprint(config["api-key"]), fmt.Sprint(config["secret-key"]), fmt.Sprint(config["verify-ssl"]) == "true")
-
-	if zoneID, count, err := csClient.Zone.GetZoneID(zoneName); err != nil {
-		return "", err
-	} else if count != 1 {
-		return "", errors.Errorf("%v zones found for zone name %s", count, zoneName)
-	} else {
-		return zoneID, nil
-	}
+	return config, nil
 }

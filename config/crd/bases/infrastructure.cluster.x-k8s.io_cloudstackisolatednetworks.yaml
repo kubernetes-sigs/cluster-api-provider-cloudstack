@@ -167,11 +167,14 @@ spec:
                             description: Cloudstack Network Type the cluster is built
                               in.
                             type: string
+                        required:
+                        - name
                         type: object
                     required:
                     - network
                     type: object
                 required:
+                - acsendpoint
                 - name
                 - zone
                 type: object

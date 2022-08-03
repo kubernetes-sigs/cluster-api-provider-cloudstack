@@ -33,16 +33,6 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
-	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroup)(nil), (*v1beta2.CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(a.(*CloudStackAffinityGroup), b.(*v1beta2.CloudStackAffinityGroup), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.CloudStackAffinityGroup)(nil), (*CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(a.(*v1beta2.CloudStackAffinityGroup), b.(*CloudStackAffinityGroup), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroupList)(nil), (*v1beta2.CloudStackAffinityGroupList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_CloudStackAffinityGroupList_To_v1beta2_CloudStackAffinityGroupList(a.(*CloudStackAffinityGroupList), b.(*v1beta2.CloudStackAffinityGroupList), scope)
 	}); err != nil {
@@ -273,26 +263,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackZone)(nil), (*v1beta2.CloudStackZone)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackZone_To_v1beta2_CloudStackZone(a.(*CloudStackZone), b.(*v1beta2.CloudStackZone), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.CloudStackZone)(nil), (*CloudStackZone)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_CloudStackZone_To_v1beta1_CloudStackZone(a.(*v1beta2.CloudStackZone), b.(*CloudStackZone), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackZoneList)(nil), (*v1beta2.CloudStackZoneList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackZoneList_To_v1beta2_CloudStackZoneList(a.(*CloudStackZoneList), b.(*v1beta2.CloudStackZoneList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.CloudStackZoneList)(nil), (*CloudStackZoneList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_CloudStackZoneList_To_v1beta1_CloudStackZoneList(a.(*v1beta2.CloudStackZoneList), b.(*CloudStackZoneList), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*CloudStackZoneSpec)(nil), (*v1beta2.CloudStackZoneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_CloudStackZoneSpec_To_v1beta2_CloudStackZoneSpec(a.(*CloudStackZoneSpec), b.(*v1beta2.CloudStackZoneSpec), scope)
 	}); err != nil {
@@ -300,16 +270,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.CloudStackZoneSpec)(nil), (*CloudStackZoneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(a.(*v1beta2.CloudStackZoneSpec), b.(*CloudStackZoneSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackZoneStatus)(nil), (*v1beta2.CloudStackZoneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackZoneStatus_To_v1beta2_CloudStackZoneStatus(a.(*CloudStackZoneStatus), b.(*v1beta2.CloudStackZoneStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.CloudStackZoneStatus)(nil), (*CloudStackZoneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_CloudStackZoneStatus_To_v1beta1_CloudStackZoneStatus(a.(*v1beta2.CloudStackZoneStatus), b.(*CloudStackZoneStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -333,8 +293,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*CloudStackAffinityGroup)(nil), (*v1beta2.CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(a.(*CloudStackAffinityGroup), b.(*v1beta2.CloudStackAffinityGroup), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*CloudStackCluster)(nil), (*v1beta2.CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(a.(*CloudStackCluster), b.(*v1beta2.CloudStackCluster), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.CloudStackAffinityGroup)(nil), (*CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(a.(*v1beta2.CloudStackAffinityGroup), b.(*CloudStackAffinityGroup), scope)
 	}); err != nil {
 		return err
 	}
@@ -357,11 +327,6 @@ func autoConvert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGr
 	return nil
 }
 
-// Convert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(in *CloudStackAffinityGroup, out *v1beta2.CloudStackAffinityGroup, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(in, out, s)
-}
-
 func autoConvert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in *v1beta2.CloudStackAffinityGroup, out *CloudStackAffinityGroup, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1beta2_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(&in.Spec, &out.Spec, s); err != nil {
@@ -371,11 +336,6 @@ func autoConvert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGr
 		return err
 	}
 	return nil
-}
-
-// Convert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup is an autogenerated conversion function.
-func Convert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in *v1beta2.CloudStackAffinityGroup, out *CloudStackAffinityGroup, s conversion.Scope) error {
-	return autoConvert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in, out, s)
 }
 
 func autoConvert_v1beta1_CloudStackAffinityGroupList_To_v1beta2_CloudStackAffinityGroupList(in *CloudStackAffinityGroupList, out *v1beta2.CloudStackAffinityGroupList, s conversion.Scope) error {
@@ -436,6 +396,7 @@ func autoConvert_v1beta2_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffini
 	out.Type = in.Type
 	out.Name = in.Name
 	out.ID = in.ID
+	// INFO: in.FailureDomainName opted out of conversion generation
 	return nil
 }
 
@@ -746,15 +707,7 @@ func autoConvert_v1beta1_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(
 	out.ProviderID = in.ProviderID
 	// INFO: in.ZoneID opted out of conversion generation
 	// INFO: in.ZoneName opted out of conversion generation
-	if in.IdentityRef != nil {
-		in, out := &in.IdentityRef, &out.IdentityRef
-		*out = new(v1beta2.CloudStackIdentityReference)
-		if err := Convert_v1beta1_CloudStackIdentityReference_To_v1beta2_CloudStackIdentityReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.IdentityRef = nil
-	}
+	// INFO: in.IdentityRef opted out of conversion generation
 	return nil
 }
 
@@ -783,7 +736,6 @@ func autoConvert_v1beta2_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(
 	out.AffinityGroupRef = in.AffinityGroupRef
 	out.ProviderID = in.ProviderID
 	// INFO: in.FailureDomainName opted out of conversion generation
-	// INFO: in.IdentityRef opted out of conversion generation
 	return nil
 }
 
@@ -907,9 +859,9 @@ func Convert_v1beta2_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMa
 }
 
 func autoConvert_v1beta1_CloudStackMachineStatus_To_v1beta2_CloudStackMachineStatus(in *CloudStackMachineStatus, out *v1beta2.CloudStackMachineStatus, s conversion.Scope) error {
-	out.ZoneID = in.ZoneID
+	// INFO: in.ZoneID opted out of conversion generation
 	out.Addresses = in.Addresses
-	out.InstanceState = v1beta2.InstanceState(in.InstanceState)
+	out.InstanceState = string(in.InstanceState)
 	out.InstanceStateLastUpdated = in.InstanceStateLastUpdated
 	out.Ready = in.Ready
 	return nil
@@ -921,7 +873,6 @@ func Convert_v1beta1_CloudStackMachineStatus_To_v1beta2_CloudStackMachineStatus(
 }
 
 func autoConvert_v1beta2_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in *v1beta2.CloudStackMachineStatus, out *CloudStackMachineStatus, s conversion.Scope) error {
-	out.ZoneID = in.ZoneID
 	out.Addresses = in.Addresses
 	out.InstanceState = InstanceState(in.InstanceState)
 	out.InstanceStateLastUpdated = in.InstanceStateLastUpdated
@@ -1108,80 +1059,6 @@ func Convert_v1beta2_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceI
 	return autoConvert_v1beta2_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackZone_To_v1beta2_CloudStackZone(in *CloudStackZone, out *v1beta2.CloudStackZone, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_CloudStackZoneSpec_To_v1beta2_CloudStackZoneSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_CloudStackZoneStatus_To_v1beta2_CloudStackZoneStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta1_CloudStackZone_To_v1beta2_CloudStackZone is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackZone_To_v1beta2_CloudStackZone(in *CloudStackZone, out *v1beta2.CloudStackZone, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackZone_To_v1beta2_CloudStackZone(in, out, s)
-}
-
-func autoConvert_v1beta2_CloudStackZone_To_v1beta1_CloudStackZone(in *v1beta2.CloudStackZone, out *CloudStackZone, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta2_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_CloudStackZoneStatus_To_v1beta1_CloudStackZoneStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta2_CloudStackZone_To_v1beta1_CloudStackZone is an autogenerated conversion function.
-func Convert_v1beta2_CloudStackZone_To_v1beta1_CloudStackZone(in *v1beta2.CloudStackZone, out *CloudStackZone, s conversion.Scope) error {
-	return autoConvert_v1beta2_CloudStackZone_To_v1beta1_CloudStackZone(in, out, s)
-}
-
-func autoConvert_v1beta1_CloudStackZoneList_To_v1beta2_CloudStackZoneList(in *CloudStackZoneList, out *v1beta2.CloudStackZoneList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]v1beta2.CloudStackZone, len(*in))
-		for i := range *in {
-			if err := Convert_v1beta1_CloudStackZone_To_v1beta2_CloudStackZone(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-// Convert_v1beta1_CloudStackZoneList_To_v1beta2_CloudStackZoneList is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackZoneList_To_v1beta2_CloudStackZoneList(in *CloudStackZoneList, out *v1beta2.CloudStackZoneList, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackZoneList_To_v1beta2_CloudStackZoneList(in, out, s)
-}
-
-func autoConvert_v1beta2_CloudStackZoneList_To_v1beta1_CloudStackZoneList(in *v1beta2.CloudStackZoneList, out *CloudStackZoneList, s conversion.Scope) error {
-	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]CloudStackZone, len(*in))
-		for i := range *in {
-			if err := Convert_v1beta2_CloudStackZone_To_v1beta1_CloudStackZone(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
-	return nil
-}
-
-// Convert_v1beta2_CloudStackZoneList_To_v1beta1_CloudStackZoneList is an autogenerated conversion function.
-func Convert_v1beta2_CloudStackZoneList_To_v1beta1_CloudStackZoneList(in *v1beta2.CloudStackZoneList, out *CloudStackZoneList, s conversion.Scope) error {
-	return autoConvert_v1beta2_CloudStackZoneList_To_v1beta1_CloudStackZoneList(in, out, s)
-}
-
 func autoConvert_v1beta1_CloudStackZoneSpec_To_v1beta2_CloudStackZoneSpec(in *CloudStackZoneSpec, out *v1beta2.CloudStackZoneSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
@@ -1208,26 +1085,6 @@ func autoConvert_v1beta2_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(in *v1
 // Convert_v1beta2_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec is an autogenerated conversion function.
 func Convert_v1beta2_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(in *v1beta2.CloudStackZoneSpec, out *CloudStackZoneSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(in, out, s)
-}
-
-func autoConvert_v1beta1_CloudStackZoneStatus_To_v1beta2_CloudStackZoneStatus(in *CloudStackZoneStatus, out *v1beta2.CloudStackZoneStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	return nil
-}
-
-// Convert_v1beta1_CloudStackZoneStatus_To_v1beta2_CloudStackZoneStatus is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackZoneStatus_To_v1beta2_CloudStackZoneStatus(in *CloudStackZoneStatus, out *v1beta2.CloudStackZoneStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackZoneStatus_To_v1beta2_CloudStackZoneStatus(in, out, s)
-}
-
-func autoConvert_v1beta2_CloudStackZoneStatus_To_v1beta1_CloudStackZoneStatus(in *v1beta2.CloudStackZoneStatus, out *CloudStackZoneStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	return nil
-}
-
-// Convert_v1beta2_CloudStackZoneStatus_To_v1beta1_CloudStackZoneStatus is an autogenerated conversion function.
-func Convert_v1beta2_CloudStackZoneStatus_To_v1beta1_CloudStackZoneStatus(in *v1beta2.CloudStackZoneStatus, out *CloudStackZoneStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_CloudStackZoneStatus_To_v1beta1_CloudStackZoneStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_Network_To_v1beta2_Network(in *Network, out *v1beta2.Network, s conversion.Scope) error {

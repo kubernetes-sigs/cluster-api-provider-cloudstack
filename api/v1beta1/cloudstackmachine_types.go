@@ -79,8 +79,8 @@ type CloudStackMachineSpec struct {
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
-	// +k8s:conversion-gen=false
 	// Optionally settable Zone ID to land the machine in.
+	// +k8s:conversion-gen=false
 	ZoneID string `json:"zoneID,omitempty"`
 
 	// +k8s:conversion-gen=false
@@ -89,6 +89,7 @@ type CloudStackMachineSpec struct {
 
 	// IdentityRef is a reference to an identity to be used when reconciling this cluster
 	// +optional
+	// +k8s:conversion-gen=false
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
@@ -124,6 +125,7 @@ type InstanceState string
 type CloudStackMachineStatus struct {
 	// Zone ID is used so that the zone can be computed once per reconcile and then propagate.
 	// +optional
+	// +k8s:conversion-gen=false
 	ZoneID string `json:"zoneID,omitempty"`
 
 	// Addresses contains a CloudStack VM instance's IP addresses.

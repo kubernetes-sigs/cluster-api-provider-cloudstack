@@ -29,8 +29,6 @@ var _ = Describe("User Credentials", func() {
 
 	BeforeEach(func() {
 		dummies.SetDummyVars()
-		dummies.SetDummyClusterStatus()
-		dummies.SetDummyCSMachineStatuses()
 	})
 
 	AfterEach(func() {
@@ -83,8 +81,7 @@ var _ = Describe("User Credentials", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(found).Should(BeTrue())
 			Ω(user.APIKey).ShouldNot(BeEmpty())
-			cfg := cloud.Config{APIKey: user.APIKey, SecretKey: user.SecretKey}
-			newClient, err := client.NewClientFromSpec(cfg)
+			newClient, err := client.NewClientInDomainAndAccount(user.Account.Domain.Name, user.Account.Name)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(newClient).ShouldNot(BeNil())
 		})

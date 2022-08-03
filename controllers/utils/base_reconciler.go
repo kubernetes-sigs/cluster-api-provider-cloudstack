@@ -46,6 +46,7 @@ type ReconcilerBase struct {
 	Scheme     *runtime.Scheme
 	K8sClient  client.Client
 	CSClient   cloud.Client
+	CloudClientExtension
 }
 
 // CloudStackBaseContext is the base CloudStack data structure created/copied for each reconciliation request to avoid
@@ -61,7 +62,8 @@ type CloudStackBaseContext struct {
 
 // ReconciliationRunner is the base structure used to run reconciliation methods and implements several.
 type ReconciliationRunner struct {
-	ReconcilerBase
+	*ReconcilerBase
+	CloudClientExtension
 	CloudStackBaseContext
 	ReconciliationSubject  client.Object // Underlying crd interface.
 	ConditionalResult      bool          // Stores a conidtinal result for stringing if else type methods.
@@ -76,26 +78,30 @@ type ReconciliationRunner struct {
 type ConcreteRunner interface {
 	ReconcileDelete() (ctrl.Result, error)
 	Reconcile() (ctrl.Result, error)
-	GetReconcilationSubject() client.Object
 }
 
-func NewRunner(concreteRunner ConcreteRunner, subject client.Object, kind string) ReconciliationRunner {
-	r := ReconciliationRunner{}
+// NewRunner creates a new ReconciliationRunner pointing to the concrete reconciliation subject.
+func NewRunner(concreteRunner ConcreteRunner, subject client.Object, kind string) *ReconciliationRunner {
+	r := ReconciliationRunner{ReconcilerBase: &ReconcilerBase{}}
 	r.CSCluster = &infrav1.CloudStackCluster{}
 	r.CAPICluster = &clusterv1.Cluster{}
 	r.ReconciliationSubject = subject
 	r.Reconcile = concreteRunner.Reconcile
 	r.ReconcileDelete = concreteRunner.ReconcileDelete
 	r.ControllerKind = kind
-	return r
+	return &r
 }
 
-func (r *ReconciliationRunner) GetReconcilationSubject() client.Object {
-	return r.ReconciliationSubject
-}
-
+// UsingBaseReconciler sets up the reconciler to use base reconciler data and either default or alternative
+// feature implementations.
 func (r *ReconciliationRunner) UsingBaseReconciler(base ReconcilerBase) *ReconciliationRunner {
-	r.ReconcilerBase = base
+	*r.ReconcilerBase = base
+	// Either register the base fed extensions or default ones.
+	if base.CloudClientExtension == nil {
+		r.CloudClientExtension = (&CloudClientImplementation{}).RegisterExtension(r)
+	} else {
+		r.CloudClientExtension = base.CloudClientExtension.RegisterExtension(r)
+	}
 	return r
 }
 
@@ -140,11 +146,10 @@ func (r *ReconciliationRunner) RunIf(conditional func() bool, fn CloudStackRecon
 	}
 }
 
+// Else can be used to run a different stage if a previous conditional was false.
 func (r *ReconciliationRunner) Else(fn CloudStackReconcilerMethod) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		if !r.ConditionalResult {
-			r.Log.Info("Deleting ASDF.")
-			fmt.Println(r.ConditionalResult)
 			return fn()
 		}
 		return ctrl.Result{}, nil
@@ -345,7 +350,8 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 		r.SetupPatcher,
 		r.GetCAPICluster,
 		r.GetCSCluster,
-		r.RequeueIfMissingBaseCRs}
+		r.RequeueIfMissingBaseCRs,
+		r.CheckIfPaused}
 	baseStages = append(
 		append(baseStages, r.additionalCommonStages...),
 		r.RunIf(func() bool { return r.ReconciliationSubject.GetDeletionTimestamp().IsZero() }, r.Reconcile),

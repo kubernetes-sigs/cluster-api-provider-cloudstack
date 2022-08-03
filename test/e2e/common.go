@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -46,19 +47,18 @@ import (
 
 // Test suite constants for e2e config variables.
 const (
-	KubernetesVersionManagement  = "KUBERNETES_VERSION_MANAGEMENT"
-	KubernetesVersion            = "KUBERNETES_VERSION"
-	CNIPath                      = "CNI"
-	CNIResources                 = "CNI_RESOURCES"
-	IPFamily                     = "IP_FAMILY"
-	InvalidZoneName              = "CLOUDSTACK_INVALID_ZONE_NAME"
-	InvalidDiskOfferingName      = "CLOUDSTACK_INVALID_DISK_OFFERING_NAME"
-	InvalidNetworkName           = "CLOUDSTACK_INVALID_NETWORK_NAME"
-	InvalidAccountName           = "CLOUDSTACK_INVALID_ACCOUNT_NAME"
-	InvalidDomainName            = "CLOUDSTACK_INVALID_DOMAIN_NAME"
-	InvalidTemplateName          = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
-	InvalidCPOfferingName        = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
-	ExtremelyLargeCPOfferingName = "CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING"
+	KubernetesVersionManagement = "KUBERNETES_VERSION_MANAGEMENT"
+	KubernetesVersion           = "KUBERNETES_VERSION"
+	CNIPath                     = "CNI"
+	CNIResources                = "CNI_RESOURCES"
+	IPFamily                    = "IP_FAMILY"
+	InvalidZoneName             = "CLOUDSTACK_INVALID_ZONE_NAME"
+	InvalidDiskOfferingName     = "CLOUDSTACK_INVALID_DISK_OFFERING_NAME"
+	InvalidNetworkName          = "CLOUDSTACK_INVALID_NETWORK_NAME"
+	InvalidAccountName          = "CLOUDSTACK_INVALID_ACCOUNT_NAME"
+	InvalidDomainName           = "CLOUDSTACK_INVALID_DOMAIN_NAME"
+	InvalidTemplateName         = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
+	InvalidCPOfferingName       = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
 )
 
 const (
@@ -187,9 +187,47 @@ func DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx context.Context, wo
 
 func DownloadFromAppInWorkloadCluster(ctx context.Context, workloadKubeconfigPath string, appName string, port int, path string) (string, error) {
 	runArgs := []string{
-		"-i", "--restart=Never", "dummy", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", fmt.Sprintf("%s:%d%s", appName, port, path),
+		// Required by below: container name is runArg zero.
+		"dummy", "-i", "--restart=Never", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", "--show-error", fmt.Sprintf("%s:%d%s", appName, port, path),
 	}
-	return KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
+	var result, err = KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
+	if err != nil {
+		return result, err
+	}
+	if result == "" {
+		// A single retry to accommodate occasional cases where an empty string is returned, ostensibly
+		//  because the service isn't fully ready.  Subsequent requests have always worked.
+		fmt.Println("Retrying html download")
+		time.Sleep(5 * time.Second)
+		runArgs[0] = "dummy2" // Assumed: container name is runArg zero.
+		result, err = KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
+	}
+	return result, err
+}
+
+func DownloadMetricsFromCAPCManager(ctx context.Context, bootstrapKubeconfigPath string) (string, error) {
+	// Expose the CAPC manager metrics port via a K8S service
+	runArgs := []string{
+		"--port=8080", "--target-port=metrics", "--name=capc-controller-manager-metrics", "--namespace=capc-system", "deployment", "capc-controller-manager",
+	}
+	_, err := KubectlExec(ctx, "expose", bootstrapKubeconfigPath, runArgs...)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	// Scrape the metrics from the service
+	runArgs = []string{
+		"-i", "--restart=Never", "dummy", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", "capc-controller-manager-metrics.capc-system:8080/metrics",
+	}
+	result, err := KubectlExec(ctx, "run", bootstrapKubeconfigPath, runArgs...)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	// Remove the metrics service
+	runArgs = []string{
+		"--namespace=capc-system", "service", "capc-controller-manager-metrics",
+	}
+	_, err = KubectlExec(ctx, "delete", bootstrapKubeconfigPath, runArgs...)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	return result, nil
 }
 
 type cloudConfig struct {

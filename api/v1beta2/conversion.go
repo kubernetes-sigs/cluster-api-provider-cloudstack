@@ -57,9 +57,3 @@ func (*CloudStackMachineStateChecker) Hub() {}
 
 // Hub marks CloudStackMachineStateCheckerList as a conversion hub.
 func (*CloudStackMachineStateCheckerList) Hub() {}
-
-// Hub marks CloudStackZone as a conversion hub.
-func (*CloudStackZone) Hub() {}
-
-// Hub marks CloudStackZoneList as a conversion hub.
-func (*CloudStackZoneList) Hub() {}

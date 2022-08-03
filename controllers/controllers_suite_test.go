@@ -68,7 +68,8 @@ var (
 )
 
 const (
-	timeout = time.Second * 30
+	timeout      = 10 * time.Second
+	pollInterval = 1 * time.Second
 )
 
 func envOr(envKey, defaultValue string) string {
@@ -122,7 +123,6 @@ var (
 	MachineReconciler       *csReconcilers.CloudStackMachineReconciler
 	ClusterReconciler       *csReconcilers.CloudStackClusterReconciler
 	FailureDomainReconciler *csReconcilers.CloudStackFailureDomainReconciler
-	ZoneReconciler          *csReconcilers.CloudStackZoneReconciler
 	IsoNetReconciler        *csReconcilers.CloudStackIsoNetReconciler
 	AffinityGReconciler     *csReconcilers.CloudStackAffinityGroupReconciler
 )
@@ -151,8 +151,28 @@ var _ = BeforeSuite(func() {
 	logger = klogr.New()
 })
 
-func SetupTestEnvironment() {
+// A mock fo the CloudClient interface used in controller utils.
+type MockCtrlrCloudClientImplementation struct {
+	*csCtrlrUtils.ReconciliationRunner
+	csCtrlrUtils.CloudClientExtension
+}
 
+// AsFailureDomainUser is a method used in the reconciliation runner to set up the CloudStack client. Using this here
+// just sets the CSClient to a mock client.
+func (m *MockCtrlrCloudClientImplementation) AsFailureDomainUser(
+	*infrav1.CloudStackFailureDomainSpec) csCtrlrUtils.CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		m.CSUser = mockCloudClient
+
+		return ctrl.Result{}, nil
+	}
+}
+
+func (m *MockCtrlrCloudClientImplementation) RegisterExtension(r *csCtrlrUtils.ReconciliationRunner) csCtrlrUtils.CloudClientExtension {
+	return &MockCtrlrCloudClientImplementation{ReconciliationRunner: r}
+}
+
+func SetupTestEnvironment() {
 	crdPaths := []string{filepath.Join(projectDir, "config", "crd", "bases")}
 
 	// Append CAPI CRDs path
@@ -184,15 +204,16 @@ func SetupTestEnvironment() {
 
 	// Base reconciler shared across reconcilers.
 	base := csCtrlrUtils.ReconcilerBase{
-		K8sClient:  k8sManager.GetClient(),
-		Scheme:     k8sManager.GetScheme(),
-		CSClient:   mockCloudClient,
-		BaseLogger: logger}
+		K8sClient:            k8sManager.GetClient(),
+		Scheme:               k8sManager.GetScheme(),
+		CSClient:             mockCloudClient,
+		BaseLogger:           logger,
+		CloudClientExtension: &MockCtrlrCloudClientImplementation{},
+	}
 
 	// Setup each specific reconciler.
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	MachineReconciler = &csReconcilers.CloudStackMachineReconciler{ReconcilerBase: base}
-	ZoneReconciler = &csReconcilers.CloudStackZoneReconciler{ReconcilerBase: base}
 	FailureDomainReconciler = &csReconcilers.CloudStackFailureDomainReconciler{ReconcilerBase: base}
 	IsoNetReconciler = &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
 	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
@@ -205,7 +226,6 @@ func SetupTestEnvironment() {
 
 	// Set on reconcilers. The mock client wasn't available at suite startup, so set it now.
 	ClusterReconciler.CSClient = mockCloudClient
-	ZoneReconciler.CSClient = mockCloudClient
 	IsoNetReconciler.CSClient = mockCloudClient
 	MachineReconciler.CSClient = mockCloudClient
 	AffinityGReconciler.CSClient = mockCloudClient
@@ -248,14 +268,12 @@ func setupFakeTestClient() {
 	// Setup each specific reconciler.
 	ClusterReconciler = &csReconcilers.CloudStackClusterReconciler{ReconcilerBase: base}
 	MachineReconciler = &csReconcilers.CloudStackMachineReconciler{ReconcilerBase: base}
-	ZoneReconciler = &csReconcilers.CloudStackZoneReconciler{ReconcilerBase: base}
 	FailureDomainReconciler = &csReconcilers.CloudStackFailureDomainReconciler{ReconcilerBase: base}
 	IsoNetReconciler = &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
 	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
 
 	// Set on reconcilers. The mock client wasn't available at suite startup, so set it now.
 	ClusterReconciler.CSClient = mockCloudClient
-	ZoneReconciler.CSClient = mockCloudClient
 	IsoNetReconciler.CSClient = mockCloudClient
 	MachineReconciler.CSClient = mockCloudClient
 	FailureDomainReconciler.CSClient = mockCloudClient

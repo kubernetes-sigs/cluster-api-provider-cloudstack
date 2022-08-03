@@ -42,7 +42,7 @@ type CloudStackIsoNetReconciler struct {
 
 // CloudStackZoneReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack isolated network reconciliation.
 type CloudStackIsoNetReconciliationRunner struct {
-	csCtrlrUtils.ReconciliationRunner
+	*csCtrlrUtils.ReconciliationRunner
 	FailureDomain         *infrav1.CloudStackFailureDomain
 	ReconciliationSubject *infrav1.CloudStackIsolatedNetwork
 }
@@ -93,16 +93,6 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 }
 
 func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
-	if res, err := r.GetParent(r.ReconciliationSubject, r.FailureDomain)(); r.ShouldReturn(res, err) {
-		return res, err
-	}
-	if r.FailureDomain.Spec.Name == "" {
-		return ctrl.Result{}, errors.New("couldn't get parent Failure Domain for placement")
-	}
-	res, err := r.AsFailureDomainUser(&r.FailureDomain.Spec)()
-	if r.ShouldReturn(res, err) {
-		return res, err
-	}
 	r.Log.Info("Deleting IsolatedNetwork.")
 	if err := r.CSUser.DisposeIsoNetResources(r.FailureDomain, r.ReconciliationSubject, r.CSCluster); err != nil {
 		if !strings.Contains(strings.ToLower(err.Error()), "no match found") {

@@ -22,8 +22,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path"
 	"reflect"
 
 	"github.com/golang/mock/gomock"
@@ -33,20 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
 
-var FixturePath = path.Join(os.Getenv("PROJECT_DIR"), "test/fixtures/cloud-config-files")
-
 var _ = Describe("Helpers", func() {
-
-	Context("For a configuration with the 'Global' section missing", func() {
-		It("Gets API configuration", func() {
-			filepath := getConfigPath("cloud-config-no-global")
-
-			client, err := cloud.NewClient(filepath)
-
-			Ω(client).Should(BeNil())
-			Ω(err.Error()).Should(ContainSubstring("section Global not found"))
-		})
-	})
 
 	It("should compress and encode string", func() {
 		str := "Hello World"
@@ -61,10 +46,6 @@ var _ = Describe("Helpers", func() {
 		Ω(string(result)).Should(Equal(str))
 	})
 })
-
-func getConfigPath(filename string) string {
-	return path.Join(FixturePath, filename)
-}
 
 // This matcher is used to make gomega matching compatible with gomock parameter matching.
 // It's pretty awesome!

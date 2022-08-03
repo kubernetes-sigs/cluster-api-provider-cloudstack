@@ -17,8 +17,6 @@ limitations under the License.
 package controllers_test
 
 import (
-	"time"
-
 	g "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -46,7 +44,7 @@ var _ = Describe("CloudStackIsolatedNetworkReconciler", func() {
 					return true
 				}
 				return false
-			}, timeout).WithPolling(2 * time.Second).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
 		})
 	})
 })

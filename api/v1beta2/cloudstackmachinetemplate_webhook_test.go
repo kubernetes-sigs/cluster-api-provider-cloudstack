@@ -60,12 +60,6 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).
 				Should(MatchError(MatchRegexp(requiredRegex, "Template")))
 		})
-
-		It("should reject a CloudStackMachineTemplate with IdentityRef not of kind 'Secret'", func() {
-			dummies.CSMachine1.Spec.IdentityRef.Kind = "ConfigMap"
-			Expect(k8sClient.Create(ctx, dummies.CSMachine1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "must be a Secret")))
-		})
 	})
 
 	Context("When updating a CloudStackMachineTemplate", func() {
@@ -96,18 +90,6 @@ var _ = Describe("CloudStackMachineTemplate webhook", func() {
 			dummies.CSMachineTemplate1.Spec.Spec.Spec.Details = map[string]string{"memoryOvercommitRatio": "1.5"}
 			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "details")))
-		})
-
-		It("should reject identity reference kind updates to the CloudStackMachineTemplate", func() {
-			dummies.CSMachineTemplate1.Spec.Spec.Spec.IdentityRef.Kind = "configMap"
-			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Kind")))
-		})
-
-		It("should reject identity reference name updates to the CloudStackMachineTemplate", func() {
-			dummies.CSMachineTemplate1.Spec.Spec.Spec.IdentityRef.Name = "IDentityConfigMap"
-			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "identityRef\\.Name")))
 		})
 
 		It("should reject updates to the list of AffinityGroupIDs of the CloudStackMachineTemplate", func() {

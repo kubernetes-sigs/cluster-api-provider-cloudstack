@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -49,7 +50,7 @@ import (
 // CloudStackClusterReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackClusters.
 // The runner does the actual reconciliation.
 type CloudStackClusterReconciliationRunner struct {
-	csCtrlrUtils.ReconciliationRunner
+	*csCtrlrUtils.ReconciliationRunner
 	FailureDomains        *infrav1.CloudStackFailureDomainList
 	ReconciliationSubject *infrav1.CloudStackCluster
 }
@@ -86,11 +87,10 @@ func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, re
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
+		r.SetFailureDomainsStatusMap,
 		r.CreateFailureDomains(r.ReconciliationSubject.Spec.FailureDomains),
-		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackFailureDomain")),
 		r.GetFailureDomains(r.FailureDomains),
 		r.VerifyFailureDomainCRDs,
-		r.SetFailureDomains,
 		r.SetReady)
 }
 
@@ -103,23 +103,40 @@ func (r *CloudStackClusterReconciliationRunner) SetReady() (ctrl.Result, error) 
 
 // VerifyFailureDomainCRDs verifies the FailureDomains found match against those requested.
 func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.Result, error) {
-	expected := len(r.ReconciliationSubject.Spec.FailureDomains)
-	actual := len(r.FailureDomains.Items)
-	if expected != actual {
-		return r.RequeueWithMessage(fmt.Sprintf("Expected %d FailureDomains, but found %d", expected, actual))
-	}
-	for _, fd := range r.FailureDomains.Items {
-		if !fd.Status.Ready {
-			return r.RequeueWithMessage(fmt.Sprintf("FailureDomains %s/%s not ready, requeueing.", fd.Namespace, fd.Name))
+	// Check that all required failure domains are present and ready.
+	for _, requiredFd := range r.ReconciliationSubject.Spec.FailureDomains {
+		found := false
+		for _, fd := range r.FailureDomains.Items {
+			requiredFDName := withClusterSuffix(requiredFd.Name, r.CAPICluster.Name)
+			if requiredFDName == fd.Name {
+				found = true
+				if !fd.Status.Ready {
+					return r.RequeueWithMessage(fmt.Sprintf("Required FailureDomain %s not ready, requeueing.", fd.Name))
+				}
+				break
+			}
+		}
+		if !found {
+			return r.RequeueWithMessage(fmt.Sprintf("Required FailureDomain %s not found, requeueing.", requiredFd.Name))
 		}
 	}
 	return ctrl.Result{}, nil
 }
 
-// SetFailureDomains sets failure domains to be used for CAPI machine placement.
-func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result, error) {
+// withClusterSuffix appends a hyphen and the cluster name to a name if not already present.
+func withClusterSuffix(name string, clusterName string) string {
+	newName := name
+	if !strings.HasSuffix(name, "-"+clusterName) { // Add cluster name suffix if missing.
+		newName = name + "-" + clusterName
+	}
+	return newName
+}
+
+// SetFailureDomainsStatusMap sets failure domains in CloudStackCluster status to be used for CAPI machine placement.
+func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ctrl.Result, error) {
 	r.ReconciliationSubject.Status.FailureDomains = clusterv1.FailureDomains{}
-	for _, fdSpec := range r.FailureDomains.Items {
+	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
+		fdSpec.Name = withClusterSuffix(fdSpec.Name, r.CAPICluster.Name)
 		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{ControlPlane: true}
 	}
 	return ctrl.Result{}, nil

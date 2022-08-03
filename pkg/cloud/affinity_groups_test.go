@@ -56,7 +56,6 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 	})
 	It("creates an affinity group", func() {
 		dummies.SetDummyDomainAndAccount()
-		dummies.SetDummyDomainID()
 		ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(nil, -1, errors.New("FakeError"))
 		ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
 			Return(&cloudstack.CreateAffinityGroupParams{})
@@ -74,12 +73,11 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		})
 
 		It("Associates an affinity group.", func() {
-			Ω(client.ResolveZone(&dummies.CSZone1.Spec)).Should(Succeed())
-			dummies.CSMachine1.Status.ZoneID = dummies.CSZone1.Spec.ID
+			Ω(client.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(Succeed())
 			dummies.CSMachine1.Spec.DiskOffering.Name = ""
 
 			Ω(client.GetOrCreateVMInstance(
-				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "",
+				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "",
 			)).Should(Succeed())
 
 			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
@@ -88,7 +86,8 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 			// Make the created VM go away quickly by force stopping it.
 			p := realCSClient.VirtualMachine.NewStopVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID)
 			p.SetForced(true)
-			Ω(realCSClient.VirtualMachine.StopVirtualMachine(p)).Should(Succeed())
+			_, err := realCSClient.VirtualMachine.StopVirtualMachine(p)
+			Ω(err).ShouldNot(HaveOccurred())
 		})
 
 		It("Creates and deletes an affinity group.", func() {

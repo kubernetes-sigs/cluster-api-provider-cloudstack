@@ -17,19 +17,15 @@ limitations under the License.
 package v1beta2
 
 import (
-	"strings"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 const (
 	ClusterFinalizer           = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
-	defaultIdentityRefKind     = "Secret"
 	CloudStackClusterLabelName = "cloudstackcluster.infrastructure.cluster.x-k8s.io/name"
-	NetworkTypeIsolated        = "Isolated"
-	NetworkTypeShared          = "Shared"
 )
 
 var K8sClient client.Client
@@ -43,20 +39,6 @@ type CloudStackIdentityReference struct {
 	Kind string `json:"kind"`
 
 	// Name of the infrastructure identity to be used.
-	Name string `json:"name"`
-}
-
-type Network struct {
-	// Cloudstack Network ID the cluster is built in.
-	// +optional
-	ID string `json:"id,omitempty"`
-
-	// Cloudstack Network Type the cluster is built in.
-	// + optional
-	Type string `json:"type,omitempty"`
-
-	// Cloudstack Network Name the cluster is built in.
-	// +optional
 	Name string `json:"name"`
 }
 
@@ -99,42 +81,18 @@ type CloudStackClusterSpec struct {
 	// CloudStack domain.
 	// +optional
 	Domain string `json:"domain,omitempty"`
-
-	// +optional
-	// +k8s:conversion-gen=false
-	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
-// The status of the abstract CS k8s (not an actual Cloudstack Cluster) cluster.
+// The status of the CloudStackCluster object.
 type CloudStackClusterStatus struct {
 
-	// The status of the cluster's ACS Zones.
-	// +optional
-	Zones ZoneStatusMap `json:"zones,omitempty"`
-
 	// CAPI recognizes failure domains as a method to spread machines.
-	// CAPC sets failure domains to indicate functioning Zones.
+	// CAPC sets failure domains to indicate functioning CloudStackFailureDomains.
 	// +optional
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 
 	// Reflects the readiness of the CS cluster.
 	Ready bool `json:"ready"`
-
-	// Cloudstack Domain ID the cluster is built in.
-	// +optional
-	DomainID string `json:"domainID,omitempty"`
-
-	// The CS public IP ID to use for the k8s endpoint.
-	// +optional
-	PublicIPID string `json:"publicIPID,omitempty"`
-
-	// The ID of the network the PublicIP is in.
-	// +optional
-	PublicIPNetworkID string `json:"publicIPNetworkID,omitempty"`
-
-	// The ID of the lb rule used to assign VMs to the lb.
-	// +optional
-	LBRuleID string `json:"loadBalancerRuleID,omitempty"`
 }
 
 //+kubebuilder:object:root=true

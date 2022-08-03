@@ -40,7 +40,7 @@ type CloudStackFailureDomainReconciler struct {
 // CloudStackFailureDomainReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackFailureDomains.
 // The runner does the actual reconciliation.
 type CloudStackFailureDomainReconciliationRunner struct {
-	csCtrlrUtils.ReconciliationRunner
+	*csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackFailureDomain
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
 }
@@ -104,7 +104,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 	return ctrl.Result{}, nil
 }
 
-// ReconcileDelete on the ReconciliationRunner actually attempts to delete the reconciliation subject.
+// ReconcileDelete on the ReconciliationRunner attempts to delete the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
 	r.Log.Info("Deleting CloudStackFailureDomain")
 	// Address Isolated Networks.

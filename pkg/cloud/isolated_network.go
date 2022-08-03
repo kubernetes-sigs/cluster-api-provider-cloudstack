@@ -44,6 +44,7 @@ type IsoNetworkIface interface {
 func (c *client) getOfferingID() (string, error) {
 	offeringID, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
 	if retErr != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 		return "", retErr
 	} else if count != 1 {
 		return "", errors.New("found more than one network offering")
@@ -76,6 +77,7 @@ func (c *client) AssociatePublicIPAddress(
 	p.SetIpaddress(isoNet.Spec.ControlPlaneEndpoint.Host)
 	p.SetNetworkid(isoNet.Spec.ID)
 	if _, err := c.cs.Address.AssociateIpAddress(p); err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return errors.Wrapf(err,
 			"associating public IP address with ID %s to network with ID %s",
 			publicAddress.Id, isoNet.Spec.ID)
@@ -101,6 +103,7 @@ func (c *client) CreateIsolatedNetwork(fd *infrav1.CloudStackFailureDomain, isoN
 	p := c.cs.Network.NewCreateNetworkParams(isoNet.Spec.Name, isoNet.Spec.Name, offeringID, fd.Spec.Zone.ID)
 	resp, err := c.cs.Network.CreateNetwork(p)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return errors.Wrapf(err, "creating network with name %s", isoNet.Spec.Name)
 	}
 	isoNet.Spec.ID = resp.Id
@@ -114,6 +117,7 @@ func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (r
 	if retErr != nil && strings.Contains(strings.ToLower(retErr.Error()), "there is already") { // Already a firewall rule here.
 		retErr = nil
 	}
+	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 	return retErr
 }
 
@@ -131,6 +135,7 @@ func (c *client) GetPublicIP(
 	setIfNotEmpty(ip, p.SetIpaddress)
 	publicAddresses, err := c.cs.Address.ListPublicIpAddresses(p)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return nil, err
 	} else if ip != "" && publicAddresses.Count == 1 { // Endpoint specified and IP found.
 		// Ignore already allocated here since the IP was specified.
@@ -156,6 +161,7 @@ func (c *client) GetPublicIP(
 func (c *client) GetIsolatedNetwork(isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
 	netDetails, count, err := c.cs.Network.GetNetworkByName(isoNet.Spec.Name)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Network ID from %s", isoNet.Spec.Name))
 	} else if count != 1 {
 		retErr = multierror.Append(retErr, errors.Errorf(
@@ -167,6 +173,7 @@ func (c *client) GetIsolatedNetwork(isoNet *infrav1.CloudStackIsolatedNetwork) (
 
 	netDetails, count, err = c.cs.Network.GetNetworkByID(isoNet.Spec.ID)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return multierror.Append(retErr, errors.Wrapf(err, "could not get Network by ID %s", isoNet.Spec.ID))
 	} else if count != 1 {
 		return multierror.Append(retErr, errors.Errorf("expected 1 Network with UUID %s, but got %d", isoNet.Spec.ID, count))
@@ -185,6 +192,7 @@ func (c *client) ResolveLoadBalancerRuleDetails(
 	p.SetPublicipid(isoNet.Status.PublicIPID)
 	loadBalancerRules, err := c.cs.LoadBalancer.ListLoadBalancerRules(p)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return errors.Wrap(err, "listing load balancer rules")
 	}
 	for _, rule := range loadBalancerRules.LoadBalancerRules {
@@ -229,6 +237,7 @@ func (c *client) GetOrCreateLoadBalancerRule(
 	p.SetProtocol(NetworkProtocolTCP)
 	resp, err := c.cs.LoadBalancer.CreateLoadBalancerRule(p)
 	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return err
 	}
 	isoNet.Status.LBRuleID = resp.Id
@@ -278,6 +287,7 @@ func (c *client) AssignVMToLoadBalancerRule(isoNet *infrav1.CloudStackIsolatedNe
 	lbRuleInstances, retErr := c.cs.LoadBalancer.ListLoadBalancerRuleInstances(
 		c.cs.LoadBalancer.NewListLoadBalancerRuleInstancesParams(isoNet.Status.LBRuleID))
 	if retErr != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 		return retErr
 	}
 	for _, instance := range lbRuleInstances.LoadBalancerRuleInstances {
@@ -290,12 +300,14 @@ func (c *client) AssignVMToLoadBalancerRule(isoNet *infrav1.CloudStackIsolatedNe
 	p := c.cs.LoadBalancer.NewAssignToLoadBalancerRuleParams(isoNet.Status.LBRuleID)
 	p.SetVirtualmachineids([]string{instanceID})
 	_, retErr = c.cs.LoadBalancer.AssignToLoadBalancerRule(p)
+	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 	return retErr
 }
 
 // DeleteNetwork deletes an isolated network.
 func (c *client) DeleteNetwork(net infrav1.Network) error {
 	_, err := c.cs.Network.DeleteNetwork(c.cs.Network.NewDeleteNetworkParams(net.ID))
+	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 	return errors.Wrapf(err, "deleting network with id %s", net.ID)
 }
 
@@ -306,7 +318,7 @@ func (c *client) DisposeIsoNetResources(
 	csCluster *infrav1.CloudStackCluster,
 ) (retError error) {
 	if isoNet.Status.PublicIPID != "" {
-		if err := c.DeleteClusterTag(ResourceTypeIPAddress, csCluster.Status.PublicIPID, csCluster); err != nil {
+		if err := c.DeleteClusterTag(ResourceTypeIPAddress, isoNet.Status.PublicIPID, csCluster); err != nil {
 			return err
 		}
 		if err := c.DisassociatePublicIPAddressIfNotInUse(isoNet); err != nil {
@@ -350,6 +362,7 @@ func (c *client) DisassociatePublicIPAddressIfNotInUse(isoNet *infrav1.CloudStac
 	if tagsAllowDisposal, err := c.DoClusterTagsAllowDisposal(ResourceTypeIPAddress, isoNet.Status.PublicIPID); err != nil {
 		return err
 	} else if publicIP, _, err := c.cs.Address.GetPublicIpAddressByID(isoNet.Status.PublicIPID); err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return err
 	} else if publicIP == nil || publicIP.Issourcenat { // Can't disassociate an address if it's the source NAT address.
 		return nil
@@ -369,5 +382,6 @@ func (c *client) DisassociatePublicIPAddress(isoNet *infrav1.CloudStackIsolatedN
 
 	p := c.cs.Address.NewDisassociateIpAddressParams(isoNet.Status.PublicIPID)
 	_, retErr = c.cs.Address.DisassociateIpAddress(p)
+	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 	return retErr
 }

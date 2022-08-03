@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 )
@@ -54,7 +53,6 @@ var _ = Describe("Network", func() {
 		rs = mockClient.Resourcetags.(*csapi.MockResourcetagsServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
-		dummies.SetDummyClusterStatus()
 	})
 
 	AfterEach(func() {
@@ -64,8 +62,6 @@ var _ = Describe("Network", func() {
 	It("calls to create an isolated network when not found", func() {
 		dummies.Zone1.Network = dummies.ISONet1
 		dummies.Zone1.Network.ID = ""
-		dummies.CSCluster.Status.Zones = infrav1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
-		dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
 
 		nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
 		ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -103,14 +99,12 @@ var _ = Describe("Network", func() {
 			&csapi.ListLoadBalancerRulesResponse{LoadBalancerRules: []*csapi.LoadBalancerRule{
 				{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
 
-		Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+		Ω(client.GetOrCreateIsolatedNetwork(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 	})
 
 	Context("for a closed firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall", func() {
 			dummies.Zone1.Network = dummies.ISONet1
-			dummies.CSCluster.Status.Zones = infrav1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
-			dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, cloud.NetworkProtocolTCP).
 				Return(&csapi.CreateEgressFirewallRuleParams{})
 			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
@@ -123,8 +117,6 @@ var _ = Describe("Network", func() {
 	Context("for an open firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
 			dummies.Zone1.Network = dummies.ISONet1
-			dummies.CSCluster.Status.Zones = infrav1.ZoneStatusMap{dummies.Zone1.ID: dummies.Zone1}
-			dummies.CSCluster.Status.PublicIPNetworkID = dummies.ISONet1.ID
 
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, "tcp").
 				Return(&csapi.CreateEgressFirewallRuleParams{})
@@ -144,7 +136,7 @@ var _ = Describe("Network", func() {
 					Count:             1,
 					PublicIpAddresses: []*csapi.PublicIpAddress{{Id: "PublicIPID", Ipaddress: ipAddress}},
 				}, nil)
-			publicIPAddress, err := client.GetPublicIP(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)
+			publicIPAddress, err := client.GetPublicIP(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)
 			Ω(err).Should(Succeed())
 			Ω(publicIPAddress).ShouldNot(BeNil())
 			Ω(publicIPAddress.Ipaddress).Should(Equal(ipAddress))
@@ -159,7 +151,7 @@ var _ = Describe("Network", func() {
 					{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
 
 			dummies.CSISONet1.Status.LBRuleID = ""
-			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSISONet1.Status.LBRuleID).Should(Equal(dummies.LBRuleID))
 		})
 
@@ -170,7 +162,7 @@ var _ = Describe("Network", func() {
 					LoadBalancerRules: []*csapi.LoadBalancerRule{
 						{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
 
-			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSISONet1.Status.LBRuleID).Should(Equal(dummies.LBRuleID))
 		})
 	})
@@ -186,7 +178,7 @@ var _ = Describe("Network", func() {
 			lbs.EXPECT().CreateLoadBalancerRule(gomock.Any()).
 				Return(&csapi.CreateLoadBalancerRuleResponse{Id: "2ndLBRuleID"}, nil)
 
-			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSISONet1.Status.LBRuleID).Should(Equal("2ndLBRuleID"))
 		})
 	})
@@ -210,8 +202,7 @@ var _ = Describe("Network", func() {
 			// Setup Isolated Network Dummy Vars.
 			dummies.CSISONet1.Spec.ID = ""                        // Make CAPC methods resolve this.
 			dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = "" // Make CAPC methods resolve this.
-			dummies.CSZone1.Spec.ID = ""                          // Make CAPC methods resolve this.
-			dummies.CSCluster.Status.Zones = infrav1.ZoneStatusMap{}
+			dummies.CSFailureDomain1.Spec.Zone.ID = ""            // Make CAPC methods resolve this.
 
 			FetchIntegTestResources()
 		})
@@ -234,14 +225,14 @@ var _ = Describe("Network", func() {
 		})
 
 		It("adds an isolated network and doesn't fail when asked to GetOrCreateIsolatedNetwork multiple times", func() {
-			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
-			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 
 			// Network should now exist if it didn't at the start.
 			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 
 			// Do once more.
-			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSZone1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateIsolatedNetwork(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 		})
 	})
 })

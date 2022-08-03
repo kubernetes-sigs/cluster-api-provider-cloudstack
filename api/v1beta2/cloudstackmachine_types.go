@@ -71,7 +71,7 @@ type CloudStackMachineSpec struct {
 	Affinity string `json:"affinity,omitempty"`
 
 	// Mutually exclusive parameter with AffinityGroupIDs.
-	// Is a reference to a CloudStack affiniity group CRD.
+	// Is a reference to a CloudStack affinity group CRD.
 	// +optional
 	AffinityGroupRef *corev1.ObjectReference `json:"cloudstackaffinityref,omitempty"`
 
@@ -83,11 +83,6 @@ type CloudStackMachineSpec struct {
 	// +optional
 	// +k8s:conversion-gen=false
 	FailureDomainName string `json:"failureDomainName,omitempty"`
-
-	// IdentityRef is a reference to a identity to be used when reconciling this cluster
-	// +optional
-	// +k8s:conversion-gen=false
-	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
 }
 
 type CloudStackResourceIdentifier struct {
@@ -115,21 +110,14 @@ type CloudStackResourceDiskOffering struct {
 	Label string `json:"label"`
 }
 
-// TODO: Review the use of this field/type.
-type InstanceState string
-
 // Type pulled mostly from the CloudStack API.
 type CloudStackMachineStatus struct {
-	// Zone ID is used so that the zone can be computed once per reconcile and then propagate.
-	// +optional
-	ZoneID string `json:"zoneID,omitempty"`
-
 	// Addresses contains a CloudStack VM instance's IP addresses.
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
 
 	// InstanceState is the state of the CloudStack instance for this machine.
 	// +optional
-	InstanceState InstanceState `json:"instanceState,omitempty"`
+	InstanceState string `json:"instanceState,omitempty"`
 
 	// InstanceStateLastUpdated is the time the instance state was last updated.
 	// +optional
