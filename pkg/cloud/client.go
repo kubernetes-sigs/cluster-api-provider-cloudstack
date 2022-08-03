@@ -18,15 +18,19 @@ package cloud
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"sync"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"gopkg.in/yaml.v3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/metrics"
 
+	"github.com/ReneKroon/ttlcache"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"
 )
@@ -67,8 +71,11 @@ type SecretConfig struct {
 	StringData Config            `yaml:"stringData"`
 }
 
-var clientCache = map[Config]*client{}
+var clientCache *ttlcache.Cache
 var cacheMutex sync.Mutex
+var log = ctrl.Log.WithName("Client")
+
+const cacheExpiration = time.Duration(1 * time.Minute)
 
 // UnmarshalAllSecretConfigs parses a yaml document for each secret.
 func UnmarshalAllSecretConfigs(in []byte, out *[]SecretConfig) error {
@@ -141,8 +148,17 @@ func NewClientFromConf(conf Config) (Client, error) {
 	cacheMutex.Lock()
 	defer cacheMutex.Unlock()
 
-	if client, exists := clientCache[conf]; exists {
-		return client, nil
+	if clientCache == nil {
+		clientCache = ttlcache.NewCache()
+		clientCache.SetTTL(cacheExpiration)
+		clientCache.SkipTtlExtensionOnHit(false)
+		log.V(1).Info("NewClientFromConf: New client cache created", "expiration", cacheExpiration.String())
+	}
+
+	clientCacheKey := generateClientCacheKey(conf)
+	if client, exists := clientCache.Get(clientCacheKey); exists {
+		log.V(1).Info("NewClientFromConf: Using a cached client", "APIUrl", conf.APIUrl, "APIKey", conf.APIKey, "cache size", clientCache.Count())
+		return client.(Client), nil
 	}
 
 	verifySSL := true
@@ -157,7 +173,8 @@ func NewClientFromConf(conf Config) (Client, error) {
 	c.cs = cloudstack.NewAsyncClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
 	c.csAsync = cloudstack.NewClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
 	c.customMetrics = metrics.NewCustomMetrics()
-	clientCache[conf] = c
+	clientCache.Set(clientCacheKey, c)
+	log.V(1).Info("NewClientFromConf: Created a new client and added to the client cache", "APIUrl", conf.APIUrl, "APIKey", conf.APIKey, "cache size", clientCache.Count())
 
 	return c, nil
 }
@@ -183,4 +200,8 @@ func (c *client) NewClientInDomainAndAccount(domain string, account string) (Cli
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
 	c := &client{cs: cs, csAsync: cs, customMetrics: metrics.NewCustomMetrics()}
 	return c
+}
+
+func generateClientCacheKey(conf Config) string {
+	return fmt.Sprintf("%+v", conf)
 }
