@@ -87,7 +87,7 @@ func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Re
 
 	// capiTimeout indicates that a new VM is running, but it isn't reachable due to a network issue or a misconfiguration.
 	// When this happens, the machine should be deleted or else the cluster won't ever recover.
-	capiTimeout := csRunning && !capiRunning && csTimeInState > 1*time.Minute
+	capiTimeout := csRunning && !capiRunning && csTimeInState > 5*time.Minute
 
 	if csRunning && capiRunning {
 		r.ReconciliationSubject.Status.Ready = true
