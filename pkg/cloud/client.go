@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"sync"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -67,6 +68,7 @@ type SecretConfig struct {
 }
 
 var clientCache = map[Config]*client{}
+var cacheMutex sync.Mutex
 
 // UnmarshalAllSecretConfigs parses a yaml document for each secret.
 func UnmarshalAllSecretConfigs(in []byte, out *[]SecretConfig) error {
@@ -136,6 +138,9 @@ func NewClientFromYamlPath(confPath string, secretName string) (Client, error) {
 
 // Creates a new Cloud Client form a map of strings to strings.
 func NewClientFromConf(conf Config) (Client, error) {
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
 	if client, exists := clientCache[conf]; exists {
 		return client, nil
 	}
