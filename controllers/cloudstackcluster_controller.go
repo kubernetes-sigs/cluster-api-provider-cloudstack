@@ -39,6 +39,7 @@ import (
 // RBAC permissions used in all reconcilers. Events and Secrets.
 // "" empty string as the api group indicates core kubernetes objects. "*" indicates all objects.
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps;,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
 // RBAC permissions for CloudStackCluster.
