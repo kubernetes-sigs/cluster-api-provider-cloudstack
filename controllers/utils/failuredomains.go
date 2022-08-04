@@ -72,6 +72,33 @@ func (r *ReconciliationRunner) GetFailureDomains(fds *infrav1.CloudStackFailureD
 	}
 }
 
+// RemoveExtraneousFailureDomains deletes failure domains no longer listed under the CloudStackCluster's spec.
+func (r *ReconciliationRunner) RemoveExtraneousFailureDomains(fds *infrav1.CloudStackFailureDomainList) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		// Toss together a precense map.
+		fdPresenceByName := map[string]bool{}
+		for _, fdSpec := range r.CSCluster.Spec.FailureDomains {
+			name := fdSpec.Name
+			if !strings.HasSuffix(name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
+				name = name + "-" + r.CAPICluster.Name
+			}
+			fdPresenceByName[name] = true
+		}
+
+		// Send a deletion request for each FailureDomain no speced for.
+		for _, fd := range fds.Items {
+			_fd := fd
+			name := fd.Name
+			if _, present := fdPresenceByName[name]; !present {
+				if err := r.K8sClient.Delete(r.RequestCtx, &_fd); err != nil {
+					return ctrl.Result{}, errors.Wrap(err, "failed to delete obsolete failure domain")
+				}
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+}
+
 // GetFailureDomainsAndRequeueIfMissing gets CloudStackFailureDomains owned by a CloudStackCluster and requeues if none are found.
 func (r *ReconciliationRunner) GetFailureDomainsAndRequeueIfMissing(fds *infrav1.CloudStackFailureDomainList) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {

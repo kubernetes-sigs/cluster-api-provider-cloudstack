@@ -232,12 +232,72 @@ func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness(gvks ...schema.GroupVe
 					} else if !found {
 						return r.RequeueWithMessage(
 							fmt.Sprintf(
-								"Owned object of kind %s with name %s not found, requeueing.",
+								"Owned object of kind %s with name %s not found, requeuing.",
 								gvk.Kind,
 								owned.GetName()))
 					} else {
-						r.Log.Info(fmt.Sprintf("Owned object %s of kind %s not ready, requeueing", name, gvk.Kind))
+						r.Log.Info(fmt.Sprintf("Owned object %s of kind %s not ready, requeuing", name, gvk.Kind))
 						return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
+					}
+				}
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+}
+
+// CheckOwnedObjectsDeleted queries for the presence of owned objects and requeues if any are still present. Primarily
+// used to prevent deletions of owners before dependents.
+func (r *ReconciliationRunner) DeleteOwnedObjects(gvks ...schema.GroupVersionKind) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		// For each GroupVersionKind...
+		for _, gvk := range gvks {
+			// Query to find objects of this kind.
+			potentiallyOnwedObjs := &unstructured.UnstructuredList{}
+			potentiallyOnwedObjs.SetGroupVersionKind(gvk)
+			err := r.K8sClient.List(r.RequestCtx, potentiallyOnwedObjs)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "requesting owned objects with gvk %s", gvk)
+			}
+
+			// Filter objects not actually owned by reconciliation subject via owner reference UID.
+			for _, pOwned := range potentiallyOnwedObjs.Items {
+				_pOwned := pOwned
+				refs := pOwned.GetOwnerReferences()
+				for _, ref := range refs {
+					if ref.UID == r.ReconciliationSubject.GetUID() {
+						if err := r.K8sClient.Delete(r.RequestCtx, &_pOwned); err != nil {
+							return ctrl.Result{}, err
+						}
+					}
+				}
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+}
+
+// CheckOwnedObjectsDeleted queries for the presence of owned objects and requeues if any are still present. Primarily
+// used to prevent deletions of owners before dependents.
+func (r *ReconciliationRunner) CheckOwnedObjectsDeleted(gvks ...schema.GroupVersionKind) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		// For each GroupVersionKind...
+		for _, gvk := range gvks {
+			// Query to find objects of this kind.
+			potentiallyOnwedObjs := &unstructured.UnstructuredList{}
+			potentiallyOnwedObjs.SetGroupVersionKind(gvk)
+			err := r.K8sClient.List(r.RequestCtx, potentiallyOnwedObjs)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "requesting owned objects with gvk %s", gvk)
+			}
+
+			// Filter objects not actually owned by reconciliation subject via owner reference UID.
+			for _, pOwned := range potentiallyOnwedObjs.Items {
+				refs := pOwned.GetOwnerReferences()
+				for _, ref := range refs {
+					if ref.UID == r.ReconciliationSubject.GetUID() {
+						return r.RequeueWithMessage(
+							fmt.Sprintf("Owned object %s of kind %s not yet deleted", pOwned.GetKind(), pOwned.GetName()))
 					}
 				}
 			}
@@ -272,9 +332,9 @@ func (r *ReconciliationRunner) PatchChangesBackToAPI() (res ctrl.Result, retErr 
 
 // RequeueWithMessage is a convenience method to log requeue message and then return a result with RequeueAfter set.
 func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...interface{}) (ctrl.Result, error) {
-	// Add requeueing to message if not present. Might turn this into a lint check later.
-	if !strings.Contains(strings.ToLower(msg), "requeue") {
-		msg = msg + " Requeueing."
+	// Add requeuing to message if not present. Might turn this into a lint check later.
+	if !strings.Contains(strings.ToLower(msg), "requeu") {
+		msg = msg + " Requeuing."
 	}
 	r.Log.Info(msg, keysAndValues...)
 	return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
@@ -284,7 +344,7 @@ func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...i
 func (r *ReconciliationRunner) RequeueWithMessageStage(msg string, keysAndValues ...interface{}) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		if !strings.Contains(strings.ToLower(msg), "requeue") {
-			msg = msg + " Requeueing."
+			msg = msg + " Requeuing."
 		}
 		r.Log.Info(msg, keysAndValues...)
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
@@ -381,6 +441,7 @@ func (r *ReconciliationRunner) GetReconciliationSubject() (res ctrl.Result, rete
 	r.Log.V(1).Info("Getting reconciliation subject.")
 	err := client.IgnoreNotFound(r.K8sClient.Get(r.RequestCtx, r.Request.NamespacedName, r.ReconciliationSubject))
 	if r.ReconciliationSubject.GetName() == "" { // Resource does not exist. No need to reconcile.
+		r.Log.V(1).Info("Resource not found. Exiting reconciliation.")
 		r.SetReturnEarly()
 	}
 	if err != nil {
@@ -428,7 +489,7 @@ func (r *ReconciliationRunner) NewChildObjectMeta(name string) metav1.ObjectMeta
 		Name:      strings.ToLower(name),
 		Namespace: r.Request.Namespace,
 		Labels: map[string]string{clusterv1.ClusterLabelName: r.CAPICluster.Name,
-			infrav1.CloudStackClusterLabelName: r.CSCluster.ClusterName},
+			infrav1.CloudStackClusterLabelName: r.CSCluster.Name},
 		OwnerReferences: []metav1.OwnerReference{
 			*metav1.NewControllerRef(r.ReconciliationSubject, ownerGVK),
 		},
@@ -438,11 +499,11 @@ func (r *ReconciliationRunner) NewChildObjectMeta(name string) metav1.ObjectMeta
 // RequeueIfMissingBaseCRs checks that the ReconciliationSubject, CAPI Cluster, and CloudStackCluster objects were
 // actually fetched and reques if not. The base reconciliation stages will continue even if not so as to allow deletion.
 func (r *ReconciliationRunner) RequeueIfMissingBaseCRs() (ctrl.Result, error) {
-	r.Log.V(1).Info("Requeueing if missing ReconciliationSubject, CloudStack cluster, or CAPI cluster.")
+	r.Log.V(1).Info("Requeuing if missing ReconciliationSubject, CloudStack cluster, or CAPI cluster.")
 	if r.CSCluster.GetName() == "" {
-		return r.RequeueWithMessage("CloudStackCluster wasn't found. Requeueing.")
+		return r.RequeueWithMessage("CloudStackCluster wasn't found. Requeuing.")
 	} else if r.CAPICluster.GetName() == "" {
-		return r.RequeueWithMessage("CAPI Cluster wasn't found. Requeueing.")
+		return r.RequeueWithMessage("CAPI Cluster wasn't found. Requeuing.")
 	}
 	return ctrl.Result{}, nil
 }

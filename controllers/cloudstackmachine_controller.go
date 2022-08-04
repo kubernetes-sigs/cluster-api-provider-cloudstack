@@ -121,20 +121,23 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 		r.Log.Info("getting affinity group name", err)
 	}
 
+	// Set failure domain name and owners.
 	r.AffinityGroup.Spec.FailureDomainName = r.ReconciliationSubject.Spec.FailureDomainName
-	if res, err := r.GetOrCreateAffinityGroup(agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup)(); r.ShouldReturn(res, err) {
+	if res, err := r.GetOrCreateAffinityGroup(
+		agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup, r.FailureDomain)(); r.ShouldReturn(res, err) {
 		return res, err
 	}
 	if !r.AffinityGroup.Status.Ready {
 		return r.RequeueWithMessage("Required affinity group not ready.")
 	}
+
 	return ctrl.Result{}, nil
 }
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
-	if r.ReconciliationSubject.Spec.FailureDomainName == "" { // Needs random FD, but not yet set.
-		name := ""
+	if r.ReconciliationSubject.Spec.FailureDomainName == "" {
+		var name string
 		if r.CAPIMachine.Spec.FailureDomain != nil &&
 			(util.IsControlPlaneMachine(r.CAPIMachine) || // Is control plane machine -- CAPI will specify.
 				*r.CAPIMachine.Spec.FailureDomain != "") { // Or potentially another machine controller specified.
@@ -148,6 +151,7 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 			name = name + "-" + r.CAPICluster.Name
 		}
 		r.ReconciliationSubject.Spec.FailureDomainName = name
+		r.ReconciliationSubject.Labels[infrav1.FailureDomainLabelName] = r.ReconciliationSubject.Spec.FailureDomainName
 	}
 	return ctrl.Result{}, nil
 }

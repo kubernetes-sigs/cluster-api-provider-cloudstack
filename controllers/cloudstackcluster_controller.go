@@ -90,6 +90,7 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 		r.SetFailureDomainsStatusMap,
 		r.CreateFailureDomains(r.ReconciliationSubject.Spec.FailureDomains),
 		r.GetFailureDomains(r.FailureDomains),
+		r.RemoveExtraneousFailureDomains(r.FailureDomains),
 		r.VerifyFailureDomainCRDs,
 		r.SetReady)
 }

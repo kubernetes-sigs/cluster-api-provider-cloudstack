@@ -20,7 +20,9 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
@@ -105,21 +107,49 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 }
 
 // ReconcileDelete on the ReconciliationRunner attempts to delete the reconciliation subject.
-func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
+func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
 	r.Log.Info("Deleting CloudStackFailureDomain")
-	// Address Isolated Networks.
-	if r.ReconciliationSubject.Spec.Zone.Network.Type == infrav1.NetworkTypeIsolated {
-		netName := r.ReconciliationSubject.Spec.Zone.Network.Name
-		if res, err := r.GetObjectByName(r.IsoNetMetaName(netName), r.IsoNet)(); r.ShouldReturn(res, err) {
-			return res, err
-		}
-		if r.IsoNet.Name != "" {
-			if err := r.K8sClient.Delete(r.RequestCtx, r.IsoNet); err != nil {
-				return ctrl.Result{}, err
+
+	return r.RunReconciliationStages(
+		r.ClearMachines,
+		r.DeleteOwnedObjects(
+			infrav1.GroupVersion.WithKind("CloudStackAffinityGroup"),
+			infrav1.GroupVersion.WithKind("CloudStackIsolatedNetwork")),
+		r.CheckOwnedObjectsDeleted(
+			infrav1.GroupVersion.WithKind("CloudStackAffinityGroup"),
+			infrav1.GroupVersion.WithKind("CloudStackIsolatedNetwork")),
+		r.RemoveFinalizer,
+	)
+}
+
+// ClearMachines checks for any machines in failure domain, deletes the CAPI machine for any still in FailureDomain,
+// and requeus until all CloudStack machines are cleared from the FailureDomain.
+func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Result, error) {
+	machines := &infrav1.CloudStackMachineList{}
+	if err := r.K8sClient.List(r.RequestCtx, machines, client.MatchingLabels{infrav1.FailureDomainLabelName: r.ReconciliationSubject.Name}); err != nil {
+		return ctrl.Result{}, err
+	}
+	// Deleted CAPI machines for CloudStack machines found.
+	for _, machine := range machines.Items {
+		for _, ref := range machine.OwnerReferences {
+			if ref.Kind == "Machine" {
+				machine := &clusterv1.Machine{}
+				machine.Name = ref.Name
+				machine.Namespace = r.ReconciliationSubject.Namespace
+				if err := r.K8sClient.Delete(r.RequestCtx, machine); err != nil {
+					return ctrl.Result{}, err
+				}
 			}
-			return r.RequeueWithMessage("Child IsolatedNetwork still present, requeueing.")
 		}
 	}
+	if len(machines.Items) > 0 {
+		return r.RequeueWithMessage("FailureDomain still has machine in it.")
+	}
+	return ctrl.Result{}, nil
+}
+
+// RemoveFinalizer just removes the finalizer from the failure domain.
+func (r *CloudStackFailureDomainReconciliationRunner) RemoveFinalizer() (ctrl.Result, error) {
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.FailureDomainFinalizer)
 	return ctrl.Result{}, nil
 }
