@@ -205,6 +205,12 @@ func generateClientCacheKey(conf Config) string {
 
 func newClientCache(clientConfig *corev1.ConfigMap) *ttlcache.Cache {
 	clientCache := ttlcache.NewCache()
+	clientCache.SetTTL(GetClientCacheTTL(clientConfig))
+	clientCache.SkipTtlExtensionOnHit(false)
+	return clientCache
+}
+
+func GetClientCacheTTL(clientConfig *corev1.ConfigMap) time.Duration {
 	var cacheTTL time.Duration
 	if clientConfig != nil {
 		if ttl, exists := clientConfig.Data[ClientCacheTTLKey]; exists {
@@ -214,7 +220,5 @@ func newClientCache(clientConfig *corev1.ConfigMap) *ttlcache.Cache {
 	if cacheTTL == 0 {
 		cacheTTL = DefaultClientCacheTTL
 	}
-	clientCache.SetTTL(cacheTTL)
-	clientCache.SkipTtlExtensionOnHit(false)
-	return clientCache
+	return cacheTTL
 }
