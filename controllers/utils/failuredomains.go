@@ -79,7 +79,7 @@ func (r *ReconciliationRunner) RemoveExtraneousFailureDomains(fds *infrav1.Cloud
 		fdPresenceByName := map[string]bool{}
 		for _, fdSpec := range r.CSCluster.Spec.FailureDomains {
 			name := fdSpec.Name
-			if !strings.HasSuffix(name, "-"+r.CAPICluster.ClusterName) { // Add cluster name suffix if missing.
+			if !strings.HasSuffix(name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
 				name = name + "-" + r.CAPICluster.Name
 			}
 			fdPresenceByName[name] = true
