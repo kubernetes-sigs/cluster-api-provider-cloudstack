@@ -340,17 +340,6 @@ func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...i
 	return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 }
 
-// RequeueWithMessageStage is a convenience method to log requeue message and then return a result with RequeueAfter set.
-func (r *ReconciliationRunner) RequeueWithMessageStage(msg string, keysAndValues ...interface{}) CloudStackReconcilerMethod {
-	return func() (ctrl.Result, error) {
-		if !strings.Contains(strings.ToLower(msg), "requeue") {
-			msg = msg + " Requeuing."
-		}
-		r.Log.Info(msg, keysAndValues...)
-		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
-	}
-}
-
 // ReturnWrappedError is a convenience method to log requeue message and then return a result with RequeueAfter set.
 func (r *ReconciliationRunner) ReturnWrappedError(err error, msg string) (ctrl.Result, error) {
 	return ctrl.Result{}, errors.Wrap(err, msg)
