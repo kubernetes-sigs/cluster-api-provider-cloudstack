@@ -117,7 +117,8 @@ func (r *ReconciliationRunner) WithRequestCtx(ctx context.Context) *Reconciliati
 	return r
 }
 
-// WithRequestCtx sets the request context.
+// WithAdditionalCommonStages adds reconciliation stages to the base set of reconciliation stages ran before both
+// Reconcile() and ReconcileDelete().
 func (r *ReconciliationRunner) WithAdditionalCommonStages(fns ...CloudStackReconcilerMethod) *ReconciliationRunner {
 	r.additionalCommonStages = fns
 	return r
