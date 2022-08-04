@@ -143,7 +143,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Resu
 		}
 	}
 	if len(machines.Items) > 0 {
-		return r.RequeueWithMessage("FailureDomain still has machine in it.")
+		return r.RequeueWithMessage("FailureDomain still has machine(s) in it.")
 	}
 	return ctrl.Result{}, nil
 }

@@ -22,8 +22,7 @@ import (
 )
 
 const (
-	ClusterFinalizer           = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
-	CloudStackClusterLabelName = "cloudstackcluster.infrastructure.cluster.x-k8s.io/name"
+	ClusterFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
 )
 
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
