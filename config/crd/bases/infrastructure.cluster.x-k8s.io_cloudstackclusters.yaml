@@ -201,9 +201,6 @@ spec:
           spec:
             description: CloudStackClusterSpec defines the desired state of CloudStackCluster.
             properties:
-              account:
-                description: CloudStack account.
-                type: string
               controlPlaneEndpoint:
                 description: The kubernetes control plane endpoint.
                 properties:
@@ -218,9 +215,6 @@ spec:
                 - host
                 - port
                 type: object
-              domain:
-                description: CloudStack domain.
-                type: string
               failureDomains:
                 items:
                   description: CloudStackFailureDomainSpec defines the desired state

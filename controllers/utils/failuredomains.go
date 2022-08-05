@@ -126,9 +126,6 @@ func (c *CloudClientImplementation) RegisterExtension(r *ReconciliationRunner) C
 // AsFailureDomainUser uses the credentials specified in the failure domain to set the ReconciliationSubject's CSUser client.
 func (c *CloudClientImplementation) AsFailureDomainUser(fdSpec *infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		if !strings.HasSuffix(fdSpec.Name, "-"+c.CAPICluster.Name) { // Add cluster name suffix if missing.
-			fdSpec.Name = fdSpec.Name + "-" + c.CAPICluster.Name
-		}
 		endpointCredentials := &corev1.Secret{}
 		key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}
 		if err := c.K8sClient.Get(c.RequestCtx, key, endpointCredentials); err != nil {
@@ -142,14 +139,6 @@ func (c *CloudClientImplementation) AsFailureDomainUser(fdSpec *infrav1.CloudSta
 		var err error
 		if c.CSClient, err = cloud.NewClientFromK8sSecret(endpointCredentials, clientConfig); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "parsing ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
-		}
-
-		// Transfer Cluster Domain & Account to FailureDomain as needed.
-		if fdSpec.Account == "" {
-			if c.CSCluster.Spec.Account != "" {
-				fdSpec.Account = c.CSCluster.Spec.Account
-				fdSpec.Domain = c.CSCluster.Spec.Domain
-			}
 		}
 
 		if fdSpec.Account != "" { // Set r.CSUser CloudStack Client per Account and Domain.

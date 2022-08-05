@@ -31,14 +31,6 @@ type CloudStackClusterSpec struct {
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
-
-	// CloudStack account.
-	// +optional
-	Account string `json:"account,omitempty"`
-
-	// CloudStack domain.
-	// +optional
-	Domain string `json:"domain,omitempty"`
 }
 
 // The status of the CloudStackCluster object.

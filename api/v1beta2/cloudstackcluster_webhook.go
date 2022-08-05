@@ -55,11 +55,6 @@ func (r *CloudStackCluster) ValidateCreate() error {
 
 	var errorList field.ErrorList
 
-	if (r.Spec.Account != "") && (r.Spec.Domain == "") {
-		errorList = append(errorList, field.Required(
-			field.NewPath("spec", "account"), "specifying account requires additionally specifying domain"))
-	}
-
 	// Require FailureDomains and their respective sub-fields.
 	if len(r.Spec.FailureDomains) <= 0 {
 		errorList = append(errorList, field.Required(field.NewPath("spec", "FailureDomains"), "FailureDomains"))
