@@ -199,10 +199,12 @@ func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
 	return c
 }
 
+// generateClientCacheKey generates a cache key from a Config
 func generateClientCacheKey(conf Config) string {
 	return fmt.Sprintf("%+v", conf)
 }
 
+// newClientCache returns a new instance of client cache
 func newClientCache(clientConfig *corev1.ConfigMap) *ttlcache.Cache {
 	clientCache := ttlcache.NewCache()
 	clientCache.SetTTL(GetClientCacheTTL(clientConfig))
@@ -210,6 +212,7 @@ func newClientCache(clientConfig *corev1.ConfigMap) *ttlcache.Cache {
 	return clientCache
 }
 
+// GetClientCacheTTL returns a client cache TTL duration from the passed config map
 func GetClientCacheTTL(clientConfig *corev1.ConfigMap) time.Duration {
 	var cacheTTL time.Duration
 	if clientConfig != nil {
