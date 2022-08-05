@@ -489,7 +489,7 @@ func (r *ReconciliationRunner) NewChildObjectMeta(name string) metav1.ObjectMeta
 		Name:      strings.ToLower(name),
 		Namespace: r.Request.Namespace,
 		Labels: map[string]string{clusterv1.ClusterLabelName: r.CAPICluster.Name,
-			infrav1.CloudStackClusterLabelName: r.CSCluster.Name},
+			infrav1.CloudStackClusterLabelName: r.CAPICluster.Name},
 		OwnerReferences: []metav1.OwnerReference{
 			*metav1.NewControllerRef(r.ReconciliationSubject, ownerGVK),
 		},
