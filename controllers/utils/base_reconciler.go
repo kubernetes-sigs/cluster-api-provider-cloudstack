@@ -266,7 +266,8 @@ func (r *ReconciliationRunner) DeleteOwnedObjects(gvks ...schema.GroupVersionKin
 				refs := pOwned.GetOwnerReferences()
 				for _, ref := range refs {
 					if ref.UID == r.ReconciliationSubject.GetUID() {
-						if err := r.K8sClient.Delete(r.RequestCtx, &pOwned); err != nil {
+						toDelete := pOwned
+						if err := r.K8sClient.Delete(r.RequestCtx, &toDelete); err != nil {
 							return ctrl.Result{}, err
 						}
 					}

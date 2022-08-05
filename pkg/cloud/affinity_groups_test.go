@@ -55,7 +55,6 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 	})
 	It("creates an affinity group", func() {
-		dummies.SetDummyDomainAndAccount()
 		ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(nil, -1, errors.New("FakeError"))
 		ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
 			Return(&cloudstack.CreateAffinityGroupParams{})
