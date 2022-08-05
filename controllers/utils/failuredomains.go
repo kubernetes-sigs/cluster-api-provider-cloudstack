@@ -152,7 +152,7 @@ func (c *CloudClientImplementation) AsFailureDomainUser(fdSpec *infrav1.CloudSta
 			}
 		}
 
-		if c.CSCluster.Spec.Account != "" { // Set r.CSUser CloudStack Client per Account and Domain.
+		if fdSpec.Account != "" { // Set r.CSUser CloudStack Client per Account and Domain.
 			client, err := c.CSClient.NewClientInDomainAndAccount(fdSpec.Domain, fdSpec.Account)
 			if err != nil {
 				return ctrl.Result{}, err
