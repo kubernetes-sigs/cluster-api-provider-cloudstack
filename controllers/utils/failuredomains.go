@@ -135,8 +135,12 @@ func (c *CloudClientImplementation) AsFailureDomainUser(fdSpec *infrav1.CloudSta
 			return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
 		}
 
+		clientConfig := &corev1.ConfigMap{}
+		key = client.ObjectKey{Name: cloud.ClientConfigMapName, Namespace: cloud.ClientConfigMapNamespace}
+		_ = c.K8sClient.Get(c.RequestCtx, key, clientConfig)
+
 		var err error
-		if c.CSClient, err = cloud.NewClientFromK8sSecret(endpointCredentials); err != nil {
+		if c.CSClient, err = cloud.NewClientFromK8sSecret(endpointCredentials, clientConfig); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "parsing ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
 		}
 
