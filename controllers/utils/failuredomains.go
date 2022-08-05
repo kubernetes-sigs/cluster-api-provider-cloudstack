@@ -88,8 +88,7 @@ func (r *ReconciliationRunner) RemoveExtraneousFailureDomains(fds *infrav1.Cloud
 		// Send a deletion request for each FailureDomain no speced for.
 		for _, fd := range fds.Items {
 			_fd := fd
-			name := fd.Name
-			if _, present := fdPresenceByName[name]; !present {
+			if _, present := fdPresenceByName[fd.Name]; !present {
 				if err := r.K8sClient.Delete(r.RequestCtx, &_fd); err != nil {
 					return ctrl.Result{}, errors.Wrap(err, "failed to delete obsolete failure domain")
 				}

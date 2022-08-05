@@ -25,7 +25,6 @@ import (
 
 const (
 	ClusterFinalizer           = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
-	DefaultIdentityRefKind     = "Secret"
 	CloudStackClusterLabelName = "cloudstackcluster.infrastructure.cluster.x-k8s.io/name"
 	NetworkTypeIsolated        = "Isolated"
 	NetworkTypeShared          = "Shared"

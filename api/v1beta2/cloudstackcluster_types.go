@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 const (
@@ -29,43 +28,6 @@ const (
 )
 
 var K8sClient client.Client
-
-// CloudStackIdentityReference is a reference to an infrastructure
-// provider identity to be used to provision cluster resources.
-type CloudStackIdentityReference struct {
-	// Kind of the identity. Must be supported by the infrastructure provider
-	// and may be either cluster or namespace-scoped.
-	// +kubebuilder:validation:MinLength=1
-	Kind string `json:"kind"`
-
-	// Name of the infrastructure identity to be used.
-	Name string `json:"name"`
-}
-
-type ZoneStatusMap map[string]Zone
-
-type Zone struct {
-	// Name.
-	//+optional
-	Name string `json:"name,omitempty"`
-
-	// ID.
-	//+optional
-	ID string `json:"id,omitempty"`
-
-	// The network within the Zone to use.
-	Network Network `json:"network"`
-}
-
-// MetaName returns a lower cased name to be used in a k8s object meta.
-// It prefers the zone's name, but will use the ID if that's the only present identifier.
-func (z *Zone) MetaName() string {
-	s := z.Name
-	if s == "" {
-		s = z.ID
-	}
-	return strings.ToLower(s)
-}
 
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
 type CloudStackClusterSpec struct {

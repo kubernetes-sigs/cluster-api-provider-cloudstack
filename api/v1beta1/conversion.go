@@ -33,14 +33,6 @@ const DefaultEndpointCredential = "global"
 //nolint:golint,revive,stylecheck
 func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudStackCluster, out *v1beta2.CloudStackCluster, s conv.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	var identifyRef *v1beta2.CloudStackIdentityReference
-	if in.Spec.IdentityRef != nil {
-		identifyRef = &v1beta2.CloudStackIdentityReference{}
-		err := Convert_v1beta1_CloudStackIdentityReference_To_v1beta2_CloudStackIdentityReference(in.Spec.IdentityRef, identifyRef, nil)
-		if err != nil {
-			return err
-		}
-	}
 	failureDomains, err := getFailureDomains(in)
 	if err != nil {
 		return err

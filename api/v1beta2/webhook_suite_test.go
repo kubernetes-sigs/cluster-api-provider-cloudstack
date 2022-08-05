@@ -33,7 +33,7 @@ import (
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	//+kubebuilder:scaffold:imports
 	"k8s.io/apimachinery/pkg/runtime"
-	infrav2 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -78,7 +78,7 @@ var _ = BeforeSuite(func() {
 	Expect(cfg).NotTo(BeNil())
 
 	scheme := runtime.NewScheme()
-	err = infrav2.AddToScheme(scheme)
+	err = infrav1.AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = admissionv1beta1.AddToScheme(scheme)
@@ -102,9 +102,9 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	Ω((&infrav2.CloudStackCluster{}).SetupWebhookWithManager(mgr)).Should(Succeed())
-	Ω((&infrav2.CloudStackMachine{}).SetupWebhookWithManager(mgr)).Should(Succeed())
-	Ω((&infrav2.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr)).Should(Succeed())
+	Ω((&infrav1.CloudStackCluster{}).SetupWebhookWithManager(mgr)).Should(Succeed())
+	Ω((&infrav1.CloudStackMachine{}).SetupWebhookWithManager(mgr)).Should(Succeed())
+	Ω((&infrav1.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr)).Should(Succeed())
 
 	//+kubebuilder:scaffold:webhook
 
