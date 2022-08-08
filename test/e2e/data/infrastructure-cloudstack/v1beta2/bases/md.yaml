@@ -1,0 +1,51 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
+  selector:
+    matchLabels: null
+  template:
+    spec:
+      clusterName: "${CLUSTER_NAME}"
+      version: ${KUBERNETES_VERSION}
+      bootstrap:
+        configRef:
+          name: "${CLUSTER_NAME}-md-0"
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: "${CLUSTER_NAME}-md-0"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: CloudStackMachineTemplate
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: CloudStackMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  template:
+    spec:
+      offering: 
+        name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
+      template: 
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
+      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ local_hostname }}'
+          kubeletExtraArgs:
+            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+      preKubeadmCommands:
+        - swapoff -a

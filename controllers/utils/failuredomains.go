@@ -89,7 +89,8 @@ func (r *ReconciliationRunner) RemoveExtraneousFailureDomains(fds *infrav1.Cloud
 		for _, fd := range fds.Items {
 			_fd := fd
 			if _, present := fdPresenceByName[fd.Name]; !present {
-				if err := r.K8sClient.Delete(r.RequestCtx, &_fd); err != nil {
+				toDelete := fd
+				if err := r.K8sClient.Delete(r.RequestCtx, &toDelete); err != nil {
 					return ctrl.Result{}, errors.Wrap(err, "failed to delete obsolete failure domain")
 				}
 			}
@@ -128,29 +129,22 @@ func (c *CloudClientImplementation) RegisterExtension(r *ReconciliationRunner) C
 // AsFailureDomainUser uses the credentials specified in the failure domain to set the ReconciliationSubject's CSUser client.
 func (c *CloudClientImplementation) AsFailureDomainUser(fdSpec *infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		if !strings.HasSuffix(fdSpec.Name, "-"+c.CAPICluster.Name) { // Add cluster name suffix if missing.
-			fdSpec.Name = fdSpec.Name + "-" + c.CAPICluster.Name
-		}
 		endpointCredentials := &corev1.Secret{}
 		key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}
 		if err := c.K8sClient.Get(c.RequestCtx, key, endpointCredentials); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
 		}
 
+		clientConfig := &corev1.ConfigMap{}
+		key = client.ObjectKey{Name: cloud.ClientConfigMapName, Namespace: cloud.ClientConfigMapNamespace}
+		_ = c.K8sClient.Get(c.RequestCtx, key, clientConfig)
+
 		var err error
-		if c.CSClient, err = cloud.NewClientFromK8sSecret(endpointCredentials); err != nil {
+		if c.CSClient, err = cloud.NewClientFromK8sSecret(endpointCredentials, clientConfig); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "parsing ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
 		}
 
-		// Transfer Cluster Domain & Account to FailureDomain as needed.
-		if fdSpec.Account == "" {
-			if c.CSCluster.Spec.Account != "" {
-				fdSpec.Account = c.CSCluster.Spec.Account
-				fdSpec.Domain = c.CSCluster.Spec.Domain
-			}
-		}
-
-		if c.CSCluster.Spec.Account != "" { // Set r.CSUser CloudStack Client per Account and Domain.
+		if fdSpec.Account != "" { // Set r.CSUser CloudStack Client per Account and Domain.
 			client, err := c.CSClient.NewClientInDomainAndAccount(fdSpec.Domain, fdSpec.Account)
 			if err != nil {
 				return ctrl.Result{}, err

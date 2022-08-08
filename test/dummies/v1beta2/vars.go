@@ -334,18 +334,6 @@ func SetACSEndpointSecretVars() {
 	}
 }
 
-// SetClusterDummyDomainAndAccount sets domain and account in the CSCluster Spec. This is not the default.
-func SetClusterDummyDomainAndAccount() {
-	CSCluster.Spec.Account = AccountName
-	CSCluster.Spec.Domain = DomainPath
-}
-
-// SetClusterDummyDomainAndAccount sets domain and account in the CSCluster Spec. This is not the default.
-func SetDummyDomainAndAccount() {
-	CSCluster.Spec.Account = AccountName
-	CSCluster.Spec.Domain = DomainPath
-}
-
 // SetDummyCapiCluster resets the values in each of the exported CAPICluster related dummy variables.
 func SetDummyCAPIClusterVars() {
 	CAPICluster = &clusterv1.Cluster{

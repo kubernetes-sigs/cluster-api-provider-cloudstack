@@ -23,8 +23,7 @@ import (
 )
 
 const (
-	ClusterFinalizer           = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
-	CloudStackClusterLabelName = "cloudstackcluster.infrastructure.cluster.x-k8s.io/name"
+	ClusterFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
 )
 
 var K8sClient client.Client
@@ -35,14 +34,6 @@ type CloudStackClusterSpec struct {
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
-
-	// CloudStack account.
-	// +optional
-	Account string `json:"account,omitempty"`
-
-	// CloudStack domain.
-	// +optional
-	Domain string `json:"domain,omitempty"`
 }
 
 // The status of the CloudStackCluster object.

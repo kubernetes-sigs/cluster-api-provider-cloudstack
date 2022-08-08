@@ -1,0 +1,69 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: CloudStackMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  template:
+    spec:
+      offering: 
+        name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
+      diskOffering: 
+        name: ${CLOUDSTACK_DISK_OFFERING_NAME}
+        mountPath: ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
+        device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
+        filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
+        label: ${CLOUDSTACK_DISK_OFFERING_LABEL}
+      template: 
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
+      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: CloudStackMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  template:
+    spec:
+      offering: 
+        name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
+      diskOffering: 
+        name: ${CLOUDSTACK_DISK_OFFERING_NAME}
+        mountPath: ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
+        device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
+        filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
+        label: ${CLOUDSTACK_DISK_OFFERING_LABEL}
+      template: 
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
+      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ local_hostname }}'
+          kubeletExtraArgs:
+            provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+      preKubeadmCommands:
+        - swapoff -a
+      diskSetup:
+        filesystems:
+          - device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}1
+            overwrite: false
+            extraOpts:
+              - -E
+              - lazy_itable_init=1,lazy_journal_init=1
+            filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
+            label: data_disk
+        partitions:
+          - device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
+            layout: true
+            overwrite: false
+            tableType: gpt
+      mounts:
+        - - LABEL=${CLOUDSTACK_DISK_OFFERING_LABEL}
+          - ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}

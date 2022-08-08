@@ -41,7 +41,6 @@ var _ = Describe("Zone", func() {
 		zs = mockClient.Zone.(*csapi.MockZoneServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient)
 		dummies.SetDummyVars()
-		dummies.SetDummyDomainAndAccount()
 	})
 
 	AfterEach(func() {

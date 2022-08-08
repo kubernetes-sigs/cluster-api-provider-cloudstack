@@ -18,14 +18,18 @@ package cloud
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
+	"sync"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 
 	"gopkg.in/yaml.v3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/metrics"
 
+	"github.com/ReneKroon/ttlcache"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"
 )
@@ -66,6 +70,14 @@ type SecretConfig struct {
 	StringData Config            `yaml:"stringData"`
 }
 
+var clientCache *ttlcache.Cache
+var cacheMutex sync.Mutex
+
+const ClientConfigMapName = "capc-client-config"
+const ClientConfigMapNamespace = "capc-system"
+const ClientCacheTTLKey = "client-cache-ttl"
+const DefaultClientCacheTTL = time.Duration(1 * time.Hour)
+
 // UnmarshalAllSecretConfigs parses a yaml document for each secret.
 func UnmarshalAllSecretConfigs(in []byte, out *[]SecretConfig) error {
 	r := bytes.NewReader(in)
@@ -84,7 +96,8 @@ func UnmarshalAllSecretConfigs(in []byte, out *[]SecretConfig) error {
 	return nil
 }
 
-func NewClientFromK8sSecret(endpointSecret *corev1.Secret) (Client, error) {
+// NewClientFromK8sSecret returns a client from a k8s secret
+func NewClientFromK8sSecret(endpointSecret *corev1.Secret, clientConfig *corev1.ConfigMap) (Client, error) {
 	endpointSecretStrings := map[string]string{}
 	for k, v := range endpointSecret.Data {
 		endpointSecretStrings[k] = string(v)
@@ -93,11 +106,11 @@ func NewClientFromK8sSecret(endpointSecret *corev1.Secret) (Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewClientFromBytesConfig(bytes)
+	return NewClientFromBytesConfig(bytes, clientConfig)
 }
 
 // NewClientFromBytesConfig returns a client from a bytes array that unmarshals to a yaml config.
-func NewClientFromBytesConfig(conf []byte) (Client, error) {
+func NewClientFromBytesConfig(conf []byte, clientConfig *corev1.ConfigMap) (Client, error) {
 	r := bytes.NewReader(conf)
 	dec := yaml.NewDecoder(r)
 	var config Config
@@ -105,7 +118,7 @@ func NewClientFromBytesConfig(conf []byte) (Client, error) {
 		return nil, err
 	}
 
-	return NewClientFromConf(config)
+	return NewClientFromConf(config, clientConfig)
 }
 
 // NewClientFromYamlPath returns a client from a yaml config at path.
@@ -129,11 +142,23 @@ func NewClientFromYamlPath(confPath string, secretName string) (Client, error) {
 		return nil, errors.Errorf("config with secret name %s not found", secretName)
 	}
 
-	return NewClientFromConf(conf)
+	return NewClientFromConf(conf, nil)
 }
 
-// Creates a new Cloud Client form a map of strings to strings.
-func NewClientFromConf(conf Config) (Client, error) {
+// NewClientFromConf creates a new Cloud Client form a map of strings to strings.
+func NewClientFromConf(conf Config, clientConfig *corev1.ConfigMap) (Client, error) {
+	cacheMutex.Lock()
+	defer cacheMutex.Unlock()
+
+	if clientCache == nil {
+		clientCache = newClientCache(clientConfig)
+	}
+
+	clientCacheKey := generateClientCacheKey(conf)
+	if client, exists := clientCache.Get(clientCacheKey); exists {
+		return client.(Client), nil
+	}
+
 	verifySSL := true
 	if conf.VerifySSL == "false" {
 		verifySSL = false
@@ -146,6 +171,8 @@ func NewClientFromConf(conf Config) (Client, error) {
 	c.cs = cloudstack.NewAsyncClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
 	c.csAsync = cloudstack.NewClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
 	c.customMetrics = metrics.NewCustomMetrics()
+	clientCache.Set(clientCacheKey, c)
+
 	return c, nil
 }
 
@@ -163,11 +190,38 @@ func (c *client) NewClientInDomainAndAccount(domain string, account string) (Cli
 	c.config.APIKey = user.APIKey
 	c.config.SecretKey = user.SecretKey
 
-	return NewClientFromConf(c.config)
+	return NewClientFromConf(c.config, nil)
 }
 
-// Create a client from a CloudStack-Go API client. Mostly used for testing.
+// NewClientFromCSAPIClient creates a client from a CloudStack-Go API client. Mostly used for testing.
 func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
 	c := &client{cs: cs, csAsync: cs, customMetrics: metrics.NewCustomMetrics()}
 	return c
+}
+
+// generateClientCacheKey generates a cache key from a Config
+func generateClientCacheKey(conf Config) string {
+	return fmt.Sprintf("%+v", conf)
+}
+
+// newClientCache returns a new instance of client cache
+func newClientCache(clientConfig *corev1.ConfigMap) *ttlcache.Cache {
+	clientCache := ttlcache.NewCache()
+	clientCache.SetTTL(GetClientCacheTTL(clientConfig))
+	clientCache.SkipTtlExtensionOnHit(false)
+	return clientCache
+}
+
+// GetClientCacheTTL returns a client cache TTL duration from the passed config map
+func GetClientCacheTTL(clientConfig *corev1.ConfigMap) time.Duration {
+	var cacheTTL time.Duration
+	if clientConfig != nil {
+		if ttl, exists := clientConfig.Data[ClientCacheTTLKey]; exists {
+			cacheTTL, _ = time.ParseDuration(ttl)
+		}
+	}
+	if cacheTTL == 0 {
+		cacheTTL = DefaultClientCacheTTL
+	}
+	return cacheTTL
 }

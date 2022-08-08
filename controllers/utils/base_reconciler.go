@@ -117,7 +117,8 @@ func (r *ReconciliationRunner) WithRequestCtx(ctx context.Context) *Reconciliati
 	return r
 }
 
-// WithRequestCtx sets the request context.
+// WithAdditionalCommonStages adds reconciliation stages to the base set of reconciliation stages ran before both
+// Reconcile() and ReconcileDelete().
 func (r *ReconciliationRunner) WithAdditionalCommonStages(fns ...CloudStackReconcilerMethod) *ReconciliationRunner {
 	r.additionalCommonStages = fns
 	return r
@@ -266,7 +267,8 @@ func (r *ReconciliationRunner) DeleteOwnedObjects(gvks ...schema.GroupVersionKin
 				refs := pOwned.GetOwnerReferences()
 				for _, ref := range refs {
 					if ref.UID == r.ReconciliationSubject.GetUID() {
-						if err := r.K8sClient.Delete(r.RequestCtx, &_pOwned); err != nil {
+						toDelete := pOwned
+						if err := r.K8sClient.Delete(r.RequestCtx, &toDelete); err != nil {
 							return ctrl.Result{}, err
 						}
 					}
@@ -338,17 +340,6 @@ func (r *ReconciliationRunner) RequeueWithMessage(msg string, keysAndValues ...i
 	}
 	r.Log.Info(msg, keysAndValues...)
 	return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
-}
-
-// RequeueWithMessageStage is a convenience method to log requeue message and then return a result with RequeueAfter set.
-func (r *ReconciliationRunner) RequeueWithMessageStage(msg string, keysAndValues ...interface{}) CloudStackReconcilerMethod {
-	return func() (ctrl.Result, error) {
-		if !strings.Contains(strings.ToLower(msg), "requeue") {
-			msg = msg + " Requeuing."
-		}
-		r.Log.Info(msg, keysAndValues...)
-		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
-	}
 }
 
 // ReturnWrappedError is a convenience method to log requeue message and then return a result with RequeueAfter set.
@@ -488,8 +479,7 @@ func (r *ReconciliationRunner) NewChildObjectMeta(name string) metav1.ObjectMeta
 	return metav1.ObjectMeta{
 		Name:      strings.ToLower(name),
 		Namespace: r.Request.Namespace,
-		Labels: map[string]string{clusterv1.ClusterLabelName: r.CAPICluster.Name,
-			infrav1.CloudStackClusterLabelName: r.CAPICluster.Name},
+		Labels:    map[string]string{clusterv1.ClusterLabelName: r.CAPICluster.Name},
 		OwnerReferences: []metav1.OwnerReference{
 			*metav1.NewControllerRef(r.ReconciliationSubject, ownerGVK),
 		},
