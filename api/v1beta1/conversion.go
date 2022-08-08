@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	conv "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -109,7 +108,7 @@ func getFailureDomains(csCluster *CloudStackCluster) ([]v1beta2.CloudStackFailur
 			Domain:  csCluster.Spec.Domain,
 			Account: csCluster.Spec.Account,
 			ACSEndpoint: corev1.SecretReference{
-				Namespace: csCluster.ObjectMeta.Namespace,
+				Namespace: csCluster.Namespace,
 				Name:      DefaultEndpointCredential,
 			},
 		})
@@ -134,32 +133,21 @@ func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID st
 		return zoneID + "-" + clusterName, nil
 	}
 
-	zoneID, err = fetchZoneIDUsingK8s(namespace, clusterName, zoneName)
+	zoneID, err = fetchZoneIDUsingK8s(namespace, zoneName)
 	if err != nil {
 		return "", nil
 	}
 	return zoneID + "-" + clusterName, nil
 }
 
-func fetchZoneIDUsingK8s(namespace string, clusterName string, zoneName string) (string, error) {
-	zones := &CloudStackZoneList{}
-	capiClusterLabel := map[string]string{clusterv1.ClusterLabelName: clusterName}
-	if err := v1beta2.K8sClient.List(
-		context.TODO(),
-		zones,
-		client.InNamespace(namespace),
-		client.MatchingLabels(capiClusterLabel),
-	); err != nil {
+func fetchZoneIDUsingK8s(namespace string, zoneName string) (string, error) {
+	zone := &CloudStackZone{}
+	key := client.ObjectKey{Name: zoneName, Namespace: namespace}
+	if err := v1beta2.K8sClient.Get(context.TODO(), key, zone); err != nil {
 		return "", err
 	}
 
-	for _, zone := range zones.Items {
-		if zone.Spec.Name == zoneName {
-			return zone.Spec.ID, nil
-		}
-	}
-
-	return "", errors.Errorf("failed to generate default failureDomainName: zone id not found for zone name: %s", zoneName)
+	return zone.Spec.ID, nil
 }
 
 func fetchZoneIDUsingCloudStack(namespace string, zoneName string) (string, error) {

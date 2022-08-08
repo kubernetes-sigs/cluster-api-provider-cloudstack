@@ -154,7 +154,7 @@ binaries: bin/controller-gen bin/conversion-gen bin/kustomize bin/ginkgo bin/gol
 bin/controller-gen: ## Install controller-gen to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
 bin/conversion-gen: ## Install conversion-gen to bin.
-    GOBIN=$(PROJECT_DIR)/bin go install k8s.io/code-generator/cmd/conversion-gen@v0.23.0
+	GOBIN=$(PROJECT_DIR)/bin go install k8s.io/code-generator/cmd/conversion-gen@v0.23.0
 bin/golangci-lint: ## Install golangci-lint to bin.
 	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.0
 bin/staticcheck: ## Install staticcheck to bin.

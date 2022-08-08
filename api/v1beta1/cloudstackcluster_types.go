@@ -48,7 +48,7 @@ type Network struct {
 	ID string `json:"id,omitempty"`
 
 	// Cloudstack Network Type the cluster is built in.
-	// + optional
+	// +optional
 	Type string `json:"type,omitempty"`
 
 	// Cloudstack Network Name the cluster is built in.
@@ -60,11 +60,11 @@ type ZoneStatusMap map[string]Zone
 
 type Zone struct {
 	// Name.
-	//+optional
+	// +optional
 	Name string `json:"name,omitempty"`
 
 	// ID.
-	//+optional
+	// +optional
 	ID string `json:"id,omitempty"`
 
 	// The network within the Zone to use.
@@ -132,7 +132,7 @@ type CloudStackClusterStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-// +k8s:conversion-gen=false
+//+k8s:conversion-gen=false
 // CloudStackCluster is the Schema for the cloudstackclusters API
 type CloudStackCluster struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -145,8 +145,7 @@ type CloudStackCluster struct {
 }
 
 //+kubebuilder:object:root=true
-// +k8s:conversion-gen=false
-
+//+k8s:conversion-gen=false
 // CloudStackClusterList contains a list of CloudStackCluster
 type CloudStackClusterList struct {
 	metav1.TypeMeta `json:",inline"`

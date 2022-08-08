@@ -13,12 +13,10 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/smallfish/simpleyaml v0.1.0
 	github.com/spf13/pflag v1.0.5
-	gopkg.in/ini.v1 v1.63.2
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.23.0
 	k8s.io/apimachinery v0.23.0
 	k8s.io/client-go v0.23.0
-	k8s.io/code-generator v0.23.0 // indirect
 	k8s.io/klog/v2 v2.30.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 	sigs.k8s.io/cluster-api v1.0.0

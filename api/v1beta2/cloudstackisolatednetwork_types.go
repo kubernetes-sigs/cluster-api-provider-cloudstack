@@ -39,7 +39,7 @@ type CloudStackIsolatedNetworkSpec struct {
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
-	// +k8s:conversion-gen=false
+	//+k8s:conversion-gen=false
 	// FailureDomain -- the FailureDomain the network is placed in.
 	FailureDomain CloudStackFailureDomainSpec `json:"failureDomain"`
 }
