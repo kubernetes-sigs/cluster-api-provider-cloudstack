@@ -18,13 +18,11 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	conv "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -124,8 +122,13 @@ func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID st
 		return zoneID + "-" + clusterName, nil
 	}
 
+	secret, err := GetK8sSecret(DefaultEndpointCredential, namespace)
+	if err != nil {
+		return "", err
+	}
+
 	// try fetch zoneID using zoneName through cloudstack client
-	zoneID, err := fetchZoneIDUsingCloudStack(namespace, zoneName)
+	zoneID, err = fetchZoneIDUsingCloudStack(secret, zoneName)
 	if err == nil {
 		return zoneID + "-" + clusterName, nil
 	}
@@ -147,41 +150,21 @@ func fetchZoneIDUsingK8s(namespace string, zoneName string) (string, error) {
 	return zone.Spec.ID, nil
 }
 
-func fetchZoneIDUsingCloudStack(namespace string, zoneName string) (string, error) {
-	config, err := GetCloudStackConfig(namespace)
+func fetchZoneIDUsingCloudStack(secret *corev1.Secret, zoneName string) (string, error) {
+	client, err := cloud.NewClientFromK8sSecret(secret, nil)
 	if err != nil {
 		return "", err
 	}
-
-	csClient := cloudstack.NewAsyncClient(fmt.Sprint(config["api-url"]), fmt.Sprint(config["api-key"]), fmt.Sprint(config["secret-key"]), fmt.Sprint(config["verify-ssl"]) == "true")
-
-	if zoneID, count, err := csClient.Zone.GetZoneID(zoneName); err != nil {
-		return "", err
-	} else if count != 1 {
-		return "", errors.Errorf("%v zones found for zone name %s", count, zoneName)
-	} else {
-		return zoneID, nil
-	}
+	zone := &v1beta2.CloudStackZoneSpec{Name: zoneName}
+	err = client.ResolveZone(zone)
+	return zone.ID, err
 }
 
-func GetCloudStackConfig(namespace string) (map[string]interface{}, error) {
+func GetK8sSecret(name, namespace string) (*corev1.Secret, error) {
 	endpointCredentials := &corev1.Secret{}
-	key := client.ObjectKey{Name: DefaultEndpointCredential, Namespace: namespace}
+	key := client.ObjectKey{Name: name, Namespace: namespace}
 	if err := v1beta2.K8sClient.Get(context.TODO(), key, endpointCredentials); err != nil {
 		return nil, err
 	}
-
-	config := map[string]interface{}{}
-	for k, v := range endpointCredentials.Data {
-		config[k] = string(v)
-	}
-	// TODO change secret parsing manner.
-	if val, present := config["verify-ssl"]; present {
-		if val == "true" {
-			config["verify-ssl"] = true
-		} else if val == "false" {
-			config["verify-ssl"] = false
-		}
-	}
-	return config, nil
+	return endpointCredentials, nil
 }
