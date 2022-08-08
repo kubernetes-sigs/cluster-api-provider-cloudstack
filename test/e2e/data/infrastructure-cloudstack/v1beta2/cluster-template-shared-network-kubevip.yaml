@@ -8,7 +8,7 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
           name: '{{ local_hostname }}'
       preKubeadmCommands:
       - swapoff -a
@@ -114,14 +114,14 @@ spec:
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
         name: '{{ local_hostname }}'
     joinConfiguration:
       nodeRegistration:
         ignorePreflightErrors:
         - DirAvailable--etc-kubernetes-manifests
         kubeletExtraArgs:
-          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
         name: '{{ local_hostname }}'
     preKubeadmCommands:
     - swapoff -a
@@ -141,10 +141,15 @@ spec:
   controlPlaneEndpoint:
     host: ${CLUSTER_ENDPOINT_IP}
     port: 6443
-  zones:
-  - name: ${CLOUDSTACK_ZONE_NAME}
-    network:
-      name: ${CLOUDSTACK_SHARED_NETWORK_NAME}
+  failureDomains:
+  - name: ${CLOUDSTACK_FD1_NAME}
+    acsendpoint:
+      name: ${CLOUDSTACK_FD1_SECRET_NAME}
+      namespace: default
+    zone:
+      name: ${CLOUDSTACK_ZONE_NAME}
+      network:
+        name: ${CLOUDSTACK_SHARED_NETWORK_NAME}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackMachineTemplate

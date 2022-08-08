@@ -8,14 +8,14 @@ spec:
       nodeRegistration:
         name: '{{ local_hostname }}'
         kubeletExtraArgs:
-          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
     clusterConfiguration:
       imageRepository: k8s.gcr.io
     joinConfiguration:
       nodeRegistration:
         name: '{{ local_hostname }}'
         kubeletExtraArgs:
-          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
     preKubeadmCommands:
       - swapoff -a
     diskSetup:
