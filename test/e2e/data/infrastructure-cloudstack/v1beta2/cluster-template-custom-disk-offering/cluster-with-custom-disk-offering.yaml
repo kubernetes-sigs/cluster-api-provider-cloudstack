@@ -8,14 +8,14 @@ spec:
       nodeRegistration:
         name: '{{ local_hostname }}'
         kubeletExtraArgs:
-          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
     clusterConfiguration:
       imageRepository: k8s.gcr.io
     joinConfiguration:
       nodeRegistration:
         name: '{{ local_hostname }}'
         kubeletExtraArgs:
-          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
     preKubeadmCommands:
       - swapoff -a
     diskSetup:
@@ -37,7 +37,7 @@ spec:
         - ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: CloudStackMachineTemplate
       name: ${CLUSTER_NAME}-control-plane
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}

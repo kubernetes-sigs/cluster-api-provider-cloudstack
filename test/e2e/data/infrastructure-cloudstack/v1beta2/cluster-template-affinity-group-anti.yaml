@@ -8,7 +8,7 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+            provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
           name: '{{ local_hostname }}'
       preKubeadmCommands:
       - swapoff -a
@@ -28,7 +28,7 @@ spec:
     kind: KubeadmControlPlane
     name: ${CLUSTER_NAME}-control-plane
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: CloudStackCluster
     name: ${CLUSTER_NAME}
 ---
@@ -50,7 +50,7 @@ spec:
           name: ${CLUSTER_NAME}-md-0
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: CloudStackMachineTemplate
         name: ${CLUSTER_NAME}-md-0
       version: ${KUBERNETES_VERSION}
@@ -66,18 +66,18 @@ spec:
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
         name: '{{ local_hostname }}'
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
         name: '{{ local_hostname }}'
     preKubeadmCommands:
     - swapoff -a
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: CloudStackMachineTemplate
       name: ${CLUSTER_NAME}-control-plane
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
@@ -94,12 +94,12 @@ spec:
   failureDomains:
   - name: ${CLOUDSTACK_FD1_NAME}
     zone:
-      name :  ${CLOUDSTACK_ZONE_NAME}
-      network: 
-        name: ${CLOUDSTACK_NETWORK_NAME}
       acsendpoint:
         name: ${CLOUDSTACK_FD1_SECRET_NAME}
         namespace: default
+      name: ${CLOUDSTACK_ZONE_NAME}
+      network:
+        name: ${CLOUDSTACK_NETWORK_NAME}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackMachineTemplate

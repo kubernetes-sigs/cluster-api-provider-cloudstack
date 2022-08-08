@@ -1,4 +1,4 @@
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-upgrade-control-plane
@@ -11,7 +11,7 @@ spec:
         name: ${CLOUDSTACK_TEMPLATE_NAME}
       sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-upgrade-md-0

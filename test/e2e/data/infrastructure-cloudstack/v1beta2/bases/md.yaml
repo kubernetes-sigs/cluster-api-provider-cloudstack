@@ -19,10 +19,10 @@ spec:
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: CloudStackMachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
@@ -46,6 +46,6 @@ spec:
         nodeRegistration:
           name: '{{ local_hostname }}'
           kubeletExtraArgs:
-            provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
       preKubeadmCommands:
         - swapoff -a
