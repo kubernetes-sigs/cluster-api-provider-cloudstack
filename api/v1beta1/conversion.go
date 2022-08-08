@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -39,8 +40,6 @@ func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudSta
 	out.Spec = v1beta2.CloudStackClusterSpec{
 		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
 		FailureDomains:       failureDomains,
-		Account:              in.Spec.Account,
-		Domain:               in.Spec.Domain,
 	}
 
 	out.Status = v1beta2.CloudStackClusterStatus{
@@ -56,8 +55,6 @@ func Convert_v1beta2_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta2.
 	out.Spec = CloudStackClusterSpec{
 		Zones:                getZones(in),
 		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
-		Account:              in.Spec.Account,
-		Domain:               in.Spec.Domain,
 	}
 
 	out.Status = CloudStackClusterStatus{

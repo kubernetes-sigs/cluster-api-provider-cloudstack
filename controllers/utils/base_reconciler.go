@@ -263,7 +263,6 @@ func (r *ReconciliationRunner) DeleteOwnedObjects(gvks ...schema.GroupVersionKin
 
 			// Filter objects not actually owned by reconciliation subject via owner reference UID.
 			for _, pOwned := range potentiallyOnwedObjs.Items {
-				_pOwned := pOwned
 				refs := pOwned.GetOwnerReferences()
 				for _, ref := range refs {
 					if ref.UID == r.ReconciliationSubject.GetUID() {
