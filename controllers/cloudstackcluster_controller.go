@@ -109,7 +109,7 @@ func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.
 	for _, requiredFd := range r.ReconciliationSubject.Spec.FailureDomains {
 		found := false
 		for _, fd := range r.FailureDomains.Items {
-			requiredFDName := withClusterSuffix(requiredFd.Name, r.CAPICluster.Name)
+			requiredFDName := WithClusterSuffix(requiredFd.Name, r.CAPICluster.Name)
 			if requiredFDName == fd.Name {
 				found = true
 				if !fd.Status.Ready {
@@ -125,8 +125,8 @@ func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.
 	return ctrl.Result{}, nil
 }
 
-// withClusterSuffix appends a hyphen and the cluster name to a name if not already present.
-func withClusterSuffix(name string, clusterName string) string {
+// WithClusterSuffix appends a hyphen and the cluster name to a name if not already present.
+func WithClusterSuffix(name string, clusterName string) string {
 	newName := name
 	if !strings.HasSuffix(name, "-"+clusterName) { // Add cluster name suffix if missing.
 		newName = name + "-" + clusterName
@@ -138,7 +138,7 @@ func withClusterSuffix(name string, clusterName string) string {
 func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ctrl.Result, error) {
 	r.ReconciliationSubject.Status.FailureDomains = clusterv1.FailureDomains{}
 	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
-		fdSpec.Name = withClusterSuffix(fdSpec.Name, r.CAPICluster.Name)
+		fdSpec.Name = WithClusterSuffix(fdSpec.Name, r.CAPICluster.Name)
 		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{ControlPlane: true}
 	}
 	return ctrl.Result{}, nil
