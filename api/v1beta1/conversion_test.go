@@ -19,7 +19,10 @@ package v1beta1_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1beta1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -28,19 +31,17 @@ var _ = Describe("Conversion", func() {
 	})
 
 	Context("GetFailureDomains function", func() {
-		It("Return the correct value when the last state update time is known", func() {
-			csCluster := &infrav1.CloudStackCluster{
-				Spec: infrav1.CloudStackClusterSpec{
-					Zones: []infrav1.Zone{
-						{
-							Name: "zone-name1",
-							Network: infrav1.Network{
-								Name: "network1",
-							},
-						},
+		It("Converts v1beta1 cluster spec to v1beta2 failure domains", func() {
+			csCluster := &v1beta1.CloudStackCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster1",
+					Namespace: "namespace1",
+				},
+				Spec: v1beta1.CloudStackClusterSpec{
+					Zones: []v1beta1.Zone{
 						{
 							ID: "76472a84-d23f-4e97-b154-ee1b975ed936",
-							Network: infrav1.Network{
+							Network: v1beta1.Network{
 								Name: "network1",
 							},
 						},
@@ -52,11 +53,26 @@ var _ = Describe("Conversion", func() {
 					Account: "account1",
 					Domain:  "domain1",
 				},
-				Status: infrav1.CloudStackClusterStatus{},
+				Status: v1beta1.CloudStackClusterStatus{},
 			}
-			failureDomains, err := infrav1.GetFailureDomains(csCluster)
+			failureDomains, err := v1beta1.GetFailureDomains(csCluster)
+			expectedResult := []v1beta2.CloudStackFailureDomainSpec{
+				{
+					Name: "975ed936-cluster1",
+					Zone: v1beta2.CloudStackZoneSpec{
+						ID:      "76472a84-d23f-4e97-b154-ee1b975ed936",
+						Network: v1beta2.Network{Name: "network1"},
+					},
+					Account: "account1",
+					Domain:  "domain1",
+					ACSEndpoint: corev1.SecretReference{
+						Name:      "global",
+						Namespace: "namespace1",
+					},
+				},
+			}
 			Ω(err).ShouldNot(HaveOccurred())
-			Ω(failureDomains).Should(HaveLen(2))
+			Ω(failureDomains).Should(Equal(expectedResult))
 		})
 	})
 })
