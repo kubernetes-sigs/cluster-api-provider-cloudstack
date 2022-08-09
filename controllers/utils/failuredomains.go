@@ -17,6 +17,7 @@ limitations under the License.
 package utils
 
 import (
+	"fmt"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -84,10 +85,12 @@ func (r *ReconciliationRunner) RemoveExtraneousFailureDomains(fds *infrav1.Cloud
 			}
 			fdPresenceByName[name] = true
 		}
-		// Send a deletion request for each FailureDomain no speced for.
+		fmt.Println(fdPresenceByName)
+		// Send a deletion request for each FailureDomain not speced for.
 		for _, fd := range fds.Items {
 			if _, present := fdPresenceByName[fd.Name]; !present {
 				toDelete := fd
+				r.Log.Info(fmt.Sprintf("Deleting extraneous failure domain: %s.", fd.Name))
 				if err := r.K8sClient.Delete(r.RequestCtx, &toDelete); err != nil {
 					return ctrl.Result{}, errors.Wrap(err, "failed to delete obsolete failure domain")
 				}

@@ -84,6 +84,10 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 		!csCtrlrUtils.ContainsNoMatchSubstring(err) {
 		return ctrl.Result{}, errors.Wrap(err, "resolving Cloudstack network information")
 	}
+	// Patch Zone ID back before potentially creating an isolated network.
+	if err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	// Check if the passed network was an isolated network or the network was missing. In either case, create a
 	// CloudStackIsolatedNetwork to manage the many intricacies and wait until CloudStackIsolatedNetwork is ready.
