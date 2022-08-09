@@ -79,23 +79,57 @@ func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Re
 		return r.ReturnWrappedError(err, "failed to resolve VM instance details")
 	}
 
-	csRunning := r.CSMachine.Status.InstanceState == "Running"
+	const requeueAfter = 5 * time.Second
+
+	csState := r.CSMachine.Status.InstanceState
 	csTimeInState := r.CSMachine.Status.TimeSinceLastStateChange()
+
+	if csState == "" || csTimeInState < 0 {
+		// Wasn't able to get the CS state, and can't continue without it.
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
+
 	capiPhase := capiv1.MachinePhase(r.CAPIMachine.Status.Phase)
 	capiRunning := capiPhase == capiv1.MachinePhaseRunning
-	deleteInvoked := capiPhase == capiv1.MachinePhaseDeleting || capiPhase == capiv1.MachinePhaseDeleted
 
-	// capiTimeout indicates that a new VM is running, but it isn't reachable due to a network issue or a misconfiguration.
-	// When this happens, the machine should be deleted or else the cluster won't ever recover.
-	capiTimeout := csRunning && !capiRunning && csTimeInState > 5*time.Minute
+	if capiPhase == capiv1.MachinePhaseDeleting || capiPhase == capiv1.MachinePhaseDeleted {
+		// The machine is being deleted, so do nothing for now.
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	}
+
+	var (
+		csRunning     bool
+		csStopTimeout bool
+		csOtherState  bool
+		capiTimeout   bool
+	)
+
+	switch csState {
+	case "Running":
+		csRunning = true
+		// capiTimeout indicates that a new VM is running, but it isn't reachable due to a network issue or a
+		// misconfiguration.  When this happens, the machine should be deleted or the cluster won't recover.
+		capiTimeout = !capiRunning && csTimeInState > 5*time.Minute
+	case "Starting":
+	case "Migrating":
+		// Give CS time to do what it needs to do
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	case "Stopping":
+	case "Stopped":
+		// A machine could be stopped as part of a migration, in which case it needs more time.  If it's stopped for another
+		// reason, it can be deleted.  If it's stopped for too long, assume it's not part of a migration and delete it.
+		csStopTimeout = csTimeInState > 5*time.Minute
+	default:
+		csOtherState = true
+	}
 
 	if csRunning && capiRunning {
 		r.ReconciliationSubject.Status.Ready = true
-	} else if (!csRunning || capiTimeout) && !deleteInvoked {
+	} else if csOtherState || capiTimeout || csStopTimeout {
 		r.Log.Info("CloudStack instance in bad state",
 			"name", r.CSMachine.Name,
 			"instance-id", r.CSMachine.Spec.InstanceID,
-			"cs-state", r.CSMachine.Status.InstanceState,
+			"cs-state", csState,
 			"cs-time-in-state", csTimeInState.String(),
 			"capi-phase", capiPhase)
 
@@ -104,7 +138,7 @@ func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Re
 		}
 	}
 
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
 func (r *CloudStackMachineStateCheckerReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
