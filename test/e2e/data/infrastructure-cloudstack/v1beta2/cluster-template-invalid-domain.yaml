@@ -8,7 +8,7 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
           name: '{{ local_hostname }}'
       preKubeadmCommands:
       - swapoff -a
@@ -66,12 +66,12 @@ spec:
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
         name: '{{ local_hostname }}'
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
         name: '{{ local_hostname }}'
     preKubeadmCommands:
     - swapoff -a
@@ -95,10 +95,10 @@ spec:
   domain: ${CLOUDSTACK_INVALID_DOMAIN_NAME}
   failureDomains:
   - name: ${CLOUDSTACK_FD1_NAME}
+    acsendpoint:
+      name: ${CLOUDSTACK_FD1_SECRET_NAME}
+      namespace: default
     zone:
-      acsendpoint:
-        name: ${CLOUDSTACK_FD1_SECRET_NAME}
-        namespace: default
       name: ${CLOUDSTACK_ZONE_NAME}
       network:
         name: ${CLOUDSTACK_NETWORK_NAME}

@@ -21,6 +21,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/webhookutil"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -61,15 +62,19 @@ func (r *CloudStackCluster) ValidateCreate() error {
 	if len(r.Spec.FailureDomains) <= 0 {
 		errorList = append(errorList, field.Required(field.NewPath("spec", "FailureDomains"), "FailureDomains"))
 	} else {
-		for _, fdSpec := range r.Spec.FailureDomains {
+		for _, fdSpec := range r.Spec.FailureDomains { // Require failureDomain names meet k8s qualified name spec.
+			for _, errMsg := range validation.IsDNS1123Subdomain(fdSpec.Name) {
+				errorList = append(errorList, field.Invalid(
+					field.NewPath("spec", "failureDomains", "name"), fdSpec.Name, errMsg))
+			}
 			if fdSpec.Zone.Network.Name == "" && fdSpec.Zone.Network.ID == "" {
 				errorList = append(errorList, field.Required(
-					field.NewPath("spec", "FailureDomains", "Zone", "Network"),
+					field.NewPath("spec", "failureDomains", "Zone", "Network"),
 					"each Zone requires a Network specification"))
 			}
 			if fdSpec.ACSEndpoint.Name == "" || fdSpec.ACSEndpoint.Namespace == "" {
 				errorList = append(errorList, field.Required(
-					field.NewPath("spec", "FailureDomains", "ACSEndpoint"),
+					field.NewPath("spec", "failureDomains", "ACSEndpoint"),
 					"Name and Namespace are required"))
 			}
 		}

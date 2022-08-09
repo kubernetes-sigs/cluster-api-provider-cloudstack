@@ -141,10 +141,15 @@ spec:
   controlPlaneEndpoint:
     host: ${CLUSTER_ENDPOINT_IP}
     port: 6443
-  zones:
-  - name: ${CLOUDSTACK_ZONE_NAME}
-    network:
-      name: ${CLOUDSTACK_SHARED_NETWORK_NAME}
+  failureDomains:
+  - acsendpoint:
+      name: ${CLOUDSTACK_FD1_SECRET_NAME}
+      namespace: default
+    name: ${CLOUDSTACK_FD1_NAME}
+    zone:
+      name: ${CLOUDSTACK_ZONE_NAME}
+      network:
+        name: ${CLOUDSTACK_SHARED_NETWORK_NAME}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackMachineTemplate

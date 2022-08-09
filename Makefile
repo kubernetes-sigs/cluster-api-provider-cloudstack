@@ -224,7 +224,7 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 
 ##@ End-to-End Testing
 
-CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/*/cluster-template*/* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
+CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta2/*/cluster-template*/* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
 CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)
 .PHONY: e2e-cluster-templates
 e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster template files for e2e testing.
@@ -236,6 +236,7 @@ e2e-essentials: bin/ginkgo_v1 e2e-cluster-templates kind-cluster ## Fulfill esse
 
 JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
+	kubectl apply -f cloud-config.yaml && \
 	cd test/e2e && \
 	ginkgo_v1 -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
 	    -e2e.artifacts-folder=${PROJECT_DIR}/_artifacts \

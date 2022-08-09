@@ -23,13 +23,18 @@ kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
-  zones:
-  - name : ${CLOUDSTACK_ZONE_NAME}
-    network: 
-      name: ${CLOUDSTACK_SHARED_NETWORK_NAME}
   controlPlaneEndpoint:
     host: ${CLUSTER_ENDPOINT_IP}
     port: 6443
+  failureDomains:
+  - name: ${CLOUDSTACK_FD1_NAME}
+    acsendpoint:
+      name: ${CLOUDSTACK_FD1_SECRET_NAME}
+      namespace: default
+    zone:
+      name: ${CLOUDSTACK_ZONE_NAME}
+      network:
+        name: ${CLOUDSTACK_SHARED_NETWORK_NAME}
 ---
 kind: KubeadmControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
@@ -41,14 +46,14 @@ spec:
       nodeRegistration:
         name: '{{ local_hostname }}'
         kubeletExtraArgs:
-          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
     clusterConfiguration:
       imageRepository: k8s.gcr.io
     joinConfiguration:
       nodeRegistration:
         name: '{{ local_hostname }}'
         kubeletExtraArgs:
-          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
+          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
         ignorePreflightErrors:
           - DirAvailable--etc-kubernetes-manifests
     preKubeadmCommands:
