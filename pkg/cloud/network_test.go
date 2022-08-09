@@ -49,14 +49,14 @@ var _ = Describe("Network", func() {
 
 	Context("for an existing network", func() {
 		It("resolves network by ID", func() {
-			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(nil, 0, nil)
-			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
+			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(nil, 0, nil)
+			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
 
 			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 		})
 
 		It("resolves network by Name", func() {
-			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
+			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
 
 			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 		})

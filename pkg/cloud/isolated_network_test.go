@@ -70,8 +70,8 @@ var _ = Describe("Network", func() {
 		nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
 		ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&csapi.CreateNetworkParams{})
-		ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(nil, 0, nil)
-		ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(nil, 0, nil)
+		ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(nil, 0, nil)
+		ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(nil, 0, nil)
 		ns.EXPECT().CreateNetwork(gomock.Any()).Return(&csapi.CreateNetworkResponse{Id: dummies.ISONet1.ID}, nil)
 		as.EXPECT().NewListPublicIpAddressesParams().Return(&csapi.ListPublicIpAddressesParams{})
 		as.EXPECT().ListPublicIpAddresses(gomock.Any()).
