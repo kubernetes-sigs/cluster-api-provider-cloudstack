@@ -16,14 +16,160 @@ limitations under the License.
 
 package v1beta1
 
-// Hub marks CloudStackCluster as a conversion hub.
-func (*CloudStackCluster) Hub() {}
+import (
+	"context"
 
-// Hub marks CloudStackClusterList as a conversion hub.
-func (*CloudStackClusterList) Hub() {}
+	corev1 "k8s.io/api/core/v1"
+	conv "k8s.io/apimachinery/pkg/conversion"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
-// Hub marks CloudStackMachine as a conversion hub.
-func (*CloudStackMachine) Hub() {}
+const DefaultEndpointCredential = "global"
 
-// Hub marks CloudStackMachineList as a conversion hub.
-func (*CloudStackMachineList) Hub() {}
+//nolint:golint,revive,stylecheck
+func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudStackCluster, out *v1beta2.CloudStackCluster, s conv.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	failureDomains, err := GetFailureDomains(in)
+	if err != nil {
+		return err
+	}
+	out.Spec = v1beta2.CloudStackClusterSpec{
+		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
+		FailureDomains:       failureDomains,
+	}
+
+	out.Status = v1beta2.CloudStackClusterStatus{
+		FailureDomains: in.Status.FailureDomains,
+		Ready:          in.Status.Ready,
+	}
+	return nil
+}
+
+//nolint:golint,revive,stylecheck
+func Convert_v1beta2_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta2.CloudStackCluster, out *CloudStackCluster, scope conv.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	out.Spec = CloudStackClusterSpec{
+		Zones:                getZones(in),
+		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
+	}
+
+	out.Status = CloudStackClusterStatus{
+		FailureDomains: in.Status.FailureDomains,
+		Ready:          in.Status.Ready,
+	}
+	return nil
+}
+
+// getZones maps failure domains to zones
+func getZones(csCluster *v1beta2.CloudStackCluster) []Zone {
+	var zones []Zone
+	for _, failureDomain := range csCluster.Spec.FailureDomains {
+		zone := failureDomain.Zone
+		zones = append(zones, Zone{
+			Name: zone.Name,
+			ID:   zone.ID,
+			Network: Network{
+				Name: zone.Network.Name,
+				ID:   zone.Network.ID,
+				Type: zone.Network.Type,
+			},
+		})
+	}
+	return zones
+}
+
+// GetFailureDomains maps v1beta1 zones to v1beta2 failure domains.
+func GetFailureDomains(csCluster *CloudStackCluster) ([]v1beta2.CloudStackFailureDomainSpec, error) {
+	var failureDomains []v1beta2.CloudStackFailureDomainSpec
+	namespace := csCluster.Namespace
+	for _, zone := range csCluster.Spec.Zones {
+		name, err := GetDefaultFailureDomainName(namespace, csCluster.Name, zone.ID, zone.Name)
+		if err != nil {
+			return nil, err
+		}
+		failureDomains = append(failureDomains, v1beta2.CloudStackFailureDomainSpec{
+			Name: name,
+			Zone: v1beta2.CloudStackZoneSpec{
+				ID:   zone.ID,
+				Name: zone.Name,
+				Network: v1beta2.Network{
+					ID:   zone.Network.ID,
+					Name: zone.Network.Name,
+					Type: zone.Network.Type,
+				},
+			},
+			Domain:  csCluster.Spec.Domain,
+			Account: csCluster.Spec.Account,
+			ACSEndpoint: corev1.SecretReference{
+				Namespace: namespace,
+				Name:      DefaultEndpointCredential,
+			},
+		})
+	}
+	return failureDomains, nil
+}
+
+// GetDefaultFailureDomainName return zoneID as failuredomain name.
+// Default failure domain name is used when migrating an old cluster to a multiple-endpoints supported cluster, that
+// requires to convert each zone to a failure domain.
+// When upgrading cluster using eks-a, a secret named global will be created by eks-a, and it is used by following
+// method to get zoneID by calling cloudstack API.
+// When upgrading cluster using clusterctl directly, zoneID is fetched directly from kubernetes cluster in cloudstackzones.
+func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID string, zoneName string) (string, error) {
+	if len(zoneID) > 0 {
+		return WithZoneID(zoneID, clusterName), nil
+	}
+
+	secret, err := GetK8sSecret(DefaultEndpointCredential, namespace)
+	if err != nil {
+		return "", err
+	}
+
+	// try fetch zoneID using zoneName through cloudstack client
+	zoneID, err = fetchZoneIDUsingCloudStack(secret, zoneName)
+	if err == nil {
+		return WithZoneID(zoneID, clusterName), nil
+	}
+
+	zoneID, err = fetchZoneIDUsingK8s(namespace, zoneName)
+	if err != nil {
+		return "", nil
+	}
+	return WithZoneID(zoneID, clusterName), nil
+}
+
+func WithZoneID(zoneID, clusterName string) string {
+	return utils.WithClusterSuffix(zoneID[len(zoneID)-8:], clusterName)
+}
+
+func fetchZoneIDUsingK8s(namespace string, zoneName string) (string, error) {
+	zone := &CloudStackZone{}
+	key := client.ObjectKey{Name: zoneName, Namespace: namespace}
+	if err := v1beta2.K8sClient.Get(context.TODO(), key, zone); err != nil {
+		return "", err
+	}
+
+	return zone.Spec.ID, nil
+}
+
+func fetchZoneIDUsingCloudStack(secret *corev1.Secret, zoneName string) (string, error) {
+	client, err := cloud.NewClientFromK8sSecret(secret, nil)
+	if err != nil {
+		return "", err
+	}
+	zone := &v1beta2.CloudStackZoneSpec{Name: zoneName}
+	err = client.ResolveZone(zone)
+	return zone.ID, err
+}
+
+func GetK8sSecret(name, namespace string) (*corev1.Secret, error) {
+	endpointCredentials := &corev1.Secret{}
+	key := client.ObjectKey{Name: name, Namespace: namespace}
+	if err := v1beta2.K8sClient.Get(context.TODO(), key, endpointCredentials); err != nil {
+		return nil, err
+	}
+	return endpointCredentials, nil
+}

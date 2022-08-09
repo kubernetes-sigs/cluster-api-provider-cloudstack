@@ -46,7 +46,7 @@ type CloudStackZoneStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
+//+k8s:conversion-gen=false
 // CloudStackZone is the Schema for the cloudstackzones API
 type CloudStackZone struct {
 	metav1.TypeMeta   `json:",inline"`

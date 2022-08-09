@@ -19,11 +19,14 @@ package v1beta2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	ClusterFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
 )
+
+var K8sClient client.Client
 
 // CloudStackClusterSpec defines the desired state of CloudStackCluster.
 type CloudStackClusterSpec struct {

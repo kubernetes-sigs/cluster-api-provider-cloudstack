@@ -85,7 +85,7 @@ func (r *ReconciliationRunner) RemoveExtraneousFailureDomains(fds *infrav1.Cloud
 			}
 			fdPresenceByName[name] = true
 		}
-		fmt.Println(fdPresenceByName)
+
 		// Send a deletion request for each FailureDomain not speced for.
 		for _, fd := range fds.Items {
 			if _, present := fdPresenceByName[fd.Name]; !present {

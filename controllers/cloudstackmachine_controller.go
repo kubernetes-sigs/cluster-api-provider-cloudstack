@@ -137,19 +137,20 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
 	if r.ReconciliationSubject.Spec.FailureDomainName == "" {
-
+		var name string
 		if r.CAPIMachine.Spec.FailureDomain != nil &&
 			(util.IsControlPlaneMachine(r.CAPIMachine) || // Is control plane machine -- CAPI will specify.
 				*r.CAPIMachine.Spec.FailureDomain != "") { // Or potentially another machine controller specified.
+			name = *r.CAPIMachine.Spec.FailureDomain
 			r.ReconciliationSubject.Spec.FailureDomainName = *r.CAPIMachine.Spec.FailureDomain
 		} else { // Not a control plane machine. Place randomly.
 			randNum := (rand.Int() % len(r.CSCluster.Spec.FailureDomains)) // #nosec G404 -- weak crypt rand doesn't matter here.
-			name := r.CSCluster.Spec.FailureDomains[randNum].Name
-			if !strings.HasSuffix(name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
-				name = name + "-" + r.CAPICluster.Name
-			}
-			r.ReconciliationSubject.Spec.FailureDomainName = name
+			name = r.CSCluster.Spec.FailureDomains[randNum].Name
 		}
+		if !strings.HasSuffix(name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
+			name = name + "-" + r.CAPICluster.Name
+		}
+		r.ReconciliationSubject.Spec.FailureDomainName = name
 		r.ReconciliationSubject.Labels[infrav1.FailureDomainLabelName] = r.ReconciliationSubject.Spec.FailureDomainName
 	}
 	return ctrl.Result{}, nil

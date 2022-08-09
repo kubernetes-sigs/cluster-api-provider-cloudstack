@@ -41,6 +41,7 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 
+	infrav1b1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	infrav1b2 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
@@ -55,8 +56,9 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
-	utilruntime.Must(controlplanev1.AddToScheme(scheme))
+	utilruntime.Must(infrav1b1.AddToScheme(scheme))
 	utilruntime.Must(infrav1b2.AddToScheme(scheme))
+	utilruntime.Must(controlplanev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -149,6 +151,7 @@ func main() {
 		Scheme:     mgr.GetScheme()}
 
 	setupReconcilers(base, mgr)
+	infrav1b2.K8sClient = base.K8sClient
 
 	// +kubebuilder:scaffold:builder
 

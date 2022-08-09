@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -31,6 +30,7 @@ import (
 
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -109,7 +109,7 @@ func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.
 	for _, requiredFd := range r.ReconciliationSubject.Spec.FailureDomains {
 		found := false
 		for _, fd := range r.FailureDomains.Items {
-			requiredFDName := withClusterSuffix(requiredFd.Name, r.CAPICluster.Name)
+			requiredFDName := utils.WithClusterSuffix(requiredFd.Name, r.CAPICluster.Name)
 			if requiredFDName == fd.Name {
 				found = true
 				if !fd.Status.Ready {
@@ -125,20 +125,11 @@ func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.
 	return ctrl.Result{}, nil
 }
 
-// withClusterSuffix appends a hyphen and the cluster name to a name if not already present.
-func withClusterSuffix(name string, clusterName string) string {
-	newName := name
-	if !strings.HasSuffix(name, "-"+clusterName) { // Add cluster name suffix if missing.
-		newName = name + "-" + clusterName
-	}
-	return newName
-}
-
 // SetFailureDomainsStatusMap sets failure domains in CloudStackCluster status to be used for CAPI machine placement.
 func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ctrl.Result, error) {
 	r.ReconciliationSubject.Status.FailureDomains = clusterv1.FailureDomains{}
 	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
-		fdSpec.Name = withClusterSuffix(fdSpec.Name, r.CAPICluster.Name)
+		fdSpec.Name = utils.WithClusterSuffix(fdSpec.Name, r.CAPICluster.Name)
 		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{ControlPlane: true}
 	}
 	return ctrl.Result{}, nil
