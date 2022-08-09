@@ -17,6 +17,7 @@ limitations under the License.
 package cloud
 
 import (
+	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
@@ -48,7 +49,7 @@ func (c *client) ResolveNetwork(net *capcv1.Network) (retErr error) {
 	// TODO rebuild this to consider cases with networks in many zones.
 	// Use ListNetworks instead.
 	netName := net.Name
-	netDetails, count, err := c.cs.Network.GetNetworkByName(netName)
+	netDetails, count, err := c.cs.Network.GetNetworkByName(netName, cloudstack.WithListall(true))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Network ID from %s", netName))
@@ -62,7 +63,7 @@ func (c *client) ResolveNetwork(net *capcv1.Network) (retErr error) {
 	}
 
 	// Now get network details.
-	netDetails, count, err = c.cs.Network.GetNetworkByID(net.ID)
+	netDetails, count, err = c.cs.Network.GetNetworkByID(net.ID, cloudstack.WithListall(true))
 	if err != nil {
 		return multierror.Append(retErr, errors.Wrapf(err, "could not get Network by ID %s", net.ID))
 	} else if count != 1 {
