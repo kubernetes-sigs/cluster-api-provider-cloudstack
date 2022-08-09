@@ -166,3 +166,12 @@ func ContainsNoMatchSubstring(err error) bool {
 func ContainsAlreadyExistsSubstring(err error) bool {
 	return strings.Contains(strings.ToLower(err.Error()), "already exists")
 }
+
+// WithClusterSuffix appends a hyphen and the cluster name to a name if not already present.
+func WithClusterSuffix(name string, clusterName string) string {
+	newName := name
+	if !strings.HasSuffix(name, "-"+clusterName) { // Add cluster name suffix if missing.
+		newName = name + "-" + clusterName
+	}
+	return newName
+}

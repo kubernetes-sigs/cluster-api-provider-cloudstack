@@ -22,7 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	conv "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -142,7 +142,7 @@ func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID st
 }
 
 func WithZoneID(zoneID, clusterName string) string {
-	return controllers.WithClusterSuffix(zoneID[len(zoneID)-8:], clusterName)
+	return utils.WithClusterSuffix(zoneID[len(zoneID)-8:], clusterName)
 }
 
 func fetchZoneIDUsingK8s(namespace string, zoneName string) (string, error) {
