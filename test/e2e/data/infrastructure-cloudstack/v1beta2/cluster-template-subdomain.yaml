@@ -8,7 +8,7 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+            provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
           name: '{{ local_hostname }}'
       preKubeadmCommands:
       - swapoff -a
@@ -66,12 +66,12 @@ spec:
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
         name: '{{ local_hostname }}'
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
         name: '{{ local_hostname }}'
     preKubeadmCommands:
     - swapoff -a
@@ -88,18 +88,16 @@ kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
-  account: ${CLOUDSTACK_SUBDOMAIN_ACCOUNT_NAME}
   controlPlaneEndpoint:
     host: ""
     port: 6443
-  domain: ${CLOUDSTACK_SUBDOMAIN_PATH}
   failureDomains:
-  - name: ${CLOUDSTACK_FD1_NAME}
-    account: ${CLOUDSTACK_SUBDOMAIN_ACCOUNT_NAME}
-    domain: ${CLOUDSTACK_SUBDOMAIN_PATH}
+  - account: ${CLOUDSTACK_SUBDOMAIN_ACCOUNT_NAME}
     acsendpoint:
       name: ${CLOUDSTACK_FD1_SECRET_NAME}
       namespace: default
+    domain: ${CLOUDSTACK_SUBDOMAIN_PATH}
+    name: ${CLOUDSTACK_FD1_NAME}
     zone:
       name: ${CLOUDSTACK_ZONE_NAME}
       network:

@@ -3,10 +3,15 @@ kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
-  zones:
-  - name : ${CLOUDSTACK_INVALID_ZONE_NAME}
-    network: 
-      name: ${CLOUDSTACK_NETWORK_NAME}
+  failureDomains:
+  - acsendpoint:
+      name: ${CLOUDSTACK_FD1_SECRET_NAME}
+      namespace: default
+    name: ${CLOUDSTACK_FD1_NAME}
+    zone:
+      name: ${CLOUDSTACK_INVALID_ZONE_NAME}
+      network:
+        name: ${CLOUDSTACK_NETWORK_NAME}
   controlPlaneEndpoint:
     host: ""
     port: 6443
