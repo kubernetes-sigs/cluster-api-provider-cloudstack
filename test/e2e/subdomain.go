@@ -78,14 +78,16 @@ func SubdomainSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
-		affinityIds = CheckAffinityGroup(clusterResources.Cluster.Name, "pro")
+		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+		affinityIds = CheckAffinityGroup(csClient, clusterResources.Cluster.Name, "pro")
 	})
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
-		err := CheckAffinityGroupsDeleted(affinityIds)
+		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+		err := CheckAffinityGroupsDeleted(csClient, affinityIds)
 		if err != nil {
 			Fail(err.Error())
 		}

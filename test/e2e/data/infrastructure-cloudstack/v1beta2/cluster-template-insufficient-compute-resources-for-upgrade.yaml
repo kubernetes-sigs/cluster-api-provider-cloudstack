@@ -8,7 +8,7 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+            provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
           name: '{{ local_hostname }}'
       preKubeadmCommands:
       - swapoff -a
@@ -66,12 +66,12 @@ spec:
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
         name: '{{ local_hostname }}'
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
         name: '{{ local_hostname }}'
     preKubeadmCommands:
     - swapoff -a
@@ -84,32 +84,6 @@ spec:
   version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: CloudStackMachineTemplate
-metadata:
-  name: ${CLUSTER_NAME}-upgrade-control-plane
-spec:
-  template:
-    spec:
-      offering:
-        name: ${CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING}
-      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
-      template:
-        name: ${CLOUDSTACK_TEMPLATE_NAME}
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: CloudStackMachineTemplate
-metadata:
-  name: ${CLUSTER_NAME}-upgrade-md-0
-spec:
-  template:
-    spec:
-      offering:
-        name: ${CLOUDSTACK_IMPOSSIBLE_WORKER_MACHINE_OFFERING}
-      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
-      template:
-        name: ${CLOUDSTACK_TEMPLATE_NAME}
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -118,10 +92,10 @@ spec:
     host: ""
     port: 6443
   failureDomains:
-  - name: ${CLOUDSTACK_FD1_NAME}
-    acsEndpoint:
+  - acsEndpoint:
       name: ${CLOUDSTACK_FD1_SECRET_NAME}
       namespace: default
+    name: ${CLOUDSTACK_FD1_NAME}
     zone:
       name: ${CLOUDSTACK_ZONE_NAME}
       network:
@@ -149,6 +123,32 @@ spec:
     spec:
       offering:
         name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
+      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+      template:
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: CloudStackMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-upgrade-control-plane
+spec:
+  template:
+    spec:
+      offering:
+        name: ${CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING}
+      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+      template:
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: CloudStackMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-upgrade-md-0
+spec:
+  template:
+    spec:
+      offering:
+        name: ${CLOUDSTACK_IMPOSSIBLE_WORKER_MACHINE_OFFERING}
       sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
       template:
         name: ${CLOUDSTACK_TEMPLATE_NAME}

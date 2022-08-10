@@ -58,7 +58,7 @@ var _ = Describe("Conversion", func() {
 			failureDomains, err := v1beta1.GetFailureDomains(csCluster)
 			expectedResult := []v1beta2.CloudStackFailureDomainSpec{
 				{
-					Name: "975ed936-cluster1",
+					Name: "76472a84-d23f-4e97-b154-ee1b975ed936",
 					Zone: v1beta2.CloudStackZoneSpec{
 						ID:      "76472a84-d23f-4e97-b154-ee1b975ed936",
 						Network: v1beta2.Network{Name: "network1"},

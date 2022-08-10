@@ -8,7 +8,7 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+            provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
           name: '{{ local_hostname }}'
       preKubeadmCommands:
       - swapoff -a
@@ -66,12 +66,12 @@ spec:
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
         name: '{{ local_hostname }}'
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
         name: '{{ local_hostname }}'
     preKubeadmCommands:
     - swapoff -a
@@ -92,18 +92,14 @@ spec:
     host: ""
     port: 6443
   failureDomains:
-  - name: ${CLOUDSTACK_FD1_NAME}
-    acsEndpoint:
+  - acsEndpoint:
       name: ${CLOUDSTACK_FD1_SECRET_NAME}
       namespace: default
+    name: ${CLOUDSTACK_FD1_NAME}
     zone:
       name: ${CLOUDSTACK_ZONE_NAME}
       network:
-        name: ${CLOUDSTACK_NETWORK_NAME}
-  zones:
-  - name: ${CLOUDSTACK_ZONE_NAME}
-    network:
-      name: ${CLOUDSTACK_NEW_NETWORK_NAME}
+        name: ${CLOUDSTACK_NEW_NETWORK_NAME}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackMachineTemplate

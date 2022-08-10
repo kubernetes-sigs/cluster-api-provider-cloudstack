@@ -28,7 +28,7 @@ spec:
     port: 6443
   failureDomains:
   - name: ${CLOUDSTACK_FD1_NAME}
-    acsEndpoint:
+    acsendpoint:
       name: ${CLOUDSTACK_FD1_SECRET_NAME}
       namespace: default
     zone:

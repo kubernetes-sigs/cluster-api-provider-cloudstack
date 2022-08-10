@@ -81,8 +81,9 @@ func CustomDiskOfferingSpec(ctx context.Context, inputGetter func() CommonSpecIn
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
-		CheckDiskOfferingOfVmInstances(clusterResources.Cluster.Name, diskOfferingName)
-		CheckVolumeSizeofVmInstances(clusterResources.Cluster.Name, volumeSize)
+		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+		CheckDiskOfferingOfVmInstances(csClient, clusterResources.Cluster.Name, diskOfferingName)
+		CheckVolumeSizeofVmInstances(csClient, clusterResources.Cluster.Name, volumeSize)
 		By("PASSED!")
 	})
 
