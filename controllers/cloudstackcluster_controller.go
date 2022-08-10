@@ -30,7 +30,6 @@ import (
 
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -109,7 +108,7 @@ func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.
 	for _, requiredFd := range r.ReconciliationSubject.Spec.FailureDomains {
 		found := false
 		for _, fd := range r.FailureDomains.Items {
-			requiredFDName := utils.WithClusterSuffix(requiredFd.Name, r.CAPICluster.Name)
+			requiredFDName := csCtrlrUtils.WithClusterSuffix(requiredFd.Name, r.CAPICluster.Name)
 			if requiredFDName == fd.Name {
 				found = true
 				if !fd.Status.Ready {
@@ -129,7 +128,7 @@ func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.
 func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ctrl.Result, error) {
 	r.ReconciliationSubject.Status.FailureDomains = clusterv1.FailureDomains{}
 	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
-		fdSpec.Name = utils.WithClusterSuffix(fdSpec.Name, r.CAPICluster.Name)
+		fdSpec.Name = csCtrlrUtils.WithClusterSuffix(fdSpec.Name, r.CAPICluster.Name)
 		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{ControlPlane: true}
 	}
 	return ctrl.Result{}, nil
