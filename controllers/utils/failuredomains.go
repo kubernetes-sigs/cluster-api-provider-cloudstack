@@ -33,8 +33,9 @@ import (
 
 // CreateFailureDomain creates a specified CloudStackFailureDomain CRD owned by the ReconcilationSubject.
 func (r *ReconciliationRunner) CreateFailureDomain(fdSpec infrav1.CloudStackFailureDomainSpec) error {
+	metaHashName := infrav1.FailureDomainHashedMetaName(fdSpec.Name, r.CAPICluster.Name)
 	csFD := &infrav1.CloudStackFailureDomain{
-		ObjectMeta: r.NewChildObjectMeta(fdSpec.Name),
+		ObjectMeta: r.NewChildObjectMeta(metaHashName),
 		Spec:       fdSpec,
 	}
 	return errors.Wrap(r.K8sClient.Create(r.RequestCtx, csFD), "creating CloudStackFailureDomain")
@@ -44,9 +45,6 @@ func (r *ReconciliationRunner) CreateFailureDomain(fdSpec infrav1.CloudStackFail
 func (r *ReconciliationRunner) CreateFailureDomains(fdSpecs []infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		for _, fdSpec := range fdSpecs {
-			if !strings.HasSuffix(fdSpec.Name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
-				fdSpec.Name = fdSpec.Name + "-" + r.CAPICluster.Name
-			}
 			if err := r.CreateFailureDomain(fdSpec); err != nil {
 				if !strings.Contains(strings.ToLower(err.Error()), "already exists") {
 					return reconcile.Result{}, errors.Wrap(err, "creating CloudStackFailureDomains")
@@ -73,6 +71,17 @@ func (r *ReconciliationRunner) GetFailureDomains(fds *infrav1.CloudStackFailureD
 	}
 }
 
+// GetFailureDomains gets CloudStackFailureDomains owned by a CloudStackCluster.
+func (r *ReconciliationRunner) GetFailureDomainByName(nameFunc func() string, fd *infrav1.CloudStackFailureDomain) CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		metaHashName := infrav1.FailureDomainHashedMetaName(nameFunc(), r.CAPICluster.Name)
+		if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: r.Request.Namespace, Name: metaHashName}, fd); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get failure domain with name %s", nameFunc())
+		}
+		return ctrl.Result{}, nil
+	}
+}
+
 // RemoveExtraneousFailureDomains deletes failure domains no longer listed under the CloudStackCluster's spec.
 func (r *ReconciliationRunner) RemoveExtraneousFailureDomains(fds *infrav1.CloudStackFailureDomainList) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
@@ -80,15 +89,12 @@ func (r *ReconciliationRunner) RemoveExtraneousFailureDomains(fds *infrav1.Cloud
 		fdPresenceByName := map[string]bool{}
 		for _, fdSpec := range r.CSCluster.Spec.FailureDomains {
 			name := fdSpec.Name
-			if !strings.HasSuffix(name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
-				name = name + "-" + r.CAPICluster.Name
-			}
 			fdPresenceByName[name] = true
 		}
 
 		// Send a deletion request for each FailureDomain not speced for.
 		for _, fd := range fds.Items {
-			if _, present := fdPresenceByName[fd.Name]; !present {
+			if _, present := fdPresenceByName[fd.Spec.Name]; !present {
 				toDelete := fd
 				r.Log.Info(fmt.Sprintf("Deleting extraneous failure domain: %s.", fd.Name))
 				if err := r.K8sClient.Delete(r.RequestCtx, &toDelete); err != nil {

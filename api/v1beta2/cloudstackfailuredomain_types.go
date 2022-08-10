@@ -17,9 +17,20 @@ limitations under the License.
 package v1beta2
 
 import (
+	"crypto/md5"
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+// FailureDomainHashedMetaName returns an MD5 name generated from the FailureDomain and Cluster name.
+// FailureDomains must have a unique name even when potentially sharing a namespace with other clusters.
+// In the future we may remove the ability to run multiple clusters in a single namespace, but today
+// this is a consequence of being upstream of EKS-A which does run multiple clusters in a single namepace.
+func FailureDomainHashedMetaName(fdName, clusterName string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(fdName+clusterName)))
+}
 
 const (
 	FailureDomainFinalizer = "cloudstackfailuredomain.infrastructure.cluster.x-k8s.io"

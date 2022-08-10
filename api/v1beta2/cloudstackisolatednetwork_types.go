@@ -41,7 +41,7 @@ type CloudStackIsolatedNetworkSpec struct {
 
 	//+k8s:conversion-gen=false
 	// FailureDomain -- the FailureDomain the network is placed in.
-	FailureDomain CloudStackFailureDomainSpec `json:"failureDomain"`
+	FailureDomainName string `json:"failureDomainName"`
 }
 
 // CloudStackIsolatedNetworkStatus defines the observed state of CloudStackIsolatedNetwork
