@@ -495,7 +495,7 @@ func autoConvert_v1beta2_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsol
 	out.Name = in.Name
 	out.ID = in.ID
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
-	// INFO: in.FailureDomain opted out of conversion generation
+	// INFO: in.FailureDomainName opted out of conversion generation
 	return nil
 }
 

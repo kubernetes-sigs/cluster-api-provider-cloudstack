@@ -97,7 +97,7 @@ spec:
   - name: ${CLOUDSTACK_FD1_NAME}
     account: ${CLOUDSTACK_SUBDOMAIN_ACCOUNT_NAME}
     domain: ${CLOUDSTACK_SUBDOMAIN_PATH}
-    acsendpoint:
+    acsEndpoint:
       name: ${CLOUDSTACK_FD1_SECRET_NAME}
       namespace: default
     zone:

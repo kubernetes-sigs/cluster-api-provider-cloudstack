@@ -34,9 +34,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 		BeforeEach(func() {
 			dummies.SetDummyVars()
 			dummies.CSCluster.Spec.FailureDomains = dummies.CSCluster.Spec.FailureDomains[:1]
-			dummies.CSCluster.Spec.FailureDomains[0].Name = dummies.CSFailureDomain1.Name
-			dummies.CSFailureDomain1.Spec.Name = dummies.CSFailureDomain1.Spec.Name + "-" + dummies.CSCluster.Name
-			dummies.CSFailureDomain1.Name = dummies.CSFailureDomain1.Spec.Name
+			dummies.CSCluster.Spec.FailureDomains[0].Name = dummies.CSFailureDomain1.Spec.Name
 
 			SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
 			Ω(MachineReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register the CloudStack MachineReconciler.

@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
-	"crypto/md5"
+	"crypto/md5" // #nosec G501 -- weak cryptographic primitive doesn't matter here. Not security related.
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -29,7 +29,7 @@ import (
 // In the future we may remove the ability to run multiple clusters in a single namespace, but today
 // this is a consequence of being upstream of EKS-A which does run multiple clusters in a single namepace.
 func FailureDomainHashedMetaName(fdName, clusterName string) string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(fdName+clusterName)))
+	return fmt.Sprintf("%x", md5.Sum([]byte(fdName+clusterName))) // #nosec G401 -- weak cryptographic primitive doesn't matter here. Not security related.
 }
 
 const (

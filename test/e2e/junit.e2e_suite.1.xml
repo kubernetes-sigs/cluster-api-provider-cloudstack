@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <testsuite name="capi-e2e" tests="24" failures="0" errors="0" time="0.005">
+      <testcase name="When testing K8S conformance [Conformance] Should create a workload cluster and run kubetest" classname="capi-e2e" time="0">
+          <skipped></skipped>
+      </testcase>
+      <testcase name="When testing horizontal scale out/in [TC17][TC18][TC20][TC21] Should successfully scale machine replicas up and down horizontally" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing with custom disk offering Should successfully create a cluster with a custom disk offering" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing with disk offering Should successfully create a cluster with disk offering" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing machine remediation Should replace a machine when it is destroyed" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing resource cleanup Should create a new network when the specified network does not exist" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing app deployment to the workload cluster [TC1][PR-Blocking] Should be able to download an HTML from the app deployed to the workload cluster" classname="capi-e2e" time="0"></testcase>
+      <testcase name="with two clusters should successfully add and remove a second cluster without breaking the first cluster" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing multiple CPs in a shared network with kubevip Should successfully create a cluster with multiple CPs in a shared network" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing node drain timeout A node should be forcefully removed if it cannot be drained in time" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist Should fail due to the specified account is not found [TC4a]" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist Should fail due to the specified domain is not found [TC4b]" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist Should fail due to the specified control plane offering is not found [TC7]" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist Should fail due to the specified template is not found [TC6]" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist Should fail due to the specified zone is not found [TC3]" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist Should fail due to the specified disk offering is not found" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist Should fail due to the compute resources are not sufficient for the specified offering [TC8]" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist Should fail due to the specified disk offer is not customized but the disk size is specified" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist Should fail due to the specified disk offer is customized but the disk size is not specified" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist When starting with a healthy cluster Should fail to upgrade worker machine due to insufficient compute resources" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When the specified resource does not exist When starting with a healthy cluster Should fail to upgrade control plane machine due to insufficient compute resources" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing subdomain Should create a cluster in a subdomain" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing affinity group Should have host affinity group when affinity is pro" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing affinity group Should have host affinity group when affinity is anti" classname="capi-e2e" time="0"></testcase>
+      <testcase name="When testing MachineDeployment rolling upgrades Should successfully upgrade Machines upon changes in relevant MachineDeployment fields" classname="capi-e2e" time="0"></testcase>
+  </testsuite>
