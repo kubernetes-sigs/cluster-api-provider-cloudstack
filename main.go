@@ -18,16 +18,14 @@ package main
 
 import (
 	"fmt"
-	"k8s.io/klog/v2/klogr"
 	"math/rand"
 	"os"
-	"strings"
 	"time"
+
+	"k8s.io/klog/v2/klogr"
 
 	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-
-	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 
 	goflag "flag"
 
@@ -43,7 +41,8 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1b1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1b2 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	//+kubebuilder:scaffold:imports
@@ -56,10 +55,10 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(infrav1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(infrav1b1.AddToScheme(scheme))
+	utilruntime.Must(infrav1b2.AddToScheme(scheme))
 	utilruntime.Must(controlplanev1.AddToScheme(scheme))
-	utilruntime.Must(infrav1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -126,17 +125,6 @@ func main() {
 
 	ctrl.SetLogger(klogr.New())
 
-	// Setup CloudStack api client.
-	client, err := cloud.NewClient(opts.CloudConfigFile)
-	if err != nil {
-		if !strings.Contains(strings.ToLower(err.Error()), "timeout") {
-			setupLog.Error(err, "unable to start manager")
-			os.Exit(1)
-		}
-		setupLog.Info("cannot connect to CloudStack via client at startup time.  Pressing onward...")
-	}
-	setupLog.Info("CloudStack client initialized.")
-
 	// Create the controller manager.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -160,10 +148,10 @@ func main() {
 	base := utils.ReconcilerBase{
 		K8sClient:  mgr.GetClient(),
 		BaseLogger: ctrl.Log.WithName("controllers"),
-		Scheme:     mgr.GetScheme(),
-		CSClient:   client}
+		Scheme:     mgr.GetScheme()}
 
 	setupReconcilers(base, mgr)
+	infrav1b2.K8sClient = base.K8sClient
 
 	// +kubebuilder:scaffold:builder
 
@@ -178,15 +166,15 @@ func main() {
 	}
 
 	// Start the controller manager.
-	if err = (&infrav1.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1b2.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err = (&infrav1.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1b2.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachine")
 		os.Exit(1)
 	}
-	if err = (&infrav1.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1b2.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachineTemplate")
 		os.Exit(1)
 	}
@@ -203,10 +191,6 @@ func setupReconcilers(base utils.ReconcilerBase, mgr manager.Manager) {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err := (&controllers.CloudStackZoneReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "CloudStackZone")
-		os.Exit(1)
-	}
 	if err := (&controllers.CloudStackMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
 		os.Exit(1)
@@ -221,6 +205,10 @@ func setupReconcilers(base utils.ReconcilerBase, mgr manager.Manager) {
 	}
 	if err := (&controllers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackAffinityGroup")
+		os.Exit(1)
+	}
+	if err := (&controllers.CloudStackFailureDomainReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudStackFailureDomain")
 		os.Exit(1)
 	}
 }

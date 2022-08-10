@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 )
 
 var _ = Describe("AffinityGroup Unit Tests", func() {
@@ -55,8 +55,6 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 	})
 	It("creates an affinity group", func() {
-		dummies.SetDummyDomainAndAccount()
-		dummies.SetDummyDomainID()
 		ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(nil, -1, errors.New("FakeError"))
 		ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
 			Return(&cloudstack.CreateAffinityGroupParams{})
@@ -74,12 +72,11 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		})
 
 		It("Associates an affinity group.", func() {
-			Ω(client.ResolveZone(dummies.CSZone1)).Should(Succeed())
-			dummies.CSMachine1.Status.ZoneID = dummies.CSZone1.Spec.ID
+			Ω(client.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(Succeed())
 			dummies.CSMachine1.Spec.DiskOffering.Name = ""
 
 			Ω(client.GetOrCreateVMInstance(
-				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSZone1, dummies.CSAffinityGroup, "",
+				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "",
 			)).Should(Succeed())
 
 			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())

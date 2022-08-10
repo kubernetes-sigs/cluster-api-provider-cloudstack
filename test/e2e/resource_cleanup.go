@@ -56,7 +56,8 @@ func ResourceCleanupSpec(ctx context.Context, inputGetter func() CommonSpecInput
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 
-		exists, err := CheckNetworkExists(networkName)
+		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+		exists, err := CheckNetworkExists(csClient, networkName)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 	})
@@ -82,7 +83,8 @@ func ResourceCleanupSpec(ctx context.Context, inputGetter func() CommonSpecInput
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
-		exists, err := CheckNetworkExists(networkName)
+		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+		exists, err := CheckNetworkExists(csClient, networkName)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
 
@@ -93,7 +95,8 @@ func ResourceCleanupSpec(ctx context.Context, inputGetter func() CommonSpecInput
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
-		exists, err := CheckNetworkExists(networkName)
+		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+		exists, err := CheckNetworkExists(csClient, networkName)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 	})

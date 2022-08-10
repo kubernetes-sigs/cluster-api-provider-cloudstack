@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 

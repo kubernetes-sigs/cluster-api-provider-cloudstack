@@ -29,15 +29,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 )
 
 // RBAC permissions used in all reconcilers. Events and Secrets.
 // "" empty string as the api group indicates core kubernetes objects. "*" indicates all objects.
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=configmaps;,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
 // RBAC permissions for CloudStackCluster.
@@ -49,8 +50,8 @@ import (
 // CloudStackClusterReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackClusters.
 // The runner does the actual reconciliation.
 type CloudStackClusterReconciliationRunner struct {
-	csCtrlrUtils.ReconciliationRunner
-	Zones                 *infrav1.CloudStackZoneList
+	*csCtrlrUtils.ReconciliationRunner
+	FailureDomains        *infrav1.CloudStackFailureDomainList
 	ReconciliationSubject *infrav1.CloudStackCluster
 }
 
@@ -64,9 +65,9 @@ type CloudStackClusterReconciler struct {
 func NewCSClusterReconciliationRunner() *CloudStackClusterReconciliationRunner {
 	// Set concrete type and init pointers.
 	r := &CloudStackClusterReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackCluster{}}
-	r.Zones = &infrav1.CloudStackZoneList{}
+	r.FailureDomains = &infrav1.CloudStackFailureDomainList{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject, "CloudStackCluster")
 	// For the CloudStackCluster, the ReconciliationSubject is the CSCluster
 	// Have to do after or the setup method will overwrite the link.
 	r.CSCluster = r.ReconciliationSubject
@@ -86,12 +87,11 @@ func (reconciler *CloudStackClusterReconciler) Reconcile(ctx context.Context, re
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
-		r.RequeueIfMissingBaseCRs,
-		r.CreateZones(r.ReconciliationSubject.Spec.Zones),
-		r.CheckOwnedCRDsForReadiness(infrav1.GroupVersion.WithKind("CloudStackZone")),
-		r.GetZones(r.Zones),
-		r.VerifyZoneCRDs,
-		r.SetFailureDomains,
+		r.SetFailureDomainsStatusMap,
+		r.CreateFailureDomains(r.ReconciliationSubject.Spec.FailureDomains),
+		r.GetFailureDomains(r.FailureDomains),
+		r.RemoveExtraneousFailureDomains(r.FailureDomains),
+		r.VerifyFailureDomainCRDs,
 		r.SetReady)
 }
 
@@ -102,26 +102,34 @@ func (r *CloudStackClusterReconciliationRunner) SetReady() (ctrl.Result, error) 
 	return ctrl.Result{}, nil
 }
 
-// CheckZoneDetails verifies the Zone CRDs found match against those requested.
-func (r *CloudStackClusterReconciliationRunner) VerifyZoneCRDs() (ctrl.Result, error) {
-	expected := len(r.ReconciliationSubject.Spec.Zones)
-	actual := len(r.Zones.Items)
-	if expected != actual {
-		return r.RequeueWithMessage(fmt.Sprintf("Expected %d Zones, but found %d", expected, actual))
-	}
-	for _, zone := range r.Zones.Items {
-		if !zone.Status.Ready {
-			return r.RequeueWithMessage(fmt.Sprintf("Zone %s/%s not ready, requeueing.", zone.Namespace, zone.Name))
+// VerifyFailureDomainCRDs verifies the FailureDomains found match against those requested.
+func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.Result, error) {
+	// Check that all required failure domains are present and ready.
+	for _, requiredFd := range r.ReconciliationSubject.Spec.FailureDomains {
+		found := false
+		for _, fd := range r.FailureDomains.Items {
+			requiredFDName := csCtrlrUtils.WithClusterSuffix(requiredFd.Name, r.CAPICluster.Name)
+			if requiredFDName == fd.Name {
+				found = true
+				if !fd.Status.Ready {
+					return r.RequeueWithMessage(fmt.Sprintf("Required FailureDomain %s not ready, requeueing.", fd.Name))
+				}
+				break
+			}
+		}
+		if !found {
+			return r.RequeueWithMessage(fmt.Sprintf("Required FailureDomain %s not found, requeueing.", requiredFd.Name))
 		}
 	}
 	return ctrl.Result{}, nil
 }
 
-// SetFailureDomains sets failure domains to be used for CAPI machine placement.
-func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result, error) {
-	r.ReconciliationSubject.Status.FailureDomains = capiv1.FailureDomains{}
-	for _, zone := range r.Zones.Items {
-		r.ReconciliationSubject.Status.FailureDomains[zone.Spec.ID] = capiv1.FailureDomainSpec{ControlPlane: true}
+// SetFailureDomainsStatusMap sets failure domains in CloudStackCluster status to be used for CAPI machine placement.
+func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ctrl.Result, error) {
+	r.ReconciliationSubject.Status.FailureDomains = clusterv1.FailureDomains{}
+	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
+		fdSpec.Name = csCtrlrUtils.WithClusterSuffix(fdSpec.Name, r.CAPICluster.Name)
+		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{ControlPlane: true}
 	}
 	return ctrl.Result{}, nil
 }
@@ -129,16 +137,16 @@ func (r *CloudStackClusterReconciliationRunner) SetFailureDomains() (ctrl.Result
 // ReconcileDelete cleans up resources used by the cluster and finally removes the CloudStackCluster's finalizers.
 func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
 	r.Log.Info("Deleting CloudStackCluster.")
-	if res, err := r.GetZones(r.Zones)(); r.ShouldReturn(res, err) {
+	if res, err := r.GetFailureDomains(r.FailureDomains)(); r.ShouldReturn(res, err) {
 		return res, err
 	}
-	if len(r.Zones.Items) > 0 {
-		for idx := range r.Zones.Items {
-			if err := r.K8sClient.Delete(r.RequestCtx, &r.Zones.Items[idx]); err != nil {
+	if len(r.FailureDomains.Items) > 0 {
+		for idx := range r.FailureDomains.Items {
+			if err := r.K8sClient.Delete(r.RequestCtx, &r.FailureDomains.Items[idx]); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
-		return r.RequeueWithMessage("Child Zones still present, requeueing.")
+		return r.RequeueWithMessage("Child FailureDomains still present, requeueing.")
 	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
 	return ctrl.Result{}, nil
@@ -176,13 +184,13 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
 	err = controller.Watch(
-		&source.Kind{Type: &capiv1.Cluster{}},
+		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(
 			util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*capiv1.Cluster)
-				newCluster := e.ObjectNew.(*capiv1.Cluster)
+				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
+				newCluster := e.ObjectNew.(*clusterv1.Cluster)
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool { return false },
