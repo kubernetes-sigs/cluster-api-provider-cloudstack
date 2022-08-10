@@ -22,7 +22,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	conv "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -120,7 +119,7 @@ func GetFailureDomains(csCluster *CloudStackCluster) ([]v1beta2.CloudStackFailur
 // When upgrading cluster using clusterctl directly, zoneID is fetched directly from kubernetes cluster in cloudstackzones.
 func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID string, zoneName string) (string, error) {
 	if len(zoneID) > 0 {
-		return WithZoneID(zoneID, clusterName), nil
+		return zoneID, nil
 	}
 
 	secret, err := GetK8sSecret(DefaultEndpointCredential, namespace)
@@ -131,18 +130,14 @@ func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID st
 	// try fetch zoneID using zoneName through cloudstack client
 	zoneID, err = fetchZoneIDUsingCloudStack(secret, zoneName)
 	if err == nil {
-		return WithZoneID(zoneID, clusterName), nil
+		return zoneID, nil
 	}
 
 	zoneID, err = fetchZoneIDUsingK8s(namespace, zoneName)
 	if err != nil {
 		return "", nil
 	}
-	return WithZoneID(zoneID, clusterName), nil
-}
-
-func WithZoneID(zoneID, clusterName string) string {
-	return utils.WithClusterSuffix(zoneID[len(zoneID)-8:], clusterName)
+	return zoneID, nil
 }
 
 func fetchZoneIDUsingK8s(namespace string, zoneName string) (string, error) {

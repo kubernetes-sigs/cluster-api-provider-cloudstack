@@ -131,7 +131,7 @@ func ValidateFailureDomainUpdates(oldFDs, newFDs []CloudStackFailureDomainSpec) 
 		}
 	}
 	if !atLeastOneRemains {
-		return field.Forbidden(field.NewPath("spec", "FailureDomains"), "At least one FailureDomain must be unchanged on udpate.")
+		return field.Forbidden(field.NewPath("spec", "FailureDomains"), "At least one FailureDomain must be unchanged on update.")
 	}
 	return nil
 }

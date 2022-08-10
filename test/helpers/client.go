@@ -19,7 +19,7 @@ type CSConf struct {
 type Config struct {
 	ApiVersion string            `yaml:"apiVersion"`
 	Kind       string            `yaml:"kind"`
-	Tind       string            `yaml:"type"`
+	Type       string            `yaml:"type"`
 	Metadata   map[string]string `yaml:"metadata"`
 	StringData CSConf            `yaml:"stringData"`
 }
