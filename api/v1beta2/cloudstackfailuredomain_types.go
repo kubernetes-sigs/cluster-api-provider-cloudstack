@@ -81,8 +81,9 @@ type CloudStackFailureDomainSpec struct {
 	// CloudStack domain.
 	// +optional
 	Domain string `json:"domain,omitempty"`
+
 	// Apache CloudStack Endpoint secret reference.
-	ACSEndpoint corev1.SecretReference `json:"acsendpoint"`
+	ACSEndpoint corev1.SecretReference `json:"acsEndpoint"`
 }
 
 // CloudStackFailureDomainStatus defines the observed state of CloudStackFailureDomain
