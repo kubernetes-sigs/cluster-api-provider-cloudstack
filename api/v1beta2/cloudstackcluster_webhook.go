@@ -59,7 +59,7 @@ func (r *CloudStackCluster) ValidateCreate() error {
 	var errorList field.ErrorList
 
 	// Require FailureDomains and their respective sub-fields.
-	if len(r.Spec.FailureDomains) <= 0 {
+	if len(r.Spec.FailureDomains) == 0 {
 		errorList = append(errorList, field.Required(field.NewPath("spec", "FailureDomains"), "FailureDomains"))
 	} else {
 		for _, fdSpec := range r.Spec.FailureDomains { // Require failureDomain names meet k8s qualified name spec.
