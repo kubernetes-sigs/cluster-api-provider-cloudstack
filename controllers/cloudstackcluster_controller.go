@@ -105,7 +105,6 @@ func (r *CloudStackClusterReconciliationRunner) SetReady() (ctrl.Result, error) 
 // VerifyFailureDomainCRDs verifies the FailureDomains found match against those requested.
 func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.Result, error) {
 	// Check that all required failure domains are present and ready.
-	fmt.Println(r.ReconciliationSubject.Spec.FailureDomains)
 	for _, requiredFdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
 		found := false
 		for _, fd := range r.FailureDomains.Items {
