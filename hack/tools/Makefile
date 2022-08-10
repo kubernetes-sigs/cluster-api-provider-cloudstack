@@ -67,6 +67,22 @@ CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 $(CONVERSION_GEN): $(BIN_DIR) go.mod go.sum
 	go build -tags=tools -o $@ k8s.io/code-generator/cmd/conversion-gen
 
+GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
+$(GOLANGCI_LINT): $(BIN_DIR) go.mod go.sum # Build golangci-lint from tools folder.
+	go build -tags=tools -o $@ github.com/golangci/golangci-lint/cmd/golangci-lint
+
+STATIC_CHECK := $(BIN_DIR)/staticcheck
+$(STATIC_CHECK): $(BIN_DIR) go.mod go.sum # Build staticcheck from tools folder.
+	go build -tags=tools -o $@ honnef.co/go/tools/cmd/staticcheck
+
+GINKGO_V1 := $(BIN_DIR)/ginkgo_v1
+$(GINKGO_V1): $(BIN_DIR) go.mod go.sum # Build staticcheck from tools folder.
+	go build -tags=tools -o $@ github.com/onsi/ginkgo/ginkgo
+
+GINKGO_V2 := $(BIN_DIR)/ginkgo_v2
+$(GINKGO_V2): $(BIN_DIR) go.mod go.sum # Build staticcheck from tools folder.
+	go build -tags=tools -o $@ github.com/onsi/ginkgo/v2/ginkgo
+
 ENVSUBST := $(BIN_DIR)/envsubst
 $(ENVSUBST): $(BIN_DIR) go.mod go.sum # Build envsubst from tools folder.
 	go build -tags=tools -o $@ github.com/a8m/envsubst/cmd/envsubst

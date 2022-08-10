@@ -10,9 +10,9 @@ import (
 )
 
 func NewCSClient() (*cloudstack.CloudStackClient, error) {
-	projDir := os.Getenv("PROJECT_DIR")
+	repoRoot := os.Getenv("REPO_ROOT")
 	conf := cloud.Config{}
-	ccPath := projDir + "/cloud-config"
+	ccPath := repoRoot + "/cloud-config"
 	if rawCfg, err := ini.Load(ccPath); err != nil {
 		return nil, errors.Wrapf(err, "reading config at path %s:", ccPath)
 	} else if g := rawCfg.Section(cloud.GLOBAL); len(g.Keys()) == 0 {

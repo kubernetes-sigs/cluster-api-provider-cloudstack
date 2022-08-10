@@ -106,10 +106,10 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 
-	projectDir := os.Getenv("PROJECT_DIR")
+	repoRoot := os.Getenv("REPO_ROOT")
 
 	// Add ginkgo recover statements to controllers.
-	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--add")
+	cmd := exec.Command(repoRoot+"/hack/testing_ginkgo_recover_statements.sh", "--add")
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		fmt.Println(errors.Wrapf(err, "adding gingko statements"))
@@ -125,11 +125,11 @@ var _ = BeforeSuite(func() {
 	By("bootstrapping test environment")
 
 	crdPaths := []string{
-		filepath.Join(projectDir, "config", "crd", "bases"),
+		filepath.Join(repoRoot, "config", "crd", "bases"),
 	}
 
 	// Append CAPI CRDs path
-	if capiPath := getFilePathToCAPICRDs(projectDir); capiPath != "" {
+	if capiPath := getFilePathToCAPICRDs(repoRoot); capiPath != "" {
 		crdPaths = append(crdPaths, capiPath)
 	}
 
@@ -181,9 +181,9 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	projectDir := os.Getenv("PROJECT_DIR")
+	repoRoot := os.Getenv("REPO_ROOT")
 	// Add ginkgo recover statements to controllers.
-	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--remove")
+	cmd := exec.Command(repoRoot+"/hack/testing_ginkgo_recover_statements.sh", "--remove")
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		fmt.Println(errors.Wrapf(err, "cleaning up gingko statements"))
