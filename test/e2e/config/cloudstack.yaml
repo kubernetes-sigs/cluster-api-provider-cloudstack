@@ -74,6 +74,7 @@ providers:
     type: InfrastructureProvider
     files:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-complex-cluster.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-zone.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-account.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-domain.yaml"
@@ -106,8 +107,8 @@ providers:
             new: "--leader-elect\n        - --metrics-bind-addr=:8080"
 
 variables:
-  KUBERNETES_VERSION_MANAGEMENT: "v1.20.10"
-  KUBERNETES_VERSION: "v1.20.10"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.21.5"
+  KUBERNETES_VERSION: "v1.21.5"
   CNI: "./data/cni/kindnet.yaml"
   IP_FAMILY: "IPv4"
   NODE_DRAIN_TIMEOUT: "60s"
@@ -115,7 +116,12 @@ variables:
   CLOUDSTACK_FD1_NAME: "fd1"
   CLOUDSTACK_FD1_SECRET_NAME: "secret1"
   CLOUDSTACK_FD1_SECRET_NAMESPACE: "default"
-  CLOUDSTACK_ZONE_NAME: zone1
+  CLOUDSTACK_FD2_NAME: "fd2"
+  CLOUDSTACK_FD2_SECRET_NAME: "secret2"
+  CLOUDSTACK_FD2_SECRET_NAMESPACE: "default"
+  CLOUDSTACK_ZONE_NAME: Zone2
+  CLOUDSTACK_ZONE1_NAME: Zone2
+  CLOUDSTACK_ZONE2_NAME: Zone4
   CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
   CLOUDSTACK_INVALID_NETWORK_NAME: networkXXXX
   CLOUDSTACK_ACCOUNT_NAME: admin
@@ -124,15 +130,17 @@ variables:
   CLOUDSTACK_INVALID_DOMAIN_NAME: domainXXXX
   CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
   CLOUDSTACK_NEW_NETWORK_NAME: isolated-for-e2e-new
-  CLOUDSTACK_SHARED_NETWORK_NAME: Shared1
-  CLUSTER_ENDPOINT_IP: 172.16.2.199
-  CLUSTER_ENDPOINT_IP_2: 172.16.2.198
+  CLOUDSTACK_SHARED_NETWORK_NAME: SharedNet2
+  CLOUDSTACK_SHARED_NETWORK1_NAME: SharedNet2
+  CLOUDSTACK_SHARED_NETWORK2_NAME: SharedNet4
+  CLUSTER_ENDPOINT_IP: 10.11.100.200
+  CLUSTER_ENDPOINT_IP_2: 10.11.200.200
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
   CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING: "Impossible Instance"
   CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
   CLOUDSTACK_IMPOSSIBLE_WORKER_MACHINE_OFFERING: "Impossible Instance"
-  CLOUDSTACK_TEMPLATE_NAME: kube-v1.20.10/ubuntu-2004
+  CLOUDSTACK_TEMPLATE_NAME: rhel-8-kube-v1.21.5-new
   CLOUDSTACK_INVALID_TEMPLATE_NAME: templateXXXX
   CLOUDSTACK_SSH_KEY_NAME: CAPCKeyPair6
 
