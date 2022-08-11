@@ -301,12 +301,12 @@ spec:
                   to `no`. Can be `pro` or `anti`. Will create an affinity group per
                   machine set.
                 type: string
-              affinitygroupids:
+              affinityGroupIDs:
                 description: Optional affinitygroupids for deployVirtualMachine
                 items:
                   type: string
                 type: array
-              cloudstackaffinityref:
+              cloudstackAffinityRef:
                 description: Mutually exclusive parameter with AffinityGroupIDs. Is
                   a reference to a CloudStack affinity group CRD.
                 properties:

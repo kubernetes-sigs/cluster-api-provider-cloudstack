@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
-	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -87,9 +86,7 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
 		r.RequeueIfCloudStackClusterNotReady,
 		r.SetFailureDomainOnCSMachine,
-		r.GetObjectByName("placeholder", r.FailureDomain,
-			func() string { return r.ReconciliationSubject.Spec.FailureDomainName }),
-		r.CheckPresent(map[string]client.Object{"CloudStackFailureDomain": r.FailureDomain}),
+		r.GetFailureDomainByName(func() string { return r.ReconciliationSubject.Spec.FailureDomainName }, r.FailureDomain),
 		r.AsFailureDomainUser(&r.FailureDomain.Spec))
 	return r.RunBaseReconciliationStages()
 }
@@ -146,9 +143,6 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 		} else { // Not a control plane machine. Place randomly.
 			randNum := (rand.Int() % len(r.CSCluster.Spec.FailureDomains)) // #nosec G404 -- weak crypt rand doesn't matter here.
 			name = r.CSCluster.Spec.FailureDomains[randNum].Name
-		}
-		if !strings.HasSuffix(name, "-"+r.CAPICluster.Name) { // Add cluster name suffix if missing.
-			name = name + "-" + r.CAPICluster.Name
 		}
 		r.ReconciliationSubject.Spec.FailureDomainName = name
 		r.ReconciliationSubject.Labels[infrav1.FailureDomainLabelName] = r.ReconciliationSubject.Spec.FailureDomainName

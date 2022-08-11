@@ -20,7 +20,6 @@ import (
 	"context"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
@@ -60,9 +59,7 @@ func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Conte
 	r := NewCSAGReconciliationRunner()
 	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
 	r.WithAdditionalCommonStages(
-		r.GetObjectByName("placeholder", r.FailureDomain,
-			func() string { return r.ReconciliationSubject.Spec.FailureDomainName }),
-		r.CheckPresent(map[string]client.Object{"CloudStackFailureDomain": r.FailureDomain}),
+		r.GetFailureDomainByName(func() string { return r.ReconciliationSubject.Spec.FailureDomainName }, r.FailureDomain),
 		r.AsFailureDomainUser(&r.FailureDomain.Spec))
 	return r.RunBaseReconciliationStages()
 }

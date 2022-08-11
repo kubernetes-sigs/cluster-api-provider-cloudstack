@@ -41,7 +41,7 @@ spec:
               account:
                 description: CloudStack account.
                 type: string
-              acsendpoint:
+              acsEndpoint:
                 description: Apache CloudStack Endpoint secret reference.
                 properties:
                   name:
@@ -89,7 +89,7 @@ spec:
                 - network
                 type: object
             required:
-            - acsendpoint
+            - acsEndpoint
             - name
             - zone
             type: object

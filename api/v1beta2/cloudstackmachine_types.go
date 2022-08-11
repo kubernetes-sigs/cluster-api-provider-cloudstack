@@ -63,7 +63,7 @@ type CloudStackMachineSpec struct {
 
 	// Optional affinitygroupids for deployVirtualMachine
 	// +optional
-	AffinityGroupIDs []string `json:"affinitygroupids,omitempty"`
+	AffinityGroupIDs []string `json:"affinityGroupIDs,omitempty"`
 
 	// Mutually exclusive parameter with AffinityGroupIDs.
 	// Defaults to `no`. Can be `pro` or `anti`. Will create an affinity group per machine set.
@@ -73,7 +73,7 @@ type CloudStackMachineSpec struct {
 	// Mutually exclusive parameter with AffinityGroupIDs.
 	// Is a reference to a CloudStack affinity group CRD.
 	// +optional
-	AffinityGroupRef *corev1.ObjectReference `json:"cloudstackaffinityref,omitempty"`
+	AffinityGroupRef *corev1.ObjectReference `json:"cloudstackAffinityRef,omitempty"`
 
 	// The CS specific unique identifier. Of the form: fmt.Sprintf("cloudstack:///%s", CS Machine ID)
 	// +optional

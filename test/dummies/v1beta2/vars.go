@@ -253,7 +253,7 @@ func SetDummyCAPCClusterVars() {
 			APIVersion: CSApiVersion,
 			Kind:       "CloudStackFailureDomain"},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "fd1",
+			Name:      infrav1.FailureDomainHashedMetaName("fd1", ClusterName),
 			Namespace: "default",
 			UID:       "0",
 			Labels:    ClusterLabel},
@@ -266,7 +266,7 @@ func SetDummyCAPCClusterVars() {
 			APIVersion: CSApiVersion,
 			Kind:       "CloudStackFailureDomain"},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "fd2",
+			Name:      infrav1.FailureDomainHashedMetaName("fd2", ClusterName),
 			Namespace: "default",
 			UID:       "0",
 			Labels:    ClusterLabel},

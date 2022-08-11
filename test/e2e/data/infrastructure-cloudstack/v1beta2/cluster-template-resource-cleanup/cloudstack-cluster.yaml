@@ -4,7 +4,7 @@ metadata:
   name: ${CLUSTER_NAME}
 spec:
   failureDomains:
-  - acsendpoint:
+  - acsEndpoint:
       name: ${CLOUDSTACK_FD1_SECRET_NAME}
       namespace: default
     name: ${CLOUDSTACK_FD1_NAME}
