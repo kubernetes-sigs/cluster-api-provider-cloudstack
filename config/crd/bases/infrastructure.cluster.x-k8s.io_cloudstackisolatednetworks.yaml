@@ -119,8 +119,8 @@ spec:
                 - port
                 type: object
               failureDomainName:
-                description: FailureDomain -- the FailureDomain the network is placed
-                  in.
+                description: FailureDomainName -- the FailureDomain the network is
+                  placed in.
                 type: string
               id:
                 description: ID.
