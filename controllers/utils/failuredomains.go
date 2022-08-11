@@ -71,7 +71,7 @@ func (r *ReconciliationRunner) GetFailureDomains(fds *infrav1.CloudStackFailureD
 	}
 }
 
-// GetFailureDomainByName gets a singel FailureDomain by name and requeues if it's not found.
+// GetFailureDomainByName gets a single FailureDomain by name and requeues if it's not found.
 func (r *ReconciliationRunner) GetFailureDomainByName(nameFunc func() string, fd *infrav1.CloudStackFailureDomain) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		metaHashName := infrav1.FailureDomainHashedMetaName(nameFunc(), r.CAPICluster.Name)
