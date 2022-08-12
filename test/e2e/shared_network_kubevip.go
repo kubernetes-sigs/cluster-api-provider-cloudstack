@@ -57,6 +57,8 @@ func SharedNetworkKubevipSpec(ctx context.Context, inputGetter func() CommonSpec
 	})
 
 	It("Should successfully create a cluster with multiple CPs in a shared network", func() {
+		Skip("Complex cluster test covers this test case")
+
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

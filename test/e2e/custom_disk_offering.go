@@ -59,6 +59,8 @@ func CustomDiskOfferingSpec(ctx context.Context, inputGetter func() CommonSpecIn
 	})
 
 	It("Should successfully create a cluster with a custom disk offering", func() {
+		Skip("Complex cluster test covers this test case")
+
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

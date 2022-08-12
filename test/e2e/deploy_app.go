@@ -68,6 +68,8 @@ func DeployAppSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	})
 
 	It("Should be able to download an HTML from the app deployed to the workload cluster", func() {
+		Skip("Complex cluster test covers this test case")
+
 		By("Creating a workload cluster")
 
 		flavor := clusterctl.DefaultFlavor

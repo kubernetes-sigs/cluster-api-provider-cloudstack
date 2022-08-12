@@ -58,6 +58,8 @@ func DiskOfferingSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	})
 
 	It("Should successfully create a cluster with disk offering", func() {
+		Skip("Complex cluster test covers this test case")
+
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

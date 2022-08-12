@@ -58,6 +58,8 @@ func SubdomainSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	})
 
 	It("Should create a cluster in a subdomain", func() {
+		Skip("Complex cluster test covers this test case")
+
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:    input.BootstrapClusterProxy,
 			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
