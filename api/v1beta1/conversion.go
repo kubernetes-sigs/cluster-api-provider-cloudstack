@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	conv "k8s.io/apimachinery/pkg/conversion"
@@ -49,6 +50,9 @@ func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudSta
 
 //nolint:golint,revive,stylecheck
 func Convert_v1beta2_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta2.CloudStackCluster, out *CloudStackCluster, scope conv.Scope) error {
+	if len(in.Spec.FailureDomains) < 1 {
+		return fmt.Errorf("v1beta2 to v1beta1 conversion not supported when ")
+	}
 	out.ObjectMeta = in.ObjectMeta
 	out.Spec = CloudStackClusterSpec{
 		Account:              in.Spec.FailureDomains[0].Account,
