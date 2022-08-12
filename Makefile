@@ -224,7 +224,7 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
 
 ##@ End-to-End Testing
-CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/cluster-template* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
+CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/*/*.yaml test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
 CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)
 .PHONY: e2e-cluster-templates
 e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster template files for e2e testing.
