@@ -51,6 +51,8 @@ func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudSta
 func Convert_v1beta2_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta2.CloudStackCluster, out *CloudStackCluster, scope conv.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.Spec = CloudStackClusterSpec{
+		Account:              in.Spec.FailureDomains[0].Account,
+		Domain:               in.Spec.FailureDomains[0].Domain,
 		Zones:                getZones(in),
 		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
 	}
