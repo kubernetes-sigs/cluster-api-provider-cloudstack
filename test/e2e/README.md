@@ -33,14 +33,33 @@ The first step to running the e2e tests is setting up the required environment v
 | `CLOUDSTACK_TEMPLATE_NAME`                  | The machine template for both control plane and worke node VM instances          | `kube-v1.20.10/ubuntu-2004` |
 | `CLOUDSTACK_SSH_KEY_NAME`                   | The name of SSH key added to the VM instances                                    | `CAPCKeyPair6`              |
 
-You also have to export `CLOUDSTACK_B64ENCODED_SECRET` environment variable using this command `export CLOUDSTACK_B64ENCODED_SECRET=$(base64 -i cloud-config)` after creating `cloud-config` file with the following format.
+You also have to create `cloud-config.yaml` file with the following format to create K8S secrets.
 
 ```
-[Global]
-api-key    = XXXXX
-secret-key = XXXXX
-api-url    = http://192.168.1.96:8080/client/api
-verify-ssl = true or false
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret1
+  namespace: default
+type: Opaque
+stringData:
+  api-key: xxx
+  secret-key: xxx
+  api-url: http://10.11.0.1:8080/client/api
+  verify-ssl: "false"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret2
+  namespace: default
+type: Opaque
+stringData:
+  api-key: xxx
+  secret-key: xxx
+  api-url: http://10.11.0.2:8080/client/api
+  verify-ssl: "false"
+---
 ```
 
 The api-key and secret-key can be found or generated at Home > Accounts > admin > Users > admin of the ACS management UI. `verify-ssl` is an optional flag and its default value is true. CAPC skips verifying the host SSL certificates when the flag is set to false.

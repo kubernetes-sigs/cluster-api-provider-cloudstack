@@ -288,6 +288,10 @@ func CheckAffinityGroupsDeleted(client *cloudstack.CloudStackClient, affinityIds
 }
 
 func CheckAffinityGroup(client *cloudstack.CloudStackClient, clusterName string, affinityType string) []string {
+	return CheckAffinityGroupByMachineTypes(client, clusterName, affinityType, "*", false)
+}
+
+func CheckAffinityGroupByMachineTypes(client *cloudstack.CloudStackClient, clusterName string, affinityType string, machineType string, multiFailureDomains bool) []string {
 	By("Listing all machines")
 	p := client.VirtualMachine.NewListVirtualMachinesParams()
 	p.SetListall(true)
@@ -301,9 +305,9 @@ func CheckAffinityGroup(client *cloudstack.CloudStackClient, clusterName string,
 	affinityIds := []string{}
 
 	for _, vm := range listResp.VirtualMachines {
-		if strings.Contains(vm.Name, clusterName) {
+		if strings.Contains(vm.Name, clusterName) && (machineType == "*" || strings.Contains(vm.Name, machineType)) {
 			By(vm.Name + " is in host " + vm.Hostname + " (" + vm.Hostid + ")")
-			err := checkVMHostAssignments(vm, cpHostIdSet, mdHostIdSet, affinityType)
+			err := checkVMHostAssignments(vm, cpHostIdSet, mdHostIdSet, affinityType, multiFailureDomains)
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -359,16 +363,15 @@ func CreateCloudStackClient(ctx context.Context, kubeConfigPath string) *cloudst
 	if apiURL == "" || apiKey == "" || secretKey == "" {
 		Fail(fmt.Sprintf("Invalid secret: %+v, %s, %s, %s", secret.Data, apiURL, apiKey, secretKey))
 	}
-	fmt.Sprintf("from secret: %s, %s, %s", apiURL, apiKey, secretKey)
 
 	return cloudstack.NewClient(apiURL, apiKey, secretKey, strings.ToLower(verifySSL) == "true")
 }
 
-func checkVMHostAssignments(vm *cloudstack.VirtualMachine, cpHostIdSet map[string]bool, mdHostIdSet map[string]bool, affinityType string) error {
+func checkVMHostAssignments(vm *cloudstack.VirtualMachine, cpHostIdSet map[string]bool, mdHostIdSet map[string]bool, affinityType string, multiFailureDomains bool) error {
 	if strings.Contains(vm.Name, ControlPlaneIndicator) {
 		if len(cpHostIdSet) > 0 {
 			_, ok := cpHostIdSet[vm.Hostid]
-			if affinityType == "pro" && !ok {
+			if affinityType == "pro" && !ok && !multiFailureDomains {
 				return errors.New(vm.Name + " is deployed in a different host: " + vm.Hostname + " when affinity type is " + affinityType)
 			}
 			if affinityType == "anti" && ok {
@@ -380,7 +383,7 @@ func checkVMHostAssignments(vm *cloudstack.VirtualMachine, cpHostIdSet map[strin
 	if strings.Contains(vm.Name, MachineDeploymentIndicator) {
 		if len(mdHostIdSet) > 0 {
 			_, ok := mdHostIdSet[vm.Hostid]
-			if affinityType == "pro" && !ok {
+			if affinityType == "pro" && !ok && !multiFailureDomains {
 				return errors.New(vm.Name + " is deployed in a different host: " + vm.Hostname + " when affinity type is " + affinityType)
 			}
 			if affinityType == "anti" && ok {

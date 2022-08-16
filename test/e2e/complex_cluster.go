@@ -19,8 +19,10 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -46,6 +48,9 @@ func ComplexClusterSpec(ctx context.Context, inputGetter func() CommonSpecInput)
 		appPort                   = 8080
 		appDefaultHtmlPath        = "/"
 		expectedHtml              = ""
+		diskOfferingName          = "Custom"
+		volumeSize                = int64(1 * 1024 * 1024 * 1024)
+		affinityIds               []string
 	)
 
 	BeforeEach(func() {
@@ -96,9 +101,31 @@ func ComplexClusterSpec(ctx context.Context, inputGetter func() CommonSpecInput)
 		workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		workloadKubeconfigPath := workloadClusterProxy.GetKubeconfigPath()
 
+		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+		CheckDiskOfferingOfVmInstances(csClient, clusterResources.Cluster.Name, diskOfferingName)
+		CheckVolumeSizeofVmInstances(csClient, clusterResources.Cluster.Name, volumeSize)
+
+		antiAffinityIds := CheckAffinityGroupByMachineTypes(csClient, clusterResources.Cluster.Name, "anti", ControlPlaneIndicator, true)
+		affinityIds = append(affinityIds, antiAffinityIds...)
+
+		proAffinityIds := CheckAffinityGroupByMachineTypes(csClient, clusterResources.Cluster.Name, "pro", MachineDeploymentIndicator, true)
+		affinityIds = append(affinityIds, proAffinityIds...)
+
 		appManifestAbsolutePath, _ := filepath.Abs(appManifestPath)
-		Byf("Deploying a simple web server application to the workload cluster from %s", appManifestAbsolutePath)
-		Expect(DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx, workloadKubeconfigPath, appName, appManifestAbsolutePath, appDeploymentReadyTimeout)).To(Succeed())
+
+		var err error
+		for i := 0; i < 5; i++ {
+			Byf("#%d Deploying a simple web server application to the workload cluster from %s", i+1, appManifestAbsolutePath)
+			if err = DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx, workloadKubeconfigPath, appName, appManifestAbsolutePath, appDeploymentReadyTimeout); err == nil {
+				break
+			}
+			backOff := time.Duration(float64(time.Second) * math.Pow(2, float64(i)))
+			Byf("Failed to deploy an app with %s. Retrying after %s back-off", err.Error(), backOff.String())
+			time.Sleep(backOff)
+		}
+		if err != nil {
+			Fail("Fail to deploy an app: " + err.Error())
+		}
 
 		By("Downloading the default html of the web server")
 		actualHtml, err := DownloadFromAppInWorkloadCluster(ctx, workloadKubeconfigPath, appName, appPort, appDefaultHtmlPath)
@@ -124,5 +151,11 @@ func ComplexClusterSpec(ctx context.Context, inputGetter func() CommonSpecInput)
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+
+		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+		err := CheckAffinityGroupsDeleted(csClient, affinityIds)
+		if err != nil {
+			Fail(err.Error())
+		}
 	})
 }
