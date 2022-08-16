@@ -89,10 +89,7 @@ func SubdomainSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
-		err := CheckAffinityGroupsDeleted(csClient, affinityIds)
-		if err != nil {
-			Fail(err.Error())
-		}
+		CheckAffinityGroupsDeleted(csClient, affinityIds)
 		By("PASSED!")
 	})
 }

@@ -43,6 +43,7 @@ func DeployAppSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		appManifestPath           = "data/fixture/sample-application.yaml"
 		expectedHtmlPath          = "data/fixture/expected-webpage.html"
 		appDeploymentReadyTimeout = 180
+		appDeploymentRetries      = 5
 		appPort                   = 8080
 		appDefaultHtmlPath        = "/"
 		expectedHtml              = ""
@@ -104,7 +105,7 @@ func DeployAppSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 
 		appManifestAbsolutePath, _ := filepath.Abs(appManifestPath)
 		Byf("Deploying a simple web server application to the workload cluster from %s", appManifestAbsolutePath)
-		Expect(DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx, workloadKubeconfigPath, appName, appManifestAbsolutePath, appDeploymentReadyTimeout)).To(Succeed())
+		Expect(DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx, workloadKubeconfigPath, appName, appManifestAbsolutePath, appDeploymentReadyTimeout, appDeploymentRetries)).To(Succeed())
 
 		By("Downloading the default html of the web server")
 		actualHtml, err := DownloadFromAppInWorkloadCluster(ctx, workloadKubeconfigPath, appName, appPort, appDefaultHtmlPath)

@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
 	"time"
@@ -181,11 +182,20 @@ func GetK8sObject(ctx context.Context, resourceType, name, namespace, kubeconfig
 	return nil
 }
 
-func DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx context.Context, workloadKubeconfigPath string, appName string, appConfigLink string, timeout int) error {
+func DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx context.Context, workloadKubeconfigPath string, appName string, appConfigLink string, timeout int, retries int) error {
 	applyArgs := []string{
 		"-f", appConfigLink,
 	}
-	_, err := KubectlExec(ctx, "apply", workloadKubeconfigPath, applyArgs...)
+
+	var err error
+	for i := 0; i < retries; i++ {
+		if _, err = KubectlExec(ctx, "apply", workloadKubeconfigPath, applyArgs...); err == nil {
+			break
+		}
+		backOff := time.Duration(float64(time.Second) * math.Pow(2, float64(i)))
+		Byf("Failed to apply app yaml with %s. Retrying after %s back-off", err.Error(), backOff.String())
+		time.Sleep(backOff)
+	}
 	if err != nil {
 		return err
 	}
@@ -273,18 +283,30 @@ func DestroyOneMachine(client *cloudstack.CloudStackClient, clusterName string, 
 	}
 }
 
-func CheckAffinityGroupsDeleted(client *cloudstack.CloudStackClient, affinityIds []string) error {
+func CheckAffinityGroupsDeleted(client *cloudstack.CloudStackClient, affinityIds []string) {
 	if len(affinityIds) == 0 {
-		return errors.New("affinityIds are empty")
+		Fail("affinityIds are empty")
 	}
 
 	for _, affinityId := range affinityIds {
 		affinity, count, _ := client.AffinityGroup.GetAffinityGroupByID(affinityId)
 		if count > 0 {
-			return errors.New("Affinity group " + affinity.Name + " still exists")
+			Fail("Affinity group " + affinity.Name + " still exists")
 		}
 	}
-	return nil
+}
+
+func CheckVolumesDeleted(client *cloudstack.CloudStackClient, volumeIds []string) {
+	if len(volumeIds) == 0 {
+		Fail("volumeIds are empty")
+	}
+
+	for _, volumeId := range volumeIds {
+		volume, count, _ := client.Volume.GetVolumeByID(volumeId)
+		if count > 0 {
+			Fail("Volume " + volume.Name + " still exists with " + volume.Status)
+		}
+	}
 }
 
 func CheckAffinityGroup(client *cloudstack.CloudStackClient, clusterName string, affinityType string) []string {
@@ -331,6 +353,24 @@ func CheckAffinityGroupByMachineTypes(client *cloudstack.CloudStackClient, clust
 		}
 	}
 	return affinityIds
+}
+
+func GetNumberOfDomainsAssignedToControlPlaneMachines(client *cloudstack.CloudStackClient, clusterName string) int {
+	By("Listing all machines")
+	p := client.VirtualMachine.NewListVirtualMachinesParams()
+	p.SetListall(true)
+	listResp, err := client.VirtualMachine.ListVirtualMachines(p)
+	if err != nil {
+		Fail("Failed to list machines: " + err.Error())
+	}
+	domainIdMap := map[string]bool{}
+
+	for _, vm := range listResp.VirtualMachines {
+		if strings.Contains(vm.Name, clusterName) && strings.Contains(vm.Name, ControlPlaneIndicator) {
+			domainIdMap[vm.Domainid] = true
+		}
+	}
+	return len(domainIdMap)
 }
 
 func CheckNetworkExists(client *cloudstack.CloudStackClient, networkName string) (bool, error) {
@@ -499,12 +539,13 @@ func CheckDiskOfferingOfVmInstances(client *cloudstack.CloudStackClient, cluster
 		}
 	}
 }
-func CheckVolumeSizeofVmInstances(client *cloudstack.CloudStackClient, clusterName string, volumeSize int64) {
+func CheckVolumeSizeofVmInstances(client *cloudstack.CloudStackClient, clusterName string, volumeSize int64) []string {
 	Byf("Listing machines with %q", clusterName)
 	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
 	if err != nil {
 		Fail("Failed to list machines: " + err.Error())
 	}
+	volumeIds := []string{}
 	for _, vm := range listResp.VirtualMachines {
 		if strings.Contains(vm.Name, clusterName) {
 			p := client.Volume.NewListVolumesParams()
@@ -521,10 +562,12 @@ func CheckVolumeSizeofVmInstances(client *cloudstack.CloudStackClient, clusterNa
 					}
 					isVolumeSizeChecked = true
 				}
+				volumeIds = append(volumeIds, vol.Id)
 			}
 			if !isVolumeSizeChecked {
 				Fail(fmt.Sprintf("Could not find any volumes with a prefix %s", DataVolumePrefix))
 			}
 		}
 	}
+	return volumeIds
 }
