@@ -21,10 +21,10 @@ patchesStrategicMerge:
 - patches/webhook_in_cloudstackmachines.yaml
 - patches/webhook_in_cloudstackmachinetemplates.yaml
 - patches/webhook_in_cloudstackisolatednetworks.yaml
-- patches/webhook_in_cloudstackzones.yaml
+# - patches/webhook_in_cloudstackzones.yaml
 - patches/webhook_in_cloudstackaffinitygroups.yaml
 - patches/webhook_in_cloudstackmachinestatecheckers.yaml
-- patches/webhook_in_cloudstackfailuredomains.yaml
+# - patches/webhook_in_cloudstackfailuredomains.yaml
 #+kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # patches here are for enabling the CA injection for each CRD

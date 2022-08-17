@@ -33,16 +33,6 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
-	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroup)(nil), (*v1beta2.CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(a.(*CloudStackAffinityGroup), b.(*v1beta2.CloudStackAffinityGroup), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.CloudStackAffinityGroup)(nil), (*CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(a.(*v1beta2.CloudStackAffinityGroup), b.(*CloudStackAffinityGroup), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroupList)(nil), (*v1beta2.CloudStackAffinityGroupList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_CloudStackAffinityGroupList_To_v1beta2_CloudStackAffinityGroupList(a.(*CloudStackAffinityGroupList), b.(*v1beta2.CloudStackAffinityGroupList), scope)
 	}); err != nil {
@@ -50,26 +40,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.CloudStackAffinityGroupList)(nil), (*CloudStackAffinityGroupList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(a.(*v1beta2.CloudStackAffinityGroupList), b.(*CloudStackAffinityGroupList), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroupSpec)(nil), (*v1beta2.CloudStackAffinityGroupSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta2_CloudStackAffinityGroupSpec(a.(*CloudStackAffinityGroupSpec), b.(*v1beta2.CloudStackAffinityGroupSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.CloudStackAffinityGroupSpec)(nil), (*CloudStackAffinityGroupSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(a.(*v1beta2.CloudStackAffinityGroupSpec), b.(*CloudStackAffinityGroupSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroupStatus)(nil), (*v1beta2.CloudStackAffinityGroupStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta2_CloudStackAffinityGroupStatus(a.(*CloudStackAffinityGroupStatus), b.(*v1beta2.CloudStackAffinityGroupStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.CloudStackAffinityGroupStatus)(nil), (*CloudStackAffinityGroupStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(a.(*v1beta2.CloudStackAffinityGroupStatus), b.(*CloudStackAffinityGroupStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -273,8 +243,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*CloudStackAffinityGroup)(nil), (*v1beta2.CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(a.(*CloudStackAffinityGroup), b.(*v1beta2.CloudStackAffinityGroup), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*CloudStackCluster)(nil), (*v1beta2.CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(a.(*CloudStackCluster), b.(*v1beta2.CloudStackCluster), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.CloudStackAffinityGroup)(nil), (*CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(a.(*v1beta2.CloudStackAffinityGroup), b.(*CloudStackAffinityGroup), scope)
 	}); err != nil {
 		return err
 	}
@@ -284,38 +264,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 		return err
 	}
 	return nil
-}
-
-func autoConvert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(in *CloudStackAffinityGroup, out *v1beta2.CloudStackAffinityGroup, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta2_CloudStackAffinityGroupSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta2_CloudStackAffinityGroupStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(in *CloudStackAffinityGroup, out *v1beta2.CloudStackAffinityGroup, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(in, out, s)
-}
-
-func autoConvert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in *v1beta2.CloudStackAffinityGroup, out *CloudStackAffinityGroup, s conversion.Scope) error {
-	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta2_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta2_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(&in.Status, &out.Status, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup is an autogenerated conversion function.
-func Convert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in *v1beta2.CloudStackAffinityGroup, out *CloudStackAffinityGroup, s conversion.Scope) error {
-	return autoConvert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in, out, s)
 }
 
 func autoConvert_v1beta1_CloudStackAffinityGroupList_To_v1beta2_CloudStackAffinityGroupList(in *CloudStackAffinityGroupList, out *v1beta2.CloudStackAffinityGroupList, s conversion.Scope) error {
@@ -358,51 +306,6 @@ func autoConvert_v1beta2_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffini
 // Convert_v1beta2_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList is an autogenerated conversion function.
 func Convert_v1beta2_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(in *v1beta2.CloudStackAffinityGroupList, out *CloudStackAffinityGroupList, s conversion.Scope) error {
 	return autoConvert_v1beta2_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(in, out, s)
-}
-
-func autoConvert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta2_CloudStackAffinityGroupSpec(in *CloudStackAffinityGroupSpec, out *v1beta2.CloudStackAffinityGroupSpec, s conversion.Scope) error {
-	out.Type = in.Type
-	out.Name = in.Name
-	out.ID = in.ID
-	return nil
-}
-
-// Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta2_CloudStackAffinityGroupSpec is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta2_CloudStackAffinityGroupSpec(in *CloudStackAffinityGroupSpec, out *v1beta2.CloudStackAffinityGroupSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta2_CloudStackAffinityGroupSpec(in, out, s)
-}
-
-func autoConvert_v1beta2_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in *v1beta2.CloudStackAffinityGroupSpec, out *CloudStackAffinityGroupSpec, s conversion.Scope) error {
-	out.Type = in.Type
-	out.Name = in.Name
-	out.ID = in.ID
-	// INFO: in.FailureDomainName opted out of conversion generation
-	return nil
-}
-
-// Convert_v1beta2_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec is an autogenerated conversion function.
-func Convert_v1beta2_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in *v1beta2.CloudStackAffinityGroupSpec, out *CloudStackAffinityGroupSpec, s conversion.Scope) error {
-	return autoConvert_v1beta2_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in, out, s)
-}
-
-func autoConvert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta2_CloudStackAffinityGroupStatus(in *CloudStackAffinityGroupStatus, out *v1beta2.CloudStackAffinityGroupStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	return nil
-}
-
-// Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta2_CloudStackAffinityGroupStatus is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta2_CloudStackAffinityGroupStatus(in *CloudStackAffinityGroupStatus, out *v1beta2.CloudStackAffinityGroupStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta2_CloudStackAffinityGroupStatus(in, out, s)
-}
-
-func autoConvert_v1beta2_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(in *v1beta2.CloudStackAffinityGroupStatus, out *CloudStackAffinityGroupStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	return nil
-}
-
-// Convert_v1beta2_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus is an autogenerated conversion function.
-func Convert_v1beta2_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(in *v1beta2.CloudStackAffinityGroupStatus, out *CloudStackAffinityGroupStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_CloudStackIsolatedNetwork_To_v1beta2_CloudStackIsolatedNetwork(in *CloudStackIsolatedNetwork, out *v1beta2.CloudStackIsolatedNetwork, s conversion.Scope) error {
