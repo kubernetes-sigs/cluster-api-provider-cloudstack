@@ -127,7 +127,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (ctrl.Re
 // and requeus until all CloudStack machines are cleared from the FailureDomain.
 func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Result, error) {
 	machines := &infrav1.CloudStackMachineList{}
-	if err := r.K8sClient.List(r.RequestCtx, machines, client.MatchingLabels{infrav1.FailureDomainLabelName: r.ReconciliationSubject.Name}); err != nil {
+	if err := r.K8sClient.List(r.RequestCtx, machines, client.MatchingLabels{infrav1.FailureDomainLabelName: r.ReconciliationSubject.Spec.Name}); err != nil {
 		return ctrl.Result{}, err
 	}
 	// Deleted CAPI machines for CloudStack machines found.
