@@ -24,7 +24,6 @@ const (
 	AffinityGroupFinalizer = "affinitygroup.infrastructure.cluster.x-k8s.io"
 )
 
-//+k8s:conversion-gen=false
 // CloudStackAffinityGroupSpec defines the desired state of CloudStackAffinityGroup
 type CloudStackAffinityGroupSpec struct {
 	// Mutually exclusive parameter with AffinityGroupIDs.
@@ -39,7 +38,6 @@ type CloudStackAffinityGroupSpec struct {
 	ID string `json:"id,omitempty"`
 }
 
-//+k8s:conversion-gen=false
 // CloudStackAffinityGroupStatus defines the observed state of CloudStackAffinityGroup
 type CloudStackAffinityGroupStatus struct {
 	// Reflects the readiness of the CS Affinity Group.
@@ -48,7 +46,7 @@ type CloudStackAffinityGroupStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+k8s:conversion-gen=false
+
 // CloudStackAffinityGroup is the Schema for the cloudstackaffinitygroups API
 type CloudStackAffinityGroup struct {
 	metav1.TypeMeta   `json:",inline"`
