@@ -145,7 +145,7 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 			name = r.CSCluster.Spec.FailureDomains[randNum].Name
 		}
 		r.ReconciliationSubject.Spec.FailureDomainName = name
-		r.ReconciliationSubject.Labels[infrav1.FailureDomainLabelName] = r.ReconciliationSubject.Spec.FailureDomainName
+		r.ReconciliationSubject.Labels[infrav1.FailureDomainLabelName] = infrav1.FailureDomainHashedMetaName(name, r.CAPICluster.Name)
 	}
 	return ctrl.Result{}, nil
 }
