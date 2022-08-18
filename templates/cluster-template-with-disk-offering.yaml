@@ -8,9 +8,9 @@ spec:
     pods:
       cidrBlocks:
         - 192.168.0.0/16
-    serviceDomain: cluster.local
+    serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: CloudStackCluster
     name: ${CLUSTER_NAME}
   controlPlaneRef:
@@ -18,37 +18,40 @@ spec:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: ${CLUSTER_NAME}-control-plane
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
   controlPlaneEndpoint:
     host: ${CLUSTER_ENDPOINT_IP}
-    port: ${CLUSTER_ENDPOINT_PORT}
-  zones:
-  - name : ${CLOUDSTACK_ZONE_NAME}
-    network: 
-      name: ${CLOUDSTACK_NETWORK_NAME}
+    port: ${CLUSTER_ENDPOINT_PORT=6443}
+  failureDomains:
+    - name: ${CLOUDSTACK_FD1_NAME=failure-domain-1}
+      acsEndpoint:
+        name: ${CLOUDSTACK_FD1_SECRET_NAME}
+        namespace: default
+      zone:
+        name :  ${CLOUDSTACK_ZONE_NAME}
+        network:
+          name: ${CLOUDSTACK_NETWORK_NAME}
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
   kubeadmConfigSpec:
-    clusterConfiguration:
-      imageRepository: k8s.gcr.io
     initConfiguration:
       nodeRegistration:
+        name: '{{ local_hostname }}'
         kubeletExtraArgs:
           provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
-        name: '{{ local_hostname }}'
     joinConfiguration:
       nodeRegistration:
+        name: '{{ local_hostname }}'
         kubeletExtraArgs:
           provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
-        name: '{{ local_hostname }}'
         ignorePreflightErrors:
           - DirAvailable--etc-kubernetes-manifests
     preKubeadmCommands:
@@ -72,22 +75,28 @@ spec:
         - ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
   machineTemplate:
     infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: CloudStackMachineTemplate
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       name: "${CLUSTER_NAME}-control-plane"
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
 spec:
   template:
     spec:
-      offering: 
+      offering:
         name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
-      template: 
+      diskOffering:
+        name: ${CLOUDSTACK_DISK_OFFERING_NAME}
+        mountPath: ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
+        device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
+        filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
+        label: ${CLOUDSTACK_DISK_OFFERING_LABEL}
+      template:
         name: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -101,28 +110,34 @@ spec:
     matchLabels: null
   template:
     spec:
+      clusterName: "${CLUSTER_NAME}"
+      version: "${KUBERNETES_VERSION}"
       bootstrap:
         configRef:
+          name: "${CLUSTER_NAME}-md-0"
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfigTemplate
-          name: "${CLUSTER_NAME}-md-0"
-      clusterName: "${CLUSTER_NAME}"
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: CloudStackMachineTemplate
-      version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
 spec:
   template:
     spec:
-      offering: 
+      offering:
         name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
-      template: 
+      diskOffering:
+        name: ${CLOUDSTACK_DISK_OFFERING_NAME}
+        mountPath: ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
+        device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
+        filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
+        label: ${CLOUDSTACK_DISK_OFFERING_LABEL}
+      template:
         name: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
@@ -134,9 +149,9 @@ spec:
     spec:
       joinConfiguration:
         nodeRegistration:
+          name: '{{ local_hostname }}'
           kubeletExtraArgs:
             provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
-          name: '{{ local_hostname }}'
       preKubeadmCommands:
         - swapoff -a
       diskSetup:
