@@ -19,8 +19,10 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-# Allow overriding release-manifest generation destination directory
-RELEASE_DIR ?= out
+# Allow overriding release-manifest generation destination directory, but otherwise set it based on most recent release
+# version and whether the local repository has been modified.
+RELEASE_VERSION=$(shell ./hack/release_ver.sh)
+RELEASE_DIR ?= infrastructure-cloudstack/$(RELEASE_VERSION)
 
 # Quiet Ginkgo for now.
 # The warnings are in regards to a future release.
@@ -223,8 +225,19 @@ cluster-api: ## Clone cluster-api repository for tilt use.
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
 
+cluster-api/clusterctl-settings.json: cluster-api
+	cp ./hack/clusterctl-settings.json cluster-api
+
+bin/clusterctl: cluster-api/clusterctl-settings.json
+	cd cluster-api && cmd/clusterctl/hack/create-local-repository.py
+
+.PHONY: clusterctl-config.yaml
+clusterctl-config.yaml:
+	RELEASE_VERSION=$(RELEASE_VERSION) envsubst < ./hack/clusterctl-setup/clusterctl-config-template.yaml > clusterctl-config.yaml
+
 ##@ End-to-End Testing
-CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/*/cluster-template* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
+CLUSTER_TEMPLATE_DIRECTORIES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/* -type d)
+CLUSTER_TEMPLATES_INPUT_FILES=$(shell find $(CLUSTER_TEMPLATE_DIRECTORIES) -type f)
 CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)
 .PHONY: e2e-cluster-templates
 e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster template files for e2e testing.

@@ -1,0 +1,5 @@
+# clusterctl-config.yaml is used to point to a CloudStack infrastructure manifest for development use with clusterctl.
+providers:
+ name: "cloudstack"
+ type: "InfrastructureProvider"
+ url: "/Users/rejoshed/code/cluster-api-provider-cloudstack/infrastructure-cloudstack/${RELEASE_VERSION}/infrastructure-components.yaml"
