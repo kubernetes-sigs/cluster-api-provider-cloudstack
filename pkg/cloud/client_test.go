@@ -34,7 +34,7 @@ type Global struct {
 	VerifySSL bool   `ini:"verify-ssl"`
 }
 
-var _ = Describe("Instance", func() {
+var _ = Describe("Client", func() {
 
 	var ()
 
@@ -50,7 +50,6 @@ var _ = Describe("Instance", func() {
 			// new client method. The parsing used here is more of a schema, and we don't need to test another library's
 			// abilities to parse said schema.
 			Skip("Dev test suite.")
-
 			// Create a real cloud client.
 			var connectionErr error
 			_, connectionErr = helpers.NewCSClient()
