@@ -34,7 +34,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate mockgen -destination=../mocks/mock_client.go -package=mocks sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud Client
+//go:generate ../../hack/tools/bin/mockgen -destination=../mocks/mock_client.go -package=mocks sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud Client
 
 type Client interface {
 	VMIface

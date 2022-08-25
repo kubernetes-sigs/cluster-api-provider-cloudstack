@@ -56,7 +56,7 @@ var _ = Describe("Instance", func() {
 			_, connectionErr = helpers.NewCSClient()
 			Ω(connectionErr).ShouldNot(HaveOccurred())
 
-			_, connectionErr = cloud.NewClientFromYamlPath(os.Getenv("PROJECT_DIR")+"/cloud-config.yaml", "myendpoint")
+			_, connectionErr = cloud.NewClientFromYamlPath(os.Getenv("REPO_ROOT")+"/cloud-config.yaml", "myendpoint")
 			Ω(connectionErr).ShouldNot(HaveOccurred())
 		})
 	})

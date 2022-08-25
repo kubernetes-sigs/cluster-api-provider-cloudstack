@@ -127,11 +127,11 @@ var (
 	AffinityGReconciler     *csReconcilers.CloudStackAffinityGroupReconciler
 )
 
-var projectDir = os.Getenv("PROJECT_DIR")
-
 var _ = BeforeSuite(func() {
+	repoRoot := os.Getenv("REPO_ROOT")
+
 	// Add ginkgo recover statements to controllers.
-	cmd := exec.Command(projectDir+"/hack/testing_ginkgo_recover_statements.sh", "--contains")
+	cmd := exec.Command(repoRoot+"/hack/testing_ginkgo_recover_statements.sh", "--contains")
 	cmd.Stdout = os.Stdout
 	if err := cmd.Run(); err != nil {
 		fmt.Println(errors.Wrapf(err, "refusing to run test suite without ginkgo recover statements present"))
@@ -173,10 +173,11 @@ func (m *MockCtrlrCloudClientImplementation) RegisterExtension(r *csCtrlrUtils.R
 }
 
 func SetupTestEnvironment() {
-	crdPaths := []string{filepath.Join(projectDir, "config", "crd", "bases")}
+	repoRoot := os.Getenv("REPO_ROOT")
+	crdPaths := []string{filepath.Join(repoRoot, "config", "crd", "bases")}
 
 	// Append CAPI CRDs path
-	if capiPath := getFilePathToCAPICRDs(projectDir); capiPath != "" {
+	if capiPath := getFilePathToCAPICRDs(repoRoot); capiPath != "" {
 		crdPaths = append(crdPaths, capiPath)
 	}
 	testEnv = &envtest.Environment{
