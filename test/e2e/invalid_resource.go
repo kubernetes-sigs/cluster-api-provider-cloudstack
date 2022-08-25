@@ -101,7 +101,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 	})
 
 	It("Should fail due to the public IP can not be found", func() {
-		testInvalidResource(ctx, input, "invalid-public-ip", "no public addresses found in available networks")
+		testInvalidResource(ctx, input, "invalid-ip", "no public addresses found in available networks")
 	})
 
 	Context("When starting with a healthy cluster", func() {
