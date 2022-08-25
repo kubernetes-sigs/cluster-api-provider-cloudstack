@@ -18,10 +18,9 @@ package e2e
 
 import (
 	"context"
-	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -31,11 +30,11 @@ import (
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo"
-	"gopkg.in/ini.v1"
 	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"k8s.io/apimachinery/pkg/runtime"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -47,19 +46,18 @@ import (
 
 // Test suite constants for e2e config variables.
 const (
-	KubernetesVersionManagement  = "KUBERNETES_VERSION_MANAGEMENT"
-	KubernetesVersion            = "KUBERNETES_VERSION"
-	CNIPath                      = "CNI"
-	CNIResources                 = "CNI_RESOURCES"
-	IPFamily                     = "IP_FAMILY"
-	InvalidZoneName              = "CLOUDSTACK_INVALID_ZONE_NAME"
-	InvalidDiskOfferingName      = "CLOUDSTACK_INVALID_DISK_OFFERING_NAME"
-	InvalidNetworkName           = "CLOUDSTACK_INVALID_NETWORK_NAME"
-	InvalidAccountName           = "CLOUDSTACK_INVALID_ACCOUNT_NAME"
-	InvalidDomainName            = "CLOUDSTACK_INVALID_DOMAIN_NAME"
-	InvalidTemplateName          = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
-	InvalidCPOfferingName        = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
-	ExtremelyLargeCPOfferingName = "CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING"
+	KubernetesVersionManagement = "KUBERNETES_VERSION_MANAGEMENT"
+	KubernetesVersion           = "KUBERNETES_VERSION"
+	CNIPath                     = "CNI"
+	CNIResources                = "CNI_RESOURCES"
+	IPFamily                    = "IP_FAMILY"
+	InvalidZoneName             = "CLOUDSTACK_INVALID_ZONE_NAME"
+	InvalidDiskOfferingName     = "CLOUDSTACK_INVALID_DISK_OFFERING_NAME"
+	InvalidNetworkName          = "CLOUDSTACK_INVALID_NETWORK_NAME"
+	InvalidAccountName          = "CLOUDSTACK_INVALID_ACCOUNT_NAME"
+	InvalidDomainName           = "CLOUDSTACK_INVALID_DOMAIN_NAME"
+	InvalidTemplateName         = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
+	InvalidCPOfferingName       = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
 )
 
 const (
@@ -167,6 +165,22 @@ func KubectlExec(ctx context.Context, command string, kubeconfigPath string, arg
 	return string(stdout), nil
 }
 
+func GetK8sObject(ctx context.Context, resourceType, name, namespace, kubeconfigPath string, obj runtime.Object) error {
+	getArgs := []string{"--ignore-not-found", "--namespace", namespace, resourceType, name, "-o", "json"}
+	stdOut, err := KubectlExec(ctx, "get", kubeconfigPath, getArgs...)
+	if err != nil {
+		return fmt.Errorf("getting %s/%s/%s with kubectl: %v", resourceType, namespace, name, err)
+	}
+	if len(stdOut) == 0 {
+		return fmt.Errorf("not found %s/%s/%s", resourceType, namespace, name)
+	}
+	if err = json.Unmarshal([]byte(stdOut), obj); err != nil {
+		return fmt.Errorf("parsing %s/%s/%s response: %v", resourceType, namespace, name, err)
+	}
+
+	return nil
+}
+
 func DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx context.Context, workloadKubeconfigPath string, appName string, appConfigLink string, timeout int) error {
 	applyArgs := []string{
 		"-f", appConfigLink,
@@ -231,15 +245,7 @@ func DownloadMetricsFromCAPCManager(ctx context.Context, bootstrapKubeconfigPath
 	return result, nil
 }
 
-type cloudConfig struct {
-	APIURL    string `ini:"api-url"`
-	APIKey    string `ini:"api-key"`
-	SecretKey string `ini:"secret-key"`
-	VerifySSL bool   `ini:"verify-ssl"`
-}
-
-func DestroyOneMachine(clusterName string, machineType string) {
-	client := createCloudStackClient()
+func DestroyOneMachine(client *cloudstack.CloudStackClient, clusterName string, machineType string) {
 	matcher := clusterName + "-" + machineType
 
 	Byf("Listing machines with %q", matcher)
@@ -267,12 +273,10 @@ func DestroyOneMachine(clusterName string, machineType string) {
 	}
 }
 
-func CheckAffinityGroupsDeleted(affinityIds []string) error {
+func CheckAffinityGroupsDeleted(client *cloudstack.CloudStackClient, affinityIds []string) error {
 	if len(affinityIds) == 0 {
 		return errors.New("affinityIds are empty")
 	}
-
-	client := createCloudStackClient()
 
 	for _, affinityId := range affinityIds {
 		affinity, count, _ := client.AffinityGroup.GetAffinityGroupByID(affinityId)
@@ -283,9 +287,7 @@ func CheckAffinityGroupsDeleted(affinityIds []string) error {
 	return nil
 }
 
-func CheckAffinityGroup(clusterName string, affinityType string) []string {
-	client := createCloudStackClient()
-
+func CheckAffinityGroup(client *cloudstack.CloudStackClient, clusterName string, affinityType string) []string {
 	By("Listing all machines")
 	p := client.VirtualMachine.NewListVirtualMachinesParams()
 	p.SetListall(true)
@@ -327,9 +329,7 @@ func CheckAffinityGroup(clusterName string, affinityType string) []string {
 	return affinityIds
 }
 
-func CheckNetworkExists(networkName string) (bool, error) {
-	client := createCloudStackClient()
-
+func CheckNetworkExists(client *cloudstack.CloudStackClient, networkName string) (bool, error) {
 	_, count, err := client.Network.GetNetworkByName(networkName)
 	if err != nil {
 		if strings.Contains(err.Error(), "No match found for") {
@@ -337,29 +337,31 @@ func CheckNetworkExists(networkName string) (bool, error) {
 		}
 		return false, err
 	} else if count > 1 {
-		return false, errors.New(fmt.Sprintf("Expected 0-1 Network with name %s, but got %d.", networkName, count))
+		return false, fmt.Errorf("Expected 0-1 Network with name %s, but got %d.", networkName, count)
 	}
 	return count == 1, nil
 }
 
-func createCloudStackClient() *cloudstack.CloudStackClient {
-	encodedSecret := os.Getenv("CLOUDSTACK_B64ENCODED_SECRET")
-	secret, err := base64.StdEncoding.DecodeString(encodedSecret)
-	if err != nil {
-		Fail("Failed to decode: " + err.Error())
-	}
-	cfg := &cloudConfig{VerifySSL: true}
-	if rawCfg, err := ini.Load(secret); err != nil {
-		Fail("Failed to load INI file: " + err.Error())
-	} else if g := rawCfg.Section("Global"); len(g.Keys()) == 0 {
-		Fail("Global section not found")
-	} else if err = rawCfg.Section("Global").StrictMapTo(cfg); err != nil {
-		Fail("Error encountered while parsing Global section")
+func CreateCloudStackClient(ctx context.Context, kubeConfigPath string) *cloudstack.CloudStackClient {
+	By("Getting a CloudStack client secret")
+	secret := &corev1.Secret{}
+	name := "secret1"
+	namepace := "default"
+	if err := GetK8sObject(ctx, "secret", name, namepace, kubeConfigPath, secret); err != nil {
+		Fail("Failed to get secret: " + err.Error())
 	}
 
 	By("Creating a CloudStack client")
-	client := cloudstack.NewAsyncClient(cfg.APIURL, cfg.APIKey, cfg.SecretKey, cfg.VerifySSL)
-	return client
+	apiURL := string(secret.Data["api-url"])
+	apiKey := string(secret.Data["api-key"])
+	secretKey := string(secret.Data["secret-key"])
+	verifySSL := string(secret.Data["verify-ssl"])
+	if apiURL == "" || apiKey == "" || secretKey == "" {
+		Fail(fmt.Sprintf("Invalid secret: %+v, %s, %s, %s", secret.Data, apiURL, apiKey, secretKey))
+	}
+	fmt.Sprintf("from secret: %s, %s, %s", apiURL, apiKey, secretKey)
+
+	return cloudstack.NewClient(apiURL, apiKey, secretKey, strings.ToLower(verifySSL) == "true")
 }
 
 func checkVMHostAssignments(vm *cloudstack.VirtualMachine, cpHostIdSet map[string]bool, mdHostIdSet map[string]bool, affinityType string) error {
@@ -398,7 +400,8 @@ func WaitForMachineRemediationAfterDestroy(ctx context.Context, proxy framework.
 	Byf("Current number of healthy %s is %d", machineMatcher, healthyMachineCount)
 
 	Byf("Destroying one %s", machineMatcher)
-	DestroyOneMachine(cluster.Name, machineMatcher)
+	csClient := CreateCloudStackClient(ctx, proxy.GetKubeconfigPath())
+	DestroyOneMachine(csClient, cluster.Name, machineMatcher)
 
 	Byf("Waiting for the destroyed %s to be unhealthy", machineMatcher)
 	WaitForHealthyMachineCount(ctx, mgmtClusterClient, workloadClusterClient, cluster, machineMatcher, healthyMachineCount-1, intervals)
@@ -481,9 +484,7 @@ func IsClusterReady(ctx context.Context, mgmtClient client.Client, cluster *clus
 	return c.Status.ControlPlaneReady && c.Status.InfrastructureReady
 }
 
-func CheckDiskOfferingOfVmInstances(clusterName string, diskOfferingName string) {
-	client := createCloudStackClient()
-
+func CheckDiskOfferingOfVmInstances(client *cloudstack.CloudStackClient, clusterName string, diskOfferingName string) {
 	Byf("Listing machines with %q", clusterName)
 	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
 	if err != nil {
@@ -495,9 +496,7 @@ func CheckDiskOfferingOfVmInstances(clusterName string, diskOfferingName string)
 		}
 	}
 }
-func CheckVolumeSizeofVmInstances(clusterName string, volumeSize int64) {
-	client := createCloudStackClient()
-
+func CheckVolumeSizeofVmInstances(client *cloudstack.CloudStackClient, clusterName string, volumeSize int64) {
 	Byf("Listing machines with %q", clusterName)
 	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
 	if err != nil {

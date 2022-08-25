@@ -69,7 +69,8 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
-		err := CheckAffinityGroupsDeleted(affinityIds)
+		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+		err := CheckAffinityGroupsDeleted(csClient, affinityIds)
 		if err != nil {
 			Fail(err.Error())
 		}
@@ -98,5 +99,6 @@ func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.N
 		WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 	}, clusterResources)
 
-	return CheckAffinityGroup(clusterResources.Cluster.Name, affinityType)
+	csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+	return CheckAffinityGroup(csClient, clusterResources.Cluster.Name, affinityType)
 }

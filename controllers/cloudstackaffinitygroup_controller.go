@@ -22,7 +22,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
@@ -35,8 +35,9 @@ import (
 
 // CloudStackAGReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack affinity group reconciliation.
 type CloudStackAGReconciliationRunner struct {
-	csCtrlrUtils.ReconciliationRunner
+	*csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackAffinityGroup
+	FailureDomain         *infrav1.CloudStackFailureDomain
 }
 
 // CloudStackAGReconciler is the base reconciler to adapt to k8s.
@@ -48,17 +49,19 @@ type CloudStackAffinityGroupReconciler struct {
 func NewCSAGReconciliationRunner() *CloudStackAGReconciliationRunner {
 	// Set concrete type and init pointers.
 	r := &CloudStackAGReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackAffinityGroup{}}
+	r.FailureDomain = &infrav1.CloudStackFailureDomain{}
 	// Setup the base runner. Initializes pointers and links reconciliation methods.
-	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject)
+	r.ReconciliationRunner = csCtrlrUtils.NewRunner(r, r.ReconciliationSubject, "CloudStackAffinityGroup")
 	return r
 }
 
 func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return NewCSAGReconciliationRunner().
-		UsingBaseReconciler(reconciler.ReconcilerBase).
-		ForRequest(req).
-		WithRequestCtx(ctx).
-		RunBaseReconciliationStages()
+	r := NewCSAGReconciliationRunner()
+	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
+	r.WithAdditionalCommonStages(
+		r.GetFailureDomainByName(func() string { return r.ReconciliationSubject.Spec.FailureDomainName }, r.FailureDomain),
+		r.AsFailureDomainUser(&r.FailureDomain.Spec))
+	return r.RunBaseReconciliationStages()
 }
 
 func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {

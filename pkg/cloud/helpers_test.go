@@ -22,8 +22,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path"
 	"reflect"
 
 	"github.com/golang/mock/gomock"
@@ -32,8 +30,6 @@ import (
 	"github.com/onsi/gomega/types"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
-
-var FixturePath = path.Join(os.Getenv("PROJECT_DIR"), "test/fixtures/cloud-config-files")
 
 var _ = Describe("Helpers", func() {
 
@@ -50,10 +46,6 @@ var _ = Describe("Helpers", func() {
 		Ω(string(result)).Should(Equal(str))
 	})
 })
-
-func getConfigPath(filename string) string {
-	return path.Join(FixturePath, filename)
-}
 
 // This matcher is used to make gomega matching compatible with gomock parameter matching.
 // It's pretty awesome!
@@ -90,7 +82,7 @@ func (p paramMatcher) Matches(x interface{}) (retVal bool) {
 //      p := &CreateNewSomethingParams{Domainid: "FakeDomainID"}
 //      Ω(p).DomainIDEquals("FakeDomainID")
 func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
-	return (func(expected string) types.GomegaMatcher {
+	return func(expected string) types.GomegaMatcher {
 		return WithTransform(
 			func(x interface{}) string {
 				meth := reflect.ValueOf(x).MethodByName(fetchFunc)
@@ -98,7 +90,7 @@ func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
 
 				return meth.Call(nil)[0].String()
 			}, Equal(expected))
-	})
+	}
 }
 
 var (

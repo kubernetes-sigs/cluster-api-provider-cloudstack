@@ -18,9 +18,6 @@ package v1beta1_test
 
 import (
 	"context"
-	"crypto/tls"
-	"fmt"
-	"net"
 	"path/filepath"
 	"testing"
 	"time"
@@ -84,12 +81,6 @@ var _ = BeforeSuite(func() {
 	err = admissionv1beta1.AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = admissionv1beta1.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = admissionv1beta1.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-
 	//+kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme})
@@ -108,10 +99,6 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	Ω((&infrav1.CloudStackCluster{}).SetupWebhookWithManager(mgr)).Should(Succeed())
-	Ω((&infrav1.CloudStackMachine{}).SetupWebhookWithManager(mgr)).Should(Succeed())
-	Ω((&infrav1.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr)).Should(Succeed())
-
 	//+kubebuilder:scaffold:webhook
 
 	go func() {
@@ -119,19 +106,6 @@ var _ = BeforeSuite(func() {
 		err = mgr.Start(ctrl.SetupSignalHandler())
 		Expect(err).NotTo(HaveOccurred())
 	}()
-
-	// wait for the webhook server to get ready
-	dialer := &net.Dialer{Timeout: time.Second}
-	addrPort := fmt.Sprintf("%s:%d", webhookInstallOptions.LocalServingHost, webhookInstallOptions.LocalServingPort)
-	Eventually(func() error {
-		conn, err := tls.DialWithDialer(dialer, "tcp", addrPort, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec //Used for testing only
-		if err != nil {
-			return err
-		}
-		conn.Close()
-		return nil
-	}).Should(Succeed())
-
 })
 
 var _ = AfterSuite(func() {

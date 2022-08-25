@@ -73,26 +73,27 @@ providers:
   - name: cloudstack
     type: InfrastructureProvider
     files:
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-zone.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-account.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-domain.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-template.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-cp-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-insufficient-compute-resources.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-node-drain.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-machine-remediation.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-affinity-group-pro.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-affinity-group-anti.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-resource-cleanup.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-second-cluster.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-shared-network-kubevip.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-disk-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-disk-offering-size-for-non-customized.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-invalid-disk-offering-size-for-customized.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-disk-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-custom-disk-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta1/cluster-template-subdomain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-zone.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-account.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-domain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-cp-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-insufficient-compute-resources.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-insufficient-compute-resources-for-upgrade.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-node-drain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-machine-remediation.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-affinity-group-pro.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-affinity-group-anti.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-resource-cleanup.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-second-cluster.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-shared-network-kubevip.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-disk-offering-size-for-non-customized.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-disk-offering-size-for-customized.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-custom-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-subdomain.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
       - name: v1.0.0
@@ -111,6 +112,9 @@ variables:
   IP_FAMILY: "IPv4"
   NODE_DRAIN_TIMEOUT: "60s"
 
+  CLOUDSTACK_FD1_NAME: "fd1"
+  CLOUDSTACK_FD1_SECRET_NAME: "secret1"
+  CLOUDSTACK_FD1_SECRET_NAMESPACE: "default"
   CLOUDSTACK_ZONE_NAME: zone1
   CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
   CLOUDSTACK_INVALID_NETWORK_NAME: networkXXXX
@@ -125,8 +129,9 @@ variables:
   CLUSTER_ENDPOINT_IP_2: 172.16.2.198
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
-  CLOUDSTACK_EXTREMELY_LARGE_CONTROL_PLANE_MACHINE_OFFERING: "Extremely Large Instance"
+  CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING: "Impossible Instance"
   CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
+  CLOUDSTACK_IMPOSSIBLE_WORKER_MACHINE_OFFERING: "Impossible Instance"
   CLOUDSTACK_TEMPLATE_NAME: kube-v1.20.10/ubuntu-2004
   CLOUDSTACK_INVALID_TEMPLATE_NAME: templateXXXX
   CLOUDSTACK_SSH_KEY_NAME: CAPCKeyPair6
