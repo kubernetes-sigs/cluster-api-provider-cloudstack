@@ -18,7 +18,7 @@ package cloud
 
 import (
 	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 )
 
 const (

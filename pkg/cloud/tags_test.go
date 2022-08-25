@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 )
 
 var _ = Describe("Tag Unit Tests", func() {

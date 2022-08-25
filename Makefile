@@ -164,6 +164,14 @@ config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
 	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 	@touch config/.flag.mk
 
+CONVERSION_GEN_TARGET=$(shell find api -type d -name "v*1" -exec echo {}\/zz_generated.conversion.go \;)
+CONVERSION_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_generated*" -prune -o -type f -print)
+.PHONY: generate-conversion
+generate-conversion: $(CONVERSION_GEN_TARGET) ## Generate code to convert api/v1beta1 to api/v1beta2
+api/%/zz_generated.conversion.go: bin/conversion-gen $(CONVERSION_GEN_INPUTS)
+	conversion-gen --go-header-file "./hack/boilerplate.go.txt" --input-dirs "./api/v1beta1" \
+	--output-base "." --output-file-base="zz_generated.conversion" --skip-unsafe=true
+
 ##@ Build
 ## --------------------------------------
 ## Build
@@ -183,7 +191,7 @@ $(BIN_DIR)/manager-linux-amd64: $(MANAGER_BIN_INPUTS)
     	-o $(BIN_DIR)/manager-linux-amd64 main.go
 
 .PHONY: run
-run: generate-deepcopy ## Run a controller from your host.
+run: generate-deepcopy generate-conversion ## Run a controller from your host.
 	go run ./main.go
 
 ##@ Deploy
@@ -208,7 +216,7 @@ undeploy: $(KUSTOMIZE) ## Undeploy controller from the K8s cluster specified in 
 # Using a flag file here as docker build doesn't produce a target file.
 DOCKER_BUILD_INPUTS=$(MANAGER_BIN_INPUTS) Dockerfile
 .PHONY: docker-build
-docker-build: generate-deepcopy build-for-docker .dockerflag.mk ## Build docker image containing the controller manager.
+docker-build: generate-deepcopy generate-conversion build-for-docker .dockerflag.mk ## Build docker image containing the controller manager.
 .dockerflag.mk: $(DOCKER_BUILD_INPUTS)
 	docker build -t ${IMG} .
 	@touch .dockerflag.mk
@@ -223,8 +231,8 @@ docker-push: .dockerflag.mk ## Push docker image with the manager.
 ## --------------------------------------
 
 .PHONY: tilt-up
-tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json generate-manifests cloud-config ## Setup and run tilt for development.
-	export CLOUDSTACK_B64ENCODED_SECRET=$$(base64 -w0 -i cloud-config 2>/dev/null || base64 -b 0 -i cloud-config) && cd cluster-api && tilt up
+tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests ## Setup and run tilt for development.
+	cd cluster-api && tilt up
 
 .PHONY: kind-cluster
 kind-cluster: cluster-api ## Create a kind cluster with a local Docker repository.
@@ -244,11 +252,12 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 export KUBEBUILDER_ASSETS=$(REPO_ROOT)/$(TOOLS_BIN_DIR)
 .PHONY: test
 test: generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) ## Run tests. At the moment this is only unit tests.
+	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 
-CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/*/cluster-template*/* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
+CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/*/cluster-template* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
 CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)
 .PHONY: e2e-cluster-templates
 e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster template files for e2e testing.
@@ -260,6 +269,7 @@ e2e-essentials: $(GINKGO_V1) e2e-cluster-templates kind-cluster ## Fulfill essen
 
 JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
+	kubectl apply -f cloud-config.yaml && \
 	cd test/e2e && \
 	$(REPO_ROOT)/$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
@@ -278,6 +288,7 @@ clean: ## Cleans up everything.
 	rm -rf bin
 	rm -rf $(TOOLS_BIN_DIR)
 	rm -rf cluster-api
+	rm -rf test/e2e/data/infrastructure-cloudstack/*/*yaml
 
 ##@ Release
 ## --------------------------------------

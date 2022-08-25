@@ -18,21 +18,22 @@ package cloud
 
 import (
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 )
 
 type VMIface interface {
-	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *capiv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackZone, *infrav1.CloudStackAffinityGroup, string) error
+	GetOrCreateVMInstance(*infrav1.CloudStackMachine, *clusterv1.Machine, *infrav1.CloudStackCluster, *infrav1.CloudStackFailureDomain, *infrav1.CloudStackAffinityGroup, string) error
 	ResolveVMInstanceDetails(*infrav1.CloudStackMachine) error
 	DestroyVMInstance(*infrav1.CloudStackMachine) error
 }
@@ -42,7 +43,7 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 	csMachine.Spec.ProviderID = pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
 	csMachine.Spec.InstanceID = pointer.StringPtr(vmResponse.Id)
 	csMachine.Status.Addresses = []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vmResponse.Ipaddress}}
-	newInstanceState := infrav1.InstanceState(vmResponse.State)
+	newInstanceState := vmResponse.State
 	if newInstanceState != csMachine.Status.InstanceState || (newInstanceState != "" && csMachine.Status.InstanceStateLastUpdated.IsZero()) {
 		csMachine.Status.InstanceState = newInstanceState
 		csMachine.Status.InstanceStateLastUpdated = metav1.Now()
@@ -207,9 +208,9 @@ func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOff
 // sets the infrastructure machine spec and status accordingly.
 func (c *client) GetOrCreateVMInstance(
 	csMachine *infrav1.CloudStackMachine,
-	capiMachine *capiv1.Machine,
+	capiMachine *clusterv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
-	zone *infrav1.CloudStackZone,
+	fd *infrav1.CloudStackFailureDomain,
 	affinity *infrav1.CloudStackAffinityGroup,
 	userData string) error {
 
@@ -223,7 +224,7 @@ func (c *client) GetOrCreateVMInstance(
 	if err != nil {
 		return err
 	}
-	templateID, err := c.ResolveTemplate(csCluster, csMachine, csMachine.Status.ZoneID)
+	templateID, err := c.ResolveTemplate(csCluster, csMachine, fd.Spec.Zone.ID)
 	if err != nil {
 		return err
 	}
@@ -233,8 +234,8 @@ func (c *client) GetOrCreateVMInstance(
 	}
 
 	// Create VM instance.
-	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, csMachine.Status.ZoneID)
-	p.SetNetworkids([]string{zone.Spec.Network.ID})
+	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, fd.Spec.Zone.ID)
+	p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
@@ -270,8 +271,8 @@ func (c *client) GetOrCreateVMInstance(
 		// can return it to the caller, so they can clean it up.
 		listVirtualMachineParams := c.cs.VirtualMachine.NewListVirtualMachinesParams()
 		listVirtualMachineParams.SetTemplateid(templateID)
-		listVirtualMachineParams.SetZoneid(csMachine.Status.ZoneID)
-		listVirtualMachineParams.SetNetworkid(zone.Spec.Network.ID)
+		listVirtualMachineParams.SetZoneid(fd.Spec.Zone.ID)
+		listVirtualMachineParams.SetNetworkid(fd.Spec.Zone.Network.ID)
 		listVirtualMachineParams.SetName(csMachine.Name)
 		if listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams); err2 == nil && listVirtualMachinesResponse.Count > 0 {
 			csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)

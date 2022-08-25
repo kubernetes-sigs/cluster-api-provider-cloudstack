@@ -17,9 +17,10 @@ limitations under the License.
 package v1beta1
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 const (
@@ -79,12 +80,14 @@ type CloudStackMachineSpec struct {
 	ProviderID *string `json:"providerID,omitempty"`
 
 	// Optionally settable Zone ID to land the machine in.
+	// +k8s:conversion-gen=false
 	ZoneID string `json:"zoneID,omitempty"`
 
+	// +k8s:conversion-gen=false
 	// Optionally settable Zone Name to land the machine in.
 	ZoneName string `json:"zoneName,omitempty"`
 
-	// IdentityRef is a reference to a identity to be used when reconciling this cluster
+	// IdentityRef is a reference to an identity to be used when reconciling this cluster
 	// +optional
 	// +k8s:conversion-gen=false
 	IdentityRef *CloudStackIdentityReference `json:"identityRef,omitempty"`
@@ -122,6 +125,7 @@ type InstanceState string
 type CloudStackMachineStatus struct {
 	// Zone ID is used so that the zone can be computed once per reconcile and then propagate.
 	// +optional
+	// +k8s:conversion-gen=false
 	ZoneID string `json:"zoneID,omitempty"`
 
 	// Addresses contains a CloudStack VM instance's IP addresses.
@@ -150,7 +154,6 @@ func (s *CloudStackMachineStatus) TimeSinceLastStateChange() time.Duration {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=cloudstackmachines,scope=Namespaced,categories=cluster-api,shortName=csm
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this CloudStackMachine belongs"
 // +kubebuilder:printcolumn:name="InstanceState",type="string",JSONPath=".status.instanceState",description="CloudStack instance state"
