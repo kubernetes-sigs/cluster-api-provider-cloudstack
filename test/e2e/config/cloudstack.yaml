@@ -95,6 +95,8 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-custom-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-subdomain.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-ip.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-kubernetes-version-upgrade-before.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-kubernetes-version-upgrade-after.yaml"
       - sourcePath: "../data/shared/v1beta1_provider/metadata.yaml"
     versions:
       - name: v1.0.0
@@ -107,8 +109,10 @@ providers:
             new: "--leader-elect\n        - --metrics-bind-addr=:8080"
 
 variables:
-  KUBERNETES_VERSION_MANAGEMENT: "v1.20.10"
-  KUBERNETES_VERSION: "v1.20.10"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.25.3"
+  KUBERNETES_VERSION: "v1.22.6"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.22.6"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.23.3"
   CNI: "./data/cni/kindnet.yaml"
   IP_FAMILY: "IPv4"
   NODE_DRAIN_TIMEOUT: "60s"
@@ -134,7 +138,9 @@ variables:
   CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING: "Impossible Instance"
   CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
   CLOUDSTACK_IMPOSSIBLE_WORKER_MACHINE_OFFERING: "Impossible Instance"
-  CLOUDSTACK_TEMPLATE_NAME: kube-v1.20.10/ubuntu-2004
+  CLOUDSTACK_TEMPLATE_NAME: ubuntu-2004-kube-v1.22.6-kvm
+  CLOUDSTACK_UPGRADE_FROM_TEMPLATE_NAME: ubuntu-2004-kube-v1.22.6-kvm
+  CLOUDSTACK_UPGRADE_TO_TEMPLATE_NAME: ubuntu-2004-kube-v1.23.3-kvm
   CLOUDSTACK_INVALID_TEMPLATE_NAME: templateXXXX
   CLOUDSTACK_SSH_KEY_NAME: CAPCKeyPair6
 
