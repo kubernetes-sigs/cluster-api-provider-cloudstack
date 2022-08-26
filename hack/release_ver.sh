@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -eu
+set -o pipefail
 
 LATEST_RELEASE_TAG=$(git tag -l "v*" | tail -n 1)
 COMMITS_SINCE_RELEASE=$([[ $(git rev-list -n 1 $LATEST_RELEASE_TAG) == $(git rev-parse HEAD) ]]; echo $?)
