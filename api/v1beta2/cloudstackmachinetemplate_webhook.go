@@ -17,11 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
-	"fmt"
-	"reflect"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/webhookutil"
@@ -79,30 +76,7 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
-	cloudstackmachinetemplatelog.V(1).Info("entered validate update webhook", "api resource name", r.Name)
-
-	oldMachineTemplate, ok := old.(*CloudStackMachineTemplate)
-	if !ok {
-		return errors.NewBadRequest(fmt.Sprintf("expected a CloudStackMachineTemplate but got a %T", old))
-	}
-
-	// CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
-	spec := r.Spec.Spec.Spec
-	oldSpec := oldMachineTemplate.Spec.Spec.Spec
-
-	errorList := field.ErrorList(nil)
-	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.Offering.ID, spec.Offering.Name, oldSpec.Offering.ID, oldSpec.Offering.Name, "offering", errorList)
-	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.DiskOffering.ID, spec.DiskOffering.Name, oldSpec.DiskOffering.ID, oldSpec.DiskOffering.Name, "diskOffering", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
-	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.Template.ID, spec.Template.Name, oldSpec.Template.ID, oldSpec.Template.Name, "template", errorList)
-	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&spec.Details, &oldSpec.Details, "details", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Affinity, oldSpec.Affinity, "affinity", errorList)
-
-	if !reflect.DeepEqual(spec.AffinityGroupIDs, oldSpec.AffinityGroupIDs) { // Equivalent to other Ensure funcs.
-		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"), "AffinityGroupIDs"))
-	}
-
-	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return r.ValidateCreate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type

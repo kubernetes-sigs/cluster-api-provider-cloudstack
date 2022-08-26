@@ -48,8 +48,9 @@ func TestCloud(t *testing.T) {
 			realCSClient, connectionErr = helpers.NewCSClient()
 			Ω(connectionErr).ShouldNot(HaveOccurred())
 
+			repoRoot := os.Getenv("REPO_ROOT")
 			realCloudClient, connectionErr = cloud.NewClientFromYamlPath(
-				os.Getenv("PROJECT_DIR")+"/cloud-config.yaml", "myendpoint")
+				repoRoot+"/cloud-config.yaml", "myendpoint")
 			Ω(connectionErr).ShouldNot(HaveOccurred())
 
 			// Create a real CloudStack client.

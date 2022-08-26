@@ -43,7 +43,7 @@ func UnmarshalAllConfigs(in []byte, out *[]Config) error {
 
 // NewCSClient creates a CloudStack-Go client from the cloud-config file.
 func NewCSClient() (*cloudstack.CloudStackClient, error) {
-	content, err := os.ReadFile(os.Getenv("PROJECT_DIR") + "/cloud-config.yaml")
+	content, err := os.ReadFile(os.Getenv("REPO_ROOT") + "/cloud-config.yaml")
 	if err != nil {
 		return nil, err
 	}
