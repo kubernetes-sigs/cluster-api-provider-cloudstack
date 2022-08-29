@@ -253,13 +253,13 @@ func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *Cl
 		if ref.Kind == "MachineSet" {
 			r.Log.Info("Clear machine: getting machine deployment...")
 			md := &clusterv1.MachineDeployment{}
-			mdName, ok := r.ReconciliationSubject.Labels[clusterv1.MachineDeploymentLabelName]
+			mdName, ok := workerMachine.Labels[clusterv1.MachineDeploymentLabelName]
 			if !ok {
-				result, err := r.RequeueWithMessage("cloudstack machine misses label: " + clusterv1.MachineDeploymentLabelName)
+				result, err := r.RequeueWithMessage("cloudstack machine misses label: " + clusterv1.MachineDeploymentLabelName, "cloudstackmachine", r.ReconciliationSubject.Name)
 				return result, err
 			}
 			r.Log.Info(fmt.Sprintf("Clear machine: machine deployment name %s decided", mdName))
-			if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: r.ReconciliationSubject.Namespace, Name: mdName}, md); err != nil {
+			if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: workerMachine.Namespace, Name: mdName}, md); err != nil {
 				return ctrl.Result{}, err
 			}
 			r.Log.Info(fmt.Sprintf("Clear machine: machine deployment name %s retrieved", mdName))
@@ -310,11 +310,11 @@ func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudSt
 		if ref.Kind == "KubeadmControlPlane" {
 			r.Log.Info("Clear machine: getting kubeadmControlPlane...")
 			kcp := &controlplanev1.KubeadmControlPlane{}
-			if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: r.ReconciliationSubject.Namespace, Name: ref.Name}, kcp); err != nil {
+			if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: cpMachine.Namespace, Name: ref.Name}, kcp); err != nil {
 				return ctrl.Result{}, err
 			}
 			r.Log.Info(fmt.Sprintf("Clear machine: kubeadmControlPlane %s retrieved", ref.Name))
-			if kcp.Spec.RolloutAfter.IsZero() {
+			if kcp.Spec.RolloutAfter != nil {
 				kcp.Spec.RolloutAfter = &metav1.Time{Time: time.Now()}
 				patcher, err := patch.NewHelper(kcp, r.K8sClient)
 				if err != nil {
