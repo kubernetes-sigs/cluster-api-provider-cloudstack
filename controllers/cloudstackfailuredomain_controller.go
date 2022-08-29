@@ -269,6 +269,9 @@ func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *Cl
 				if err != nil {
 					return ctrl.Result{}, err
 				}
+				if md.Spec.Template.Annotations == nil {
+					md.Spec.Template.Annotations = map[string]string{}
+				}
 				md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"] = string(now)
 				patcher, err := patch.NewHelper(md, r.K8sClient)
 				if err != nil {
@@ -314,7 +317,7 @@ func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudSt
 				return ctrl.Result{}, err
 			}
 			r.Log.Info(fmt.Sprintf("Clear machine: kubeadmControlPlane %s retrieved", ref.Name))
-			if kcp.Spec.RolloutAfter != nil {
+			if kcp.Spec.RolloutAfter == nil {
 				kcp.Spec.RolloutAfter = &metav1.Time{Time: time.Now()}
 				patcher, err := patch.NewHelper(kcp, r.K8sClient)
 				if err != nil {
