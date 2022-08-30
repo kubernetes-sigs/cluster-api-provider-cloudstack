@@ -169,121 +169,112 @@ func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Resu
 }
 
 func triggerEtcdClusterRollout(machines []infrav1.CloudStackMachine, r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, error) {
-	var etcdMachine infrav1.CloudStackMachine
 	etcdMachineFound := false
 	for _, machine := range machines {
 		for _, ref := range machine.OwnerReferences {
 			if ref.Kind == "EtcdadmCluster" {
 				etcdMachineFound = true
-				etcdMachine = machine
-			}
-		}
-	}
-	if !etcdMachineFound {
-		r.Log.Info("Clear machine: no etcd VM found.")
-		return ctrl.Result{}, nil
-	}
-	for _, ref := range etcdMachine.OwnerReferences {
-		if ref.Kind == "EtcdadmCluster" {
-			r.Log.Info("Clear machine: getting etcdadmcluster ...")
-			etcdadmCluster := &unstructured.Unstructured{}
-			etcdadmCluster.SetGroupVersionKind(schema.FromAPIVersionAndKind(ref.APIVersion, ref.Kind))
-			if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: etcdMachine.Namespace, Name: ref.Name}, etcdadmCluster); err != nil {
-				return ctrl.Result{}, err
-			}
-			r.Log.Info("Clear machine: retrieved etcdadmcluster.")
-			csMachineTemplateName, ok := etcdMachine.Annotations["cluster.x-k8s.io/cloned-from-name"]
-			if !ok {
-				result, err := r.RequeueWithMessage("annotations['cluster.x-k8s.io/cloned-from-name'] not found.", "cloudstackmachine", etcdMachine.Name)
-				return result, err
-			}
-			r.Log.Info(fmt.Sprintf("Clear machine: machine template name %s decided", csMachineTemplateName))
-			csMachineTemplateNameInEtcdadmCluster, found, err := unstructured.NestedString(etcdadmCluster.Object, "spec", "infrastructureTemplate", "name")
-			if err != nil || !found {
-				return ctrl.Result{}, errors.New("etcdadmcluster spec.infrastructureTemplate.name not found or not string")
-			}
-			if csMachineTemplateName != csMachineTemplateNameInEtcdadmCluster {
-				return ctrl.Result{}, errors.Errorf("cloudstackmachinetemplate in machine %s and etcdadmcluster %s are different", etcdMachine.Name, ref.Name)
-			}
-			csMachineTemplate := &infrav1.CloudStackMachineTemplate{}
-			if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: etcdMachine.Namespace, Name: csMachineTemplateName}, csMachineTemplate); err != nil {
-				return ctrl.Result{}, err
-			}
-			r.Log.Info(fmt.Sprintf("Clear machine: machine template name %s retrieved", csMachineTemplateName))
-			csMachineTemplate.Name = fmt.Sprintf("%s-template-%d", ref.Name, time.Now().UnixNano()/int64(time.Millisecond))
-			csMachineTemplate.SetAnnotations(map[string]string{})
-			csMachineTemplate.SetResourceVersion("")
-			if err := r.K8sClient.Create(r.RequestCtx, csMachineTemplate); err != nil {
-				return ctrl.Result{}, err
-			}
-			r.Log.Info(fmt.Sprintf("Clear machine: new machine template name %s created", csMachineTemplate.Name))
+				// get etcdadmcluster by using machine's etcdadmcluster ownerReference
+				etcdadmCluster := &unstructured.Unstructured{}
+				etcdadmCluster.SetGroupVersionKind(schema.FromAPIVersionAndKind(ref.APIVersion, ref.Kind))
+				if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: machine.Namespace, Name: ref.Name}, etcdadmCluster); err != nil {
+					return ctrl.Result{}, err
+				}
 
-			if _, err := controllerutil.CreateOrPatch(r.RequestCtx, r.K8sClient, etcdadmCluster,
-				func() error {
-					return unstructured.SetNestedField(
-						etcdadmCluster.Object,
-						csMachineTemplate.Name,
-						"spec", "infrastructureTemplate", "name",
-					)
-				}); err != nil {
-				return ctrl.Result{}, err
+				// get cloudstack machine template by using machine's annotation info
+				csMachineTemplateName, ok := machine.Annotations["cluster.x-k8s.io/cloned-from-name"]
+				if !ok {
+					return r.RequeueWithMessage("annotations['cluster.x-k8s.io/cloned-from-name'] not found.", "cloudstackmachine", machine.Name)
+				}
+
+				// get cloudstack machine template configured in etcdadmcluster's spec.infrastructureTemplate
+				csMachineTemplateNameInEtcdadmCluster, found, err := unstructured.NestedString(etcdadmCluster.Object, "spec", "infrastructureTemplate", "name")
+				if err != nil || !found {
+					return ctrl.Result{}, errors.New("etcdadmcluster spec.infrastructureTemplate.name not found or not string")
+				}
+				if csMachineTemplateName != csMachineTemplateNameInEtcdadmCluster {
+					return ctrl.Result{}, errors.Errorf("cloudstackmachinetemplate in machine %s and etcdadmcluster %s are different", machine.Name, ref.Name)
+				}
+
+				// get cloudstack machine template from k8s
+				csMachineTemplate := &infrav1.CloudStackMachineTemplate{}
+				if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: machine.Namespace, Name: csMachineTemplateName}, csMachineTemplate); err != nil {
+					return ctrl.Result{}, err
+				}
+				// create a new cloudstack machine template, which will be referred by etcdadmcluster spec.infrastructureTemplate
+				csMachineTemplate.Name = fmt.Sprintf("%s-template-%d", ref.Name, time.Now().UnixNano()/int64(time.Millisecond))
+				csMachineTemplate.SetAnnotations(map[string]string{})
+				csMachineTemplate.SetResourceVersion("")
+				if err := r.K8sClient.Create(r.RequestCtx, csMachineTemplate); err != nil {
+					return ctrl.Result{}, err
+				}
+
+				// patch etcdadmcluster to refer newly created cloudstack machine template, which will trigger an etcdadmcluster rolling upgrade.
+				if _, err := controllerutil.CreateOrPatch(r.RequestCtx, r.K8sClient, etcdadmCluster,
+					func() error {
+						return unstructured.SetNestedField(
+							etcdadmCluster.Object,
+							csMachineTemplate.Name,
+							"spec", "infrastructureTemplate", "name",
+						)
+					}); err != nil {
+					return ctrl.Result{}, err
+				}
+				r.Log.Info(fmt.Sprintf("failuredomain delete: etcdadmcluster infrastructureTemplate cloudstackmachinetemplate name %s patched", csMachineTemplate.Name))
+				break
 			}
-			r.Log.Info(fmt.Sprintf("Clear machine: etcdadmcluster infrastructureTemplate cloudstackmachinetemplate name %s patched", csMachineTemplate.Name))
+		}
+		if etcdMachineFound {
+			break
 		}
 	}
+
 	return ctrl.Result{}, nil
 }
 
 func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, error) {
-	var workerMachine infrav1.CloudStackMachine
 	workerMachineFound := false
 	for _, machine := range machines {
 		for _, ref := range machine.OwnerReferences {
 			if ref.Kind == "MachineSet" {
 				workerMachineFound = true
-				workerMachine = machine
+
+				// get machine deployment by using cloudstack machine's label info
+				md := &clusterv1.MachineDeployment{}
+				mdName, ok := machine.Labels[clusterv1.MachineDeploymentLabelName]
+				if !ok {
+					return ctrl.Result{}, errors.Errorf("cloudstack machine %s misses label: %s", machine.Name, clusterv1.MachineDeploymentLabelName)
+				}
+
+				if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: machine.Namespace, Name: mdName}, md); err != nil {
+					return ctrl.Result{}, err
+				}
+
+				// add an annotation restartedAt in machine deployment if such one not already added
+				// this will trigger an immediate machine deployment rollout
+				_, ok = md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"]
+				if !ok {
+					if md.Spec.Template.Annotations == nil {
+						md.Spec.Template.Annotations = map[string]string{}
+					}
+					timeNowStr := time.Now().Format(time.RFC3339)
+					md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"] = timeNowStr
+					patcher, err := patch.NewHelper(md, r.K8sClient)
+					if err != nil {
+						return ctrl.Result{}, err
+					}
+					if err := patcher.Patch(r.RequestCtx, md); err != nil {
+						return ctrl.Result{}, err
+					}
+					r.Log.Info(fmt.Sprintf("failuredomain delete: machine deployment name %s add annotation restartedAt %s", mdName, timeNowStr))
+				} else {
+					r.Log.Info(fmt.Sprintf("failuredomain delete: machine deployment name %s already has restartedAt annotation, skip", mdName))
+				}
+				break
 			}
 		}
-	}
-	if !workerMachineFound {
-		r.Log.Info("Clear machine: no worker VM found.")
-		return ctrl.Result{}, nil
-	}
-	for _, ref := range workerMachine.OwnerReferences {
-		if ref.Kind == "MachineSet" {
-			r.Log.Info("Clear machine: getting machine deployment...")
-			md := &clusterv1.MachineDeployment{}
-			mdName, ok := workerMachine.Labels[clusterv1.MachineDeploymentLabelName]
-			if !ok {
-				result, err := r.RequeueWithMessage("cloudstack machine misses label: " + clusterv1.MachineDeploymentLabelName, "cloudstackmachine", r.ReconciliationSubject.Name)
-				return result, err
-			}
-			r.Log.Info(fmt.Sprintf("Clear machine: machine deployment name %s decided", mdName))
-			if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: workerMachine.Namespace, Name: mdName}, md); err != nil {
-				return ctrl.Result{}, err
-			}
-			r.Log.Info(fmt.Sprintf("Clear machine: machine deployment name %s retrieved", mdName))
-			_, ok = md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"]
-			if !ok {
-				now, err := metav1.Time{Time: time.Now()}.MarshalJSON()
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-				if md.Spec.Template.Annotations == nil {
-					md.Spec.Template.Annotations = map[string]string{}
-				}
-				md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"] = string(now)
-				patcher, err := patch.NewHelper(md, r.K8sClient)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-				if err := patcher.Patch(r.RequestCtx, md); err != nil {
-					return ctrl.Result{}, err
-				}
-				r.Log.Info(fmt.Sprintf("Clear machine: machine deployment name %s add annotation restartedAt %s", mdName, string(now)))
-			} else {
-				r.Log.Info(fmt.Sprintf("Clear machine: machine deployment name %s already has restartedAt annotation, skip", mdName))
-			}
+		if workerMachineFound {
+			break
 		}
 	}
 	return ctrl.Result{}, nil
@@ -291,12 +282,14 @@ func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *Cl
 
 func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, error) {
 	var cpMachine infrav1.CloudStackMachine
+	var ownerRef metav1.OwnerReference
 	cpMachineFound := false
 	for _, machine := range machines {
 		for _, ref := range machine.OwnerReferences {
 			if ref.Kind == "KubeadmControlPlane" {
 				cpMachineFound = true
 				cpMachine = machine
+				ownerRef = ref
 			}
 			// etcdadmcluster rollout will trigger control plane rollout automatically.
 			// if etcd VM exists, trigger etcdadmcluster rollout is enough, no need to trigger control plane VM rollout.
@@ -306,31 +299,28 @@ func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudSt
 		}
 	}
 	if !cpMachineFound {
-		r.Log.Info("Clear machine: no control plane VM found.")
 		return ctrl.Result{}, nil
 	}
-	for _, ref := range cpMachine.OwnerReferences {
-		if ref.Kind == "KubeadmControlPlane" {
-			r.Log.Info("Clear machine: getting kubeadmControlPlane...")
-			kcp := &controlplanev1.KubeadmControlPlane{}
-			if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: cpMachine.Namespace, Name: ref.Name}, kcp); err != nil {
-				return ctrl.Result{}, err
-			}
-			r.Log.Info(fmt.Sprintf("Clear machine: kubeadmControlPlane %s retrieved", ref.Name))
-			if kcp.Spec.RolloutAfter == nil {
-				kcp.Spec.RolloutAfter = &metav1.Time{Time: time.Now()}
-				patcher, err := patch.NewHelper(kcp, r.K8sClient)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
-				if err := patcher.Patch(r.RequestCtx, kcp); err != nil {
-					return ctrl.Result{}, err
-				}
-				r.Log.Info(fmt.Sprintf("Clear machine: kubeadmControlPlane %s rolloutAfter spec set %v", ref.Name, *kcp.Spec.RolloutAfter))
-			} else {
-				r.Log.Info(fmt.Sprintf("Clear machine: kubeadmControlPlane %s rolloutAfter already set, skip", ref.Name))
-			}
+
+	// get kcp (kubeadmcontrolplane) by using cloudstack machine's kubeadmControlPlane ownerReference
+	kcp := &controlplanev1.KubeadmControlPlane{}
+	if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: cpMachine.Namespace, Name: ownerRef.Name}, kcp); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// set kcp spec.RolloutAfter, this will trigger control plane rollout immediately
+	if kcp.Spec.RolloutAfter == nil {
+		kcp.Spec.RolloutAfter = &metav1.Time{Time: time.Now()}
+		patcher, err := patch.NewHelper(kcp, r.K8sClient)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
+		if err := patcher.Patch(r.RequestCtx, kcp); err != nil {
+			return ctrl.Result{}, err
+		}
+		r.Log.Info(fmt.Sprintf("failuredomain delete: kubeadmControlPlane %s rolloutAfter spec set %v", ownerRef.Name, *kcp.Spec.RolloutAfter))
+	} else {
+		r.Log.Info(fmt.Sprintf("failuredomain delete: kubeadmControlPlane %s rolloutAfter already set, skip", ownerRef.Name))
 	}
 	return ctrl.Result{}, nil
 }
