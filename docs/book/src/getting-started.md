@@ -27,7 +27,7 @@
        apiVersion: v1
        kind: Secret
        metadata:
-         name: cloudStackCredentials
+         name: cloudstack-credentials
          namespace: default
        type: Opaque
        stringData:
