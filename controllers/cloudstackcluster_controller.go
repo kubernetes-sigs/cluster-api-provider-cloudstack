@@ -130,7 +130,6 @@ func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ct
 		metaHashName := infrav1.FailureDomainHashedMetaName(fdSpec.Name, r.CAPICluster.Name)
 		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{
 			ControlPlane: true, Attributes: map[string]string{"MetaHashName": metaHashName}}
-		r.Log.Info("set failuredomain status", "name", fdSpec.Name)
 	}
 	return ctrl.Result{}, nil
 }

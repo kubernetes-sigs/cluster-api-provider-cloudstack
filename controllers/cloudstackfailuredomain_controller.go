@@ -140,7 +140,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Resu
 	if err := r.K8sClient.List(r.RequestCtx, machines, client.MatchingLabels{infrav1.FailureDomainLabelName: r.ReconciliationSubject.Name}); err != nil {
 		return ctrl.Result{}, err
 	}
-	r.Log.Info(fmt.Sprintf("Clear machine: %d found.", len(machines.Items)))
+	r.Log.Info(fmt.Sprintf("failuredomain delete: %d VM found in failuredomain.", len(machines.Items)))
 	if len(machines.Items) > 0 {
 		if result, err := checkClusterReady(r); err != nil {
 			return result, err
@@ -163,7 +163,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Resu
 	}
 
 	if len(machines.Items) > 0 {
-		return r.RequeueWithMessage("FailureDomain still has machine(s) in it.")
+		return r.RequeueWithMessage("failuredomain delete: FailureDomain still has machine(s) in it.", "failuredomain", r.ReconciliationSubject.Spec.Name)
 	}
 	return ctrl.Result{}, nil
 }
@@ -181,31 +181,13 @@ func triggerEtcdClusterRollout(machines []infrav1.CloudStackMachine, r *CloudSta
 					return ctrl.Result{}, err
 				}
 
-				// get cloudstack machine template by using machine's annotation info
-				csMachineTemplateName, ok := machine.Annotations["cluster.x-k8s.io/cloned-from-name"]
-				if !ok {
-					return r.RequeueWithMessage("annotations['cluster.x-k8s.io/cloned-from-name'] not found.", "cloudstackmachine", machine.Name)
-				}
-
-				// get cloudstack machine template configured in etcdadmcluster's spec.infrastructureTemplate
-				csMachineTemplateNameInEtcdadmCluster, found, err := unstructured.NestedString(etcdadmCluster.Object, "spec", "infrastructureTemplate", "name")
-				if err != nil || !found {
-					return ctrl.Result{}, errors.New("etcdadmcluster spec.infrastructureTemplate.name not found or not string")
-				}
-				if csMachineTemplateName != csMachineTemplateNameInEtcdadmCluster {
-					return ctrl.Result{}, errors.Errorf("cloudstackmachinetemplate in machine %s and etcdadmcluster %s are different", machine.Name, ref.Name)
-				}
-
-				// get cloudstack machine template from k8s
-				csMachineTemplate := &infrav1.CloudStackMachineTemplate{}
-				if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: machine.Namespace, Name: csMachineTemplateName}, csMachineTemplate); err != nil {
+				csMachineTemplateName, err := getCsMachineTemplateName(machine, etcdadmCluster, ref.Name)
+				if err != nil {
 					return ctrl.Result{}, err
 				}
-				// create a new cloudstack machine template, which will be referred by etcdadmcluster spec.infrastructureTemplate
-				csMachineTemplate.Name = fmt.Sprintf("%s-template-%d", ref.Name, time.Now().UnixNano()/int64(time.Millisecond))
-				csMachineTemplate.SetAnnotations(map[string]string{})
-				csMachineTemplate.SetResourceVersion("")
-				if err := r.K8sClient.Create(r.RequestCtx, csMachineTemplate); err != nil {
+
+				newCsMachineTemplateName, err := cloneCsMachineTemplateWithNewName(r, machine.Namespace, csMachineTemplateName, ref.Name)
+				if err != nil {
 					return ctrl.Result{}, err
 				}
 
@@ -214,13 +196,13 @@ func triggerEtcdClusterRollout(machines []infrav1.CloudStackMachine, r *CloudSta
 					func() error {
 						return unstructured.SetNestedField(
 							etcdadmCluster.Object,
-							csMachineTemplate.Name,
+							newCsMachineTemplateName,
 							"spec", "infrastructureTemplate", "name",
 						)
 					}); err != nil {
 					return ctrl.Result{}, err
 				}
-				r.Log.Info(fmt.Sprintf("failuredomain delete: etcdadmcluster infrastructureTemplate cloudstackmachinetemplate name %s patched", csMachineTemplate.Name))
+				r.Log.Info(fmt.Sprintf("failuredomain delete: etcdadmcluster infrastructureTemplate cloudstackmachinetemplate name %s patched", newCsMachineTemplateName))
 				break
 			}
 		}
@@ -231,7 +213,6 @@ func triggerEtcdClusterRollout(machines []infrav1.CloudStackMachine, r *CloudSta
 
 	return ctrl.Result{}, nil
 }
-
 func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, error) {
 	workerMachineFound := false
 	for _, machine := range machines {
@@ -351,6 +332,44 @@ func checkClusterReady(r *CloudStackFailureDomainReconciliationRunner) (ctrl.Res
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func getCsMachineTemplateName(machine infrav1.CloudStackMachine, etcdadmCluster *unstructured.Unstructured, etcdadmClusterName string) (string, error) {
+	// get cloudstack machine template by using machine's annotation info
+	csMachineTemplateName, ok := machine.Annotations["cluster.x-k8s.io/cloned-from-name"]
+	if !ok {
+		return "", errors.Errorf("annotations['cluster.x-k8s.io/cloned-from-name'] not found in cloudstack machine %s", machine.Name)
+	}
+
+	// get cloudstack machine template configured in etcdadmcluster's spec.infrastructureTemplate
+	csMachineTemplateNameInEtcdadmCluster, found, err := unstructured.NestedString(etcdadmCluster.Object, "spec", "infrastructureTemplate", "name")
+	if err != nil {
+		return "", err
+	}
+	if !found {
+		return "", errors.Errorf("etcdadmcluster %s spec.infrastructureTemplate.name not found", etcdadmClusterName)
+	}
+	if csMachineTemplateName != csMachineTemplateNameInEtcdadmCluster {
+		return "", errors.Errorf("cloudstackmachinetemplate in machine %s annotation and etcdadmcluster %s infrastructureTemlate are different", machine.Name, etcdadmClusterName)
+	}
+	return csMachineTemplateName, nil
+}
+
+func cloneCsMachineTemplateWithNewName(r *CloudStackFailureDomainReconciliationRunner, namespace string, cloudstackmachineTemplateName string, etcdadmClusterName string) (string, error) {
+	// get cloudstack machine template from k8s
+	csMachineTemplate := &infrav1.CloudStackMachineTemplate{}
+	if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: namespace, Name: cloudstackmachineTemplateName}, csMachineTemplate); err != nil {
+		return "", err
+	}
+	// create a new cloudstack machine template, which will be referred by etcdadmcluster spec.infrastructureTemplate
+	csMachineTemplate.Name = fmt.Sprintf("%s-template-%d", etcdadmClusterName, time.Now().UnixNano()/int64(time.Millisecond))
+	csMachineTemplate.SetAnnotations(map[string]string{})
+	csMachineTemplate.SetResourceVersion("")
+	if err := r.K8sClient.Create(r.RequestCtx, csMachineTemplate); err != nil {
+		return "", err
+	}
+	return csMachineTemplate.Name, nil
+
 }
 
 // RemoveFinalizer just removes the finalizer from the failure domain.
