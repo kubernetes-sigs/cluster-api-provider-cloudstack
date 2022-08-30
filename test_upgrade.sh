@@ -21,9 +21,13 @@ make kind-cluster
 export CLOUDSTACK_B64ENCODED_SECRET=`base64 -i cloud-config`
 clusterctl init --infrastructure cloudstack:v0.4.4
 
-kubectl apply -f ./acs_v1beta1.yaml
+# Wait for CAPC manager to be ready.
+while [[ $(kubectl -n capc-system get pods -o json | jq '.items[].status.containerStatuses[].ready' | sort | uniq) != 'true' ]]; do
+    echo waiting for machines to go ready
+    sleep 1
+done
 
-# TODO: Add wait for capc-manager ready here.
+kubectl apply -f ./acs_v1beta1.yaml
 
 # Wait for all machines to be ready.
 while [[ $(kubectl get cloudstackmachine -o json | jq '.items[].status.ready' | uniq) != 'true' ]]; do
