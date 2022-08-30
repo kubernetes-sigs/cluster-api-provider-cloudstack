@@ -32,7 +32,7 @@ spec:
         name: ${CLOUDSTACK_FD1_SECRET_NAME=cloudstack-credentials}
         namespace: ${CLOUDSTACK_FD1_SECRET_NAMESPACE=default}
       zone:
-        name :  ${CLOUDSTACK_ZONE_NAME}
+        name:  ${CLOUDSTACK_ZONE_NAME}
         network:
           name: ${CLOUDSTACK_NETWORK_NAME}
 ---
