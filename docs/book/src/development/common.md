@@ -31,7 +31,7 @@
     # Referring to a prerequisite capi-compatible image you've loaded into Apache CloudStack
     export CLOUDSTACK_TEMPLATE_NAME=kube-v1.20.10/ubuntu-2004
 
-    # The SSH KeyPair to log into the VM (Optional)
+    # The SSH KeyPair to log into the VM (Optional: use flavor *managed-ssh*)
     export CLOUDSTACK_SSH_KEY_NAME=CAPCKeyPair6
     ```
 
