@@ -119,7 +119,7 @@ docker-build: generate-deepcopy generate-conversion build-for-docker .dockerflag
 	@touch .dockerflag.mk
 
 .PHONY: docker-push
-docker-push: .dockerflag.mk ## Push docker image with the manager.
+docker-push: docker-build ## Push docker image with the manager.
 	docker push ${IMG}
 
 ##@ Linting
