@@ -23,6 +23,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -32,9 +33,6 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 			dummies.SetDummyVars()
 			SetupTestEnvironment()                                                    // Must happen before setting up managers/reconcilers.
 			Ω(FailureDomainReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack FailureDomainReconciler.
-		})
-
-		It("Should set failure domain Status.Ready to true.", func() {
 			// Modify failure domain name the same way the cluster controller would.
 			dummies.CSFailureDomain1.Name = dummies.CSFailureDomain1.Name + "-" + dummies.CSCluster.Name
 
@@ -49,14 +47,57 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 					arg1.(*infrav1.CloudStackZoneSpec).Network.Type = cloud.NetworkTypeShared
 				}).MinTimes(1)
 
-			tempfd := &infrav1.CloudStackFailureDomain{}
+		})
+
+		It("Should set failure domain Status.Ready to true.", func() {
+			assertFailuredomainCreated()
+		})
+		It("Should delete failure domain if no VM under this failure domain.", func() {
+			assertFailuredomainCreated()
+			Ω(k8sClient.Delete(ctx, dummies.CSFailureDomain1))
+
+			assertFailuredomainNotExisted()
+		})
+		It("Should trigger machine deployment rollout when only worker node in failure domain.", func() {
+			assertFailuredomainCreated()
+			setupCAPIMachineDeploymentCRDs(dummies.CAPIMachineDeployment)
+			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)
+			setMachineOwnerReference(dummies.CSMachine1, dummies.MachineSetOwnerRef)
+			labelMachineFailuredomain(dummies.CSMachine1, dummies.CSFailureDomain1)
+			labelMachineDeploymentName(dummies.CSMachine1, dummies.CAPIMachineDeployment.Name)
+			Ω(k8sClient.Delete(ctx, dummies.CSFailureDomain1))
+
+			tempMd := &clusterv1.MachineDeployment{}
 			Eventually(func() bool {
-				key := client.ObjectKeyFromObject(dummies.CSFailureDomain1)
-				if err := k8sClient.Get(ctx, key, tempfd); err == nil {
-					return tempfd.Status.Ready
+				key := client.ObjectKeyFromObject(dummies.CAPIMachineDeployment)
+				if err := k8sClient.Get(ctx, key, tempMd); err == nil {
+					_, ok := tempMd.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"]
+					return ok
 				}
 				return false
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
 		})
 	})
 })
+
+func assertFailuredomainCreated() {
+	tempfd := &infrav1.CloudStackFailureDomain{}
+	Eventually(func() bool {
+		key := client.ObjectKeyFromObject(dummies.CSFailureDomain1)
+		if err := k8sClient.Get(ctx, key, tempfd); err == nil {
+			return tempfd.Status.Ready
+		}
+		return false
+	}, timeout).WithPolling(pollInterval).Should(BeTrue())
+}
+
+func assertFailuredomainNotExisted() {
+	tempfd := &infrav1.CloudStackFailureDomain{}
+	Eventually(func() bool {
+		key := client.ObjectKeyFromObject(dummies.CSFailureDomain1)
+		if err := k8sClient.Get(ctx, key, tempfd); err != nil {
+			return true
+		}
+		return false
+	}, timeout).WithPolling(pollInterval).Should(BeTrue())
+}

@@ -371,3 +371,139 @@ func setupMachineCRDs() {
 		return ph.Patch(ctx, dummies.CSMachine1, patch.WithStatusObservedGeneration{})
 	}, timeout).Should(Succeed())
 }
+
+// setupMachineCRDs creates a CAPI and CloudStack machine with an appropriate ownership ref between them.
+func setupCAPIMachineAndCSMachineCRDs(CSMachine *infrav1.CloudStackMachine, CAPIMachine *clusterv1.Machine) {
+	//  Create them.
+	Ω(k8sClient.Create(ctx, CAPIMachine)).Should(Succeed())
+	Ω(k8sClient.Create(ctx, CSMachine)).Should(Succeed())
+
+	// Fetch the CS Machine that was created.
+	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CSMachine)
+	}, timeout).Should(BeNil())
+
+	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	Eventually(func() error {
+		ph, err := patch.NewHelper(dummies.CSMachine1, k8sClient)
+		Ω(err).ShouldNot(HaveOccurred())
+		dummies.CSMachine1.OwnerReferences = append(dummies.CSMachine1.OwnerReferences, metav1.OwnerReference{
+			Kind:       "Machine",
+			APIVersion: clusterv1.GroupVersion.String(),
+			Name:       CAPIMachine.Name,
+			UID:        "uniqueness",
+		})
+		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
+	}, timeout).Should(Succeed())
+}
+
+// setupCAPIMachineDeploymentCRDs creates a CAPI machine deployment.
+func setupCAPIMachineDeploymentCRDs(CAPIMachineDeployment *clusterv1.MachineDeployment) {
+	//  Create them.
+	Ω(k8sClient.Create(ctx, CAPIMachineDeployment)).Should(Succeed())
+
+	// Fetch the CAPI Machine Deployment that was created.
+	key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: CAPIMachineDeployment.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CAPIMachineDeployment)
+	}, timeout).Should(BeNil())
+}
+
+//
+//// setupFailuredomainCRDs creates a CloudstackFailuredomain.
+//func setupFailuredomainCRDs() {
+//	//  Create them.
+//	Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
+//
+//	// Fetch the CS Machine that was created.
+//	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSFailureDomain1.Name}
+//	Eventually(func() error {
+//		return k8sClient.Get(ctx, key, dummies.CSFailureDomain1)
+//	}, timeout).Should(BeNil())
+//
+//	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+//	Eventually(func() error {
+//		ph, err := patch.NewHelper(dummies.CSFailureDomain1, k8sClient)
+//		Ω(err).ShouldNot(HaveOccurred())
+//		dummies.CSFailureDomain1.OwnerReferences = append(dummies.CSFailureDomain1.OwnerReferences, metav1.OwnerReference{
+//			Kind:       "CloudStackCluster",
+//			APIVersion: infrav1.GroupVersion.String(),
+//			Name:       dummies.CSCluster.Name,
+//			UID:        "uniqueness",
+//		})
+//		return ph.Patch(ctx, dummies.CSMachine1, patch.WithStatusObservedGeneration{})
+//	}, timeout).Should(Succeed())
+//}
+//
+//// setupMachineDeploymentCRDs creates a CAPI machine deployment.
+//func setupMachineDeploymentCRDs() {
+//	//  Create them.
+//	Ω(k8sClient.Create(ctx, dummies.CAPIMachineDeployment)).Should(Succeed())
+//
+//	// Fetch the CS Machine that was created.
+//	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CAPIMachineDeployment.Name}
+//	Eventually(func() error {
+//		return k8sClient.Get(ctx, key, dummies.CAPIMachineDeployment)
+//	}, timeout).Should(BeNil())
+//
+//	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+//	Eventually(func() error {
+//		ph, err := patch.NewHelper(dummies.CAPIMachineDeployment, k8sClient)
+//		Ω(err).ShouldNot(HaveOccurred())
+//		dummies.CAPIMachineDeployment.OwnerReferences = append(dummies.CAPIMachineDeployment.OwnerReferences, metav1.OwnerReference{
+//			Kind:       "Cluster",
+//			APIVersion: clusterv1.GroupVersion.String(),
+//			Name:       dummies.ClusterName,
+//			UID:        "uniqueness",
+//		})
+//		return ph.Patch(ctx, dummies.CAPIMachineDeployment, patch.WithStatusObservedGeneration{})
+//	}, timeout).Should(Succeed())
+//}
+//
+// labelMachineFailuredomain add cloudstackfailuredomain info in the labels.
+func labelMachineFailuredomain(CSMachine *infrav1.CloudStackMachine, CSFailureDomain1 *infrav1.CloudStackFailureDomain) {
+	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CSMachine)
+	}, timeout).Should(BeNil())
+
+	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	Eventually(func() error {
+		ph, err := patch.NewHelper(CSMachine, k8sClient)
+		Ω(err).ShouldNot(HaveOccurred())
+		CSMachine.Labels["cloudstackfailuredomain.infrastructure.cluster.x-k8s.io/name"] = CSFailureDomain1.Name
+		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
+	}, timeout).Should(Succeed())
+}
+
+// labelMachineDeploymentName add machine deployment info in the labels.
+func labelMachineDeploymentName(CSMachine *infrav1.CloudStackMachine, machineDeploymentName string) {
+	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CSMachine)
+	}, timeout).Should(BeNil())
+
+	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	Eventually(func() error {
+		ph, err := patch.NewHelper(CSMachine, k8sClient)
+		Ω(err).ShouldNot(HaveOccurred())
+		CSMachine.Labels["cluster.x-k8s.io/deployment-name"] = machineDeploymentName
+		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
+	}, timeout).Should(Succeed())
+}
+
+func setMachineOwnerReference(CSMachine *infrav1.CloudStackMachine, ownerRef metav1.OwnerReference) {
+	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CSMachine)
+	}, timeout).Should(BeNil())
+
+	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	Eventually(func() error {
+		ph, err := patch.NewHelper(CSMachine, k8sClient)
+		Ω(err).ShouldNot(HaveOccurred())
+		CSMachine.OwnerReferences = append(CSMachine.OwnerReferences, ownerRef)
+		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
+	}, timeout).Should(Succeed())
+}

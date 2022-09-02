@@ -238,7 +238,7 @@ func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *Cl
 					if md.Spec.Template.Annotations == nil {
 						md.Spec.Template.Annotations = map[string]string{}
 					}
-					timeNowStr := time.Now().Format(time.RFC3339)
+					timeNowStr := time.Now().Add(time.Second * time.Duration(10)).Format(time.RFC3339)
 					md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"] = timeNowStr
 					patcher, err := patch.NewHelper(md, r.K8sClient)
 					if err != nil {
