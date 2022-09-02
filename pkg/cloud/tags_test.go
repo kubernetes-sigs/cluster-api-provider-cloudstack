@@ -17,15 +17,34 @@ limitations under the License.
 package cloud_test
 
 import (
+	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 )
 
 var _ = Describe("Tag Unit Tests", func() {
+	const (
+		errorMessage = "Error"
+	)
+
+	fakeError := errors.New(errorMessage)
+	var ( // Declare shared vars.
+		mockCtrl   *gomock.Controller
+		mockClient *csapi.CloudStackClient
+		rs         *csapi.MockResourcetagsServiceIface
+		client     cloud.Client
+	)
+
 	BeforeEach(func() {
 		dummies.SetDummyVars()
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockClient = csapi.NewMockClient(mockCtrl)
+		rs = mockClient.Resourcetags.(*csapi.MockResourcetagsServiceIface)
+		client = cloud.NewClientFromCSAPIClient(mockClient)
 	})
 
 	Context("Tag Integ Tests", Label("integ"), func() {
@@ -129,6 +148,52 @@ var _ = Describe("Tag Unit Tests", func() {
 			tagsAllowDisposal, err := client.DoClusterTagsAllowDisposal(cloud.ResourceTypeNetwork, dummies.CSISONet1.Spec.ID)
 			Ω(err).Should(BeNil())
 			Ω(tagsAllowDisposal).Should(BeTrue())
+		})
+	})
+
+	Context("Add cluster tag", func() {
+		It("Add cluster tag if managed by CAPC", func() {
+			createdByCAPCResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: cloud.CreatedByCAPCTagName, Value: "1"}}}
+			rtlp := &csapi.ListTagsParams{}
+			ctp := &csapi.CreateTagsParams{}
+			rs.EXPECT().NewListTagsParams().Return(rtlp)
+			rs.EXPECT().ListTags(rtlp).Return(createdByCAPCResponse, nil)
+			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).Return(ctp)
+			rs.EXPECT().CreateTags(ctp).Return(&csapi.CreateTagsResponse{}, nil)
+			Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.CSISONet1.Spec.ID, dummies.CSCluster)).Should(Succeed())
+		})
+	})
+
+	Context("Delete tags", func() {
+		It("delete resource tags fails", func() {
+			tags := map[string]string{
+				"key1": "value1",
+			}
+			rp := &csapi.DeleteTagsParams{}
+			rs.EXPECT().NewDeleteTagsParams(gomock.Any(), gomock.Any()).Return(rp)
+			rs.EXPECT().DeleteTags(rp).Return(nil, fakeError)
+			rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{})
+			rs.EXPECT().ListTags(gomock.Any()).Return(&csapi.ListTagsResponse{
+				Count: len(tags),
+				Tags: []*csapi.Tag{{
+					Key:   "key1",
+					Value: "value1",
+				}},
+			}, nil)
+
+			err := client.DeleteTags(cloud.ResourceTypeNetwork, dummies.CSISONet1.Spec.ID, tags)
+			Ω(err).ShouldNot(Succeed())
+			Ω(err.Error()).Should(ContainSubstring("could not remove tag"))
+		})
+	})
+
+	Context("Get tags for a resource", func() {
+		It("listing tags for a resource fails", func() {
+			rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{})
+			rs.EXPECT().ListTags(gomock.Any()).Return(nil, fakeError)
+
+			_, err := client.GetTags(cloud.ResourceTypeNetwork, dummies.ISONet1.ID)
+			Ω(err).ShouldNot(Succeed())
 		})
 	})
 })

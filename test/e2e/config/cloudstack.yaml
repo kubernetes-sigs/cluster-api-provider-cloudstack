@@ -94,6 +94,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-custom-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-subdomain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-ip.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
       - name: v1.0.0
@@ -127,6 +128,7 @@ variables:
   CLOUDSTACK_SHARED_NETWORK_NAME: Shared1
   CLUSTER_ENDPOINT_IP: 172.16.2.199
   CLUSTER_ENDPOINT_IP_2: 172.16.2.198
+  CLOUDSTACK_INVALID_IP: 1.2.3.4
   CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Large Instance"
   CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
   CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING: "Impossible Instance"
@@ -169,4 +171,4 @@ intervals:
   node-drain/wait-control-plane: ["15m", "10s"]
   node-drain/wait-machine-deleted: ["5m", "10s"]
 
-  
+

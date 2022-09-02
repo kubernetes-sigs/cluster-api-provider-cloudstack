@@ -1,10 +1,63 @@
-# Image URL to use all building/pushing image targets
+# Copyright 2022 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ROOT_DIR_RELATIVE := .
+
+include $(ROOT_DIR_RELATIVE)/common.mk
+
+# Directories
+TOOLS_DIR := hack/tools
+TOOLS_DIR_DEPS := $(TOOLS_DIR)/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/Makefile
+TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
+BIN_DIR ?= bin
+RELEASE_DIR ?= out
+
+export REPO_ROOT := $(shell git rev-parse --show-toplevel)
+GH_REPO ?= kubernetes-sigs/cluster-api-provider-cloudstack
+
+# Binaries
+CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+GINKGO_V1 := $(TOOLS_BIN_DIR)/ginkgo_v1
+GINKGO_V2 := $(TOOLS_BIN_DIR)/ginkgo_v2
+GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
+MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
+STATIC_CHECK := $(TOOLS_BIN_DIR)/staticcheck
+KUBECTL := $(TOOLS_BIN_DIR)/kubectl
+API_SERVER := $(TOOLS_BIN_DIR)/kube-apiserver
+ETCD := $(TOOLS_BIN_DIR)/etcd
+
+# Release
 STAGING_REGISTRY := gcr.io/k8s-staging-capi-cloudstack
+STAGING_BUCKET ?= artifacts.k8s-staging-capi-cloudstack.appspot.com
+BUCKET ?= $(STAGING_BUCKET)
+PROD_REGISTRY ?= k8s.gcr.io/capi-cloudstack
+REGISTRY ?= $(STAGING_REGISTRY)
+RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
+PULL_BASE_REF ?= $(RELEASE_TAG)
+RELEASE_ALIAS_TAG ?= $(PULL_BASE_REF)
+
+# Image URL to use all building/pushing image targets
 REGISTRY ?= $(STAGING_REGISTRY)
 IMAGE_NAME ?= capi-cloudstack-controller
 TAG ?= dev
-IMG ?= $(REGISTRY)/$(IMAGE_NAME):$(TAG)
+CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
+IMG ?= $(CONTROLLER_IMG):$(TAG)
 IMG_LOCAL ?= localhost:5000/$(IMAGE_NAME):$(TAG)
+MANIFEST_FILE := infrastructure-components
+CONFIG_DIR := config
+NAMESPACE := capc-system
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -16,7 +69,7 @@ endif
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
-SHELL = /usr/bin/env bash -o pipefail
+# SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 # Allow overriding release-manifest generation destination directory, but otherwise set it based on most recent release
@@ -29,59 +82,92 @@ RELEASE_DIR ?= infrastructure-cloudstack/$(RELEASE_VERSION)
 export ACK_GINKGO_DEPRECATIONS := 1.16.5
 export ACK_GINKGO_RC=true
 
-export PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-export PATH := $(PROJECT_DIR)/bin:$(PATH)
+export PATH := $(TOOLS_BIN_DIR):$(PATH)
 
 all: build
 
-##@ General
+##@ Binaries
+## --------------------------------------
+## Binaries
+## --------------------------------------
 
-# The help target prints out all targets with their descriptions organized
-# beneath their categories. The categories are represented by '##@' and the
-# target descriptions by '##'. The awk commands is responsible for reading the
-# entire set of makefiles included in this invocation, looking for lines of the
-# file as xyz: ## something, and then pretty-format the target and help. Then,
-# if there's a line with ##@ something, that gets pretty-printed as a category.
-# More info on the usage of ANSI control characters for terminal formatting:
-# https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
-# More info on the awk command:
-# http://linuxcommand.org/lc3_adv_awk.php
+.PHONY: binaries
+binaries: $(CONTROLLER_GEN KUSTOMIZE) $(GOLANGCI_LINT) $(STATIC_CHECK) $(GINKGO_V1) $(GINKGO_V2) $(MOCKGEN) $(KUSTOMIZE) managers # Builds and installs all binaries
 
-help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+.PHONY: managers
+managers:
+	$(MAKE) manager-cloudstack-infrastructure
 
- MANIFEST_GEN_INPUTS=$(shell find ./api ./controllers -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
+.PHONY: manager-cloudstack-infrastructure
+manager-cloudstack-infrastructure: ## Build manager binary.
+	CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
 
-# Using a flag file here as config output is too complicated to be a target.
-# The following triggers manifest building if $(IMG) differs from that found in config/default/manager_image_patch.yaml.
-$(shell	grep -qs "$(IMG)" config/default/manager_image_patch_edited.yaml || rm -f config/.flag.mk)
-.PHONY: manifests
-manifests: config/.flag.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
-config/.flag.mk: bin/controller-gen $(MANIFEST_GEN_INPUTS)
-	sed -e 's@image: .*@image: '"$(IMG)"'@' config/default/manager_image_patch.yaml > config/default/manager_image_patch_edited.yaml
-	controller-gen crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	@touch config/.flag.mk
+export K8S_VERSION=1.19.2
+$(KUBECTL) $(API_SERVER) $(ETCD) &:
+	cd $(TOOLS_DIR) && curl --silent -L "https://go.kubebuilder.io/test-tools/${K8S_VERSION}/$(shell go env GOOS)/$(shell go env GOARCH)" --output - | \
+		tar -C ./ --strip-components=1 -zvxf -
 
-.PHONY: release-manifests
-RELEASE_MANIFEST_TARGETS=$(RELEASE_DIR)/infrastructure-components.yaml $(RELEASE_DIR)/metadata.yaml
-RELEASE_MANIFEST_INPUTS=bin/kustomize config/.flag.mk $(shell find config)
-RELEASE_MANIFEST_SOURCE_BASE ?= config/default
-release-manifests: $(RELEASE_MANIFEST_TARGETS) ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
-$(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
-	@mkdir -p $(RELEASE_DIR)
-	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
-	kustomize build $(RELEASE_MANIFEST_SOURCE_BASE) > $(RELEASE_DIR)/infrastructure-components.yaml
+##@ Linting
+## --------------------------------------
+## Linting
+## --------------------------------------
 
-.PHONY: release-manifests-metrics-port
-release-manifests-metrics-port:
-	make release-manifests RELEASE_MANIFEST_SOURCE_BASE=config/default-with-metrics-port
+.PHONY: fmt
+fmt: ## Run go fmt on the whole project.
+	go fmt ./...
+
+.PHONY: vet
+vet: ## Run go vet on the whole project.
+	go vet ./...
+
+.PHONY: lint
+lint: $(GOLANGCI_LINT) $(STATIC_CHECK) generate-mocks ## Run linting for the project.
+	$(MAKE) fmt
+	$(MAKE) vet
+	$(GOLANGCI_LINT) run -v --timeout 360s ./...
+	$(STATIC_CHECK) ./...
+	@ # The below string of commands checks that ginkgo isn't present in the controllers.
+	@(grep ginkgo ${REPO_ROOT}/controllers/cloudstack*_controller.go | grep -v import && \
+		echo "Remove ginkgo from controllers. This is probably an artifact of testing." \
+		 	 "See the hack/testing_ginkgo_recover_statements.sh file") && exit 1 || \
+		echo "Gingko statements not found in controllers... (passed)"
+
+
+##@ Generate
+## --------------------------------------
+## Generate
+## --------------------------------------
+
+.PHONY: modules
+modules: ## Runs go mod to ensure proper vendoring.
+	go mod tidy -compat=1.17
+	cd $(TOOLS_DIR); go mod tidy -compat=1.17
+
+.PHONY: generate-all
+generate-all: generate-mocks generate-deepcopy generate-manifests
+
+.PHONY: generate-mocks
+generate-mocks: $(MOCKGEN) generate-deepcopy pkg/mocks/mock_client.go $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
+pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
+	go generate ./...
 
 DEEPCOPY_GEN_TARGETS=$(shell find api -type d -name "v*" -exec echo {}\/zz_generated.deepcopy.go \;)
 DEEPCOPY_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_generated*" -prune -o -type f -print)
 .PHONY: generate-deepcopy
 generate-deepcopy: $(DEEPCOPY_GEN_TARGETS) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-api/%/zz_generated.deepcopy.go: bin/controller-gen $(DEEPCOPY_GEN_INPUTS)
-	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
+api/%/zz_generated.deepcopy.go: $(CONTROLLER_GEN) $(DEEPCOPY_GEN_INPUTS)
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+MANIFEST_GEN_INPUTS=$(shell find ./api ./controllers -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
+# Using a flag file here as config output is too complicated to be a target.
+# The following triggers manifest building if $(IMG) differs from that found in config/default/manager_image_patch.yaml.
+$(shell	grep -qs "$(IMG)" config/default/manager_image_patch_edited.yaml || rm -f config/.flag.mk)
+.PHONY: generate-manifests
+generate-manifests: config/.flag.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
+config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
+	sed -e 's@image: .*@image: '"$(IMG)"'@' config/default/manager_image_patch.yaml > config/default/manager_image_patch_edited.yaml
+	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	@touch config/.flag.mk
 
 CONVERSION_GEN_TARGET=$(shell find api -type d -name "v*1" -exec echo {}\/zz_generated.conversion.go \;)
 CONVERSION_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_generated*" -prune -o -type f -print)
@@ -92,23 +178,45 @@ api/%/zz_generated.conversion.go: bin/conversion-gen $(CONVERSION_GEN_INPUTS)
 	--output-base "." --output-file-base="zz_generated.conversion" --skip-unsafe=true
 
 ##@ Build
+## --------------------------------------
+## Build
+## --------------------------------------
 
 MANAGER_BIN_INPUTS=$(shell find ./controllers ./api ./pkg -name "*mock*" -prune -o -name "*test*" -prune -o -type f -print) main.go go.mod go.sum
 .PHONY: build
-build: binaries generate-deepcopy lint manifests release-manifests ## Build manager binary.
-bin/manager: $(MANAGER_BIN_INPUTS)
-	go build -o bin/manager main.go
+build: binaries generate-deepcopy lint generate-manifests release-manifests ## Build manager binary.
+$(BIN_DIR)/manager: $(MANAGER_BIN_INPUTS)
+	go build -o $(BIN_DIR)/manager main.go
 
 .PHONY: build-for-docker
-build-for-docker: bin/manager-linux-amd64 ## Build manager binary for docker image building.
-bin/manager-linux-amd64: $(MANAGER_BIN_INPUTS)
+build-for-docker: $(BIN_DIR)/manager-linux-amd64 ## Build manager binary for docker image building.
+$(BIN_DIR)/manager-linux-amd64: $(MANAGER_BIN_INPUTS)
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     	go build -a -ldflags "${ldflags} -extldflags '-static'" \
-    	-o bin/manager-linux-amd64 main.go
+    	-o $(BIN_DIR)/manager-linux-amd64 main.go
 
 .PHONY: run
 run: generate-deepcopy generate-conversion ## Run a controller from your host.
 	go run ./main.go
+
+##@ Deploy
+## --------------------------------------
+## Deploy
+## --------------------------------------
+
+.PHONY: deploy
+deploy: generate-deepcopy generate-manifests $(KUSTOMIZE) ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+	cd config/manager && $(REPO_ROOT)/$(KUSTOMIZE) edit set image controller=${IMG}
+	cd $(REPO_ROOT)
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
+
+undeploy: $(KUSTOMIZE) ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) build config/default | kubectl delete -f -
+
+##@ Docker
+## --------------------------------------
+## Docker
+## --------------------------------------
 
 # Using a flag file here as docker build doesn't produce a target file.
 DOCKER_BUILD_INPUTS=$(MANAGER_BIN_INPUTS) Dockerfile
@@ -122,94 +230,10 @@ docker-build: generate-deepcopy generate-conversion build-for-docker .dockerflag
 docker-push: docker-build ## Push docker image with the manager.
 	docker push ${IMG}
 
-##@ Linting
-
-.PHONY: fmt
-fmt: ## Run go fmt on the whole project.
-	go fmt ./...
-
-.PHONY: vet
-vet: ## Run go vet on the whole project.
-	go vet ./...
-
-.PHONY: lint
-lint: bin/golangci-lint bin/staticcheck generate-mocks ## Run linting for the project.
-	go fmt ./...
-	go vet ./...
-	golangci-lint run -v --timeout 360s ./...
-	staticcheck ./...
-	@ # The below string of commands checks that ginkgo isn't present in the controllers.
-	@(grep ginkgo ${PROJECT_DIR}/controllers/cloudstack*_controller.go && \
-		echo "Remove ginkgo from controllers. This is probably an artifact of testing." \
-		 	 "See the hack/testing_ginkgo_recover_statements.sh file") && exit 1 || \
-		echo "Gingko statements not found in controllers... (passed)"
-
-##@ Deployment
-
-.PHONY: deploy
-deploy: generate-deepcopy generate-conversion manifests bin/kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && kustomize edit set image controller=${IMG}
-	kustomize build config/default | kubectl apply -f -
-
-undeploy: bin/kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	kustomize build config/default | kubectl delete -f -
-
-##@ Binaries
-
-.PHONY: binaries
-binaries: bin/controller-gen bin/conversion-gen bin/kustomize bin/ginkgo bin/golangci-lint bin/staticcheck bin/mockgen bin/kubectl ## Locally install all needed bins.
-bin/controller-gen: ## Install controller-gen to bin.
-	GOBIN=$(PROJECT_DIR)/bin go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1
-bin/conversion-gen: ## Install conversion-gen to bin.
-	GOBIN=$(PROJECT_DIR)/bin go install k8s.io/code-generator/cmd/conversion-gen@v0.23.0
-bin/golangci-lint: ## Install golangci-lint to bin.
-	GOBIN=$(PROJECT_DIR)/bin go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.0
-bin/staticcheck: ## Install staticcheck to bin.
-	GOBIN=$(PROJECT_DIR)/bin go install honnef.co/go/tools/cmd/staticcheck@v0.3.1
-bin/ginkgo: bin/ginkgo_v1 bin/ginkgo_v2 ## Install ginkgo to bin.
-bin/ginkgo_v2:
-	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.4
-	mv $(PROJECT_DIR)/bin/ginkgo $(PROJECT_DIR)/bin/ginkgo_v2
-bin/ginkgo_v1:
-	GOBIN=$(PROJECT_DIR)/bin go install github.com/onsi/ginkgo/ginkgo@v1.16.5
-	mv $(PROJECT_DIR)/bin/ginkgo $(PROJECT_DIR)/bin/ginkgo_v1
-bin/mockgen:
-	GOBIN=$(PROJECT_DIR)/bin go install github.com/golang/mock/mockgen@v1.6.0
-bin/kustomize: ## Install kustomize to bin.
-	@mkdir -p bin
-	cd bin && curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
-export K8S_VERSION=1.19.2
-bin/kubectl bin/kube-apiserver bin/etcd &:
-	curl --silent -L "https://go.kubebuilder.io/test-tools/${K8S_VERSION}/$(shell go env GOOS)/$(shell go env GOARCH)" --output - | \
-		tar -C ./ --strip-components=1 -zvxf -
-
-##@ Cleanup
-
-.PHONY: clean
-clean: ## Clean.
-	rm -rf $(RELEASE_DIR)
-	rm -rf bin
-	rm -rf cluster-api
-	rm -rf test/e2e/data/infrastructure-cloudstack/*/*yaml
-
-##@ Testing
-
-# Tell envtest to use local bins for etcd, kubeapi-server, and kubectl.
-export KUBEBUILDER_ASSETS=$(PROJECT_DIR)/bin
-
-.PHONY: test
-test: generate-mocks lint bin/ginkgo bin/kubectl bin/kube-apiserver bin/etcd ## Run tests. At the moment this is only unit tests.
-	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
-	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
-	@ginkgo_v2 --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
-		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
-
-.PHONY: generate-mocks
-generate-mocks: bin/mockgen generate-deepcopy pkg/mocks/mock_client.go $(shell find ./pkg/mocks -type f -name "mock*.go") ## Generate mocks needed for testing. Primarily mocks of the cloud package.
-pkg/mocks/mock%.go: $(shell find ./pkg/cloud -type f -name "*test*" -prune -o -print)
-	go generate ./...
-
 ##@ Tilt
+## --------------------------------------
+## Tilt Development
+## --------------------------------------
 
 .PHONY: tilt-up
 tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests ## Setup and run tilt for development.
@@ -220,7 +244,7 @@ kind-cluster: cluster-api ## Create a kind cluster with a local Docker repositor
 	-./cluster-api/hack/kind-install-for-capd.sh
 
 cluster-api: ## Clone cluster-api repository for tilt use.
-	git clone --branch v1.0.0 https://github.com/kubernetes-sigs/cluster-api.git
+	git clone --branch v1.0.0 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
 
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
@@ -236,23 +260,88 @@ clusterctl-config.yaml:
 	RELEASE_VERSION=$(RELEASE_VERSION) envsubst < ./hack/clusterctl-setup/clusterctl-config-template.yaml > clusterctl-config.yaml
 
 ##@ End-to-End Testing
+##@ Tests
+## --------------------------------------
+## Tests
+## --------------------------------------
+
+export KUBEBUILDER_ASSETS=$(REPO_ROOT)/$(TOOLS_BIN_DIR)
+.PHONY: test
+test: generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) ## Run tests. At the moment this is only unit tests.
+	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
+	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
+	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
+		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
+
 CLUSTER_TEMPLATE_DIRECTORIES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/* -type d)
 CLUSTER_TEMPLATES_INPUT_FILES=$(shell find $(CLUSTER_TEMPLATE_DIRECTORIES) -type f)
 CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)
 .PHONY: e2e-cluster-templates
 e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster template files for e2e testing.
-cluster-template%yaml: bin/kustomize $(CLUSTER_TEMPLATES_INPUT_FILES)
-	kustomize build --load-restrictor LoadRestrictionsNone $(basename $@) > $@
+cluster-template%yaml: $(KUSTOMIZE) $(CLUSTER_TEMPLATES_INPUT_FILES)
+	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(basename $@) > $@
 
-e2e-essentials: bin/ginkgo_v1 e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
-	IMG=$(IMG_LOCAL) make manifests docker-build docker-push
+e2e-essentials: $(GINKGO_V1) e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
+	IMG=$(IMG_LOCAL) make generate-manifests docker-build docker-push
 
 JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
 	kubectl apply -f cloud-config.yaml && \
 	cd test/e2e && \
-	ginkgo_v1 -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
-	    -e2e.artifacts-folder=${PROJECT_DIR}/_artifacts \
-	    -e2e.config=${PROJECT_DIR}/test/e2e/config/cloudstack.yaml \
+	$(REPO_ROOT)/$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
+	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
+	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
 	kind delete clusters capi-test
+
+##@ Cleanup
+## --------------------------------------
+## Cleanup
+## --------------------------------------
+
+.PHONY: clean
+clean: ## Cleans up everything.
+	rm -rf $(RELEASE_DIR)
+	rm -rf bin
+	rm -rf $(TOOLS_BIN_DIR)
+	rm -rf cluster-api
+	rm -rf test/e2e/data/infrastructure-cloudstack/*/*yaml
+
+##@ Release
+## --------------------------------------
+## Release
+## --------------------------------------
+
+.PHONY: release-manifests
+RELEASE_MANIFEST_TARGETS=$(RELEASE_DIR)/infrastructure-components.yaml $(RELEASE_DIR)/metadata.yaml
+RELEASE_MANIFEST_INPUTS=$(KUSTOMIZE) config/.flag.mk $(shell find config)
+RELEASE_MANIFEST_SOURCE_BASE ?= config/default
+release-manifests: $(RELEASE_MANIFEST_TARGETS) ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
+$(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
+	@mkdir -p $(RELEASE_DIR)
+	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
+	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
+
+.PHONY: release-manifests-metrics-port
+release-manifests-metrics-port:
+	make release-manifests RELEASE_MANIFEST_SOURCE_BASE=config/default-with-metrics-port
+
+.PHONY: release-staging
+release-staging: ## Builds and push container images and manifests to the staging bucket.
+	$(MAKE) docker-build
+	$(MAKE) docker-push
+	$(MAKE) release-alias-tag
+	$(MAKE) release-manifests TAG=$(RELEASE_ALIAS_TAG)
+	$(MAKE) upload-staging-artifacts
+
+.PHONY: release-alias-tag
+release-alias-tag: # Adds the tag to the last build tag.
+	gcloud container images add-tag -q $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
+
+.PHONY: release-templates
+release-templates: $(RELEASE_DIR) ## Generate release templates
+	cp templates/cluster-template*.yaml $(RELEASE_DIR)/
+
+.PHONY: upload-staging-artifacts
+upload-staging-artifacts: ## Upload release artifacts to the staging bucket
+	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(RELEASE_ALIAS_TAG)/

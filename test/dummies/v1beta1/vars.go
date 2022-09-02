@@ -52,6 +52,11 @@ var ( // Declare exported dummy vars.
 	Level2Account      cloud.Account
 	Level2AccountName  string
 	Level2AccountID    string
+	User               cloud.User
+	UserID             string
+	Username           string
+	Apikey             string
+	SecretKey          string
 	Tags               map[string]string
 	Tag1               map[string]string
 	Tag2               map[string]string
@@ -79,8 +84,8 @@ var ( // Declare exported dummy vars.
 
 // SetDummyVars sets/resets all dummy vars.
 func SetDummyVars() {
-	projDir := os.Getenv("PROJECT_DIR")
-	source, err := ioutil.ReadFile(projDir + "/test/e2e/config/cloudstack.yaml")
+	repoRoot := os.Getenv("REPO_ROOT")
+	source, err := ioutil.ReadFile(repoRoot + "/test/e2e/config/cloudstack.yaml")
 	if err != nil {
 		panic(err)
 	}
@@ -346,4 +351,11 @@ func SetDummyCAPIMachineVars() {
 
 func SetDummyCSMachineStatuses() {
 	CSMachine1.Status = capcv1.CloudStackMachineStatus{ZoneID: Zone1.ID}
+}
+func SetDummyUserVars() {
+	User.Account = Account
+	UserID = "FakeUserId"
+	Username = "FakeUserName"
+	Apikey = "ApiKey"
+	SecretKey = "SecretKey"
 }
