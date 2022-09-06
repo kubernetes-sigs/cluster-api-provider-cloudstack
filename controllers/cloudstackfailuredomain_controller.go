@@ -42,6 +42,13 @@ type CloudStackFailureDomainReconciler struct {
 	csCtrlrUtils.ReconcilerBase
 }
 
+const (
+	conditionTypeControlPlaneReady = "ControlPlaneReady"
+	conditionTypeManagedEtcdReady = "ManagedEtcdReady"
+	conditionTypeReady = "Ready"
+
+)
+
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains/finalizers,verbs=update
@@ -308,10 +315,10 @@ func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudSt
 
 func checkClusterReady(r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, error) {
 	for _, condition := range r.CAPICluster.Status.Conditions {
-		if condition.Type == "ControlPlaneReady" && condition.Status == "False" {
+		if condition.Type == conditionTypeControlPlaneReady && condition.Status == "False" {
 			return ctrl.Result{}, errors.New("cluster control plane not ready")
 		}
-		if condition.Type == "ManagedEtcdReady" && condition.Status == "False" {
+		if condition.Type == conditionTypeManagedEtcdReady && condition.Status == "False" {
 			return ctrl.Result{}, errors.New("cluster managed etcd not ready")
 		}
 	}
@@ -326,7 +333,7 @@ func checkClusterReady(r *CloudStackFailureDomainReconciliationRunner) (ctrl.Res
 	}
 	for _, md := range machineDeployments.Items {
 		for _, condition := range md.Status.Conditions {
-			if condition.Type == "Ready" && condition.Status != "True" {
+			if condition.Type == conditionTypeReady && condition.Status != "True" {
 				return ctrl.Result{}, errors.New("cluster machine deployment not ready")
 			}
 		}

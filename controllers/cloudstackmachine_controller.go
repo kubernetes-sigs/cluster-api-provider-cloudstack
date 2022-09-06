@@ -164,7 +164,7 @@ func (r *CloudStackMachineReconciliationRunner) DeleteMachineIfFailuredomainNotE
 		}
 	}
 	if !exist {
-		r.Log.Info("CAPI Machine in non-exist failuredomain. Deleting associated Machine.", "csMachine", r.ReconciliationSubject.GetName(), "failuredomain", capiAssignedFailuredomainName)
+		r.Log.Info("CAPI Machine in non-existent failuredomain. Deleting associated Machine.", "csMachine", r.ReconciliationSubject.GetName(), "failuredomain", capiAssignedFailuredomainName)
 		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
 			return ctrl.Result{}, err
 		}
