@@ -3,11 +3,13 @@ module sigs.k8s.io/cluster-api-provider-cloudstack
 go 1.16
 
 require (
-	github.com/ReneKroon/ttlcache v1.7.0 // indirect
+	github.com/ReneKroon/ttlcache v1.7.0
 	github.com/apache/cloudstack-go/v2 v2.13.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/mrajashree/etcdadm-bootstrap-provider v1.0.0-rc3
+	github.com/mrajashree/etcdadm-controller v1.0.0-rc3
 	github.com/onsi/ginkgo/v2 v2.1.4
 	github.com/onsi/gomega v1.19.0
 	github.com/pkg/errors v0.9.1
@@ -20,7 +22,7 @@ require (
 	k8s.io/client-go v0.23.0
 	k8s.io/klog/v2 v2.30.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
-	sigs.k8s.io/cluster-api v1.0.0
+	sigs.k8s.io/cluster-api v1.0.1
 	sigs.k8s.io/controller-runtime v0.11.1
 )
 

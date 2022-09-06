@@ -239,11 +239,11 @@ func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *Cl
 						md.Spec.Template.Annotations = map[string]string{}
 					}
 					timeNowStr := time.Now().Add(time.Second * time.Duration(10)).Format(time.RFC3339)
-					md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"] = timeNowStr
 					patcher, err := patch.NewHelper(md, r.K8sClient)
 					if err != nil {
 						return ctrl.Result{}, err
 					}
+					md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"] = timeNowStr
 					if err := patcher.Patch(r.RequestCtx, md); err != nil {
 						return ctrl.Result{}, err
 					}
@@ -291,8 +291,8 @@ func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudSt
 
 	// set kcp spec.RolloutAfter, this will trigger control plane rollout immediately
 	if kcp.Spec.RolloutAfter == nil {
-		kcp.Spec.RolloutAfter = &metav1.Time{Time: time.Now()}
 		patcher, err := patch.NewHelper(kcp, r.K8sClient)
+		kcp.Spec.RolloutAfter = &metav1.Time{Time: time.Now()}
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -350,7 +350,8 @@ func getCsMachineTemplateName(machine infrav1.CloudStackMachine, etcdadmCluster 
 		return "", errors.Errorf("etcdadmcluster %s spec.infrastructureTemplate.name not found", etcdadmClusterName)
 	}
 	if csMachineTemplateName != csMachineTemplateNameInEtcdadmCluster {
-		return "", errors.Errorf("cloudstackmachinetemplate in machine %s annotation and etcdadmcluster %s infrastructureTemlate are different", machine.Name, etcdadmClusterName)
+		return "", errors.Errorf("cloudstackmachinetemplate %s in machine %s annotation and cloudstackmachinetemplate %s in etcdadmcluster %s infrastructureTemlate are different",
+			csMachineTemplateName, machine.Name, csMachineTemplateNameInEtcdadmCluster, etcdadmClusterName)
 	}
 	return csMachineTemplateName, nil
 }

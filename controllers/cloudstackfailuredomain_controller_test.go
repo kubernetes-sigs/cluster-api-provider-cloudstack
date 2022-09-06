@@ -18,12 +18,14 @@ package controllers_test
 
 import (
 	"github.com/golang/mock/gomock"
+	etcdadmController "github.com/mrajashree/etcdadm-controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -71,8 +73,71 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 			Eventually(func() bool {
 				key := client.ObjectKeyFromObject(dummies.CAPIMachineDeployment)
 				if err := k8sClient.Get(ctx, key, tempMd); err == nil {
-					_, ok := tempMd.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"]
-					return ok
+					_, found := tempMd.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"]
+					return found
+				}
+				return false
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		})
+		It("Should trigger kubeadmControlPlane rollout when control plane node exists failure domain.", func() {
+			assertFailuredomainCreated()
+			setKubeadmControlPlaneCRD(dummies.KubeadmControlPlane)
+			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)
+			setMachineOwnerReference(dummies.CSMachine1, dummies.KubeadmControlPlaneOwnerRef)
+			labelMachineFailuredomain(dummies.CSMachine1, dummies.CSFailureDomain1)
+
+			Ω(k8sClient.Delete(ctx, dummies.CSFailureDomain1))
+
+			tempKCP := &controlplanev1.KubeadmControlPlane{}
+			Eventually(func() bool {
+				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.KubeadmControlPlaneOwnerRef.Name}
+				if err := k8sClient.Get(ctx, key, tempKCP); err == nil {
+					return tempKCP.Spec.RolloutAfter != nil
+				}
+				return false
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		})
+
+		It("Should trigger etcdadmCluster rollout when etcd node exists failure domain.", func() {
+			assertFailuredomainCreated()
+			setCSMachineTemplateCRDs(dummies.CSMachineTemplate1)
+			setupEtcdadmClusterCRDs(dummies.EtcdadmCluster)
+			preTemplateName := dummies.EtcdadmCluster.Spec.InfrastructureTemplate.Name
+			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)
+			setMachineOwnerReference(dummies.CSMachine1, dummies.EtcdadmClusterOwnerRef)
+			setMachineAnnotation(dummies.CSMachine1, "cluster.x-k8s.io/cloned-from-name", "test-machinetemplate-1")
+			labelMachineFailuredomain(dummies.CSMachine1, dummies.CSFailureDomain1)
+			Ω(k8sClient.Delete(ctx, dummies.CSFailureDomain1))
+
+			etcdadmCluster := &etcdadmController.EtcdadmCluster{}
+			Eventually(func() bool {
+				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.EtcdClusterName}
+				if err := k8sClient.Get(ctx, key, etcdadmCluster); err == nil {
+					return etcdadmCluster.Spec.InfrastructureTemplate.Name != preTemplateName
+				}
+				return false
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		})
+
+		It("Should trigger kubeadmControlPlane rollout when etcd and cp node both exist failure domain.", func() {
+			assertFailuredomainCreated()
+			setKubeadmControlPlaneCRD(dummies.KubeadmControlPlane)
+			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)
+			setMachineOwnerReference(dummies.CSMachine1, dummies.KubeadmControlPlaneOwnerRef)
+			labelMachineFailuredomain(dummies.CSMachine1, dummies.CSFailureDomain1)
+
+			// add an etcd VM
+			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine2, dummies.CAPIMachine2)
+			setMachineOwnerReference(dummies.CSMachine2, dummies.EtcdadmClusterOwnerRef)
+			labelMachineFailuredomain(dummies.CSMachine2, dummies.CSFailureDomain1)
+
+			Ω(k8sClient.Delete(ctx, dummies.CSFailureDomain1))
+
+			tempKCP := &controlplanev1.KubeadmControlPlane{}
+			Consistently(func() bool {
+				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.KubeadmControlPlaneOwnerRef.Name}
+				if err := k8sClient.Get(ctx, key, tempKCP); err == nil {
+					return tempKCP.Spec.RolloutAfter == nil
 				}
 				return false
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())

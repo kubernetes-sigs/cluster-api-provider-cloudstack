@@ -20,11 +20,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	etcdadmController "github.com/mrajashree/etcdadm-controller/api/v1beta1"
 	"go/build"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"strings"
 	"testing"
 	"time"
@@ -65,6 +67,7 @@ func TestAPIs(t *testing.T) {
 
 var (
 	clusterAPIVersionRegex = regexp.MustCompile(`^(\W)sigs.k8s.io/cluster-api v(.+)`)
+	etcdadmAPIVersionRegex = regexp.MustCompile(`^(\W)(github.com/mrajashree/etcdadm-controller) v(.+)`)
 )
 
 const (
@@ -103,6 +106,56 @@ func getFilePathToCAPICRDs(root string) string {
 		fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "config", "crd", "bases")
 }
 
+// Have to get the path to the installed CAPI to inject CAPI CRDs.
+func getFilePathToCAPIControlPlaneKubeadmCRDs(root string) string {
+	modBits, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	if err != nil {
+		return ""
+	}
+
+	var clusterAPIVersion string
+	for _, line := range strings.Split(string(modBits), "\n") {
+		matches := clusterAPIVersionRegex.FindStringSubmatch(line)
+		if len(matches) == 3 {
+			clusterAPIVersion = matches[2]
+		}
+	}
+
+	if clusterAPIVersion == "" {
+		return ""
+	}
+
+	gopath := envOr("GOPATH", build.Default.GOPATH)
+	return filepath.Join(gopath, "pkg", "mod", "sigs.k8s.io",
+		fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "controlplane", "kubeadm", "config", "crd", "bases")
+}
+
+// Have to get the path to the installed CAPI to inject CAPI CRDs.
+func getFilePathToEtcdadmControllerCRDs(root string) string {
+	modBits, err := os.ReadFile(filepath.Join(root, "go.mod"))
+	if err != nil {
+		return ""
+	}
+
+	etcdadmController := ""
+	etcdadmControllerVersion := ""
+	for _, line := range strings.Split(string(modBits), "\n") {
+		matches := etcdadmAPIVersionRegex.FindStringSubmatch(line)
+		if len(matches) == 4 {
+			etcdadmController = matches[2]
+			etcdadmControllerVersion = matches[3]
+		}
+	}
+
+	if etcdadmControllerVersion == "" || etcdadmController == "" {
+		return ""
+	}
+
+	gopath := envOr("GOPATH", build.Default.GOPATH)
+	return filepath.Join(gopath, "pkg", "mod",
+		fmt.Sprintf("%s@v%s", etcdadmController, etcdadmControllerVersion), "config", "crd", "bases")
+}
+
 var (
 	// TestEnv vars...
 	testEnv        *envtest.Environment
@@ -139,9 +192,10 @@ var _ = BeforeSuite(func() {
 	}
 
 	By("bootstrapping test environment")
-
 	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
 	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
+	Ω(controlplanev1.AddToScheme(scheme.Scheme)).Should(Succeed())
+	Ω(etcdadmController.AddToScheme(scheme.Scheme)).Should(Succeed())
 
 	// Increase log verbosity.
 	klog.InitFlags(nil)
@@ -179,6 +233,14 @@ func SetupTestEnvironment() {
 	// Append CAPI CRDs path
 	if capiPath := getFilePathToCAPICRDs(repoRoot); capiPath != "" {
 		crdPaths = append(crdPaths, capiPath)
+	}
+	// Append CAPI controlplane kubeadm CRDs path
+	if capiKubeadmPath := getFilePathToCAPIControlPlaneKubeadmCRDs(repoRoot); capiKubeadmPath != "" {
+		crdPaths = append(crdPaths, capiKubeadmPath)
+	}
+	// Append etcdadm Controller CRDs path
+	if etcdadmControllerPath := getFilePathToEtcdadmControllerCRDs(repoRoot); etcdadmControllerPath != "" {
+		crdPaths = append(crdPaths, etcdadmControllerPath)
 	}
 	testEnv = &envtest.Environment{
 		ErrorIfCRDPathMissing: true,
@@ -410,6 +472,18 @@ func setupCAPIMachineDeploymentCRDs(CAPIMachineDeployment *clusterv1.MachineDepl
 	}, timeout).Should(BeNil())
 }
 
+// setupEtcdadmClusterCRDs create an etcdadm Cluster
+func setupEtcdadmClusterCRDs(etcdadmCluster *etcdadmController.EtcdadmCluster) {
+	//  Create etcd adm cluster.
+	Ω(k8sClient.Create(ctx, etcdadmCluster)).Should(Succeed())
+
+	// Fetch the CAPI Machine Deployment that was created.
+	key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: etcdadmCluster.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, etcdadmCluster)
+	}, timeout).Should(BeNil())
+}
+
 //
 //// setupFailuredomainCRDs creates a CloudstackFailuredomain.
 //func setupFailuredomainCRDs() {
@@ -493,6 +567,17 @@ func labelMachineDeploymentName(CSMachine *infrav1.CloudStackMachine, machineDep
 	}, timeout).Should(Succeed())
 }
 
+func setCSMachineTemplateCRDs(CSMachineTemplate *infrav1.CloudStackMachineTemplate) {
+	//  Create cloudstack machine template.
+	Ω(k8sClient.Create(ctx, CSMachineTemplate)).Should(Succeed())
+
+	// Fetch the CAPI Machine Deployment that was created.
+	key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: CSMachineTemplate.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CSMachineTemplate)
+	}, timeout).Should(BeNil())
+}
+
 func setMachineOwnerReference(CSMachine *infrav1.CloudStackMachine, ownerRef metav1.OwnerReference) {
 	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
 	Eventually(func() error {
@@ -506,4 +591,30 @@ func setMachineOwnerReference(CSMachine *infrav1.CloudStackMachine, ownerRef met
 		CSMachine.OwnerReferences = append(CSMachine.OwnerReferences, ownerRef)
 		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
 	}, timeout).Should(Succeed())
+}
+
+func setMachineAnnotation(CSMachine *infrav1.CloudStackMachine, annotationKey string, annotationValue string) {
+	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CSMachine)
+	}, timeout).Should(BeNil())
+
+	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	Eventually(func() error {
+		ph, err := patch.NewHelper(CSMachine, k8sClient)
+		Ω(err).ShouldNot(HaveOccurred())
+		if CSMachine.Annotations == nil {
+			CSMachine.Annotations = map[string]string{}
+		}
+		CSMachine.Annotations[annotationKey] = annotationValue
+		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
+	}, timeout).Should(Succeed())
+}
+
+func setKubeadmControlPlaneCRD(kcp *controlplanev1.KubeadmControlPlane) {
+	Ω(k8sClient.Create(ctx, kcp)).Should(Succeed())
+	key := client.ObjectKey{Namespace: kcp.Namespace, Name: kcp.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, kcp)
+	}, timeout).Should(BeNil())
 }

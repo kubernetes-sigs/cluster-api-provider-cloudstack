@@ -1,20 +1,22 @@
 package dummies
 
 import (
-	"io/ioutil"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"os"
-	capiControlPlanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
+	etcdadmBootstrap "github.com/mrajashree/etcdadm-bootstrap-provider/api/v1beta1"
+	etcdadmController "github.com/mrajashree/etcdadm-controller/api/v1beta1"
 	"github.com/onsi/gomega"
 	"github.com/smallfish/simpleyaml"
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
+	"os"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	capiControlPlanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 // GetYamlVal fetches the values in test/e2e/config/cloudstack.yaml by yaml node. A common config file.
@@ -36,6 +38,8 @@ var ( // Declare exported dummy vars.
 	CSMachine2                  *infrav1.CloudStackMachine
 	CSMachine3                  *infrav1.CloudStackMachine
 	CAPICluster                 *clusterv1.Cluster
+	EtcdadmCluster              *etcdadmController.EtcdadmCluster
+	EtcdClusterName             string
 	ClusterLabel                map[string]string
 	ClusterName                 string
 	ClusterNameSpace            string
@@ -97,6 +101,7 @@ var ( // Declare exported dummy vars.
 	CSClusterOwnerRef           metav1.OwnerReference
 	MachineOwnerRef             metav1.OwnerReference
 	MachineSetOwnerRef          metav1.OwnerReference
+	KubeadmControlPlane         *capiControlPlanev1.KubeadmControlPlane
 	KubeadmControlPlaneOwnerRef metav1.OwnerReference
 	EtcdadmClusterOwnerRef      metav1.OwnerReference
 )
@@ -126,6 +131,8 @@ func SetDummyVars() {
 	SetDummyBootstrapSecretVar()
 	SetDummyCAPIMachineDeploymentVars()
 	SetDummyOwnerReferences()
+	SetKubeadmControlPlane()
+	SetEtcdadmCluster()
 	LBRuleID = "FakeLBRuleID"
 }
 
@@ -261,6 +268,7 @@ func SetDummyCAPCClusterVars() {
 	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta2"
 	CSClusterKind = "CloudStackCluster"
 	ClusterName = "test-cluster"
+	EtcdClusterName = ClusterName + "-etcd"
 	EndPointHost = "EndpointHost"
 	EndPointPort = int32(5309)
 	PublicIPID = "FakePublicIPID"
@@ -489,7 +497,50 @@ func SetDummyOwnerReferences() {
 	EtcdadmClusterOwnerRef = metav1.OwnerReference{
 		Kind:       "EtcdadmCluster",
 		APIVersion: "etcdcluster.cluster.x-k8s.io/v1beta1",
-		Name:       ClusterName + "-etcd",
+		Name:       EtcdClusterName,
 		UID:        "uniqueness",
+	}
+}
+
+func SetKubeadmControlPlane() {
+	KubeadmControlPlane = &capiControlPlanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ClusterName,
+			Namespace: ClusterNameSpace,
+		},
+		Spec: capiControlPlanev1.KubeadmControlPlaneSpec{
+			MachineTemplate: capiControlPlanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "CloudStackMachineTemplate",
+					Name:       ClusterName + "-control-plane-template-" + "0",
+					Namespace:  ClusterNameSpace,
+				},
+				ObjectMeta: clusterv1.ObjectMeta{},
+			},
+			KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{},
+		},
+	}
+}
+
+func SetEtcdadmCluster() {
+	EtcdadmCluster = &etcdadmController.EtcdadmCluster{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "etcdcluster.cluster.x-k8s.io/v1beta1",
+			Kind:       "EtcdadmCluster",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      EtcdClusterName,
+			Namespace: ClusterNameSpace,
+		},
+		Spec: etcdadmController.EtcdadmClusterSpec{
+			EtcdadmConfigSpec: etcdadmBootstrap.EtcdadmConfigSpec{},
+			InfrastructureTemplate: corev1.ObjectReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "CloudStackMachineTemplate",
+				Name:       "test-machinetemplate-1",
+				Namespace:  ClusterNameSpace,
+			},
+		},
 	}
 }
