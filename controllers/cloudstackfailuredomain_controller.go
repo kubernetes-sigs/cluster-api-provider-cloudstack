@@ -44,17 +44,24 @@ type CloudStackFailureDomainReconciler struct {
 
 const (
 	conditionTypeControlPlaneReady = "ControlPlaneReady"
-	conditionTypeManagedEtcdReady = "ManagedEtcdReady"
-	conditionTypeReady = "Ready"
-
+	conditionTypeManagedEtcdReady  = "ManagedEtcdReady"
+	conditionTypeReady             = "Ready"
+	conditionStatusTrue            = "True"
+	conditionStatusFalse           = "False"
+	kindKubeadmControlPlane        = "KubeadmControlPlane"
+	kindEtcdadmCluster             = "EtcdadmCluster"
+	kindMachineSet                 = "MachineSet"
+	kindCloudStackAffinityGroup    = "CloudStackAffinityGroup"
+	kindCloudStackIsolatedNetwork  = "CloudStackIsolatedNetwork"
 )
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains/finalizers,verbs=update
-//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=get;list;watch;create
 //+kubebuilder:rbac:groups=etcdcluster.cluster.x-k8s.io,resources=etcdadmclusters,verbs=get;list;watch;patch
+//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch;patch
 
 // CloudStackFailureDomainReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackFailureDomains.
 // The runner does the actual reconciliation.
@@ -131,11 +138,11 @@ func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (ctrl.Re
 	return r.RunReconciliationStages(
 		r.ClearMachines,
 		r.DeleteOwnedObjects(
-			infrav1.GroupVersion.WithKind("CloudStackAffinityGroup"),
-			infrav1.GroupVersion.WithKind("CloudStackIsolatedNetwork")),
+			infrav1.GroupVersion.WithKind(kindCloudStackAffinityGroup),
+			infrav1.GroupVersion.WithKind(kindCloudStackIsolatedNetwork)),
 		r.CheckOwnedObjectsDeleted(
-			infrav1.GroupVersion.WithKind("CloudStackAffinityGroup"),
-			infrav1.GroupVersion.WithKind("CloudStackIsolatedNetwork")),
+			infrav1.GroupVersion.WithKind(kindCloudStackAffinityGroup),
+			infrav1.GroupVersion.WithKind(kindCloudStackIsolatedNetwork)),
 		r.RemoveFinalizer,
 	)
 }
@@ -179,7 +186,7 @@ func triggerEtcdClusterRollout(machines []infrav1.CloudStackMachine, r *CloudSta
 	etcdMachineFound := false
 	for _, machine := range machines {
 		for _, ref := range machine.OwnerReferences {
-			if ref.Kind == "EtcdadmCluster" {
+			if ref.Kind == kindEtcdadmCluster {
 				etcdMachineFound = true
 				// get etcdadmcluster by using machine's etcdadmcluster ownerReference
 				etcdadmCluster := &unstructured.Unstructured{}
@@ -221,11 +228,9 @@ func triggerEtcdClusterRollout(machines []infrav1.CloudStackMachine, r *CloudSta
 	return ctrl.Result{}, nil
 }
 func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, error) {
-	workerMachineFound := false
 	for _, machine := range machines {
 		for _, ref := range machine.OwnerReferences {
-			if ref.Kind == "MachineSet" {
-				workerMachineFound = true
+			if ref.Kind == kindMachineSet {
 
 				// get machine deployment by using cloudstack machine's label info
 				md := &clusterv1.MachineDeployment{}
@@ -240,29 +245,21 @@ func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *Cl
 
 				// add an annotation restartedAt in machine deployment if such one not already added
 				// this will trigger an immediate machine deployment rollout
-				_, ok = md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"]
-				if !ok {
-					if md.Spec.Template.Annotations == nil {
-						md.Spec.Template.Annotations = map[string]string{}
-					}
-					timeNowStr := time.Now().Add(time.Second * time.Duration(10)).Format(time.RFC3339)
-					patcher, err := patch.NewHelper(md, r.K8sClient)
-					if err != nil {
-						return ctrl.Result{}, err
-					}
-					md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"] = timeNowStr
-					if err := patcher.Patch(r.RequestCtx, md); err != nil {
-						return ctrl.Result{}, err
-					}
-					r.Log.Info(fmt.Sprintf("failuredomain delete: machine deployment name %s add annotation restartedAt %s", mdName, timeNowStr))
-				} else {
-					r.Log.Info(fmt.Sprintf("failuredomain delete: machine deployment name %s already has restartedAt annotation, skip", mdName))
+				patcher, err := patch.NewHelper(md, r.K8sClient)
+				if md.Spec.Template.Annotations == nil {
+					md.Spec.Template.Annotations = map[string]string{}
 				}
+				timeNowStr := time.Now().Add(time.Second * time.Duration(10)).Format(time.RFC3339)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+				md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"] = timeNowStr
+				if err := patcher.Patch(r.RequestCtx, md); err != nil {
+					return ctrl.Result{}, err
+				}
+				r.Log.Info(fmt.Sprintf("failuredomain delete: machine deployment name %s add annotation restartedAt %s", mdName, timeNowStr))
 				break
 			}
-		}
-		if workerMachineFound {
-			break
 		}
 	}
 	return ctrl.Result{}, nil
@@ -274,14 +271,14 @@ func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudSt
 	cpMachineFound := false
 	for _, machine := range machines {
 		for _, ref := range machine.OwnerReferences {
-			if ref.Kind == "KubeadmControlPlane" {
+			if ref.Kind == kindKubeadmControlPlane {
 				cpMachineFound = true
 				cpMachine = machine
 				ownerRef = ref
 			}
 			// etcdadmcluster rollout will trigger control plane rollout automatically.
 			// if etcd VM exists, trigger etcdadmcluster rollout is enough, no need to trigger control plane VM rollout.
-			if ref.Kind == "EtcdadmCluster" {
+			if ref.Kind == kindEtcdadmCluster {
 				return ctrl.Result{}, nil
 			}
 		}
@@ -315,10 +312,10 @@ func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudSt
 
 func checkClusterReady(r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, error) {
 	for _, condition := range r.CAPICluster.Status.Conditions {
-		if condition.Type == conditionTypeControlPlaneReady && condition.Status == "False" {
+		if condition.Type == conditionTypeControlPlaneReady && condition.Status == conditionStatusFalse {
 			return ctrl.Result{}, errors.New("cluster control plane not ready")
 		}
-		if condition.Type == conditionTypeManagedEtcdReady && condition.Status == "False" {
+		if condition.Type == conditionTypeManagedEtcdReady && condition.Status == conditionStatusFalse {
 			return ctrl.Result{}, errors.New("cluster managed etcd not ready")
 		}
 	}
@@ -333,7 +330,7 @@ func checkClusterReady(r *CloudStackFailureDomainReconciliationRunner) (ctrl.Res
 	}
 	for _, md := range machineDeployments.Items {
 		for _, condition := range md.Status.Conditions {
-			if condition.Type == conditionTypeReady && condition.Status != "True" {
+			if condition.Type == conditionTypeReady && condition.Status != conditionStatusTrue {
 				return ctrl.Result{}, errors.New("cluster machine deployment not ready")
 			}
 		}
