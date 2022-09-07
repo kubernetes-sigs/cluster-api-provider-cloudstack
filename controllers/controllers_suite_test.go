@@ -484,57 +484,6 @@ func setupEtcdadmClusterCRDs(etcdadmCluster *etcdadmController.EtcdadmCluster) {
 	}, timeout).Should(BeNil())
 }
 
-//
-//// setupFailuredomainCRDs creates a CloudstackFailuredomain.
-//func setupFailuredomainCRDs() {
-//	//  Create them.
-//	Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
-//
-//	// Fetch the CS Machine that was created.
-//	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSFailureDomain1.Name}
-//	Eventually(func() error {
-//		return k8sClient.Get(ctx, key, dummies.CSFailureDomain1)
-//	}, timeout).Should(BeNil())
-//
-//	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
-//	Eventually(func() error {
-//		ph, err := patch.NewHelper(dummies.CSFailureDomain1, k8sClient)
-//		Ω(err).ShouldNot(HaveOccurred())
-//		dummies.CSFailureDomain1.OwnerReferences = append(dummies.CSFailureDomain1.OwnerReferences, metav1.OwnerReference{
-//			Kind:       "CloudStackCluster",
-//			APIVersion: infrav1.GroupVersion.String(),
-//			Name:       dummies.CSCluster.Name,
-//			UID:        "uniqueness",
-//		})
-//		return ph.Patch(ctx, dummies.CSMachine1, patch.WithStatusObservedGeneration{})
-//	}, timeout).Should(Succeed())
-//}
-//
-//// setupMachineDeploymentCRDs creates a CAPI machine deployment.
-//func setupMachineDeploymentCRDs() {
-//	//  Create them.
-//	Ω(k8sClient.Create(ctx, dummies.CAPIMachineDeployment)).Should(Succeed())
-//
-//	// Fetch the CS Machine that was created.
-//	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CAPIMachineDeployment.Name}
-//	Eventually(func() error {
-//		return k8sClient.Get(ctx, key, dummies.CAPIMachineDeployment)
-//	}, timeout).Should(BeNil())
-//
-//	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
-//	Eventually(func() error {
-//		ph, err := patch.NewHelper(dummies.CAPIMachineDeployment, k8sClient)
-//		Ω(err).ShouldNot(HaveOccurred())
-//		dummies.CAPIMachineDeployment.OwnerReferences = append(dummies.CAPIMachineDeployment.OwnerReferences, metav1.OwnerReference{
-//			Kind:       "Cluster",
-//			APIVersion: clusterv1.GroupVersion.String(),
-//			Name:       dummies.ClusterName,
-//			UID:        "uniqueness",
-//		})
-//		return ph.Patch(ctx, dummies.CAPIMachineDeployment, patch.WithStatusObservedGeneration{})
-//	}, timeout).Should(Succeed())
-//}
-//
 // labelMachineFailuredomain add cloudstackfailuredomain info in the labels.
 func labelMachineFailuredomain(CSMachine *infrav1.CloudStackMachine, CSFailureDomain1 *infrav1.CloudStackFailureDomain) {
 	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}

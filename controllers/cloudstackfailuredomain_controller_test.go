@@ -60,7 +60,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 
 			assertFailuredomainNotExisted()
 		})
-		It("Should trigger machine deployment rollout when only worker node in failure domain.", func() {
+		It("Should patch its machine deployment when worker machine exists in deleted failure domain.", func() {
 			assertFailuredomainCreated()
 			setupCAPIMachineDeploymentCRDs(dummies.CAPIMachineDeployment)
 			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)
@@ -79,7 +79,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 				return false
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
 		})
-		It("Should trigger kubeadmControlPlane rollout when control plane node exists failure domain.", func() {
+		It("Should patch kubeadmControlPlane when control plane machine exists in deleted failure domain.", func() {
 			assertFailuredomainCreated()
 			setKubeadmControlPlaneCRD(dummies.KubeadmControlPlane)
 			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)
@@ -98,7 +98,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
 		})
 
-		It("Should trigger etcdadmCluster rollout when etcd node exists failure domain.", func() {
+		It("Should patch etcdadmCluster when etcd node exists in deleted failure domain.", func() {
 			assertFailuredomainCreated()
 			setCSMachineTemplateCRDs(dummies.CSMachineTemplate1)
 			setupEtcdadmClusterCRDs(dummies.EtcdadmCluster)
@@ -119,7 +119,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
 		})
 
-		It("Should trigger kubeadmControlPlane rollout when etcd and cp node both exist failure domain.", func() {
+		It("Should not patch kubeadmControlPlane when etcd and cp machines both exist in deleted failure domain.", func() {
 			assertFailuredomainCreated()
 			setKubeadmControlPlaneCRD(dummies.KubeadmControlPlane)
 			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)

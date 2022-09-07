@@ -43,9 +43,7 @@ type CloudStackFailureDomainReconciler struct {
 }
 
 const (
-	conditionTypeControlPlaneReady = "ControlPlaneReady"
 	conditionTypeManagedEtcdReady  = "ManagedEtcdReady"
-	conditionTypeReady             = "Ready"
 	conditionStatusTrue            = "True"
 	conditionStatusFalse           = "False"
 	kindKubeadmControlPlane        = "KubeadmControlPlane"
@@ -312,7 +310,7 @@ func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudSt
 
 func checkClusterReady(r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, error) {
 	for _, condition := range r.CAPICluster.Status.Conditions {
-		if condition.Type == conditionTypeControlPlaneReady && condition.Status == conditionStatusFalse {
+		if condition.Type == clusterv1.ControlPlaneReadyCondition && condition.Status == conditionStatusFalse {
 			return ctrl.Result{}, errors.New("cluster control plane not ready")
 		}
 		if condition.Type == conditionTypeManagedEtcdReady && condition.Status == conditionStatusFalse {
@@ -330,7 +328,7 @@ func checkClusterReady(r *CloudStackFailureDomainReconciliationRunner) (ctrl.Res
 	}
 	for _, md := range machineDeployments.Items {
 		for _, condition := range md.Status.Conditions {
-			if condition.Type == conditionTypeReady && condition.Status != conditionStatusTrue {
+			if condition.Type == clusterv1.ReadyCondition && condition.Status != conditionStatusTrue {
 				return ctrl.Result{}, errors.New("cluster machine deployment not ready")
 			}
 		}
