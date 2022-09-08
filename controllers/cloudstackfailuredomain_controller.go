@@ -234,7 +234,7 @@ func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *Cl
 				md := &clusterv1.MachineDeployment{}
 				mdName, ok := machine.Labels[clusterv1.MachineDeploymentLabelName]
 				if !ok {
-					return ctrl.Result{}, errors.Errorf("cloudstack machine %s misses label: %s", machine.Name, clusterv1.MachineDeploymentLabelName)
+					return ctrl.Result{}, errors.Errorf("cloudstack machine %s lacks expected label: %s", machine.Name, clusterv1.MachineDeploymentLabelName)
 				}
 
 				if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: machine.Namespace, Name: mdName}, md); err != nil {
@@ -244,13 +244,13 @@ func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *Cl
 				// add an annotation restartedAt in machine deployment if such one not already added
 				// this will trigger an immediate machine deployment rollout
 				patcher, err := patch.NewHelper(md, r.K8sClient)
-				if md.Spec.Template.Annotations == nil {
-					md.Spec.Template.Annotations = map[string]string{}
-				}
-				timeNowStr := time.Now().Add(time.Second * time.Duration(10)).Format(time.RFC3339)
 				if err != nil {
 					return ctrl.Result{}, err
 				}
+				if md.Spec.Template.Annotations == nil {
+					md.Spec.Template.Annotations = map[string]string{}
+				}
+				timeNowStr := time.Now().Format(time.RFC3339)
 				md.Spec.Template.Annotations["cluster.x-k8s.io/restartedAt"] = timeNowStr
 				if err := patcher.Patch(r.RequestCtx, md); err != nil {
 					return ctrl.Result{}, err
