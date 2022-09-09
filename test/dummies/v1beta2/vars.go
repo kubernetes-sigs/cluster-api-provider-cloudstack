@@ -2,8 +2,6 @@ package dummies
 
 import (
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
-	etcdadmBootstrap "github.com/mrajashree/etcdadm-bootstrap-provider/api/v1beta1"
-	etcdadmController "github.com/mrajashree/etcdadm-controller/api/v1beta1"
 	"github.com/onsi/gomega"
 	"github.com/smallfish/simpleyaml"
 	"io/ioutil"
@@ -38,7 +36,7 @@ var ( // Declare exported dummy vars.
 	CSMachine2                  *infrav1.CloudStackMachine
 	CSMachine3                  *infrav1.CloudStackMachine
 	CAPICluster                 *clusterv1.Cluster
-	EtcdadmCluster              *etcdadmController.EtcdadmCluster
+	EtcdadmCluster              *infrav1.FakeKindWithInfrastructureTemplate
 	EtcdClusterName             string
 	ClusterLabel                map[string]string
 	ClusterName                 string
@@ -495,8 +493,8 @@ func SetDummyOwnerReferences() {
 		UID:        "uniqueness",
 	}
 	EtcdadmClusterOwnerRef = metav1.OwnerReference{
-		Kind:       "EtcdadmCluster",
-		APIVersion: "etcdcluster.cluster.x-k8s.io/v1beta1",
+		Kind:       "FakeKindWithInfrastructureTemplate",
+		APIVersion: infrav1.GroupVersion.String(),
 		Name:       EtcdClusterName,
 		UID:        "uniqueness",
 	}
@@ -524,22 +522,14 @@ func SetKubeadmControlPlane() {
 }
 
 func SetEtcdadmCluster() {
-	EtcdadmCluster = &etcdadmController.EtcdadmCluster{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "etcdcluster.cluster.x-k8s.io/v1beta1",
-			Kind:       "EtcdadmCluster",
-		},
+	EtcdadmCluster = &infrav1.FakeKindWithInfrastructureTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdClusterName,
 			Namespace: ClusterNameSpace,
 		},
-		Spec: etcdadmController.EtcdadmClusterSpec{
-			EtcdadmConfigSpec: etcdadmBootstrap.EtcdadmConfigSpec{},
-			InfrastructureTemplate: corev1.ObjectReference{
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       "CloudStackMachineTemplate",
-				Name:       "test-machinetemplate-1",
-				Namespace:  ClusterNameSpace,
+		Spec: infrav1.FakeKindWithInfrastructureTemplateSpec{
+			InfrastructureTemplate: infrav1.InfrastructureTemplate{
+				Name: "test-machinetemplate-1",
 			},
 		},
 	}

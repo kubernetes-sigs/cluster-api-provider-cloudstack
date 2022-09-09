@@ -18,7 +18,6 @@ package controllers_test
 
 import (
 	"github.com/golang/mock/gomock"
-	etcdadmController "github.com/mrajashree/etcdadm-controller/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
@@ -109,7 +108,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 			labelMachineFailuredomain(dummies.CSMachine1, dummies.CSFailureDomain1)
 			Ω(k8sClient.Delete(ctx, dummies.CSFailureDomain1))
 
-			etcdadmCluster := &etcdadmController.EtcdadmCluster{}
+			etcdadmCluster := &infrav1.FakeKindWithInfrastructureTemplate{}
 			Eventually(func() bool {
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.EtcdClusterName}
 				if err := k8sClient.Get(ctx, key, etcdadmCluster); err == nil {
@@ -121,14 +120,17 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 
 		It("Should not patch kubeadmControlPlane when etcd and cp machines both exist in deleted failure domain.", func() {
 			assertFailuredomainCreated()
-			setKubeadmControlPlaneCRD(dummies.KubeadmControlPlane)
+			setCSMachineTemplateCRDs(dummies.CSMachineTemplate1)
+			setupEtcdadmClusterCRDs(dummies.EtcdadmCluster)
 			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)
-			setMachineOwnerReference(dummies.CSMachine1, dummies.KubeadmControlPlaneOwnerRef)
+			setMachineOwnerReference(dummies.CSMachine1, dummies.EtcdadmClusterOwnerRef)
+			setMachineAnnotation(dummies.CSMachine1, "cluster.x-k8s.io/cloned-from-name", "test-machinetemplate-1")
 			labelMachineFailuredomain(dummies.CSMachine1, dummies.CSFailureDomain1)
 
-			// add an etcd VM
+			assertFailuredomainCreated()
+			setKubeadmControlPlaneCRD(dummies.KubeadmControlPlane)
 			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine2, dummies.CAPIMachine2)
-			setMachineOwnerReference(dummies.CSMachine2, dummies.EtcdadmClusterOwnerRef)
+			setMachineOwnerReference(dummies.CSMachine2, dummies.KubeadmControlPlaneOwnerRef)
 			labelMachineFailuredomain(dummies.CSMachine2, dummies.CSFailureDomain1)
 
 			Ω(k8sClient.Delete(ctx, dummies.CSFailureDomain1))

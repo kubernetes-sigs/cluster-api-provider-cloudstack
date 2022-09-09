@@ -20,7 +20,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	etcdadmController "github.com/mrajashree/etcdadm-controller/api/v1beta1"
 	"go/build"
 	"os"
 	"os/exec"
@@ -67,7 +66,6 @@ func TestAPIs(t *testing.T) {
 
 var (
 	clusterAPIVersionRegex = regexp.MustCompile(`^(\W)sigs.k8s.io/cluster-api v(.+)`)
-	etcdadmAPIVersionRegex = regexp.MustCompile(`^(\W)(github.com/mrajashree/etcdadm-controller) v(.+)`)
 )
 
 const (
@@ -130,32 +128,6 @@ func getFilePathToCAPIControlPlaneKubeadmCRDs(root string) string {
 		fmt.Sprintf("cluster-api@v%s", clusterAPIVersion), "controlplane", "kubeadm", "config", "crd", "bases")
 }
 
-// Have to get the path to the installed CAPI to inject CAPI CRDs.
-func getFilePathToEtcdadmControllerCRDs(root string) string {
-	modBits, err := os.ReadFile(filepath.Join(root, "go.mod"))
-	if err != nil {
-		return ""
-	}
-
-	etcdadmController := ""
-	etcdadmControllerVersion := ""
-	for _, line := range strings.Split(string(modBits), "\n") {
-		matches := etcdadmAPIVersionRegex.FindStringSubmatch(line)
-		if len(matches) == 4 {
-			etcdadmController = matches[2]
-			etcdadmControllerVersion = matches[3]
-		}
-	}
-
-	if etcdadmControllerVersion == "" || etcdadmController == "" {
-		return ""
-	}
-
-	gopath := envOr("GOPATH", build.Default.GOPATH)
-	return filepath.Join(gopath, "pkg", "mod",
-		fmt.Sprintf("%s@v%s", etcdadmController, etcdadmControllerVersion), "config", "crd", "bases")
-}
-
 var (
 	// TestEnv vars...
 	testEnv        *envtest.Environment
@@ -195,7 +167,6 @@ var _ = BeforeSuite(func() {
 	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
 	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
 	Ω(controlplanev1.AddToScheme(scheme.Scheme)).Should(Succeed())
-	Ω(etcdadmController.AddToScheme(scheme.Scheme)).Should(Succeed())
 
 	// Increase log verbosity.
 	klog.InitFlags(nil)
@@ -237,10 +208,6 @@ func SetupTestEnvironment() {
 	// Append CAPI controlplane kubeadm CRDs path
 	if capiKubeadmPath := getFilePathToCAPIControlPlaneKubeadmCRDs(repoRoot); capiKubeadmPath != "" {
 		crdPaths = append(crdPaths, capiKubeadmPath)
-	}
-	// Append etcdadm Controller CRDs path
-	if etcdadmControllerPath := getFilePathToEtcdadmControllerCRDs(repoRoot); etcdadmControllerPath != "" {
-		crdPaths = append(crdPaths, etcdadmControllerPath)
 	}
 	testEnv = &envtest.Environment{
 		ErrorIfCRDPathMissing: true,
@@ -473,7 +440,7 @@ func setupCAPIMachineDeploymentCRDs(CAPIMachineDeployment *clusterv1.MachineDepl
 }
 
 // setupEtcdadmClusterCRDs create an etcdadm Cluster
-func setupEtcdadmClusterCRDs(etcdadmCluster *etcdadmController.EtcdadmCluster) {
+func setupEtcdadmClusterCRDs(etcdadmCluster *infrav1.FakeKindWithInfrastructureTemplate) {
 	//  Create etcd adm cluster.
 	Ω(k8sClient.Create(ctx, etcdadmCluster)).Should(Succeed())
 

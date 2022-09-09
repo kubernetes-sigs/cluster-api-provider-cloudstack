@@ -43,14 +43,14 @@ type CloudStackFailureDomainReconciler struct {
 }
 
 const (
-	conditionTypeManagedEtcdReady  = "ManagedEtcdReady"
-	conditionStatusTrue            = "True"
-	conditionStatusFalse           = "False"
-	kindKubeadmControlPlane        = "KubeadmControlPlane"
-	kindEtcdadmCluster             = "EtcdadmCluster"
-	kindMachineSet                 = "MachineSet"
-	kindCloudStackAffinityGroup    = "CloudStackAffinityGroup"
-	kindCloudStackIsolatedNetwork  = "CloudStackIsolatedNetwork"
+	conditionTypeManagedEtcdReady = "ManagedEtcdReady"
+	conditionStatusTrue           = "True"
+	conditionStatusFalse          = "False"
+	kindKubeadmControlPlane       = "KubeadmControlPlane"
+	kindMachineSet                = "MachineSet"
+	kindMachine                   = "Machine"
+	kindCloudStackAffinityGroup   = "CloudStackAffinityGroup"
+	kindCloudStackIsolatedNetwork = "CloudStackIsolatedNetwork"
 )
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains,verbs=get;list;watch;create;update;patch;delete
@@ -159,14 +159,20 @@ func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Resu
 		}
 	}
 
-	result, err := triggerEtcdClusterRollout(machines.Items, r)
+	result, etcdMachineFound, err := triggerEtcdClusterRollout(machines.Items, r)
 	if err != nil {
 		return result, err
 	}
 
-	result, err = triggerControlPlaneRollout(machines.Items, r)
-	if err != nil {
-		return result, err
+	// etcdadmcluster rollout will trigger control plane rollout automatically.
+	// if etcd machine exists, trigger etcdadmcluster rollout is enough, no need to trigger control plane rollout.
+	if !etcdMachineFound {
+		result, err = triggerControlPlaneRollout(machines.Items, r)
+		if err != nil {
+			return result, err
+		}
+	} else {
+		r.Log.Info("failuredomain delete: skip control plane machine since etcd machine found")
 	}
 
 	result, err = triggerMachineDeploymentRollout(machines.Items, r)
@@ -180,27 +186,30 @@ func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func triggerEtcdClusterRollout(machines []infrav1.CloudStackMachine, r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, error) {
+func triggerEtcdClusterRollout(machines []infrav1.CloudStackMachine, r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, bool, error) {
 	etcdMachineFound := false
 	for _, machine := range machines {
 		for _, ref := range machine.OwnerReferences {
-			if ref.Kind == kindEtcdadmCluster {
-				etcdMachineFound = true
-				// get etcdadmcluster by using machine's etcdadmcluster ownerReference
+			if ref.Kind != kindMachine && ref.Kind != kindMachineSet && ref.Kind != kindKubeadmControlPlane {
+				// try to get etcdadmcluster by using machine's etcdadmcluster ownerReference
 				etcdadmCluster := &unstructured.Unstructured{}
 				etcdadmCluster.SetGroupVersionKind(schema.FromAPIVersionAndKind(ref.APIVersion, ref.Kind))
 				if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: machine.Namespace, Name: ref.Name}, etcdadmCluster); err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, false, err
 				}
-
-				csMachineTemplateName, err := getCsMachineTemplateName(machine, etcdadmCluster, ref.Name)
+				csMachineTemplateNameInEtcdadmCluster, found, err := unstructured.NestedString(etcdadmCluster.Object, "spec", "infrastructureTemplate", "name")
+				if !found || err != nil {
+					break // skip to check next ref since this ref is not etcdadmcluster
+				}
+				etcdMachineFound = true
+				csMachineTemplateName, err := compareTemplateNameMatch(machine, csMachineTemplateNameInEtcdadmCluster)
 				if err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, false, err
 				}
 
 				newCsMachineTemplateName, err := cloneCsMachineTemplateWithNewName(r, machine.Namespace, csMachineTemplateName, ref.Name)
 				if err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, false, err
 				}
 
 				// patch etcdadmcluster to refer newly created cloudstack machine template, which will trigger an etcdadmcluster rolling upgrade.
@@ -212,7 +221,7 @@ func triggerEtcdClusterRollout(machines []infrav1.CloudStackMachine, r *CloudSta
 							"spec", "infrastructureTemplate", "name",
 						)
 					}); err != nil {
-					return ctrl.Result{}, err
+					return ctrl.Result{}, false, err
 				}
 				r.Log.Info(fmt.Sprintf("failuredomain delete: etcdadmcluster infrastructureTemplate cloudstackmachinetemplate name %s patched", newCsMachineTemplateName))
 				break
@@ -223,7 +232,7 @@ func triggerEtcdClusterRollout(machines []infrav1.CloudStackMachine, r *CloudSta
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, etcdMachineFound, nil
 }
 func triggerMachineDeploymentRollout(machines []infrav1.CloudStackMachine, r *CloudStackFailureDomainReconciliationRunner) (ctrl.Result, error) {
 	for _, machine := range machines {
@@ -274,11 +283,6 @@ func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudSt
 				cpMachine = machine
 				ownerRef = ref
 			}
-			// etcdadmcluster rollout will trigger control plane rollout automatically.
-			// if etcd VM exists, trigger etcdadmcluster rollout is enough, no need to trigger control plane VM rollout.
-			if ref.Kind == kindEtcdadmCluster {
-				return ctrl.Result{}, nil
-			}
 		}
 	}
 	if !cpMachineFound {
@@ -294,10 +298,10 @@ func triggerControlPlaneRollout(machines []infrav1.CloudStackMachine, r *CloudSt
 	// set kcp spec.RolloutAfter, this will trigger control plane rollout immediately
 	if kcp.Spec.RolloutAfter == nil {
 		patcher, err := patch.NewHelper(kcp, r.K8sClient)
-		kcp.Spec.RolloutAfter = &metav1.Time{Time: time.Now()}
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+		kcp.Spec.RolloutAfter = &metav1.Time{Time: time.Now()}
 		if err := patcher.Patch(r.RequestCtx, kcp); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -336,24 +340,16 @@ func checkClusterReady(r *CloudStackFailureDomainReconciliationRunner) (ctrl.Res
 	return ctrl.Result{}, nil
 }
 
-func getCsMachineTemplateName(machine infrav1.CloudStackMachine, etcdadmCluster *unstructured.Unstructured, etcdadmClusterName string) (string, error) {
+func compareTemplateNameMatch(machine infrav1.CloudStackMachine, templatename string) (string, error) {
 	// get cloudstack machine template by using machine's annotation info
 	csMachineTemplateName, ok := machine.Annotations["cluster.x-k8s.io/cloned-from-name"]
 	if !ok {
 		return "", errors.Errorf("annotations['cluster.x-k8s.io/cloned-from-name'] not found in cloudstack machine %s", machine.Name)
 	}
 
-	// get cloudstack machine template configured in etcdadmcluster's spec.infrastructureTemplate
-	csMachineTemplateNameInEtcdadmCluster, found, err := unstructured.NestedString(etcdadmCluster.Object, "spec", "infrastructureTemplate", "name")
-	if err != nil {
-		return "", err
-	}
-	if !found {
-		return "", errors.Errorf("etcdadmcluster %s spec.infrastructureTemplate.name not found", etcdadmClusterName)
-	}
-	if csMachineTemplateName != csMachineTemplateNameInEtcdadmCluster {
-		return "", errors.Errorf("cloudstackmachinetemplate %s in machine %s annotation and cloudstackmachinetemplate %s in etcdadmcluster %s infrastructureTemlate are different",
-			csMachineTemplateName, machine.Name, csMachineTemplateNameInEtcdadmCluster, etcdadmClusterName)
+	if csMachineTemplateName != templatename {
+		return "", errors.Errorf("cloudstackmachinetemplate %s in machine %s annotation and cloudstackmachinetemplate %s in etcdadmcluster are different",
+			csMachineTemplateName, machine.Name, templatename)
 	}
 	return csMachineTemplateName, nil
 }
