@@ -61,7 +61,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 		})
 		It("Should patch its machine deployment when worker machine exists in deleted failure domain.", func() {
 			assertFailuredomainCreated()
-			setupCAPIMachineDeploymentCRDs(dummies.CAPIMachineDeployment)
+			setupCAPIMachineDeploymentCRD(dummies.CAPIMachineDeployment)
 			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)
 			setMachineOwnerReference(dummies.CSMachine1, dummies.MachineSetOwnerRef)
 			labelMachineFailuredomain(dummies.CSMachine1, dummies.CSFailureDomain1)
@@ -99,8 +99,8 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 
 		It("Should patch etcdadmCluster when etcd node exists in deleted failure domain.", func() {
 			assertFailuredomainCreated()
-			setCSMachineTemplateCRDs(dummies.CSMachineTemplate1)
-			setupEtcdadmClusterCRDs(dummies.EtcdadmCluster)
+			setCSMachineTemplateCRD(dummies.CSMachineTemplate1)
+			setupEtcdadmClusterCRD(dummies.EtcdadmCluster)
 			preTemplateName := dummies.EtcdadmCluster.Spec.InfrastructureTemplate.Name
 			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)
 			setMachineOwnerReference(dummies.CSMachine1, dummies.EtcdadmClusterOwnerRef)
@@ -108,7 +108,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 			labelMachineFailuredomain(dummies.CSMachine1, dummies.CSFailureDomain1)
 			Ω(k8sClient.Delete(ctx, dummies.CSFailureDomain1))
 
-			etcdadmCluster := &infrav1.FakeKindWithInfrastructureTemplate{}
+			etcdadmCluster := &dummies.FakeKindWithInfrastructureTemplate{}
 			Eventually(func() bool {
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.EtcdClusterName}
 				if err := k8sClient.Get(ctx, key, etcdadmCluster); err == nil {
@@ -120,8 +120,8 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 
 		It("Should not patch kubeadmControlPlane when etcd and cp machines both exist in deleted failure domain.", func() {
 			assertFailuredomainCreated()
-			setCSMachineTemplateCRDs(dummies.CSMachineTemplate1)
-			setupEtcdadmClusterCRDs(dummies.EtcdadmCluster)
+			setCSMachineTemplateCRD(dummies.CSMachineTemplate1)
+			setupEtcdadmClusterCRD(dummies.EtcdadmCluster)
 			setupCAPIMachineAndCSMachineCRDs(dummies.CSMachine1, dummies.CAPIMachine1)
 			setMachineOwnerReference(dummies.CSMachine1, dummies.EtcdadmClusterOwnerRef)
 			setMachineAnnotation(dummies.CSMachine1, "cluster.x-k8s.io/cloned-from-name", "test-machinetemplate-1")

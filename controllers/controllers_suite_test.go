@@ -21,6 +21,7 @@ import (
 	"flag"
 	"fmt"
 	"go/build"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -167,6 +168,7 @@ var _ = BeforeSuite(func() {
 	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
 	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
 	Ω(controlplanev1.AddToScheme(scheme.Scheme)).Should(Succeed())
+	Ω(dummies.AddToScheme(scheme.Scheme)).Should(Succeed())
 
 	// Increase log verbosity.
 	klog.InitFlags(nil)
@@ -218,6 +220,8 @@ func SetupTestEnvironment() {
 	go func() {
 		defer GinkgoRecover()
 		cfg, err = testEnv.Start()
+		extraCRDs := append([]*apiextensionsv1.CustomResourceDefinition{}, dummies.EtcdadmCrds)
+		err = envtest.CreateCRDs(cfg, extraCRDs)
 		close(done)
 	}()
 	Eventually(done).WithTimeout(time.Minute).Should(BeClosed())
@@ -361,7 +365,7 @@ func setupClusterCRDs() {
 		return k8sClient.Get(ctx, key, dummies.CSCluster)
 	}, timeout).Should(BeNil())
 
-	// Set owner ref from CAPI cluster to CS Cluster and patch back the CS Cluster.
+	// Set ownerReference to CAPI cluster in CS Cluster and patch back the CS Cluster.
 	Eventually(func() error {
 		ph, err := patch.NewHelper(dummies.CSCluster, k8sClient)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -387,7 +391,7 @@ func setupMachineCRDs() {
 		return k8sClient.Get(ctx, key, dummies.CSMachine1)
 	}, timeout).Should(BeNil())
 
-	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	// Set ownerReference to CAPI machine in CS machine and patch back the CS machine.
 	Eventually(func() error {
 		ph, err := patch.NewHelper(dummies.CSMachine1, k8sClient)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -401,7 +405,7 @@ func setupMachineCRDs() {
 	}, timeout).Should(Succeed())
 }
 
-// setupMachineCRDs creates a CAPI and CloudStack machine with an appropriate ownership ref between them.
+// setupCAPIMachineAndCSMachineCRDs creates a CAPI and CloudStack machine with an appropriate ownership ref between them.
 func setupCAPIMachineAndCSMachineCRDs(CSMachine *infrav1.CloudStackMachine, CAPIMachine *clusterv1.Machine) {
 	//  Create them.
 	Ω(k8sClient.Create(ctx, CAPIMachine)).Should(Succeed())
@@ -413,7 +417,7 @@ func setupCAPIMachineAndCSMachineCRDs(CSMachine *infrav1.CloudStackMachine, CAPI
 		return k8sClient.Get(ctx, key, CSMachine)
 	}, timeout).Should(BeNil())
 
-	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	// Set ownerReference to CAPI machine in CS machine and patch back the CS machine.
 	Eventually(func() error {
 		ph, err := patch.NewHelper(dummies.CSMachine1, k8sClient)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -427,8 +431,8 @@ func setupCAPIMachineAndCSMachineCRDs(CSMachine *infrav1.CloudStackMachine, CAPI
 	}, timeout).Should(Succeed())
 }
 
-// setupCAPIMachineDeploymentCRDs creates a CAPI machine deployment.
-func setupCAPIMachineDeploymentCRDs(CAPIMachineDeployment *clusterv1.MachineDeployment) {
+// setupCAPIMachineDeploymentCRD creates a CAPI machine deployment.
+func setupCAPIMachineDeploymentCRD(CAPIMachineDeployment *clusterv1.MachineDeployment) {
 	//  Create them.
 	Ω(k8sClient.Create(ctx, CAPIMachineDeployment)).Should(Succeed())
 
@@ -439,12 +443,12 @@ func setupCAPIMachineDeploymentCRDs(CAPIMachineDeployment *clusterv1.MachineDepl
 	}, timeout).Should(BeNil())
 }
 
-// setupEtcdadmClusterCRDs create an etcdadm Cluster
-func setupEtcdadmClusterCRDs(etcdadmCluster *infrav1.FakeKindWithInfrastructureTemplate) {
-	//  Create etcd adm cluster.
+// setupEtcdadmClusterCRD create an etcdadm Cluster
+func setupEtcdadmClusterCRD(etcdadmCluster *dummies.FakeKindWithInfrastructureTemplate) {
+	//  Create etcdadm cluster.
 	Ω(k8sClient.Create(ctx, etcdadmCluster)).Should(Succeed())
 
-	// Fetch the CAPI Machine Deployment that was created.
+	// Fetch the etcdadm cluster that was created.
 	key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: etcdadmCluster.Name}
 	Eventually(func() error {
 		return k8sClient.Get(ctx, key, etcdadmCluster)
@@ -458,7 +462,7 @@ func labelMachineFailuredomain(CSMachine *infrav1.CloudStackMachine, CSFailureDo
 		return k8sClient.Get(ctx, key, CSMachine)
 	}, timeout).Should(BeNil())
 
-	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	// set cloudstack failuredomain in machine labels.
 	Eventually(func() error {
 		ph, err := patch.NewHelper(CSMachine, k8sClient)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -474,7 +478,7 @@ func labelMachineDeploymentName(CSMachine *infrav1.CloudStackMachine, machineDep
 		return k8sClient.Get(ctx, key, CSMachine)
 	}, timeout).Should(BeNil())
 
-	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	// Set machine deployment in machine labels.
 	Eventually(func() error {
 		ph, err := patch.NewHelper(CSMachine, k8sClient)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -483,11 +487,11 @@ func labelMachineDeploymentName(CSMachine *infrav1.CloudStackMachine, machineDep
 	}, timeout).Should(Succeed())
 }
 
-func setCSMachineTemplateCRDs(CSMachineTemplate *infrav1.CloudStackMachineTemplate) {
+func setCSMachineTemplateCRD(CSMachineTemplate *infrav1.CloudStackMachineTemplate) {
 	//  Create cloudstack machine template.
 	Ω(k8sClient.Create(ctx, CSMachineTemplate)).Should(Succeed())
 
-	// Fetch the CAPI Machine Deployment that was created.
+	// Fetch the cloudstack machine template that was created.
 	key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: CSMachineTemplate.Name}
 	Eventually(func() error {
 		return k8sClient.Get(ctx, key, CSMachineTemplate)
@@ -500,7 +504,7 @@ func setMachineOwnerReference(CSMachine *infrav1.CloudStackMachine, ownerRef met
 		return k8sClient.Get(ctx, key, CSMachine)
 	}, timeout).Should(BeNil())
 
-	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	// Set ownerReference to CAPI machine in CS machine and patch back the CS machine.
 	Eventually(func() error {
 		ph, err := patch.NewHelper(CSMachine, k8sClient)
 		Ω(err).ShouldNot(HaveOccurred())
@@ -515,7 +519,7 @@ func setMachineAnnotation(CSMachine *infrav1.CloudStackMachine, annotationKey st
 		return k8sClient.Get(ctx, key, CSMachine)
 	}, timeout).Should(BeNil())
 
-	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
+	// Set annotation in cloudstack machine metadata.
 	Eventually(func() error {
 		ph, err := patch.NewHelper(CSMachine, k8sClient)
 		Ω(err).ShouldNot(HaveOccurred())

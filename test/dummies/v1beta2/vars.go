@@ -6,6 +6,7 @@ import (
 	"github.com/smallfish/simpleyaml"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
@@ -36,7 +37,8 @@ var ( // Declare exported dummy vars.
 	CSMachine2                  *infrav1.CloudStackMachine
 	CSMachine3                  *infrav1.CloudStackMachine
 	CAPICluster                 *clusterv1.Cluster
-	EtcdadmCluster              *infrav1.FakeKindWithInfrastructureTemplate
+	EtcdadmCluster              *FakeKindWithInfrastructureTemplate
+	EtcdadmCrds                 *apiextensionsv1.CustomResourceDefinition
 	EtcdClusterName             string
 	ClusterLabel                map[string]string
 	ClusterName                 string
@@ -130,6 +132,7 @@ func SetDummyVars() {
 	SetDummyCAPIMachineDeploymentVars()
 	SetDummyOwnerReferences()
 	SetKubeadmControlPlane()
+	SetEtcdadmClusterCrd()
 	SetEtcdadmCluster()
 	LBRuleID = "FakeLBRuleID"
 }
@@ -148,6 +151,77 @@ func CAPCNetToCSAPINet(net *infrav1.Network) *csapi.Network {
 		Name: net.Name,
 		Id:   net.ID,
 		Type: net.Type,
+	}
+}
+
+func SetEtcdadmClusterCrd() {
+	EtcdadmCrds = &apiextensionsv1.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apiextensions.k8s.io/v1",
+			Kind:       "CustomResourceDefinition",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "fakekindwithinfrastructuretemplates.dummies.infrastructure.cluster.x-k8s.io",
+		},
+		Status: apiextensionsv1.CustomResourceDefinitionStatus{
+			AcceptedNames: apiextensionsv1.CustomResourceDefinitionNames{
+				Kind:   "",
+				Plural: "",
+			},
+			Conditions:     []apiextensionsv1.CustomResourceDefinitionCondition{},
+			StoredVersions: []string{},
+		},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: "dummies.infrastructure.cluster.x-k8s.io",
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
+				Kind:     "FakeKindWithInfrastructureTemplate",
+				Singular: "fakekindwithinfrastructuretemplate",
+				ListKind: "FakeKindWithInfrastructureTemplateList",
+				Plural:   "fakekindwithinfrastructuretemplates",
+			},
+			Scope: "Namespaced",
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+				{
+					Name:    "v1beta2",
+					Served:  true,
+					Storage: true,
+					Schema: &apiextensionsv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+							Description: "FakeKindWithInfrastructure is the Schema for testing CRDs with\n          infrastructureTemplate under spec",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"apiVersion": {
+									Description: "",
+									Type:        "string",
+								},
+								"kind": {
+									Description: "",
+									Type:        "string",
+								},
+								"metadata": {
+									Type: "object",
+								},
+								"spec": {
+									Description: "",
+									Properties: map[string]apiextensionsv1.JSONSchemaProps{
+										"infrastructureTemplate": {
+											Description: "InfrastructureTemplate defines the name of the template",
+											Properties: map[string]apiextensionsv1.JSONSchemaProps{
+												"name": {
+													Type: "string",
+												},
+											},
+											Type: "object",
+										},
+									},
+									Type: "object",
+								},
+							},
+							Type: "object",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -494,7 +568,7 @@ func SetDummyOwnerReferences() {
 	}
 	EtcdadmClusterOwnerRef = metav1.OwnerReference{
 		Kind:       "FakeKindWithInfrastructureTemplate",
-		APIVersion: infrav1.GroupVersion.String(),
+		APIVersion: GroupVersion.String(),
 		Name:       EtcdClusterName,
 		UID:        "uniqueness",
 	}
@@ -522,13 +596,13 @@ func SetKubeadmControlPlane() {
 }
 
 func SetEtcdadmCluster() {
-	EtcdadmCluster = &infrav1.FakeKindWithInfrastructureTemplate{
+	EtcdadmCluster = &FakeKindWithInfrastructureTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdClusterName,
 			Namespace: ClusterNameSpace,
 		},
-		Spec: infrav1.FakeKindWithInfrastructureTemplateSpec{
-			InfrastructureTemplate: infrav1.InfrastructureTemplate{
+		Spec: FakeKindWithInfrastructureTemplateSpec{
+			InfrastructureTemplate: InfrastructureTemplate{
 				Name: "test-machinetemplate-1",
 			},
 		},
