@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
+
 // Test upgrading across API versions.
 var _ = Describe("Upgrade Testing-ness", func() {
 	var (
@@ -37,7 +38,6 @@ var _ = Describe("Upgrade Testing-ness", func() {
 		namespace             *corev1.Namespace
 		clusterResources      *clusterctl.ApplyClusterTemplateAndWaitResult
 		cancelWatches         context.CancelFunc
-		E2EConfig             *clusterctl.E2EConfig
 		ClusterctlConfigPath  string
 		BootstrapClusterProxy framework.ClusterProxy
 		ArtifactFolder        string
@@ -45,7 +45,8 @@ var _ = Describe("Upgrade Testing-ness", func() {
 	)
 
 	BeforeEach(func() {
-		E2EConfig = &clusterctl.E2EConfig{
+        fmt.Printf("%+V\n", ctx)
+
 
 			// Providers is a list of providers to be configured in the local repository that will be created for the e2e test.
 			// It is required to provide following providers
@@ -54,7 +55,6 @@ var _ = Describe("Upgrade Testing-ness", func() {
 			// - control-plane kubeadm
 			// - one infrastructure provider
 
-		}
 		// // ProviderConfig describes a provider to be configured in the local repository that will be created for the e2e test.
 		// type ProviderConfig struct {
 		// 	// Name is the name of the provider.
@@ -72,13 +72,12 @@ var _ = Describe("Upgrade Testing-ness", func() {
 		// }
 
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
-		Expect(E2EConfig).ToNot(BeNil(), "Invalid argument. E2EConfig can't be nil when calling %s spec", specName)
+		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. E2EConfig can't be nil when calling %s spec", specName)
 		Expect(clusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(bootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(artifactFolder, 0o750)).To(Succeed(), "Invalid argument. ArtifactFolder can't be created for %s spec", specName)
 
-		// E2EConfig.Variables[KubernetesVersion] =
-		// Expect(E2EConfig.Variables).To(HaveKey(KubernetesVersion))
+		Expect(e2eConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// // Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		// namespace, cancelWatches = setupSpecNamespace(ctx, specName, BootstrapClusterProxy, ArtifactFolder)
@@ -88,9 +87,7 @@ var _ = Describe("Upgrade Testing-ness", func() {
 	It("Should upgrade without a hitch.", func() {
 		// k8sClient := BootstrapClusterProxy.GetClientSet()
 		// k8sClient.RESTClient().Get()
-		//
-		//
-		fmt.Println(ClusterctlConfigPath)
+
 		// clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
 		// 	ClusterProxy:            BootstrapClusterProxy,
 		// 	ClusterctlConfigPath:    ClusterctlConfigPath,
@@ -111,7 +108,8 @@ var _ = Describe("Upgrade Testing-ness", func() {
 		// }
 		// clusterctl.Init(ctx, clusterctlInitInput)
 		fmt.Println(ClusterctlConfigPath)
-		time.Sleep(time.Minute * 6)
+		time.Sleep(time.Second * 6)
+
 		// clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		// 	ClusterProxy:    BootstrapClusterProxy,
 		// 	CNIManifestPath: E2EConfig.GetVariable(CNIPath),
@@ -135,8 +133,9 @@ var _ = Describe("Upgrade Testing-ness", func() {
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+        // TODO: clusterResources.Cluster is empty and panics atm.
 		fmt.Println(ctx, specName, BootstrapClusterProxy, ArtifactFolder, namespace, cancelWatches,
-			clusterResources.Cluster, SkipCleanup)
+			clusterResources, SkipCleanup)
 		// dumpSpecResourcesAndCleanup(ctx, specName, BootstrapClusterProxy, ArtifactFolder, namespace, cancelWatches,
 		//           clusterResources.Cluster, E2EConfig.GetIntervals, SkipCleanup)
 

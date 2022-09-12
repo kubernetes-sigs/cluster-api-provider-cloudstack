@@ -17,6 +17,7 @@ limitations under the License.
 package e2eapiupgrade_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -50,10 +51,8 @@ var (
 	// bootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.
 	bootstrapClusterProxy framework.ClusterProxy
 
-
 	artifactFolder string
 )
-
 
 func TestE2eApiUpgrade(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -61,12 +60,11 @@ func TestE2eApiUpgrade(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	// Test suite flags.
-	configPath := ""
+    ctx = context.TODO()
 
 	useExistingCluster := true
 	artifactFolder = filepath.Join(os.Getenv("REPO_ROOT"), "_artifacts")
-	configPath = filepath.Join(os.Getenv("REPO_ROOT"), "test/e2e/config/cloudstack.yaml")
+    configPath := filepath.Join(os.Getenv("REPO_ROOT"), "test/e2e/config/cloudstack.yaml")
 
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config should be an existing file.")
 	Expect(os.MkdirAll(artifactFolder, 0o755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder) //nolint:gosec
