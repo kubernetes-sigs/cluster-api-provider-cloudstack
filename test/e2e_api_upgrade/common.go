@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2eapiupgrade
+package e2eapiupgrade_test
 
 import (
 	"context"
@@ -23,13 +23,12 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/blang/semver"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/gomega"
@@ -38,7 +37,6 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -65,19 +63,6 @@ const (
 	MachineDeploymentIndicator = "md"
 	DataVolumePrefix           = "DATA-"
 )
-
-type CommonSpecInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	ArtifactFolder        string
-	SkipCleanup           bool
-
-	// Flavor, if specified is the template flavor used to create the cluster for testing.
-	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
-	// otherwise the default flavor is used.
-	Flavor *string
-}
 
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
@@ -195,7 +180,6 @@ func CheckAffinityGroupsDeleted(client *cloudstack.CloudStackClient, affinityIds
 	return nil
 }
 
-
 func CheckNetworkExists(client *cloudstack.CloudStackClient, networkName string) (bool, error) {
 	_, count, err := client.Network.GetNetworkByName(networkName)
 	if err != nil {
@@ -257,25 +241,6 @@ func checkVMHostAssignments(vm *cloudstack.VirtualMachine, cpHostIdSet map[strin
 		mdHostIdSet[vm.Hostid] = true
 	}
 	return nil
-}
-
-func WaitForMachineRemediationAfterDestroy(ctx context.Context, proxy framework.ClusterProxy, cluster *clusterv1.Cluster, machineMatcher string, healthyMachineCount int, intervals []interface{}) {
-	mgmtClusterClient := proxy.GetClient()
-	workloadClusterClient := proxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name).GetClient()
-
-	WaitForHealthyMachineCount(ctx, mgmtClusterClient, workloadClusterClient, cluster, machineMatcher, healthyMachineCount, intervals)
-	Byf("Current number of healthy %s is %d", machineMatcher, healthyMachineCount)
-
-	Byf("Destroying one %s", machineMatcher)
-	csClient := CreateCloudStackClient(ctx, proxy.GetKubeconfigPath())
-	DestroyOneMachine(csClient, cluster.Name, machineMatcher)
-
-	Byf("Waiting for the destroyed %s to be unhealthy", machineMatcher)
-	WaitForHealthyMachineCount(ctx, mgmtClusterClient, workloadClusterClient, cluster, machineMatcher, healthyMachineCount-1, intervals)
-
-	Byf("Waiting for remediation of %s", machineMatcher)
-	WaitForHealthyMachineCount(ctx, mgmtClusterClient, workloadClusterClient, cluster, machineMatcher, healthyMachineCount, intervals)
-	Byf("%s machine remediated successfully", machineMatcher)
 }
 
 func WaitForHealthyMachineCount(ctx context.Context, mgmtClient client.Client, workloadClient client.Client, cluster *clusterv1.Cluster, mhcMatcher string, healthyMachineCount int, intervals []interface{}) {
@@ -363,6 +328,7 @@ func CheckDiskOfferingOfVmInstances(client *cloudstack.CloudStackClient, cluster
 		}
 	}
 }
+
 func CheckVolumeSizeofVmInstances(client *cloudstack.CloudStackClient, clusterName string, volumeSize int64) {
 	Byf("Listing machines with %q", clusterName)
 	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())

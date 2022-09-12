@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package e2eapiupgrade
+package e2eapiupgrade_test
 
 import (
 	"os"
-	"path"
 	"path/filepath"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,17 +49,27 @@ var (
 
 	// bootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.
 	bootstrapClusterProxy framework.ClusterProxy
+
+
+	artifactFolder string
 )
 
+
+func TestE2eApiUpgrade(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "E2eApiUpgrade Suite")
+}
+
 var _ = BeforeSuite(func() {
-    // Test suite flags.
-    configPath := ""
-    
-    useExistingCluster := true
-    artifactFolder := path.Join(os.Getenv("REPO_ROOT"), "_artifacts")
+	// Test suite flags.
+	configPath := ""
+
+	useExistingCluster := true
+	artifactFolder = filepath.Join(os.Getenv("REPO_ROOT"), "_artifacts")
+	configPath = filepath.Join(os.Getenv("REPO_ROOT"), "test/e2e/config/cloudstack.yaml")
 
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config should be an existing file.")
-	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder) //nolint:gosec
+	Expect(os.MkdirAll(artifactFolder, 0o755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder) //nolint:gosec
 
 	By("Initializing a runtime.Scheme with all the GVK relevant for this test")
 	scheme := initScheme()
@@ -98,7 +108,8 @@ func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 
 	// Ensuring a CNI file is defined in the config and register a FileTransformation to inject the referenced file in place of the CNI_RESOURCES envSubst variable.
 	Expect(config.Variables).To(HaveKey(CNIPath), "Missing %s variable in the config", CNIPath)
-	cniPath := config.GetVariable(CNIPath)
+	cniPath := filepath.Join(os.Getenv("REPO_ROOT"), "test/e2e", config.GetVariable(CNIPath))
+
 	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", CNIPath)
 
 	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, CNIResources)
