@@ -314,6 +314,7 @@ release-staging: ## Builds and push container images and manifests to the stagin
 	$(MAKE) docker-build
 	$(MAKE) docker-push
 	$(MAKE) release-alias-tag
+	$(MAKE) release-templates
 	$(MAKE) release-manifests TAG=$(RELEASE_ALIAS_TAG)
 	$(MAKE) upload-staging-artifacts
 
