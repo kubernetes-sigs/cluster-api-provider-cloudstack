@@ -17,7 +17,6 @@ limitations under the License.
 package e2eapiupgrade_test
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -54,17 +53,16 @@ var (
 	artifactFolder string
 )
 
+// TestE2eApiUpgrade sets up the test suite with Ginkgo's fail handler with Gomega and runs Ginkgo specs.
 func TestE2eApiUpgrade(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "E2eApiUpgrade Suite")
 }
 
 var _ = BeforeSuite(func() {
-    ctx = context.TODO()
-
 	useExistingCluster := true
 	artifactFolder = filepath.Join(os.Getenv("REPO_ROOT"), "_artifacts")
-    configPath := filepath.Join(os.Getenv("REPO_ROOT"), "test/e2e/config/cloudstack.yaml")
+	configPath := filepath.Join(os.Getenv("REPO_ROOT"), "test/e2e/config/cloudstack.yaml")
 
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config should be an existing file.")
 	Expect(os.MkdirAll(artifactFolder, 0o755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder) //nolint:gosec
@@ -80,17 +78,16 @@ var _ = BeforeSuite(func() {
 
 	By("Setting up the bootstrap cluster")
 	bootstrapClusterProvider, bootstrapClusterProxy = setupBootstrapCluster(e2eConfig, scheme, useExistingCluster)
-
-	By("Initializing the bootstrap cluster")
-	initBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 })
 
+// initScheme loads the GVKs into the k8s scheme for this test.
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
 	return sc
 }
 
+// loadE2EConfig loads the configuration file common to all e2e specs at given path.
 func loadE2EConfig(configPath string) *clusterctl.E2EConfig {
 	config := clusterctl.LoadE2EConfig(ctx, clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
 	Expect(config).ToNot(BeNil(), "Failed to load E2E config from %s", configPath)
@@ -98,6 +95,7 @@ func loadE2EConfig(configPath string) *clusterctl.E2EConfig {
 	return config
 }
 
+// createClusterctlLocalRepository creates a cluster-api repo locally for use in e2e testing.
 func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFolder string) string {
 	createRepositoryInput := clusterctl.CreateRepositoryInput{
 		E2EConfig:        config,
@@ -117,6 +115,7 @@ func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 	return clusterctlConfig
 }
 
+// setupBootstrapCluster creates or configures to use an existing bootstrap cluster using a bootstrap provider (defaults to kind).
 func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme, useExistingCluster bool) (bootstrap.ClusterProvider, framework.ClusterProxy) {
 	var clusterProvider bootstrap.ClusterProvider
 	kubeconfigPath := ""
@@ -127,7 +126,7 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 			RequiresDockerSock: config.HasDockerProvider(),
 			Images:             config.Images,
 			IPFamily:           config.GetVariable(IPFamily),
-			// LogFolder:          filepath.Join(artifactFolder, "kind"),
+			LogFolder:          filepath.Join(artifactFolder, "kind"),
 		})
 		Expect(clusterProvider).ToNot(BeNil(), "Failed to create a bootstrap cluster")
 
@@ -139,13 +138,4 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 	Expect(clusterProxy).ToNot(BeNil(), "Failed to get a bootstrap cluster proxy")
 
 	return clusterProvider, clusterProxy
-}
-
-func initBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
-	clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
-		ClusterProxy:            bootstrapClusterProxy,
-		ClusterctlConfigPath:    clusterctlConfig,
-		InfrastructureProviders: config.InfrastructureProviders(),
-		LogFolder:               filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
-	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
