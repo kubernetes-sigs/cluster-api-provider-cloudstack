@@ -13,6 +13,7 @@ import (
 	"os"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes/etcdcluster"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	capiControlPlanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -37,7 +38,7 @@ var ( // Declare exported dummy vars.
 	CSMachine2                  *infrav1.CloudStackMachine
 	CSMachine3                  *infrav1.CloudStackMachine
 	CAPICluster                 *clusterv1.Cluster
-	EtcdadmCluster              *FakeKindWithInfrastructureTemplate
+	EtcdadmCluster              *etcdcluster.EtcdadmCluster
 	EtcdadmCrds                 *apiextensionsv1.CustomResourceDefinition
 	EtcdClusterName             string
 	ClusterLabel                map[string]string
@@ -161,7 +162,7 @@ func SetEtcdadmClusterCrd() {
 			Kind:       "CustomResourceDefinition",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "fakekindwithinfrastructuretemplates.dummies.infrastructure.cluster.x-k8s.io",
+			Name: "etcdadmclusters.etcdcluster.cluster.x-k8s.io",
 		},
 		Status: apiextensionsv1.CustomResourceDefinitionStatus{
 			AcceptedNames: apiextensionsv1.CustomResourceDefinitionNames{
@@ -172,22 +173,22 @@ func SetEtcdadmClusterCrd() {
 			StoredVersions: []string{},
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-			Group: "dummies.infrastructure.cluster.x-k8s.io",
+			Group: "etcdcluster.cluster.x-k8s.io",
 			Names: apiextensionsv1.CustomResourceDefinitionNames{
-				Kind:     "FakeKindWithInfrastructureTemplate",
-				Singular: "fakekindwithinfrastructuretemplate",
-				ListKind: "FakeKindWithInfrastructureTemplateList",
-				Plural:   "fakekindwithinfrastructuretemplates",
+				Kind:     "EtcdadmCluster",
+				Singular: "etcdadmcluster",
+				ListKind: "EtcdadmClusterList",
+				Plural:   "etcdadmclusters",
 			},
 			Scope: "Namespaced",
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 				{
-					Name:    "v1beta2",
+					Name:    "v1beta1",
 					Served:  true,
 					Storage: true,
 					Schema: &apiextensionsv1.CustomResourceValidation{
 						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
-							Description: "FakeKindWithInfrastructure is the Schema for testing CRDs with\n          infrastructureTemplate under spec",
+							Description: "EtcdadmCluster is the Schema for testing CRDs with\n          infrastructureTemplate under spec",
 							Properties: map[string]apiextensionsv1.JSONSchemaProps{
 								"apiVersion": {
 									Description: "",
@@ -567,8 +568,8 @@ func SetDummyOwnerReferences() {
 		UID:        "uniqueness",
 	}
 	EtcdadmClusterOwnerRef = metav1.OwnerReference{
-		Kind:       "FakeKindWithInfrastructureTemplate",
-		APIVersion: GroupVersion.String(),
+		Kind:       "EtcdadmCluster",
+		APIVersion: etcdcluster.GroupVersion.String(),
 		Name:       EtcdClusterName,
 		UID:        "uniqueness",
 	}
@@ -596,13 +597,13 @@ func SetKubeadmControlPlane() {
 }
 
 func SetEtcdadmCluster() {
-	EtcdadmCluster = &FakeKindWithInfrastructureTemplate{
+	EtcdadmCluster = &etcdcluster.EtcdadmCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      EtcdClusterName,
 			Namespace: ClusterNameSpace,
 		},
-		Spec: FakeKindWithInfrastructureTemplateSpec{
-			InfrastructureTemplate: InfrastructureTemplate{
+		Spec: etcdcluster.EtcdadmClusterSpec{
+			InfrastructureTemplate: etcdcluster.InfrastructureTemplate{
 				Name: "test-machinetemplate-1",
 			},
 		},

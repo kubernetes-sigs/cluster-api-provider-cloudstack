@@ -250,11 +250,11 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 ## --------------------------------------
 
 export KUBEBUILDER_ASSETS=$(REPO_ROOT)/$(TOOLS_BIN_DIR)
-DEEPCOPY_GEN_TARGETS_TEST=$(shell find test/dummies -type d -name "v*" -exec echo {}\/zz_generated.deepcopy.go \;)
-DEEPCOPY_GEN_INPUTS_TEST=$(shell find test/dummies -name "*_types.go" -prune -o -name "*zz_generated*" -prune -o -type f -print)
+DEEPCOPY_GEN_TARGETS_TEST=$(shell find test/fakes/* -type d -name "*" -exec echo {}\/zz_generated.deepcopy.go \;)
+DEEPCOPY_GEN_INPUTS_TEST=$(shell find test/fakes/* -name "*_types.go" -name "*zz_generated*" -prune -o -type f -print)
 .PHONY: generate-deepcopy-test
 generate-deepcopy-test: $(DEEPCOPY_GEN_TARGETS_TEST) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-test/dummies/%/zz_generated.deepcopy.go: $(CONTROLLER_GEN) $(DEEPCOPY_GEN_INPUTS_TEST)
+test/fakes/%/zz_generated.deepcopy.go: $(CONTROLLER_GEN) $(DEEPCOPY_GEN_INPUTS_TEST)
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: test

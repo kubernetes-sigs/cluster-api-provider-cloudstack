@@ -26,6 +26,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes/etcdcluster"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"strings"
 	"testing"
@@ -168,7 +169,7 @@ var _ = BeforeSuite(func() {
 	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
 	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
 	Ω(controlplanev1.AddToScheme(scheme.Scheme)).Should(Succeed())
-	Ω(dummies.AddToScheme(scheme.Scheme)).Should(Succeed())
+	Ω(etcdcluster.AddToScheme(scheme.Scheme)).Should(Succeed())
 
 	// Increase log verbosity.
 	klog.InitFlags(nil)
@@ -444,7 +445,7 @@ func setupCAPIMachineDeploymentCRD(CAPIMachineDeployment *clusterv1.MachineDeplo
 }
 
 // setupEtcdadmClusterCRD create an etcdadm Cluster
-func setupEtcdadmClusterCRD(etcdadmCluster *dummies.FakeKindWithInfrastructureTemplate) {
+func setupEtcdadmClusterCRD(etcdadmCluster *etcdcluster.EtcdadmCluster) {
 	//  Create etcdadm cluster.
 	Ω(k8sClient.Create(ctx, etcdadmCluster)).Should(Succeed())
 

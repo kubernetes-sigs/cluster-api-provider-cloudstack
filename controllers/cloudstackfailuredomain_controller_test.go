@@ -23,6 +23,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes/etcdcluster"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -108,7 +109,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 			labelMachineFailuredomain(dummies.CSMachine1, dummies.CSFailureDomain1)
 			Ω(k8sClient.Delete(ctx, dummies.CSFailureDomain1))
 
-			etcdadmCluster := &dummies.FakeKindWithInfrastructureTemplate{}
+			etcdadmCluster := &etcdcluster.EtcdadmCluster{}
 			Eventually(func() bool {
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.EtcdClusterName}
 				if err := k8sClient.Get(ctx, key, etcdadmCluster); err == nil {

@@ -150,7 +150,7 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 	return ctrl.Result{}, nil
 }
 
-// SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
+// DeleteMachineIfFailuredomainNotExist delete CAPI machine if machine is deployed in a failuredomain that does not exist anymore.
 func (r *CloudStackMachineReconciliationRunner) DeleteMachineIfFailuredomainNotExist() (retRes ctrl.Result, reterr error) {
 	if r.CAPIMachine.Spec.FailureDomain == nil {
 		return ctrl.Result{}, nil
