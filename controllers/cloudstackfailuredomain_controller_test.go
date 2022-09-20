@@ -67,6 +67,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 			setMachineOwnerReference(dummies.CSMachine1, dummies.MachineSetOwnerRef)
 			labelMachineFailuredomain(dummies.CSMachine1, dummies.CSFailureDomain1)
 			labelMachineDeploymentName(dummies.CSMachine1, dummies.CAPIMachineDeployment.Name)
+			setMachineAnnotation(dummies.CSMachine1, "cluster.x-k8s.io/cloned-from-name", "capi-test-md-0-123")
 			Ω(k8sClient.Delete(ctx, dummies.CSFailureDomain1))
 
 			tempMd := &clusterv1.MachineDeployment{}

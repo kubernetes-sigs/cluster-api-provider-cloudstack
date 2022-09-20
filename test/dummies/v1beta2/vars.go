@@ -528,6 +528,9 @@ func SetDummyCAPIMachineDeploymentVars() {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: ClusterName,
+					InfrastructureRef: corev1.ObjectReference{
+						Name: machineDeploymentName + "-123",
+					},
 				},
 			},
 		},
