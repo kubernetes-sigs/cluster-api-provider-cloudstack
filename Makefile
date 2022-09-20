@@ -274,7 +274,7 @@ run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select 
 	$(REPO_ROOT)/$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
-	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true -ginkgo.skip=helpers
 	kind delete clusters capi-test
 
 ##@ Cleanup

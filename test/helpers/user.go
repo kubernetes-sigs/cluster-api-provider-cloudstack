@@ -103,6 +103,9 @@ func DeleteDomain(csClient *cloudstack.CloudStackClient, domainID string) error 
 	p := csClient.Domain.NewDeleteDomainParams(domainID)
 	p.SetCleanup(true)
 	resp, err := csClient.Domain.DeleteDomain(p)
+	if err != nil {
+		return err
+	}
 	if !resp.Success {
 		return fmt.Errorf("unsuccessful deletion of domain with ID %s", domainID)
 	}
