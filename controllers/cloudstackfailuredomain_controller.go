@@ -18,12 +18,14 @@ package controllers
 
 import (
 	"context"
-
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sort"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
@@ -38,6 +40,12 @@ type CloudStackFailureDomainReconciler struct {
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackfailuredomains/finalizers,verbs=update
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch
+//+kubebuilder:rbac:groups=etcdcluster.cluster.x-k8s.io,resources=etcdadmclusters,verbs=get;list;watch
+//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
+//+kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups=etcdcluster.cluster.x-k8s.io,resources=etcdadmclusters/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes/status,verbs=get;list;watch
 
 // CloudStackFailureDomainReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackFailureDomains.
 // The runner does the actual reconciliation.
@@ -45,6 +53,7 @@ type CloudStackFailureDomainReconciliationRunner struct {
 	*csCtrlrUtils.ReconciliationRunner
 	ReconciliationSubject *infrav1.CloudStackFailureDomain
 	IsoNet                *infrav1.CloudStackIsolatedNetwork
+	Machines              []infrav1.CloudStackMachine
 }
 
 // Initialize a new CloudStackFailureDomain reconciliation runner with concrete types and initialized member fields.
@@ -112,6 +121,8 @@ func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (ctrl.Re
 	r.Log.Info("Deleting CloudStackFailureDomain")
 
 	return r.RunReconciliationStages(
+		r.GetAllMachinesInFailureDomain,
+		r.AllMachinesCanBeCleared,
 		r.ClearMachines,
 		r.DeleteOwnedObjects(
 			infrav1.GroupVersion.WithKind("CloudStackAffinityGroup"),
@@ -123,28 +134,108 @@ func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (ctrl.Re
 	)
 }
 
-// ClearMachines checks for any machines in failure domain, deletes the CAPI machine for any still in FailureDomain,
-// and requeus until all CloudStack machines are cleared from the FailureDomain.
-func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Result, error) {
+// GetAllMachinesInFailureDomain get all cloudstack machines deployed in this failure domain.
+// machines are sorted by name so that it can be processed one by one in a determined order.
+func (r *CloudStackFailureDomainReconciliationRunner) GetAllMachinesInFailureDomain() (ctrl.Result, error) {
 	machines := &infrav1.CloudStackMachineList{}
 	if err := r.K8sClient.List(r.RequestCtx, machines, client.MatchingLabels{infrav1.FailureDomainLabelName: r.ReconciliationSubject.Name}); err != nil {
 		return ctrl.Result{}, err
 	}
-	// Deleted CAPI machines for CloudStack machines found.
-	for _, machine := range machines.Items {
+	items := machines.Items
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].Name < items[j].Name
+	})
+	r.Machines = items
+	return ctrl.Result{}, nil
+}
+
+// AllMachinesCanBeCleared checks for each machine in failure domain, check if it is possible to delete it.
+// if machine is the only machine in worker node group, it cannot be deleted.
+// if machine is the only machine in control plane, it cannot be deleted.
+// if machine is the only machine in etcdadmcluster, it cannot be deleted.
+// if deletes the CAPI machine for any still in FailureDomain,
+// and requeus until all CloudStack machines are cleared from the FailureDomain.
+func (r *CloudStackFailureDomainReconciliationRunner) AllMachinesCanBeCleared() (ctrl.Result, error) {
+	// check CAPI machines for CloudStack machines found.
+	for _, machine := range r.Machines {
 		for _, ref := range machine.OwnerReferences {
-			if ref.Kind == "Machine" {
-				machine := &clusterv1.Machine{}
-				machine.Name = ref.Name
-				machine.Namespace = r.ReconciliationSubject.Namespace
-				if err := r.K8sClient.Delete(r.RequestCtx, machine); err != nil {
+			if ref.Kind != "Machine" {
+				owner := &unstructured.Unstructured{}
+				owner.SetGroupVersionKind(schema.FromAPIVersionAndKind(ref.APIVersion, ref.Kind))
+				if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: machine.Namespace, Name: ref.Name}, owner); err != nil {
 					return ctrl.Result{}, err
+				}
+				specReplicas, statusReplicas, err := replicasLargerThanOne(owner, ref.Name, machine.Name)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+				if specReplicas != statusReplicas {
+					return r.RequeueWithMessage("spec.replicas <> status.replicas, ", "machineOwner", "owner", ref.Name)
+				}
+
+				statusReady, found, err := unstructured.NestedBool(owner.Object, "status", "ready")
+				if found && err != nil {
+					return ctrl.Result{}, err
+				}
+				if found && !statusReady {
+					return r.RequeueWithMessage("status.ready not true, ", "owner", ref.Name)
+				}
+
+				statusReadyReplicas, found, err := unstructured.NestedInt64(owner.Object, "status", "readyReplicas")
+				if found && err != nil {
+					return ctrl.Result{}, err
+				}
+				if found && statusReadyReplicas != statusReplicas {
+					return r.RequeueWithMessage("status.replicas <> status.readyReplicas, ", "owner", ref.Name, "status.replicas", statusReplicas, "status.readyReplicas", statusReadyReplicas)
 				}
 			}
 		}
 	}
-	if len(machines.Items) > 0 {
-		return r.RequeueWithMessage("FailureDomain still has machine(s) in it.")
+	return ctrl.Result{}, nil
+}
+
+func replicasLargerThanOne(owner *unstructured.Unstructured, ownerName, machineName string) (int64, int64, error) {
+	specReplicas, found, err := unstructured.NestedInt64(owner.Object, "spec", "replicas")
+	if err != nil {
+		return 0, 0, err
+	}
+	if !found {
+		return 0, 0, errors.Errorf("spec.replicas not found in %s", ownerName)
+	}
+
+	statusReplicas, found, err := unstructured.NestedInt64(owner.Object, "status", "replicas")
+	if err != nil {
+		return specReplicas, 0, err
+	}
+	if !found {
+		return specReplicas, 0, errors.Errorf("status.replicas not found in %s", ownerName)
+	}
+
+	if specReplicas < 2 {
+		return specReplicas, 0, errors.Errorf("spec.replicas < 2 in %s, %s cannot be moved away from failure domain", ownerName, machineName)
+	}
+
+	return specReplicas, statusReplicas, nil
+}
+
+// ClearMachines deletes the CAPI machine in FailureDomain.
+func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Result, error) {
+	for _, csMachine := range r.Machines {
+		for _, ref := range csMachine.OwnerReferences {
+			if ref.Kind == "Machine" {
+				machine := &clusterv1.Machine{}
+				if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: r.ReconciliationSubject.Namespace, Name: ref.Name}, machine); err != nil {
+					return ctrl.Result{}, err
+				}
+				if !machine.DeletionTimestamp.IsZero() {
+					return r.RequeueWithMessage("machine is being deleted, ", "machine", machine.Name)
+				}
+				if err := r.K8sClient.Delete(r.RequestCtx, machine); err != nil {
+					return ctrl.Result{}, err
+				}
+				return r.RequeueWithMessage("start to delete machine, ", "machine", machine.Name)
+			}
+		}
 	}
 	return ctrl.Result{}, nil
 }
