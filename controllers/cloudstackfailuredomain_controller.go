@@ -170,7 +170,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) AllMachinesCanBeCleared() 
 					return ctrl.Result{}, err
 				}
 				if specReplicas != statusReplicas {
-					return r.RequeueWithMessage("spec.replicas <> status.replicas, ", "machineOwner", "owner", ref.Name)
+					return r.RequeueWithMessage("spec.replicas <> status.replicas, ", "owner", ref.Name, "spec.replicas", specReplicas, "status.replicas", statusReplicas)
 				}
 
 				statusReady, found, err := unstructured.NestedBool(owner.Object, "status", "ready")
@@ -212,7 +212,7 @@ func replicasLargerThanOne(owner *unstructured.Unstructured, ownerName, machineN
 	}
 
 	if specReplicas < 2 {
-		return specReplicas, 0, errors.Errorf("spec.replicas < 2 in %s, %s cannot be moved away from failure domain", ownerName, machineName)
+		return specReplicas, statusReplicas, errors.Errorf("spec.replicas < 2 in %s, %s cannot be moved away from failure domain", ownerName, machineName)
 	}
 
 	return specReplicas, statusReplicas, nil

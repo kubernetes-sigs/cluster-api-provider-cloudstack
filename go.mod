@@ -3,7 +3,7 @@ module sigs.k8s.io/cluster-api-provider-cloudstack
 go 1.16
 
 require (
-	github.com/ReneKroon/ttlcache v1.7.0 // indirect
+	github.com/ReneKroon/ttlcache v1.7.0
 	github.com/apache/cloudstack-go/v2 v2.13.0
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
@@ -16,6 +16,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/api v0.23.0
+	k8s.io/apiextensions-apiserver v0.23.0
 	k8s.io/apimachinery v0.23.0
 	k8s.io/client-go v0.23.0
 	k8s.io/klog/v2 v2.30.0

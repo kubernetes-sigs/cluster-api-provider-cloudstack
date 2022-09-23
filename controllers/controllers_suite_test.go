@@ -21,10 +21,12 @@ import (
 	"flag"
 	"fmt"
 	"go/build"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
 	"strings"
 	"testing"
 	"time"
@@ -142,6 +144,7 @@ var _ = BeforeSuite(func() {
 
 	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
 	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
+	Ω(fakes.AddToScheme(scheme.Scheme)).Should(Succeed())
 
 	// Increase log verbosity.
 	klog.InitFlags(nil)
@@ -189,6 +192,8 @@ func SetupTestEnvironment() {
 	go func() {
 		defer GinkgoRecover()
 		cfg, err = testEnv.Start()
+		extraCRDs := append([]*apiextensionsv1.CustomResourceDefinition{}, dummies.CSMachineOwnerCRD)
+		err = envtest.CreateCRDs(cfg, extraCRDs)
 		close(done)
 	}()
 	Eventually(done).WithTimeout(time.Minute).Should(BeClosed())
@@ -369,5 +374,85 @@ func setupMachineCRDs() {
 			UID:        "uniqueness",
 		})
 		return ph.Patch(ctx, dummies.CSMachine1, patch.WithStatusObservedGeneration{})
+	}, timeout).Should(Succeed())
+}
+
+func setCSMachineOwnerCRD(owner *fakes.CloudStackMachineOwner, specReplicas, statusReplicas, statusReadyReplicas *int32, statusReady *bool) {
+	owner.Spec.Replicas = specReplicas
+	Ω(k8sClient.Create(ctx, owner)).Should(Succeed())
+	key := client.ObjectKey{Namespace: owner.Namespace, Name: owner.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, owner)
+	}, timeout).Should(BeNil())
+
+	Eventually(func() error {
+		owner.Status.Ready = statusReady
+		owner.Status.Replicas = statusReplicas
+		owner.Status.ReadyReplicas = statusReadyReplicas
+		return k8sClient.Status().Update(ctx, owner)
+	}, timeout).Should(BeNil())
+
+}
+
+// setCAPIMachineAndCSMachineCRDs creates a CAPI and CloudStack machine with an appropriate ownership ref between them.
+func setCAPIMachineAndCSMachineCRDs(CSMachine *infrav1.CloudStackMachine, CAPIMachine *clusterv1.Machine) {
+	//  Create them.
+	Ω(k8sClient.Create(ctx, CAPIMachine)).Should(Succeed())
+	Ω(k8sClient.Create(ctx, CSMachine)).Should(Succeed())
+
+	// Fetch the CS Machine that was created.
+	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CSMachine)
+	}, timeout).Should(BeNil())
+
+	// Fetch the CAPI Machine that was created.
+	key = client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: CAPIMachine.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CAPIMachine)
+	}, timeout).Should(BeNil())
+
+	// Set ownerReference to CAPI machine in CS machine and patch back the CS machine.
+	Eventually(func() error {
+		ph, err := patch.NewHelper(dummies.CSMachine1, k8sClient)
+		Ω(err).ShouldNot(HaveOccurred())
+		dummies.CSMachine1.OwnerReferences = append(dummies.CSMachine1.OwnerReferences, metav1.OwnerReference{
+			Kind:       "Machine",
+			APIVersion: clusterv1.GroupVersion.String(),
+			Name:       CAPIMachine.Name,
+			UID:        "uniqueness",
+		})
+		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
+	}, timeout).Should(Succeed())
+}
+
+func setMachineOwnerReference(CSMachine *infrav1.CloudStackMachine, ownerRef metav1.OwnerReference) {
+	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CSMachine)
+	}, timeout).Should(BeNil())
+
+	// Set ownerReference to CAPI machine in CS machine and patch back the CS machine.
+	Eventually(func() error {
+		ph, err := patch.NewHelper(CSMachine, k8sClient)
+		Ω(err).ShouldNot(HaveOccurred())
+		CSMachine.OwnerReferences = append(CSMachine.OwnerReferences, ownerRef)
+		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
+	}, timeout).Should(Succeed())
+}
+
+// labelMachineFailuredomain add cloudstackfailuredomain info in the labels.
+func labelMachineFailuredomain(CSMachine *infrav1.CloudStackMachine, CSFailureDomain1 *infrav1.CloudStackFailureDomain) {
+	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
+	Eventually(func() error {
+		return k8sClient.Get(ctx, key, CSMachine)
+	}, timeout).Should(BeNil())
+
+	// set cloudstack failuredomain in machine labels.
+	Eventually(func() error {
+		ph, err := patch.NewHelper(CSMachine, k8sClient)
+		Ω(err).ShouldNot(HaveOccurred())
+		CSMachine.Labels["cloudstackfailuredomain.infrastructure.cluster.x-k8s.io/name"] = CSFailureDomain1.Name
+		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
 	}, timeout).Should(Succeed())
 }

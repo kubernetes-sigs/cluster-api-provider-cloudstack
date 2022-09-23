@@ -248,10 +248,16 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 ## --------------------------------------
 ## Tests
 ## --------------------------------------
-
 export KUBEBUILDER_ASSETS=$(REPO_ROOT)/$(TOOLS_BIN_DIR)
+DEEPCOPY_GEN_TARGETS_TEST=$(shell find test/fakes -type d -name "fakes" -exec echo {}\/zz_generated.deepcopy.go \;)
+DEEPCOPY_GEN_INPUTS_TEST=$(shell find test/fakes/* -name "*_types.go" -name "*zz_generated*" -prune -o -type f -print)
+.PHONY: generate-deepcopy-test
+generate-deepcopy-test: $(DEEPCOPY_GEN_TARGETS_TEST) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+test/fakes/zz_generated.deepcopy.go: $(CONTROLLER_GEN) $(DEEPCOPY_GEN_INPUTS_TEST)
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
 .PHONY: test
-test: generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) ## Run tests. At the moment this is only unit tests.
+test: generate-deepcopy-test generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) ## Run tests. At the moment this is only unit tests.
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
