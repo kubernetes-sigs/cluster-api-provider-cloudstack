@@ -27,7 +27,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/helpers"
-	"sigs.k8s.io/cluster-api/test/framework"
 
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -36,21 +35,20 @@ import (
 // DeployAppToxiSpec implements a test that verifies that an app deployed to the workload cluster works.
 func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
-		specName                       = "deploy-app-toxi"
-		input                          CommonSpecInput
-		namespace                      *corev1.Namespace
-		cancelWatches                  context.CancelFunc
-		clusterResources               *clusterctl.ApplyClusterTemplateAndWaitResult
-		appName                                               = "httpd"
-		appManifestPath                                       = "data/fixture/sample-application.yaml"
-		expectedHtmlPath                                      = "data/fixture/expected-webpage.html"
-		appDeploymentReadyTimeout                             = 180
-		appPort                                               = 8080
-		appDefaultHtmlPath                                    = "/"
-		expectedHtml                                          = ""
-		toxiProxyName                                         = ""
-		toxiProxyKubeconfigPath                               = ""
-		toxiproxyBootstrapClusterProxy framework.ClusterProxy = nil
+		specName                  = "deploy-app-toxi"
+		input                     CommonSpecInput
+		namespace                 *corev1.Namespace
+		cancelWatches             context.CancelFunc
+		clusterResources          *clusterctl.ApplyClusterTemplateAndWaitResult
+		appName                                      = "httpd"
+		appManifestPath                              = "data/fixture/sample-application.yaml"
+		expectedHtmlPath                             = "data/fixture/expected-webpage.html"
+		appDeploymentReadyTimeout                    = 180
+		appPort                                      = 8080
+		appDefaultHtmlPath                           = "/"
+		expectedHtml                                 = ""
+		toxiProxy                 *helpers.ToxiProxy = nil
+		toxicName                 string
 	)
 
 	BeforeEach(func() {
@@ -66,11 +64,11 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// Setup a toxiProxy for this test.
-		toxiProxyKubeconfigPath, toxiproxyBootstrapClusterProxy, toxiProxyName =
-			helpers.SetupForToxiproxyTesting(ctx, input.BootstrapClusterProxy)
+		toxiProxy := helpers.SetupForToxiproxyTesting(ctx, input.BootstrapClusterProxy)
+		toxicName = toxiProxy.AddLatencyToxic(100, 10, 100, false)
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, toxiproxyBootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, toxiProxy.ClusterProxy, input.ArtifactFolder)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 
 		fileContent, err := os.ReadFile(expectedHtmlPath)
@@ -89,12 +87,12 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy:    toxiproxyBootstrapClusterProxy,
+			ClusterProxy:    toxiProxy.ClusterProxy,
 			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
 			ConfigCluster: clusterctl.ConfigClusterInput{
-				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", toxiproxyBootstrapClusterProxy.GetName()),
+				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", toxiProxy.ClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
-				KubeconfigPath:           toxiproxyBootstrapClusterProxy.GetKubeconfigPath(),
+				KubeconfigPath:           toxiProxy.ClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   flavor,
 				Namespace:                namespace,
@@ -108,7 +106,7 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
-		workloadClusterProxy := toxiproxyBootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+		workloadClusterProxy := toxiProxy.ClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		workloadKubeconfigPath := workloadClusterProxy.GetKubeconfigPath()
 
 		appManifestAbsolutePath, _ := filepath.Abs(appManifestPath)
@@ -138,9 +136,10 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, toxiproxyBootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, toxiProxy.ClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
 		// Tear down the proxy
-		helpers.TearDownToxiProxy(ctx, toxiProxyName, toxiProxyKubeconfigPath)
+		toxiProxy.RemoveToxic(toxicName)
+		helpers.TearDownToxiProxy(ctx, toxiProxy)
 	})
 }

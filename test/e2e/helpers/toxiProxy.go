@@ -56,7 +56,14 @@ func ToxiProxyCli(ctx context.Context, command string, args ...string) (string, 
 	return string(stdout), nil
 }
 
-func SetupForToxiproxyTesting(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy) (string, framework.ClusterProxy, string) {
+type ToxiProxy struct {
+	context        context.Context
+	KubeconfigPath string
+	ClusterProxy   framework.ClusterProxy
+	ProxyName      string
+}
+
+func SetupForToxiproxyTesting(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy) *ToxiProxy {
 	// Read/parse the actual kubeconfig for the cluster
 	kubeConfig := NewKubeconfig()
 	unproxiedKubeconfigPath := bootstrapClusterProxy.GetKubeconfigPath()
@@ -118,19 +125,64 @@ func SetupForToxiproxyTesting(ctx context.Context, bootstrapClusterProxy framewo
 	// Create a new ClusterProxy using the new kubeconfig
 	toxiproxyBootstrapClusterProxy := framework.NewClusterProxy("toxiproxy-bootstrap", toxiProxyKubeconfigPath, bootstrapClusterProxy.GetScheme(), framework.WithMachineLogCollector(framework.DockerLogCollector{}))
 
-	return toxiProxyKubeconfigPath, toxiproxyBootstrapClusterProxy, toxiProxyName
+	return &ToxiProxy{
+		context:        ctx,
+		KubeconfigPath: toxiProxyKubeconfigPath,
+		ClusterProxy:   toxiproxyBootstrapClusterProxy,
+		ProxyName:      toxiProxyName,
+	}
 }
 
-func TearDownToxiProxy(ctx context.Context, toxiProxyName string, toxiProxyKubeconfigPath string) {
+func TearDownToxiProxy(ctx context.Context, proxy *ToxiProxy) {
 	// Tear down the proxy
-	output, err := ToxiProxyCli(ctx, "delete", toxiProxyName)
+	output, err := ToxiProxyCli(ctx, "delete", proxy.ProxyName)
 	if err != nil {
 		fmt.Println(output)
 	}
 	Expect(err).To(BeNil())
 
 	// Delete the kubeconfig pointing to the proxy
-	err = os.Remove(toxiProxyKubeconfigPath)
+	err = os.Remove(proxy.KubeconfigPath)
 	Expect(err).To(BeNil())
 
+}
+
+func (tp *ToxiProxy) addToxic(toxicType string, toxicity int, upstream bool, args ...string) string {
+	var directionFlag = "--downstream"
+	toxicName := fmt.Sprintf("%v_downstream", toxicType)
+	if upstream {
+		directionFlag = "--upstream"
+		toxicName = fmt.Sprintf("%v_upstream", toxicType)
+	}
+
+	cliArgs := []string{
+		"--type", toxicType,
+		"--toxicName", toxicName,
+		"--toxicity", fmt.Sprintf("%d", toxicity),
+		directionFlag,
+	}
+	cliArgs = append(cliArgs, args...)
+	cliArgs = append(cliArgs, tp.ProxyName)
+
+	output, err := ToxiProxyCli(tp.context, "toxic add", cliArgs...)
+	if err != nil {
+		fmt.Println(output)
+	}
+	Expect(err).To(BeNil())
+	return toxicName
+}
+
+func (tp *ToxiProxy) RemoveToxic(toxicName string) {
+	output, err := ToxiProxyCli(tp.context, "toxic remove", "--toxicName", toxicName, tp.ProxyName)
+	if err != nil {
+		fmt.Println(output)
+	}
+	Expect(err).To(BeNil())
+}
+
+func (tp *ToxiProxy) AddLatencyToxic(latencyMs int, jitterMs int, toxicity int, upstream bool) string {
+	return tp.addToxic("latency", toxicity, upstream,
+		"-a", fmt.Sprintf("latency=%d", latencyMs),
+		"-a", fmt.Sprintf("jitter=%d", jitterMs),
+	)
 }
