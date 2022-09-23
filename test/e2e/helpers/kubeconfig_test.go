@@ -38,22 +38,22 @@ var _ = Describe("Test kubeconfig helper methods", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(rewrittenKubeconfig).Should(Equal(originalKubeconfig))
 
-		err, currentContextName := kubeconfig.GetCurrentContextName()
+		currentContextName, err := kubeconfig.GetCurrentContextName()
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(currentContextName).Should(Equal("kind-capi-test"))
 
-		err, _ = kubeconfig.GetCurrentContext()
+		_, err = kubeconfig.GetCurrentContext()
 		Ω(err).ShouldNot(HaveOccurred())
 
-		err, currentClusterName := kubeconfig.GetCurrentClusterName()
+		currentClusterName, err := kubeconfig.GetCurrentClusterName()
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(currentClusterName).Should(Equal("kind-capi-test"))
 
-		err, currentCluster := kubeconfig.GetCurrentCluster()
+		currentCluster, err := kubeconfig.GetCurrentCluster()
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(currentCluster).ShouldNot(BeEmpty())
 
-		err, currentServer := kubeconfig.GetCurrentServer()
+		currentServer, err := kubeconfig.GetCurrentServer()
 		Ω(err).ShouldNot(HaveOccurred())
 		Ω(currentServer).Should(Equal("https://127.0.0.1:64927"))
 

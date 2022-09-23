@@ -19,13 +19,11 @@ package helpers_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"os"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
 )
 
 var _ = Describe("Test helper methods", func() {
-	os.Setenv("REPO_ROOT", "./data")
 	csClient, err := helpers.NewCSClient()
 	Ω(err).ShouldNot(HaveOccurred())
 

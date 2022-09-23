@@ -105,8 +105,10 @@ func TestE2E(t *testing.T) {
 var _ = SynchronizedBeforeSuite(func() []byte {
 	// Before all ParallelNodes.
 
-	By("Pausing 15s so you have a chance to remote attach a debugger to this process")
-	time.Sleep(15 * time.Second)
+	if (os.Getenv("PAUSE_FOR_DEBUGGER_ATTACH") == "true") {
+		By("Pausing 15s so you have a chance to attach a debugger to this process...")
+		time.Sleep(15 * time.Second)
+	}
 
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config should be an existing file.")
 	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder) //nolint:gosec
