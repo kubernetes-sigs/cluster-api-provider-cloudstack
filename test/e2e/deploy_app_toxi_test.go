@@ -28,13 +28,11 @@ var _ = Describe("When testing app deployment to the workload cluster with slow 
 
 	DeployAppToxiSpec(context.TODO(), func() CommonSpecInput {
 		return CommonSpecInput{
-			E2EConfig:                        e2eConfig,
-			ClusterctlConfigPath:             clusterctlConfigPath,
-			BootstrapClusterProxy:            toxiproxyBootstrapClusterProxy,
-			ActualBootstrapClusterAddress:    actualBootstrapClusterAddress,
-			ToxiproxyBootstrapClusterAddress: toxiproxyBootstrapClusterAddress,
-			ArtifactFolder:                   artifactFolder,
-			SkipCleanup:                      skipCleanup,
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
 		}
 	})
 

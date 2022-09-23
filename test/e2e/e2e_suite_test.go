@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
+	go_runtime "runtime"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/helpers"
 	"strings"
 	"testing"
 	"time"
@@ -36,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/helpers"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -79,11 +78,6 @@ var (
 
 	// bootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.
 	bootstrapClusterProxy framework.ClusterProxy
-
-	// to support Toxiproxy test setup
-	actualBootstrapClusterAddress    string
-	toxiproxyBootstrapClusterAddress string
-	toxiproxyBootstrapClusterProxy   framework.ClusterProxy
 )
 
 func init() {
@@ -123,8 +117,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Byf("Loading the e2e test configuration from %q", configPath)
 	e2eConfig = loadE2EConfig(configPath)
 
-	By("Launching Toxiproxy Server")
-	Expect(ToxiProxyServerExec(ctx)).To(Succeed())
+	// Toxiproxy running in a docker container requires docker host networking, only available in linux.
+	if go_runtime.GOOS == "linux" {
+		By("Launching Toxiproxy Server")
+		Expect(helpers.ToxiProxyServerExec(ctx)).To(Succeed())
+	}
 
 	if clusterctlConfig == "" {
 		Byf("Creating a clusterctl local repository into %q", artifactFolder)
@@ -140,48 +137,27 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	By("Initializing the bootstrap cluster")
 	initBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
 
-	kubeConfig := helpers.NewKubeconfig()
-	err := kubeConfig.Load(bootstrapClusterProxy.GetKubeconfigPath())
-	Expect(err).To(BeNil())
-	err, server := kubeConfig.GetCurrentServer()
-	Expect(err).To(BeNil())
-	serverRegex := regexp.MustCompilePOSIX("(http[s]?)\\:\\/\\/([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):([0-9]*)")
-	matches := serverRegex.FindStringSubmatch(server)
-	Expect(len(matches)).To(Equal(4))
-	port, err := strconv.Atoi(matches[3])
-	actualBootstrapClusterAddress = fmt.Sprintf("%v:%v", matches[2], matches[3])
-	Expect(err).To(BeNil())
-	toxiProxyPort := port + 10
-	toxiproxyBootstrapClusterAddress = fmt.Sprintf("127.0.0.1:%v", toxiProxyPort)
-	toxiProxyServerUrl := fmt.Sprintf("%v://%v", matches[1], toxiproxyBootstrapClusterAddress)
-	kubeConfig.SetCurrentServer(toxiProxyServerUrl)
-	var toxiProxyKubeconfigPath string = "/tmp/toxiProxyKubeconfig"
-	kubeConfig.Save(toxiProxyKubeconfigPath)
-
 	return []byte(
 		strings.Join([]string{
 			artifactFolder,
 			configPath,
 			clusterctlConfigPath,
 			bootstrapClusterProxy.GetKubeconfigPath(),
-			toxiProxyKubeconfigPath,
 		}, ","),
 	)
 }, func(data []byte) {
 	// Before each ParallelNode.
 
 	parts := strings.Split(string(data), ",")
-	Expect(parts).To(HaveLen(5))
+	Expect(parts).To(HaveLen(4))
 
 	artifactFolder = parts[0]
 	configPath = parts[1]
 	clusterctlConfigPath = parts[2]
 	kubeconfigPath := parts[3]
-	toxiproxyKubeconfigPath2 := parts[4]
 
 	e2eConfig = loadE2EConfig(configPath)
 	bootstrapClusterProxy = framework.NewClusterProxy("bootstrap", kubeconfigPath, initScheme(), framework.WithMachineLogCollector(framework.DockerLogCollector{}))
-	toxiproxyBootstrapClusterProxy = framework.NewClusterProxy("bootstrap", toxiproxyKubeconfigPath2, initScheme(), framework.WithMachineLogCollector(framework.DockerLogCollector{}))
 })
 
 // Using a SynchronizedAfterSuite for controlling how to delete resources shared across ParallelNodes (~ginkgo threads).
@@ -200,8 +176,10 @@ var _ = SynchronizedAfterSuite(func() {
 		tearDown(bootstrapClusterProvider, bootstrapClusterProxy)
 	}
 
-	By("Killing Toxiproxy Server")
-	Expect(ToxiProxyServerKill(ctx)).To(Succeed())
+	if go_runtime.GOOS == "linux" {
+		By("Killing Toxiproxy Server")
+		Expect(helpers.ToxiProxyServerKill(ctx)).To(Succeed())
+	}
 })
 
 func initScheme() *runtime.Scheme {

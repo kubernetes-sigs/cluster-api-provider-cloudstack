@@ -67,13 +67,11 @@ const (
 )
 
 type CommonSpecInput struct {
-	E2EConfig                        *clusterctl.E2EConfig
-	ClusterctlConfigPath             string
-	BootstrapClusterProxy            framework.ClusterProxy
-	ArtifactFolder                   string
-	SkipCleanup                      bool
-	ToxiproxyBootstrapClusterAddress string
-	ActualBootstrapClusterAddress    string
+	E2EConfig             *clusterctl.E2EConfig
+	ClusterctlConfigPath  string
+	BootstrapClusterProxy framework.ClusterProxy
+	ArtifactFolder        string
+	SkipCleanup           bool
 
 	// Flavor, if specified is the template flavor used to create the cluster for testing.
 	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
@@ -157,48 +155,6 @@ func KubectlExec(ctx context.Context, command string, kubeconfigPath string, arg
 	execArgs := append([]string{command, "--kubeconfig", kubeconfigPath}, args...)
 	runCmd := exec.NewCommand(
 		exec.WithCommand("kubectl"),
-		exec.WithArgs(execArgs...),
-	)
-	stdout, stderr, err := runCmd.Run(ctx)
-	if err != nil {
-		fmt.Println(string(stderr))
-		return "", err
-	}
-	return string(stdout), nil
-}
-
-func ToxiProxyServerExec(ctx context.Context) error {
-	execArgs := []string{"run", "-d", "--name=capc-e2e-toxiproxy", "--net=host", "--rm", "ghcr.io/shopify/toxiproxy"}
-	runCmd := exec.NewCommand(
-		exec.WithCommand("docker"),
-		exec.WithArgs(execArgs...),
-	)
-	_, stderr, err := runCmd.Run(ctx)
-	if err != nil {
-		fmt.Println(string(stderr))
-	}
-	return err
-}
-
-func ToxiProxyServerKill(ctx context.Context) error {
-	execArgs := []string{"stop", "capc-e2e-toxiproxy"}
-	runCmd := exec.NewCommand(
-		exec.WithCommand("docker"),
-		exec.WithArgs(execArgs...),
-	)
-	_, _, err := runCmd.Run(ctx)
-	return err
-}
-
-func ToxiProxyCli(ctx context.Context, command string, args ...string) (string, error) {
-	// Toxiproxy offers a nice API, but it hasn't published new go packages for it since 2019.
-	// The most recently published package can't be installed because of dependent package
-	// case incompatibility (logrus).  Sigh.
-	// So, we're gonna just go with the cli in the docker image.
-
-	execArgs := append([]string{"run", "--rm", "--entrypoint=/toxiproxy-cli", "-it", "ghcr.io/shopify/toxiproxy", command}, args...)
-	runCmd := exec.NewCommand(
-		exec.WithCommand("docker"),
 		exec.WithArgs(execArgs...),
 	)
 	stdout, stderr, err := runCmd.Run(ctx)
