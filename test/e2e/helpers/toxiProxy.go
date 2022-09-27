@@ -44,7 +44,7 @@ type ToxiProxyContext struct {
 	ToxiProxy      *toxiproxyapi.Proxy
 }
 
-func SetupForToxiproxyTesting(bootstrapClusterProxy framework.ClusterProxy) *ToxiProxyContext {
+func SetupForToxiProxyTesting(bootstrapClusterProxy framework.ClusterProxy) *ToxiProxyContext {
 	// Read/parse the actual kubeconfig for the cluster
 	kubeConfig := NewKubeconfig()
 	unproxiedKubeconfigPath := bootstrapClusterProxy.GetKubeconfigPath()
@@ -90,7 +90,12 @@ func SetupForToxiproxyTesting(bootstrapClusterProxy framework.ClusterProxy) *Tox
 	Expect(err).To(BeNil())
 
 	// Create a new ClusterProxy using the new kubeconfig
-	toxiproxyBootstrapClusterProxy := framework.NewClusterProxy("toxiproxy-bootstrap", toxiProxyKubeconfigPath, bootstrapClusterProxy.GetScheme(), framework.WithMachineLogCollector(framework.DockerLogCollector{}))
+	toxiproxyBootstrapClusterProxy := framework.NewClusterProxy(
+		"toxiproxy-bootstrap",
+		toxiProxyKubeconfigPath,
+		bootstrapClusterProxy.GetScheme(),
+		framework.WithMachineLogCollector(framework.DockerLogCollector{}),
+	)
 
 	return &ToxiProxyContext{
 		KubeconfigPath: toxiProxyKubeconfigPath,
@@ -107,7 +112,6 @@ func TearDownToxiProxy(toxiProxyContext *ToxiProxyContext) {
 	// Delete the kubeconfig pointing to the proxy
 	err = os.Remove(toxiProxyContext.KubeconfigPath)
 	Expect(err).To(BeNil())
-
 }
 
 func (tp *ToxiProxyContext) RemoveToxic(toxicName string) {

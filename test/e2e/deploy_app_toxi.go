@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,6 +40,8 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		namespace                 *corev1.Namespace
 		cancelWatches             context.CancelFunc
 		clusterResources          *clusterctl.ApplyClusterTemplateAndWaitResult
+		toxicName                 string
+		toxiProxyContext          *helpers.ToxiProxyContext = nil
 		appName                                             = "httpd"
 		appManifestPath                                     = "data/fixture/sample-application.yaml"
 		expectedHtmlPath                                    = "data/fixture/expected-webpage.html"
@@ -47,8 +49,6 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		appPort                                             = 8080
 		appDefaultHtmlPath                                  = "/"
 		expectedHtml                                        = ""
-		toxiProxyContext          *helpers.ToxiProxyContext = nil
-		toxicName                 string
 	)
 
 	BeforeEach(func() {
@@ -64,8 +64,11 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// Setup a toxiProxy for this test.
-		toxiProxyContext = helpers.SetupForToxiproxyTesting(input.BootstrapClusterProxy)
-		toxicName = toxiProxyContext.AddLatencyToxic(100, 10, 100, false)
+		toxiProxyContext = helpers.SetupForToxiProxyTesting(input.BootstrapClusterProxy)
+		const TOXIC_LATENCY_MS = 100
+		const TOXIC_JITTER_MS = 100
+		const TOXIC_TOXICITY = 1
+		toxicName = toxiProxyContext.AddLatencyToxic(TOXIC_LATENCY_MS, TOXIC_JITTER_MS, TOXIC_TOXICITY, false)
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, toxiProxyContext.ClusterProxy, input.ArtifactFolder)

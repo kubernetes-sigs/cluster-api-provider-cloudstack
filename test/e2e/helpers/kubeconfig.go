@@ -130,7 +130,6 @@ func (k *Kubeconfig) GetCurrentClusterName() (string, error) {
 	}
 
 	return castClusterName, nil
-
 }
 
 func (k *Kubeconfig) GetCurrentCluster() (map[string]interface{}, error) {
