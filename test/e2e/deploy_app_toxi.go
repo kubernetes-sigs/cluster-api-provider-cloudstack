@@ -64,11 +64,11 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// Setup a toxiProxy for this test.
-		toxiProxy := helpers.SetupForToxiproxyTesting(input.BootstrapClusterProxy)
-		toxicName = toxiProxy.AddLatencyToxic(100, 10, 100, false)
+		toxiProxyContext = helpers.SetupForToxiproxyTesting(input.BootstrapClusterProxy)
+		toxicName = toxiProxyContext.AddLatencyToxic(100, 10, 100, false)
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, toxiProxy.ClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, toxiProxyContext.ClusterProxy, input.ArtifactFolder)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 
 		fileContent, err := os.ReadFile(expectedHtmlPath)

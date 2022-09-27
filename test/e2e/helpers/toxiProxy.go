@@ -41,7 +41,7 @@ func ToxiProxyServerKill(ctx context.Context) error {
 type ToxiProxyContext struct {
 	KubeconfigPath string
 	ClusterProxy   framework.ClusterProxy
-	Proxy          *toxiproxyapi.Proxy
+	ToxiProxy      *toxiproxyapi.Proxy
 }
 
 func SetupForToxiproxyTesting(bootstrapClusterProxy framework.ClusterProxy) *ToxiProxyContext {
@@ -59,6 +59,7 @@ func SetupForToxiproxyTesting(bootstrapClusterProxy framework.ClusterProxy) *Tox
 	serverRegex := regexp.MustCompilePOSIX("(https?)://([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):([0-9]*)")
 	urlComponents := serverRegex.FindStringSubmatch(server)
 	Expect(len(urlComponents)).To(Equal(4))
+	protocol := urlComponents[1]
 	address := urlComponents[2]
 	port, err := strconv.Atoi(urlComponents[3])
 	Expect(err).To(BeNil())
@@ -74,7 +75,7 @@ func SetupForToxiproxyTesting(bootstrapClusterProxy framework.ClusterProxy) *Tox
 	Expect(err).To(BeNil())
 
 	// Get the actual listen address (having the toxiproxy-assigned port #).
-	toxiProxyServerUrl := fmt.Sprintf("%v://%v", proxy.Listen)
+	toxiProxyServerUrl := fmt.Sprintf("%v://%v", protocol, proxy.Listen)
 
 	// Modify the kubeconfig to use the toxiproxy's server url
 	err = kubeConfig.SetCurrentServer(toxiProxyServerUrl)
@@ -94,13 +95,13 @@ func SetupForToxiproxyTesting(bootstrapClusterProxy framework.ClusterProxy) *Tox
 	return &ToxiProxyContext{
 		KubeconfigPath: toxiProxyKubeconfigPath,
 		ClusterProxy:   toxiproxyBootstrapClusterProxy,
-		Proxy:          proxy,
+		ToxiProxy:      proxy,
 	}
 }
 
 func TearDownToxiProxy(toxiProxyContext *ToxiProxyContext) {
 	// Tear down the proxy
-	err := toxiProxyContext.Proxy.Delete()
+	err := toxiProxyContext.ToxiProxy.Delete()
 	Expect(err).To(BeNil())
 
 	// Delete the kubeconfig pointing to the proxy
@@ -110,7 +111,7 @@ func TearDownToxiProxy(toxiProxyContext *ToxiProxyContext) {
 }
 
 func (tp *ToxiProxyContext) RemoveToxic(toxicName string) {
-	err := tp.Proxy.RemoveToxic(toxicName)
+	err := tp.ToxiProxy.RemoveToxic(toxicName)
 	Expect(err).To(BeNil())
 }
 
@@ -121,7 +122,7 @@ func (tp *ToxiProxyContext) AddLatencyToxic(latencyMs int, jitterMs int, toxicit
 	}
 	toxicName := fmt.Sprintf("latency_%v", stream)
 
-	_, err := tp.Proxy.AddToxic(toxicName, "latency", stream, toxicity, toxiproxyapi.Attributes{
+	_, err := tp.ToxiProxy.AddToxic(toxicName, "latency", stream, toxicity, toxiproxyapi.Attributes{
 		"latency": latencyMs,
 		"jitter":  jitterMs,
 	})
