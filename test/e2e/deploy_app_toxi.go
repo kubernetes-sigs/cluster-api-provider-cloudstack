@@ -40,14 +40,14 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		namespace                 *corev1.Namespace
 		cancelWatches             context.CancelFunc
 		clusterResources          *clusterctl.ApplyClusterTemplateAndWaitResult
-		appName                                      = "httpd"
-		appManifestPath                              = "data/fixture/sample-application.yaml"
-		expectedHtmlPath                             = "data/fixture/expected-webpage.html"
-		appDeploymentReadyTimeout                    = 180
-		appPort                                      = 8080
-		appDefaultHtmlPath                           = "/"
-		expectedHtml                                 = ""
-		toxiProxy                 *helpers.ToxiProxy = nil
+		appName                                             = "httpd"
+		appManifestPath                                     = "data/fixture/sample-application.yaml"
+		expectedHtmlPath                                    = "data/fixture/expected-webpage.html"
+		appDeploymentReadyTimeout                           = 180
+		appPort                                             = 8080
+		appDefaultHtmlPath                                  = "/"
+		expectedHtml                                        = ""
+		toxiProxyContext          *helpers.ToxiProxyContext = nil
 		toxicName                 string
 	)
 
@@ -64,7 +64,7 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// Setup a toxiProxy for this test.
-		toxiProxy := helpers.SetupForToxiproxyTesting(ctx, input.BootstrapClusterProxy)
+		toxiProxy := helpers.SetupForToxiproxyTesting(input.BootstrapClusterProxy)
 		toxicName = toxiProxy.AddLatencyToxic(100, 10, 100, false)
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
@@ -87,12 +87,12 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy:    toxiProxy.ClusterProxy,
+			ClusterProxy:    toxiProxyContext.ClusterProxy,
 			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
 			ConfigCluster: clusterctl.ConfigClusterInput{
-				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", toxiProxy.ClusterProxy.GetName()),
+				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", toxiProxyContext.ClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
-				KubeconfigPath:           toxiProxy.ClusterProxy.GetKubeconfigPath(),
+				KubeconfigPath:           toxiProxyContext.ClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   flavor,
 				Namespace:                namespace,
@@ -106,7 +106,7 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
-		workloadClusterProxy := toxiProxy.ClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+		workloadClusterProxy := toxiProxyContext.ClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		workloadKubeconfigPath := workloadClusterProxy.GetKubeconfigPath()
 
 		appManifestAbsolutePath, _ := filepath.Abs(appManifestPath)
@@ -136,10 +136,10 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, toxiProxy.ClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, toxiProxyContext.ClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
 		// Tear down the proxy
-		toxiProxy.RemoveToxic(toxicName)
-		helpers.TearDownToxiProxy(ctx, toxiProxy)
+		toxiProxyContext.RemoveToxic(toxicName)
+		helpers.TearDownToxiProxy(toxiProxyContext)
 	})
 }
