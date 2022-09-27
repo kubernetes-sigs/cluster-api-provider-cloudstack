@@ -269,6 +269,7 @@ e2e-essentials: $(GINKGO_V1) e2e-cluster-templates kind-cluster ## Fulfill essen
 
 JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
+	export PATH=$(REPO_ROOT)/$(TOOLS_BIN_DIR):$(PATH) && \
 	kubectl apply -f cloud-config.yaml && \
 	cd test/e2e && \
 	$(REPO_ROOT)/$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
