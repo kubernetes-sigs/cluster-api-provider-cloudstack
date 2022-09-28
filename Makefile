@@ -77,7 +77,7 @@ endif
 export ACK_GINKGO_DEPRECATIONS := 1.16.5
 export ACK_GINKGO_RC=true
 
-export PATH := $(TOOLS_BIN_DIR):$(PATH)
+export PATH := $(REPO_ROOT)/$(TOOLS_BIN_DIR):$(PATH)
 
 all: build
 
@@ -264,12 +264,12 @@ e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster tem
 cluster-template%yaml: $(KUSTOMIZE) $(CLUSTER_TEMPLATES_INPUT_FILES)
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(basename $@) > $@
 
-e2e-essentials: $(GINKGO_V1) e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
+e2e-essentials: $(GINKGO_V1) $(KUBECTL) e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
 	IMG=$(IMG_LOCAL) make generate-manifests docker-build docker-push
 
 JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
-	kubectl apply -f cloud-config.yaml && \
+	$(KUBECTL) apply -f cloud-config.yaml && \
 	cd test/e2e && \
 	$(REPO_ROOT)/$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
