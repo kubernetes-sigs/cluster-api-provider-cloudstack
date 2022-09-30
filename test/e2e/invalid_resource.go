@@ -227,8 +227,7 @@ func errorExistsInLog(logFolder string, expectedError string) (bool, error) {
 			logLines := strings.Split(string(log), "\n")
 			for _, line := range logLines {
 				if strings.Contains(line, expectedError) &&
-					strings.Contains(line, clusterResources.Cluster.Namespace) &&
-					strings.Contains(line, clusterResources.Cluster.Name) {
+					strings.Contains(line, clusterResources.Cluster.Namespace) {
 					Byf("Found %q error", expectedError)
 					return expectedErrorFound
 				}
