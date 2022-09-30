@@ -27,8 +27,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/helpers"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -161,16 +159,4 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		bootstrapClusterToxiProxyContext.RemoveToxic(bootstrapClusterToxicName)
 		helpers.TearDownToxiProxyBootstrap(bootstrapClusterToxiProxyContext)
 	})
-}
-
-func getFailureDomainEndpointSecret(ctx context.Context) corev1.Secret {
-	fdEndpointSecretObjectKey := client.ObjectKey{
-		Namespace: input.E2EConfig.GetVariable("CLOUDSTACK_FD1_SECRET_NAMESPACE"),
-		Name:      input.E2EConfig.GetVariable("CLOUDSTACK_FD1_SECRET_NAME"),
-	}
-	fdEndpointSecret := corev1.Secret{}
-	err := input.BootstrapClusterProxy.GetClient().Get(ctx, fdEndpointSecretObjectKey, &fdEndpointSecret)
-	Expect(err).To(BeNil())
-
-	return fdEndpointSecret
 }
