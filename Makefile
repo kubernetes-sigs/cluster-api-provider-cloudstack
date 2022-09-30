@@ -236,7 +236,7 @@ tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests ## Se
 
 .PHONY: kind-cluster
 kind-cluster: cluster-api ## Create a kind cluster with a local Docker repository.
-	-./cluster-api/hack/kind-install-for-capd.sh
+	./cluster-api/hack/kind-install-for-capd.sh
 
 cluster-api: ## Clone cluster-api repository for tilt use.
 	git clone --branch v1.0.0 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git

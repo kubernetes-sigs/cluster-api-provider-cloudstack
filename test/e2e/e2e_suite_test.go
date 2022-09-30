@@ -105,7 +105,7 @@ func TestE2E(t *testing.T) {
 var _ = SynchronizedBeforeSuite(func() []byte {
 	// Before all ParallelNodes.
 
-	if (os.Getenv("PAUSE_FOR_DEBUGGER_ATTACH") == "true") {
+	if os.Getenv("PAUSE_FOR_DEBUGGER_ATTACH") == "true" {
 		By("Pausing 15s so you have a chance to attach a debugger to this process...")
 		time.Sleep(15 * time.Second)
 	}

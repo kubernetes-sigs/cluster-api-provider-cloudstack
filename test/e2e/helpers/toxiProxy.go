@@ -5,12 +5,15 @@ import (
 	"fmt"
 	toxiproxyapi "github.com/Shopify/toxiproxy/v2/client"
 	. "github.com/onsi/gomega"
-	"math/rand"
+	corev1 "k8s.io/api/core/v1"
+	"net"
 	"os"
 	"path"
 	"regexp"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 )
@@ -40,11 +43,13 @@ func ToxiProxyServerKill(ctx context.Context) error {
 
 type ToxiProxyContext struct {
 	KubeconfigPath string
+	Secret         corev1.Secret
 	ClusterProxy   framework.ClusterProxy
 	ToxiProxy      *toxiproxyapi.Proxy
+	ConfigPath     string
 }
 
-func SetupForToxiProxyTesting(bootstrapClusterProxy framework.ClusterProxy) *ToxiProxyContext {
+func SetupForToxiProxyTestingBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, clusterName string) *ToxiProxyContext {
 	// Read/parse the actual kubeconfig for the cluster
 	kubeConfig := NewKubeconfig()
 	unproxiedKubeconfigPath := bootstrapClusterProxy.GetKubeconfigPath()
@@ -56,21 +61,14 @@ func SetupForToxiProxyTesting(bootstrapClusterProxy framework.ClusterProxy) *Tox
 	Expect(err).To(BeNil())
 
 	// Decompose server url into protocol, address and port
-	serverRegex := regexp.MustCompilePOSIX("(https?)://([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):([0-9]*)")
-	urlComponents := serverRegex.FindStringSubmatch(server)
-	Expect(len(urlComponents)).To(Equal(4))
-	protocol := urlComponents[1]
-	address := urlComponents[2]
-	port, err := strconv.Atoi(urlComponents[3])
-	Expect(err).To(BeNil())
+	protocol, address, port, _ := parseUrl(server)
 
 	// Format into the needed addresses/URL form
 	actualBootstrapClusterAddress := fmt.Sprintf("%v:%v", address, port)
 
 	// Create the toxiProxy for this test
 	toxiProxyClient := toxiproxyapi.NewClient("127.0.0.1:8474")
-	randomTestId := rand.Intn(65535)
-	toxiProxyName := fmt.Sprintf("deploy_app_toxi_test_%#x", randomTestId)
+	toxiProxyName := fmt.Sprintf("deploy_app_toxi_test_%v_bootstrap", clusterName)
 	proxy, err := toxiProxyClient.CreateProxy(toxiProxyName, "127.0.0.1:0", actualBootstrapClusterAddress)
 	Expect(err).To(BeNil())
 
@@ -84,7 +82,7 @@ func SetupForToxiProxyTesting(bootstrapClusterProxy framework.ClusterProxy) *Tox
 	// Write the modified kubeconfig using a new name.
 	extension := path.Ext(unproxiedKubeconfigPath)
 	baseWithoutExtension := strings.TrimSuffix(path.Base(unproxiedKubeconfigPath), extension)
-	toxiProxyKubeconfigFileName := fmt.Sprintf("toxiProxy_%v_%#x%v", baseWithoutExtension, randomTestId, extension)
+	toxiProxyKubeconfigFileName := fmt.Sprintf("toxiProxy_%v_%v%v", baseWithoutExtension, clusterName, extension)
 	toxiProxyKubeconfigPath := path.Join("/tmp", toxiProxyKubeconfigFileName)
 	err = kubeConfig.Save(toxiProxyKubeconfigPath)
 	Expect(err).To(BeNil())
@@ -104,7 +102,7 @@ func SetupForToxiProxyTesting(bootstrapClusterProxy framework.ClusterProxy) *Tox
 	}
 }
 
-func TearDownToxiProxy(toxiProxyContext *ToxiProxyContext) {
+func TearDownToxiProxyBootstrap(toxiProxyContext *ToxiProxyContext) {
 	// Tear down the proxy
 	err := toxiProxyContext.ToxiProxy.Delete()
 	Expect(err).To(BeNil())
@@ -133,4 +131,124 @@ func (tp *ToxiProxyContext) AddLatencyToxic(latencyMs int, jitterMs int, toxicit
 	Expect(err).To(BeNil())
 
 	return toxicName
+}
+
+func SetupForToxiProxyTestingACS(ctx context.Context, clusterName string, clusterProxy framework.ClusterProxy, e2eConfig *clusterctl.E2EConfig, configPath string) *ToxiProxyContext {
+	// Get the cloud-config secret that CAPC will use to access CloudStack
+	fdEndpointSecretObjectKey := client.ObjectKey{
+		Namespace: e2eConfig.GetVariable("CLOUDSTACK_FD1_SECRET_NAMESPACE"),
+		Name:      e2eConfig.GetVariable("CLOUDSTACK_FD1_SECRET_NAME"),
+	}
+	fdEndpointSecret := corev1.Secret{}
+	err := clusterProxy.GetClient().Get(ctx, fdEndpointSecretObjectKey, &fdEndpointSecret)
+	Expect(err).To(BeNil())
+
+	// Extract and parse the URL for CloudStack from the secret
+	cloudstackUrl := string(fdEndpointSecret.Data["api-url"])
+	protocol, address, port, path := parseUrl(cloudstackUrl)
+	upstreamAddress := fmt.Sprintf("%v:%v", address, port)
+
+	// Create the CloudStack toxiProxy for this test
+	toxiProxyClient := toxiproxyapi.NewClient("127.0.0.1:8474")
+	toxiProxyName := fmt.Sprintf("%v_cloudstack", clusterName)
+
+	// Formulate the proxy listen address.
+	// CAPC can't route to the actual host's localhost.  We have to use a real host IP address for the proxy listen address.
+	hostIP := getOutboundIP()
+	proxyAddress := fmt.Sprintf("%v:0", hostIP)
+	proxy, err := toxiProxyClient.CreateProxy(toxiProxyName, proxyAddress, upstreamAddress)
+	Expect(err).To(BeNil())
+
+	// Retrieve the actual listen address (having the toxiproxy-assigned port #).
+	toxiProxyUrl := fmt.Sprintf("%v://%v%v", protocol, proxy.Listen, path)
+
+	// Create a new cloud-config secret using the proxy listen address
+	toxiProxyFdEndpointSecret := corev1.Secret{}
+	toxiProxyFdEndpointSecret.Type = fdEndpointSecret.Type
+	toxiProxyFdEndpointSecret.Namespace = fdEndpointSecret.Namespace
+	toxiProxyFdEndpointSecret.Name = fdEndpointSecret.Name + "-toxiproxy"
+	toxiProxyFdEndpointSecret.Data = make(map[string][]byte)
+	toxiProxyFdEndpointSecret.Data["api-key"] = fdEndpointSecret.Data["api-key"]
+	toxiProxyFdEndpointSecret.Data["secret-key"] = fdEndpointSecret.Data["secret-key"]
+	toxiProxyFdEndpointSecret.Data["verify-ssl"] = fdEndpointSecret.Data["verify-ssl"]
+	toxiProxyFdEndpointSecret.Data["api-url"] = []byte(toxiProxyUrl)
+
+	err = clusterProxy.GetClient().Create(ctx, &toxiProxyFdEndpointSecret)
+	Expect(err).To(BeNil())
+
+	// Override the test config to use this alternate cloud-config secret
+	e2eConfig.Variables["CLOUDSTACK_FD1_SECRET_NAME"] = toxiProxyFdEndpointSecret.Name
+
+	// Overriding e2e config file into a new temp copy, so as not to inadvertently override the other e2e tests.
+	newConfigFilePath := fmt.Sprintf("/tmp/%v.yaml", toxiProxyName)
+	editConfigFile(newConfigFilePath, configPath, "CLOUDSTACK_FD1_SECRET_NAME", toxiProxyFdEndpointSecret.Name)
+
+	// Return a context
+	return &ToxiProxyContext{
+		Secret:     toxiProxyFdEndpointSecret,
+		ToxiProxy:  proxy,
+		ConfigPath: newConfigFilePath,
+	}
+}
+
+func TearDownToxiProxyACS(ctx context.Context, clusterProxy framework.ClusterProxy, toxiProxyContext *ToxiProxyContext) {
+	// Tear down the proxy
+	err := toxiProxyContext.ToxiProxy.Delete()
+	Expect(err).To(BeNil())
+
+	// Delete the secret
+	err = clusterProxy.GetClient().Delete(ctx, &toxiProxyContext.Secret)
+	Expect(err).To(BeNil())
+
+	// Delete the overridden e2e config
+	err = os.Remove(toxiProxyContext.ConfigPath)
+	Expect(err).To(BeNil())
+
+}
+
+func parseUrl(url string) (string, string, int, string) {
+	serverRegex := regexp.MustCompilePOSIX("(https?)://([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):([0-9]+)?(.*)")
+
+	urlComponents := serverRegex.FindStringSubmatch(url)
+	Expect(len(urlComponents)).To(BeNumerically(">=", 4))
+	protocol := urlComponents[1]
+	address := urlComponents[2]
+	port, err := strconv.Atoi(urlComponents[3])
+	Expect(err).To(BeNil())
+	path := urlComponents[4]
+	return protocol, address, port, path
+}
+
+func getOutboundIP() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:80") // 8.8.8.8:80 is arbitrary.  Any IP will do, reachable or not.
+	Expect(err).To(BeNil())
+
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP
+}
+
+func editConfigFile(destFilename string, sourceFilename string, key string, newValue string) {
+	// For config files with key: value on each line.
+
+	dat, err := os.ReadFile(sourceFilename)
+	Expect(err).To(BeNil())
+
+	lines := strings.Split(string(dat), "\n")
+
+	keyFound := false
+	for index, line := range lines {
+		if strings.HasPrefix(line, "CLOUDSTACK_FD1_SECRET_NAME:") {
+			keyFound = true
+			lines[index] = fmt.Sprintf("%v: %v", key, newValue)
+			break
+		}
+	}
+	Expect(keyFound).To(BeTrue())
+
+	dat = []byte(strings.Join(lines[:], "\n"))
+	err = os.WriteFile(destFilename, dat, 0600)
+	Expect(err).To(BeNil())
 }
