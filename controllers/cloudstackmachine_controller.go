@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
@@ -192,7 +193,11 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
-	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, string(data))
+	// since cloudstack metadata does not allow custom data added into meta_data, following line is a hack to specify a hostname name
+	// {{ ds.meta_data.hostname }} is expected to be used as a name when kubelet register a node
+	// if more custom data needed to injected, this can be refactored into a method -- processCustomMetadata()
+	userData := strings.ReplaceAll(string(data), "{{ ds.meta_data.hostname }}", r.CAPIMachine.Name)
+	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
 
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
