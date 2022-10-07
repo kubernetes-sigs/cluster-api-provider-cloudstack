@@ -237,7 +237,7 @@ func (c *client) GetOrCreateVMInstance(
 	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offeringID, templateID, fd.Spec.Zone.ID)
 	p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
 	setIfNotEmpty(csMachine.Name, p.SetName)
-	setIfNotEmpty(csMachine.Name, p.SetDisplayname)
+	setIfNotEmpty(capiMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
 	setIntIfPositive(csMachine.Spec.DiskOffering.CustomSize, p.SetSize)
 
