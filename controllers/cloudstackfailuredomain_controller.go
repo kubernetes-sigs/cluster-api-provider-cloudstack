@@ -122,7 +122,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (ctrl.Re
 
 	return r.RunReconciliationStages(
 		r.GetAllMachinesInFailureDomain,
-		r.AllMachinesCanBeCleared,
+		r.RequeueIfMachineCannotBeRemoved,
 		r.ClearMachines,
 		r.DeleteOwnedObjects(
 			infrav1.GroupVersion.WithKind("CloudStackAffinityGroup"),
@@ -134,8 +134,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (ctrl.Re
 	)
 }
 
-// GetAllMachinesInFailureDomain get all cloudstack machines deployed in this failure domain.
-// machines are sorted by name so that it can be processed one by one in a determined order.
+// GetAllMachinesInFailureDomain returns all cloudstackmachines deployed in this failure domain sorted by name.
 func (r *CloudStackFailureDomainReconciliationRunner) GetAllMachinesInFailureDomain() (ctrl.Result, error) {
 	machines := &infrav1.CloudStackMachineList{}
 	if err := r.K8sClient.List(r.RequestCtx, machines, client.MatchingLabels{infrav1.FailureDomainLabelName: r.ReconciliationSubject.Name}); err != nil {
@@ -149,13 +148,8 @@ func (r *CloudStackFailureDomainReconciliationRunner) GetAllMachinesInFailureDom
 	return ctrl.Result{}, nil
 }
 
-// AllMachinesCanBeCleared checks for each machine in failure domain, check if it is possible to delete it.
-// if machine is the only machine in worker node group, it cannot be deleted.
-// if machine is the only machine in control plane, it cannot be deleted.
-// if machine is the only machine in etcdadmcluster, it cannot be deleted.
-// if deletes the CAPI machine for any still in FailureDomain,
-// and requeus until all CloudStack machines are cleared from the FailureDomain.
-func (r *CloudStackFailureDomainReconciliationRunner) AllMachinesCanBeCleared() (ctrl.Result, error) {
+// RequeueIfMachineCannotBeRemoved checks for each machine to confirm it is not risky to remove it.
+func (r *CloudStackFailureDomainReconciliationRunner) RequeueIfMachineCannotBeRemoved() (ctrl.Result, error) {
 	// check CAPI machines for CloudStack machines found.
 	for _, machine := range r.Machines {
 		for _, ref := range machine.OwnerReferences {
@@ -165,7 +159,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) AllMachinesCanBeCleared() 
 				if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: machine.Namespace, Name: ref.Name}, owner); err != nil {
 					return ctrl.Result{}, err
 				}
-				specReplicas, statusReplicas, err := replicasLargerThanOne(owner, ref.Name, machine.Name)
+				specReplicas, statusReplicas, err := getSpecAndStatusReplicas(owner, ref.Name, machine.Name)
 				if err != nil {
 					return ctrl.Result{}, err
 				}
@@ -194,7 +188,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) AllMachinesCanBeCleared() 
 	return ctrl.Result{}, nil
 }
 
-func replicasLargerThanOne(owner *unstructured.Unstructured, ownerName, machineName string) (int64, int64, error) {
+func getSpecAndStatusReplicas(owner *unstructured.Unstructured, ownerName, machineName string) (int64, int64, error) {
 	specReplicas, found, err := unstructured.NestedInt64(owner.Object, "spec", "replicas")
 	if err != nil {
 		return 0, 0, err
@@ -220,8 +214,9 @@ func replicasLargerThanOne(owner *unstructured.Unstructured, ownerName, machineN
 
 // ClearMachines deletes the CAPI machine in FailureDomain.
 func (r *CloudStackFailureDomainReconciliationRunner) ClearMachines() (ctrl.Result, error) {
-	for _, csMachine := range r.Machines {
-		for _, ref := range csMachine.OwnerReferences {
+	// pick first machine to delete
+	if len(r.Machines) > 0 {
+		for _, ref := range r.Machines[0].OwnerReferences {
 			if ref.Kind == "Machine" {
 				machine := &clusterv1.Machine{}
 				if err := r.K8sClient.Get(r.RequestCtx, client.ObjectKey{Namespace: r.ReconciliationSubject.Namespace, Name: ref.Name}, machine); err != nil {

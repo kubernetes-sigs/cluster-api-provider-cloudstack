@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"go/build"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -177,7 +176,7 @@ func (m *MockCtrlrCloudClientImplementation) RegisterExtension(r *csCtrlrUtils.R
 
 func SetupTestEnvironment() {
 	repoRoot := os.Getenv("REPO_ROOT")
-	crdPaths := []string{filepath.Join(repoRoot, "config", "crd", "bases")}
+	crdPaths := []string{filepath.Join(repoRoot, "config", "crd", "bases"), filepath.Join(repoRoot, "test", "fakes")}
 
 	// Append CAPI CRDs path
 	if capiPath := getFilePathToCAPICRDs(repoRoot); capiPath != "" {
@@ -192,8 +191,6 @@ func SetupTestEnvironment() {
 	go func() {
 		defer GinkgoRecover()
 		cfg, err = testEnv.Start()
-		extraCRDs := append([]*apiextensionsv1.CustomResourceDefinition{}, dummies.CSMachineOwnerCRD)
-		err = envtest.CreateCRDs(cfg, extraCRDs)
 		close(done)
 	}()
 	Eventually(done).WithTimeout(time.Minute).Should(BeClosed())
@@ -391,7 +388,6 @@ func setCSMachineOwnerCRD(owner *fakes.CloudStackMachineOwner, specReplicas, sta
 		owner.Status.ReadyReplicas = statusReadyReplicas
 		return k8sClient.Status().Update(ctx, owner)
 	}, timeout).Should(BeNil())
-
 }
 
 // setCAPIMachineAndCSMachineCRDs creates a CAPI and CloudStack machine with an appropriate ownership ref between them.

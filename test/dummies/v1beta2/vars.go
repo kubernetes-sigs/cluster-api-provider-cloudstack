@@ -6,7 +6,6 @@ import (
 	"github.com/smallfish/simpleyaml"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	"os"
@@ -87,7 +86,6 @@ var ( // Declare exported dummy vars.
 	BootstrapSecret         *corev1.Secret
 	BootstrapSecretName     string
 	CSMachineOwner          *fakes.CloudStackMachineOwner
-	CSMachineOwnerCRD       *apiextensionsv1.CustomResourceDefinition
 	CSMachineOwnerReference metav1.OwnerReference
 )
 
@@ -114,7 +112,6 @@ func SetDummyVars() {
 	SetDummyCSMachineVars()
 	SetDummyTagVars()
 	SetDummyBootstrapSecretVar()
-	setCSMachineOwnerCrd()
 	SetCSMachineOwner()
 	SetDummyOwnerReferences()
 	LBRuleID = "FakeLBRuleID"
@@ -137,95 +134,6 @@ func CAPCNetToCSAPINet(net *infrav1.Network) *csapi.Network {
 	}
 }
 
-func setCSMachineOwnerCrd() {
-	CSMachineOwnerCRD = &apiextensionsv1.CustomResourceDefinition{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "apiextensions.k8s.io/v1",
-			Kind:       "CustomResourceDefinition",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "cloudstackmachineowners.fakes.infrastructure.cluster.x-k8s.io",
-		},
-		Status: apiextensionsv1.CustomResourceDefinitionStatus{
-			AcceptedNames: apiextensionsv1.CustomResourceDefinitionNames{
-				Kind:   "",
-				Plural: "",
-			},
-			Conditions:     []apiextensionsv1.CustomResourceDefinitionCondition{},
-			StoredVersions: []string{},
-		},
-		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-			Group: "fakes.infrastructure.cluster.x-k8s.io",
-			Names: apiextensionsv1.CustomResourceDefinitionNames{
-				Kind:     "CloudStackMachineOwner",
-				Singular: "cloudstackmachineowner",
-				ListKind: "CloudStackMachineOwnerList",
-				Plural:   "cloudstackmachineowners",
-			},
-			Scope: "Namespaced",
-			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-				{
-					Name:    "v1beta2",
-					Served:  true,
-					Storage: true,
-					Subresources: &apiextensionsv1.CustomResourceSubresources{
-						Status: &apiextensionsv1.CustomResourceSubresourceStatus{},
-					},
-					Schema: &apiextensionsv1.CustomResourceValidation{
-						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
-							Description: "CloudStackMachineOwner is the Schema for CRDs to simulate machineset, kubeadmcontrolplane and etcdadmcluster",
-							Properties: map[string]apiextensionsv1.JSONSchemaProps{
-								"apiVersion": {
-									Description: "",
-									Type:        "string",
-								},
-								"kind": {
-									Description: "",
-									Type:        "string",
-								},
-								"metadata": {
-									Type: "object",
-								},
-								"spec": {
-									Description: "",
-									Properties: map[string]apiextensionsv1.JSONSchemaProps{
-										"replicas": {
-											Type:   "integer",
-											Format: "int32",
-										},
-									},
-									Type: "object",
-								},
-								"status": {
-									Description: "",
-									Properties: map[string]apiextensionsv1.JSONSchemaProps{
-										"replicas": {
-											Type:   "integer",
-											Format: "int32",
-										},
-										"readyReplicas": {
-											Type:   "integer",
-											Format: "int32",
-										},
-										"ready": {
-											Type: "boolean",
-										},
-									},
-									Required: []string{
-										"replicas",
-									},
-									Type: "object",
-								},
-							},
-							Type: "object",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 // SetDummyVars sets/resets tag related dummy vars.
 func SetDummyTagVars() {
 	CSClusterTagKey = "CAPC_cluster_" + string(CSCluster.ObjectMeta.UID)
@@ -243,17 +151,22 @@ func SetDummyTagVars() {
 }
 
 func SetCSMachineOwner() {
-	var defaultReplicas int32 = -1
 	CSMachineOwner = &fakes.CloudStackMachineOwner{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: fakes.GroupVersion.String(),
+			Kind:       "CloudStackMachineOwner",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ClusterName,
 			Namespace: ClusterNameSpace,
 		},
 		Spec: fakes.CloudStackMachineOwnerSpec{
-			Replicas: &defaultReplicas,
+			Replicas: nil,
 		},
 		Status: fakes.CloudStackMachineOwnerStatus{
-			Replicas: &defaultReplicas,
+			Replicas:      nil,
+			Ready:         nil,
+			ReadyReplicas: nil,
 		},
 	}
 }
