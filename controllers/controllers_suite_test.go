@@ -242,8 +242,8 @@ func SetupTestEnvironment() {
 
 	DeferCleanup(func() {
 		// Cancelling the context shuts down any outstanding requests and the test environment.
-		Ω(testEnv.Stop()).Should(Succeed())
 		cancel()
+		Ω(testEnv.Stop()).Should(Succeed())
 		k8sManager = nil
 	})
 }
