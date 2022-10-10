@@ -231,12 +231,12 @@ docker-push: .dockerflag.mk ## Push docker image with the manager.
 ## --------------------------------------
 
 .PHONY: tilt-up
-tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests ## Setup and run tilt for development.
+tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json generate-manifests ## Setup and run tilt for development.
 	cd cluster-api && tilt up
 
 .PHONY: kind-cluster
 kind-cluster: cluster-api ## Create a kind cluster with a local Docker repository.
-	./cluster-api/hack/kind-install-for-capd.sh
+	@./cluster-api/hack/kind-install-for-capd.sh 2>/dev/null || echo Kind cluster already exists.
 
 cluster-api: ## Clone cluster-api repository for tilt use.
 	git clone --branch v1.0.0 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
@@ -257,7 +257,7 @@ test: generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) ## Run t
 	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 
-CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/*/cluster-template* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
+CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
 CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)
 .PHONY: e2e-cluster-templates
 e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster template files for e2e testing.

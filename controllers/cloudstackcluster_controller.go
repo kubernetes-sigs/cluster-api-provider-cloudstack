@@ -143,33 +143,35 @@ func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ct
 
 // AdoptSecrets sets an owner ref from the cluster to secrets if secrets are labeled.
 // This is a helper to facilitate secret transfer on move of a cluster via clusterctl.
-func (r *CloudStackClusterReconciliationRunner) AdoptSecrets() (ctrl.Result, error) {
-    // For each failure domain...
-	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
+func (r *CloudStackClusterReconciliationRunner) AdoptSecrets() csCtrlrUtils.CloudStackReconcilerMethod {
+	return func() (ctrl.Result, error) {
+		// For each failure domain...
+		for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
 
-        // Fetch the respective secret...
-		endpointCredentials := &corev1.Secret{}
-		key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}
-		if err := r.K8sClient.Get(r.RequestCtx, key, endpointCredentials); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
-		}
+			// Fetch the respective secret...
+			endpointCredentials := &corev1.Secret{}
+			key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}
+			if err := r.K8sClient.Get(r.RequestCtx, key, endpointCredentials); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
+			}
 
-        // And patch a new ownership ref onto it if the secret is labeled with the cluster's name.
-		if val, found := endpointCredentials.ObjectMeta.Labels[clusterv1.ClusterLabelName]; found {
-			if val == r.CAPICluster.ClusterName { // Adopt the secret.
-				if p, err := patch.NewHelper(endpointCredentials, r.K8sClient); err != nil {
-					return ctrl.Result{}, errors.Wrap(err, "adopting secret")
-				} else {
-					endpointCredentials.OwnerReferences = append(endpointCredentials.OwnerReferences,
-						v1.OwnerReference{Kind: r.CAPICluster.Kind, Name: r.CAPICluster.Name, APIVersion: r.CAPICluster.APIVersion, UID: r.CAPICluster.UID})
-					if err := p.Patch(r.RequestCtx, endpointCredentials); err != nil {
+			// And patch a new ownership ref onto said secret if the it is labeled with the cluster's name.
+			if val, found := endpointCredentials.Labels[clusterv1.ClusterLabelName]; found {
+				if val == r.CAPICluster.ClusterName { // Adopt the secret.
+					if p, err := patch.NewHelper(endpointCredentials, r.K8sClient); err != nil {
 						return ctrl.Result{}, errors.Wrap(err, "adopting secret")
+					} else {
+						endpointCredentials.OwnerReferences = append(endpointCredentials.OwnerReferences,
+							v1.OwnerReference{Kind: r.CAPICluster.Kind, Name: r.CAPICluster.Name, APIVersion: r.CAPICluster.APIVersion, UID: r.CAPICluster.UID})
+						if err := p.Patch(r.RequestCtx, endpointCredentials); err != nil {
+							return ctrl.Result{}, errors.Wrap(err, "adopting secret")
+						}
 					}
 				}
 			}
 		}
+		return ctrl.Result{}, nil
 	}
-	return ctrl.Result{}, nil
 }
 
 // ReconcileDelete cleans up resources used by the cluster and finally removes the CloudStackCluster's finalizers.
