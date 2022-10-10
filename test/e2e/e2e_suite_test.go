@@ -24,8 +24,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	go_runtime "runtime"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/helpers"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -102,6 +105,11 @@ func TestE2E(t *testing.T) {
 var _ = SynchronizedBeforeSuite(func() []byte {
 	// Before all ParallelNodes.
 
+	if os.Getenv("PAUSE_FOR_DEBUGGER_ATTACH") == "true" {
+		By("Pausing 15s so you have a chance to attach a debugger to this process...")
+		time.Sleep(15 * time.Second)
+	}
+
 	Expect(configPath).To(BeAnExistingFile(), "Invalid test suite argument. e2e.config should be an existing file.")
 	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder) //nolint:gosec
 
@@ -110,6 +118,12 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	Byf("Loading the e2e test configuration from %q", configPath)
 	e2eConfig = loadE2EConfig(configPath)
+
+	// Toxiproxy running in a docker container requires docker host networking, only available in linux.
+	if go_runtime.GOOS == "linux" {
+		By("Launching Toxiproxy Server")
+		Expect(helpers.ToxiProxyServerExec(ctx)).To(Succeed())
+	}
 
 	if clusterctlConfig == "" {
 		Byf("Creating a clusterctl local repository into %q", artifactFolder)
@@ -162,6 +176,11 @@ var _ = SynchronizedAfterSuite(func() {
 	By("Tearing down the management cluster")
 	if !skipCleanup {
 		tearDown(bootstrapClusterProvider, bootstrapClusterProxy)
+	}
+
+	if go_runtime.GOOS == "linux" {
+		By("Killing Toxiproxy Server")
+		Expect(helpers.ToxiProxyServerKill(ctx)).To(Succeed())
 	}
 })
 

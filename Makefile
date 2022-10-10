@@ -236,7 +236,7 @@ tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests ## Se
 
 .PHONY: kind-cluster
 kind-cluster: cluster-api ## Create a kind cluster with a local Docker repository.
-	-./cluster-api/hack/kind-install-for-capd.sh
+	./cluster-api/hack/kind-install-for-capd.sh
 
 cluster-api: ## Clone cluster-api repository for tilt use.
 	git clone --branch v1.0.0 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
@@ -271,7 +271,7 @@ JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
 	$(KUBECTL) apply -f cloud-config.yaml && \
 	cd test/e2e && \
-	$(REPO_ROOT)/$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -nodes=1 -noColor=false ./... -- \
+	$(REPO_ROOT)/$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -skipPackage=helpers -nodes=1 -noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true

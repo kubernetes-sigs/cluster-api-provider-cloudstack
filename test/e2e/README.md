@@ -61,3 +61,15 @@ For example,
 JOB=PR-Blocking make run-e2e
 ```
 This command runs the e2e tests that contains `PR-Blocking` in their spec names. 
+
+### Debugging the e2e tests
+The E2E tests can be debugged by attaching a debugger to the e2e process after it is launched (*i.e., make run-e2e*).
+To facilitate this, the E2E tests can be run with environment variable PAUSE_FOR_DEBUGGER_ATTACH=true.
+(This is only strictly needed when you want the debugger to break early in the test process, i.e., in SynchronizedBeforeSuite.
+There's usually quite enough time to attach if you're not breaking until your actual test code runs.)
+
+When this environment variable is set to *true* a 15s pause is inserted at the beginning of the test process
+(i.e., in the SynchronizedBeforeSuite).  The workflow is:
+- Launch the e2e test: *PAUSE_FOR_DEBUGGER_ATTACH=true JOB=MyTest make run-e2e*
+- Wait for console message: *Pausing 15s so you have a chance to attach a debugger to this process...*
+- Quickly attach your debugger to the e2e process (i.e., e2e.test)

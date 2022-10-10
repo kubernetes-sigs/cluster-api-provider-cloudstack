@@ -18,6 +18,8 @@ package utils
 
 import (
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -91,6 +93,7 @@ func GenerateAffinityGroupName(csm infrav1.CloudStackMachine, capiMachine *clust
 	if managerOwnerRef == nil {
 		return "", errors.Errorf("could not find owner UID for %s/%s", csm.Namespace, csm.Name)
 	}
+	titleCaser := cases.Title(language.English)
 	return fmt.Sprintf("%sAffinity-%s-%s-%s",
-		strings.Title(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID, csm.Spec.FailureDomainName), nil
+		titleCaser.String(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID, csm.Spec.FailureDomainName), nil
 }
