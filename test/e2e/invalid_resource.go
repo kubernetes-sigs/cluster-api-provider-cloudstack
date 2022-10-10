@@ -212,7 +212,9 @@ func generateClusterName() string {
 
 // errorExistsInLog looks for a specific error message in the CAPC controller log files.  Because the logs may contain
 // entries from previous test runs, or from previous tests in the same run, the function also requires that the log
-// line contains the namespace and cluster names.
+// line contains the namespace. The cluster name is not check because some controllers such as failure domain controller
+// prints a different name which is not the cluster name. In the e2e testing, the namespace only is unique enough because
+// it is generated randomly per test case.
 func errorExistsInLog(logFolder string, expectedError string) (bool, error) {
 	expectedErrorFound := errors.New("expected error found")
 	controllerLogPath := filepath.Join(logFolder, "controllers", "capc-controller-manager")
@@ -227,8 +229,7 @@ func errorExistsInLog(logFolder string, expectedError string) (bool, error) {
 			logLines := strings.Split(string(log), "\n")
 			for _, line := range logLines {
 				if strings.Contains(line, expectedError) &&
-					strings.Contains(line, clusterResources.Cluster.Namespace) &&
-					strings.Contains(line, clusterResources.Cluster.Name) {
+					strings.Contains(line, clusterResources.Cluster.Namespace) {
 					Byf("Found %q error", expectedError)
 					return expectedErrorFound
 				}
