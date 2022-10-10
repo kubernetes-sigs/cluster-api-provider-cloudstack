@@ -22,6 +22,7 @@ import (
 	"reflect"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -29,10 +30,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
-	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 )
 
 // RBAC permissions used in all reconcilers. Events and Secrets.
@@ -91,6 +96,7 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 		r.CreateFailureDomains(r.ReconciliationSubject.Spec.FailureDomains),
 		r.GetFailureDomains(r.FailureDomains),
 		r.RemoveExtraneousFailureDomains(r.FailureDomains),
+		r.AdoptSecrets(),
 		r.VerifyFailureDomainCRDs,
 		r.SetReady)
 }
@@ -129,7 +135,39 @@ func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ct
 	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
 		metaHashName := infrav1.FailureDomainHashedMetaName(fdSpec.Name, r.CAPICluster.Name)
 		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{
-			ControlPlane: true, Attributes: map[string]string{"MetaHashName": metaHashName}}
+			ControlPlane: true, Attributes: map[string]string{"MetaHashName": metaHashName},
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+// AdoptSecrets sets an owner ref from the cluster to secrets if secrets are labeled.
+// This is a helper to facilitate secret transfer on move of a cluster via clusterctl.
+func (r *CloudStackClusterReconciliationRunner) AdoptSecrets() (ctrl.Result, error) {
+    // For each failure domain...
+	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
+
+        // Fetch the respective secret...
+		endpointCredentials := &corev1.Secret{}
+		key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}
+		if err := r.K8sClient.Get(r.RequestCtx, key, endpointCredentials); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
+		}
+
+        // And patch a new ownership ref onto it if the secret is labeled with the cluster's name.
+		if val, found := endpointCredentials.ObjectMeta.Labels[clusterv1.ClusterLabelName]; found {
+			if val == r.CAPICluster.ClusterName { // Adopt the secret.
+				if p, err := patch.NewHelper(endpointCredentials, r.K8sClient); err != nil {
+					return ctrl.Result{}, errors.Wrap(err, "adopting secret")
+				} else {
+					endpointCredentials.OwnerReferences = append(endpointCredentials.OwnerReferences,
+						v1.OwnerReference{Kind: r.CAPICluster.Kind, Name: r.CAPICluster.Name, APIVersion: r.CAPICluster.APIVersion, UID: r.CAPICluster.UID})
+					if err := p.Patch(r.RequestCtx, endpointCredentials); err != nil {
+						return ctrl.Result{}, errors.Wrap(err, "adopting secret")
+					}
+				}
+			}
+		}
 	}
 	return ctrl.Result{}, nil
 }
@@ -194,6 +232,7 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool { return false },
-			CreateFunc: func(e event.CreateEvent) bool { return false }})
+			CreateFunc: func(e event.CreateEvent) bool { return false },
+		})
 	return errors.Wrap(err, "building CloudStackCluster controller")
 }
