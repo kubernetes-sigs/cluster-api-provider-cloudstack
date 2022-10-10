@@ -170,11 +170,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
-	// since cloudstack metadata does not allow custom data added into meta_data, following line is a hack to specify a hostname name
-	// {{ ds.meta_data.hostname }} is expected to be used as a name when kubelet register a node
-	// if more custom data needed to injected, this can be refactored into a method -- processCustomMetadata()
-	userData := strings.ReplaceAll(string(data), "{{ ds.meta_data.hostname }}", r.CAPIMachine.Name)
-
+	userData := processUserData(data, r)
 	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
 
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
@@ -183,6 +179,15 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	// Always add the finalizer regardless. It can't be added twice anyway.
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, err
+}
+
+func processUserData(data []byte, r *CloudStackMachineReconciliationRunner) string {
+	// since cloudstack metadata does not allow custom data added into meta_data, following line is a hack to specify a hostname name
+	// {{ ds.meta_data.hostname }} is expected to be used as a name when kubelet register a node
+	// if more custom data needed to injected, this can be refactored into a method -- processCustomMetadata()
+	userData := strings.ReplaceAll(string(data), "{{ ds.meta_data.hostname }}", r.CAPIMachine.Name)
+	userData = strings.ReplaceAll(userData, "{{ds.meta_data.failuredomain}}", r.FailureDomain.Spec.Name)
+	return userData
 }
 
 // ConfirmVMStatus checks the Instance's status for running state and requeues otherwise.
