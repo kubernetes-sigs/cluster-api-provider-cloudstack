@@ -263,7 +263,12 @@ var _ = Describe("Instance", func() {
 					Return(&cloudstack.DeployVirtualMachineParams{})
 
 				deploymentResp := &cloudstack.DeployVirtualMachineResponse{Id: *dummies.CSMachine1.Spec.InstanceID}
-				vms.EXPECT().DeployVirtualMachine(gomock.Any()).Return(deploymentResp, nil)
+
+				vms.EXPECT().DeployVirtualMachine(gomock.Any()).Do(
+					func(p interface{}) {
+						displayName, _ := p.(*cloudstack.DeployVirtualMachineParams).GetDisplayname()
+						Ω(displayName == dummies.CAPIMachine.Name).Should(BeTrue())
+					}).Return(deploymentResp, nil)
 
 				Ω(client.GetOrCreateVMInstance(
 					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
