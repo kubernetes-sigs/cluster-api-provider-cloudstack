@@ -39,4 +39,4 @@ The account that CAPC runs under must minimally be a Domain Admin type account w
 * stopVirtualMachine
 * updateVMAffinityGroup
 
-This permission set has been verified to successfully run the CAPC E2E test suite.
+This permission set has been verified to successfully run the CAPC E2E test suite (Nov 11, 2022).
