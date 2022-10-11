@@ -42,9 +42,10 @@ import (
 )
 
 var (
-	 hostnameMatcher = regexp.MustCompile(`\{\{\s*ds\.meta_data\.hostname\s*\}\}`)
-	 failuredomainMatcher = regexp.MustCompile(`\{\{\s*ds\.meta_data\.failuredomain\s*\}\}`)
+	hostnameMatcher      = regexp.MustCompile(`\{\{\s*ds\.meta_data\.hostname\s*\}\}`)
+	failuredomainMatcher = regexp.MustCompile(`\{\{\s*ds\.meta_data\.failuredomain\s*\}\}`)
 )
+
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/finalizers,verbs=update
@@ -186,7 +187,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 }
 
 func processUserData(data []byte, r *CloudStackMachineReconciliationRunner) string {
-	// since cloudstack metadata does not allow custom data added into meta_data, following line is a hack to specify a hostname name
+	// since cloudstack metadata does not allow custom data added into meta_data, following line is a walkaround to specify a hostname name
 	// {{ ds.meta_data.hostname }} is expected to be used as a name when kubelet register a node
 	// if more custom data needed to injected, this can be refactored into a method -- processCustomMetadata()
 	userData := hostnameMatcher.ReplaceAllString(string(data), r.CAPIMachine.Name)
