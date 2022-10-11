@@ -80,7 +80,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.FailureDomainFinalizer)
 
 	if err := r.SetOwnerReferenceToEndpointSecret(); err != nil {
-		return r.RequeueWithMessage("Couldn't set owner reference for endpoint secret")
+		return ctrl.Result{}, errors.Wrap(err, "Couldn't set owner reference for endpoint secret")
 	}
 
 	// Start by purely data fetching information about the zone and specified network.
@@ -114,21 +114,31 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 	return ctrl.Result{}, nil
 }
 
+// SetOwnerReferenceToEndpointSecret sets an endpoint secret's owner reference to the target cluster if needed.
 func (r *CloudStackFailureDomainReconciliationRunner) SetOwnerReferenceToEndpointSecret() error {
 	secret, err := r.GetSecretForFailureDomain(&r.ReconciliationSubject.Spec)
 	if err != nil {
 		return err
 	}
-	if MaySetOwnerReference(secret, r.CAPICluster) {
+	if IsSetOwnerReferenceNeeded(secret, r.CAPICluster.Name) {
+		secret.OwnerReferences = append(secret.OwnerReferences,
+			metav1.OwnerReference{
+				Name:       r.CAPICluster.Name,
+				Kind:       r.CAPICluster.Kind,
+				APIVersion: r.CAPICluster.APIVersion,
+				UID:        r.CAPICluster.UID,
+			})
 		return r.Patcher.Patch(r.RequestCtx, secret)
 	}
 	return nil
 }
 
-func MaySetOwnerReference(secret *corev1.Secret, cluster *clusterv1.Cluster) bool {
+// IsSetOwnerReferenceNeeded returns true only if the secret has a matching cluster name label
+// and it's not already owned by other clusters.
+func IsSetOwnerReferenceNeeded(secret *corev1.Secret, clusterName string) bool {
 	needSetOwner := false
 	for key, value := range secret.GetLabels() {
-		if strings.EqualFold(key, clusterv1.ClusterLabelName) && strings.EqualFold(value, cluster.Name) {
+		if strings.EqualFold(key, clusterv1.ClusterLabelName) && strings.EqualFold(value, clusterName) {
 			needSetOwner = true
 			for _, ref := range secret.GetOwnerReferences() {
 				if strings.EqualFold(ref.Kind, "Cluster") {
@@ -138,15 +148,6 @@ func MaySetOwnerReference(secret *corev1.Secret, cluster *clusterv1.Cluster) boo
 			}
 			break
 		}
-	}
-	if needSetOwner {
-		secret.OwnerReferences = append(secret.OwnerReferences,
-			metav1.OwnerReference{
-				Name:       cluster.Name,
-				Kind:       cluster.Kind,
-				APIVersion: cluster.APIVersion,
-				UID:        cluster.UID,
-			})
 	}
 	return needSetOwner
 }

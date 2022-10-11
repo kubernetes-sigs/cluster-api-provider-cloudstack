@@ -78,10 +78,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 				},
 			}
 
-			setOwner := controllers.MaySetOwnerReference(secret, cluster)
-
-			Ω(setOwner).Should(BeTrue())
-			Ω(secret.OwnerReferences).Should(HaveLen(1))
+			Ω(controllers.IsSetOwnerReferenceNeeded(secret, cluster.Name)).Should(BeTrue())
 		})
 
 		It("Should not set owner reference to secret if the cluster names don't match", func() {
@@ -99,10 +96,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 				},
 			}
 
-			setOwner := controllers.MaySetOwnerReference(secret, cluster)
-
-			Ω(setOwner).Should(BeFalse())
-			Ω(secret.OwnerReferences).Should(HaveLen(0))
+			Ω(controllers.IsSetOwnerReferenceNeeded(secret, cluster.Name)).Should(BeFalse())
 		})
 
 		It("Should not set owner reference to secret if the cluster name label is missing", func() {
@@ -117,13 +111,10 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 				},
 			}
 
-			setOwner := controllers.MaySetOwnerReference(secret, cluster)
-
-			Ω(setOwner).Should(BeFalse())
-			Ω(secret.OwnerReferences).Should(HaveLen(0))
+			Ω(controllers.IsSetOwnerReferenceNeeded(secret, cluster.Name)).Should(BeFalse())
 		})
 
-		It("Should not set owner reference to secret if it's already owned by something", func() {
+		It("Should not set owner reference to secret if it's already owned by a cluster", func() {
 			secret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "acsendpointsecret1",
@@ -144,10 +135,31 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 				},
 			}
 
-			setOwner := controllers.MaySetOwnerReference(secret, cluster)
+			Ω(controllers.IsSetOwnerReferenceNeeded(secret, cluster.Name)).Should(BeFalse())
+		})
 
-			Ω(setOwner).Should(BeFalse())
-			Ω(secret.OwnerReferences).Should(HaveLen(1))
+		It("Should set owner reference to secret if it's not owned by a cluster", func() {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "acsendpointsecret1",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "cluster1",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind: "Machine",
+							Name: "machine1",
+						},
+					},
+				},
+			}
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster1",
+				},
+			}
+
+			Ω(controllers.IsSetOwnerReferenceNeeded(secret, cluster.Name)).Should(BeTrue())
 		})
 	})
 })
