@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
-	"strings"
+	"regexp"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -185,8 +185,10 @@ func processUserData(data []byte, r *CloudStackMachineReconciliationRunner) stri
 	// since cloudstack metadata does not allow custom data added into meta_data, following line is a hack to specify a hostname name
 	// {{ ds.meta_data.hostname }} is expected to be used as a name when kubelet register a node
 	// if more custom data needed to injected, this can be refactored into a method -- processCustomMetadata()
-	userData := strings.ReplaceAll(string(data), "{{ ds.meta_data.hostname }}", r.CAPIMachine.Name)
-	userData = strings.ReplaceAll(userData, "{{ds.meta_data.failuredomain}}", r.FailureDomain.Spec.Name)
+	hostnameMatcher := regexp.MustCompile(`\{\{\s*ds\.meta_data\.hostname\s*\}\}`)
+	failuredomainMatcher := regexp.MustCompile(`\{\{\s*ds\.meta_data\.failuredomain\s*\}\}`)
+	userData := hostnameMatcher.ReplaceAllString(string(data), r.CAPIMachine.Name)
+	userData = failuredomainMatcher.ReplaceAllString(userData, r.FailureDomain.Spec.Name)
 	return userData
 }
 
