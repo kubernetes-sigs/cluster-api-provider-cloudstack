@@ -9,6 +9,7 @@
     - [Custom Images](topics/custom-images.md)
     - [SSH Access To Nodes](topics/ssh-access.md)
     - [Unstacked etcd](topics/unstacked-etcd.md)
+    - [CloudStack Permissions](topics/cloudstack-permissions.md)
 - [Developer Guide](development/index.md)
     - [Development With Tilt](development/tilt.md)
     - [Building CAPC](development/building.md)
