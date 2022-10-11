@@ -29,6 +29,7 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -170,6 +171,10 @@ func (m *MockCtrlrCloudClientImplementation) AsFailureDomainUser(
 
 func (m *MockCtrlrCloudClientImplementation) RegisterExtension(r *csCtrlrUtils.ReconciliationRunner) csCtrlrUtils.CloudClientExtension {
 	return &MockCtrlrCloudClientImplementation{ReconciliationRunner: r}
+}
+
+func (m *MockCtrlrCloudClientImplementation) GetSecretForFailureDomain(fdSpec *infrav1.CloudStackFailureDomainSpec) (*corev1.Secret, error) {
+	return dummies.ACSEndpointSecret1, nil
 }
 
 func SetupTestEnvironment() {

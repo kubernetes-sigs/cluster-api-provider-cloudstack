@@ -18,8 +18,11 @@ package controllers
 
 import (
 	"context"
+	"strings"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -76,6 +79,10 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 	// Prevent premature deletion.
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.FailureDomainFinalizer)
 
+	if err := r.SetOwnerReferenceToEndpointSecret(); err != nil {
+		return r.RequeueWithMessage("Couldn't set owner reference for endpoint secret")
+	}
+
 	// Start by purely data fetching information about the zone and specified network.
 	if err := r.CSUser.ResolveZone(&r.ReconciliationSubject.Spec.Zone); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "resolving CloudStack zone information")
@@ -105,6 +112,43 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 	}
 	r.ReconciliationSubject.Status.Ready = true
 	return ctrl.Result{}, nil
+}
+
+func (r *CloudStackFailureDomainReconciliationRunner) SetOwnerReferenceToEndpointSecret() error {
+	secret, err := r.GetSecretForFailureDomain(&r.ReconciliationSubject.Spec)
+	if err != nil {
+		return err
+	}
+	if MaySetOwnerReference(secret, r.CAPICluster) {
+		return r.Patcher.Patch(r.RequestCtx, secret)
+	}
+	return nil
+}
+
+func MaySetOwnerReference(secret *corev1.Secret, cluster *clusterv1.Cluster) bool {
+	needSetOwner := false
+	for key, value := range secret.GetLabels() {
+		if strings.EqualFold(key, clusterv1.ClusterLabelName) && strings.EqualFold(value, cluster.Name) {
+			needSetOwner = true
+			for _, ref := range secret.GetOwnerReferences() {
+				if strings.EqualFold(ref.Kind, "Cluster") {
+					needSetOwner = false
+					break
+				}
+			}
+			break
+		}
+	}
+	if needSetOwner {
+		secret.OwnerReferences = append(secret.OwnerReferences,
+			metav1.OwnerReference{
+				Name:       cluster.Name,
+				Kind:       cluster.Kind,
+				APIVersion: cluster.APIVersion,
+				UID:        cluster.UID,
+			})
+	}
+	return needSetOwner
 }
 
 // ReconcileDelete on the ReconciliationRunner attempts to delete the reconciliation subject.

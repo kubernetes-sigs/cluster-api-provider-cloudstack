@@ -20,9 +20,13 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -57,6 +61,93 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 				}
 				return false
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		})
+
+		It("Should set owner reference to secret if the cluster names match and it's not owned", func() {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "acsendpointsecret1",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "cluster1",
+					},
+				},
+			}
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster1",
+				},
+			}
+
+			setOwner := controllers.MaySetOwnerReference(secret, cluster)
+
+			Ω(setOwner).Should(BeTrue())
+			Ω(secret.OwnerReferences).Should(HaveLen(1))
+		})
+
+		It("Should not set owner reference to secret if the cluster names don't match", func() {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "acsendpointsecret1",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "cluster1",
+					},
+				},
+			}
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster2",
+				},
+			}
+
+			setOwner := controllers.MaySetOwnerReference(secret, cluster)
+
+			Ω(setOwner).Should(BeFalse())
+			Ω(secret.OwnerReferences).Should(HaveLen(0))
+		})
+
+		It("Should not set owner reference to secret if the cluster name label is missing", func() {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "acsendpointsecret1",
+				},
+			}
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster1",
+				},
+			}
+
+			setOwner := controllers.MaySetOwnerReference(secret, cluster)
+
+			Ω(setOwner).Should(BeFalse())
+			Ω(secret.OwnerReferences).Should(HaveLen(0))
+		})
+
+		It("Should not set owner reference to secret if it's already owned by something", func() {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "acsendpointsecret1",
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: "cluster1",
+					},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind: "Cluster",
+							Name: "cluster2",
+						},
+					},
+				},
+			}
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster1",
+				},
+			}
+
+			setOwner := controllers.MaySetOwnerReference(secret, cluster)
+
+			Ω(setOwner).Should(BeFalse())
+			Ω(secret.OwnerReferences).Should(HaveLen(1))
 		})
 	})
 })

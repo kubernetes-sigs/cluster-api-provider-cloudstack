@@ -121,6 +121,7 @@ func (r *ReconciliationRunner) GetFailureDomainsAndRequeueIfMissing(fds *infrav1
 type CloudClientExtension interface {
 	RegisterExtension(*ReconciliationRunner) CloudClientExtension
 	AsFailureDomainUser(*infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod
+	GetSecretForFailureDomain(fdSpec *infrav1.CloudStackFailureDomainSpec) (*corev1.Secret, error)
 }
 
 type CloudClientImplementation struct {
@@ -136,17 +137,15 @@ func (c *CloudClientImplementation) RegisterExtension(r *ReconciliationRunner) C
 // AsFailureDomainUser uses the credentials specified in the failure domain to set the ReconciliationSubject's CSUser client.
 func (c *CloudClientImplementation) AsFailureDomainUser(fdSpec *infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		endpointCredentials := &corev1.Secret{}
-		key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}
-		if err := c.K8sClient.Get(c.RequestCtx, key, endpointCredentials); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
+		endpointCredentials, err := c.GetSecretForFailureDomain(fdSpec)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
 
 		clientConfig := &corev1.ConfigMap{}
-		key = client.ObjectKey{Name: cloud.ClientConfigMapName, Namespace: cloud.ClientConfigMapNamespace}
+		key := client.ObjectKey{Name: cloud.ClientConfigMapName, Namespace: cloud.ClientConfigMapNamespace}
 		_ = c.K8sClient.Get(c.RequestCtx, key, clientConfig)
 
-		var err error
 		if c.CSClient, err = cloud.NewClientFromK8sSecret(endpointCredentials, clientConfig); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "parsing ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
 		}
@@ -163,4 +162,13 @@ func (c *CloudClientImplementation) AsFailureDomainUser(fdSpec *infrav1.CloudSta
 
 		return ctrl.Result{}, nil
 	}
+}
+
+func (c *CloudClientImplementation) GetSecretForFailureDomain(fdSpec *infrav1.CloudStackFailureDomainSpec) (*corev1.Secret, error) {
+	endpointCredentials := &corev1.Secret{}
+	key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}
+	if err := c.K8sClient.Get(c.RequestCtx, key, endpointCredentials); err != nil {
+		return nil, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
+	}
+	return endpointCredentials, nil
 }
