@@ -187,7 +187,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 }
 
 func processUserData(data []byte, r *CloudStackMachineReconciliationRunner) string {
-	// since cloudstack metadata does not allow custom data added into meta_data, following line is a walkaround to specify a hostname name
+	// since cloudstack metadata does not allow custom data added into meta_data, following line is a workaround to specify a hostname name
 	// {{ ds.meta_data.hostname }} is expected to be used as a name when kubelet register a node
 	// if more custom data needed to injected, this can be refactored into a method -- processCustomMetadata()
 	userData := hostnameMatcher.ReplaceAllString(string(data), r.CAPIMachine.Name)
