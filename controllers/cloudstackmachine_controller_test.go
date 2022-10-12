@@ -73,7 +73,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
 		})
 
-		It("Should replace ds.mete_data.hostname with capi machine name.", func() {
+		It("Should replace ds.meta_data.hostname with capi machine name.", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),

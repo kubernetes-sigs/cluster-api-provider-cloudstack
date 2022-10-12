@@ -175,7 +175,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
-	userData := processUserData(data, r)
+	userData := processCustomMetadata(data, r)
 	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
 
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
@@ -186,10 +186,9 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	return ctrl.Result{}, err
 }
 
-func processUserData(data []byte, r *CloudStackMachineReconciliationRunner) string {
+func processCustomMetadata(data []byte, r *CloudStackMachineReconciliationRunner) string {
 	// since cloudstack metadata does not allow custom data added into meta_data, following line is a workaround to specify a hostname name
-	// {{ ds.meta_data.hostname }} is expected to be used as a name when kubelet register a node
-	// if more custom data needed to injected, this can be refactored into a method -- processCustomMetadata()
+	// {{ ds.meta_data.hostname }} is expected to be used as a node name when kubelet register a node
 	userData := hostnameMatcher.ReplaceAllString(string(data), r.CAPIMachine.Name)
 	userData = failuredomainMatcher.ReplaceAllString(userData, r.FailureDomain.Spec.Name)
 	return userData
