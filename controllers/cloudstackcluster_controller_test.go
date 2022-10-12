@@ -17,6 +17,7 @@ limitations under the License.
 package controllers_test
 
 import (
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
@@ -30,11 +31,12 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 		BeforeEach(func() {
 			SetupTestEnvironment()                                                    // Must happen before setting up managers/reconcilers.
 			Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())       // Register CloudStack ClusterReconciler.
-			Ω(FailureDomainReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack ClusterReconciler.
+			Ω(FailureDomainReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack FailureDomainReconciler.
 		})
 
 		It("Should create a CloudStackFailureDomain.", func() {
 			tempfd := &infrav1.CloudStackFailureDomain{}
+			mockCloudClient.EXPECT().ResolveZone(gomock.Any()).AnyTimes()
 			Eventually(func() bool {
 				key := client.ObjectKeyFromObject(dummies.CSFailureDomain1)
 				key.Name = key.Name + "-" + dummies.CSCluster.Name
