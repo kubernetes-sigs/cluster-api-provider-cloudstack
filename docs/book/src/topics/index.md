@@ -5,6 +5,7 @@
 - [Custom Images](custom-images.md)
 - [SSH Access To Nodes](ssh-access.md)
 - [Unstacked etcd](unstacked-etcd.md)
+- [CloudStack Permissions](cloudstack-permissions.md)
 
 
 ## TODO :
