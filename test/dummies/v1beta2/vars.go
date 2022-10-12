@@ -398,11 +398,12 @@ func SetDummyIsoNetToNameOnly() {
 
 func SetDummyBootstrapSecretVar() {
 	BootstrapSecretName := "such-secret-much-wow"
+	BootstrapSecretValue := "{{ ds.meta_data.hostname }}"
 	BootstrapSecret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ClusterNameSpace,
 			Name:      BootstrapSecretName},
-		Data: map[string][]byte{"value": make([]byte, 0)}}
+		Data: map[string][]byte{"value": []byte(BootstrapSecretValue)}}
 }
 
 // Sets cluster spec to specified network.

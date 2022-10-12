@@ -72,6 +72,32 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 				return false
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
 		})
+
+		It("Should replace ds.meta_data.hostname with capi machine name.", func() {
+			// Mock a call to GetOrCreateVMInstance and set the machine to running.
+			mockCloudClient.EXPECT().GetOrCreateVMInstance(
+				gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _, userdata interface{}) {
+					Ω(userdata == dummies.CAPIMachine.Name).Should(BeTrue())
+					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
+				}).AnyTimes()
+
+			// Have to do this here or the reconcile call to GetOrCreateVMInstance may happen too early.
+			setupMachineCRDs()
+
+			// Eventually the machine should set ready to true.
+			Eventually(func() bool {
+				tempMachine := &infrav1.CloudStackMachine{}
+				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
+					if tempMachine.Status.Ready == true {
+						return true
+					}
+				}
+				return false
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		})
 	})
 
 	Context("With a fake ctrlRuntimeClient and no test Env at all.", func() {
