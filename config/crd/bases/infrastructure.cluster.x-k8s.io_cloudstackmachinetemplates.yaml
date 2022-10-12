@@ -240,6 +240,7 @@ spec:
                 properties:
                   metadata:
                     description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                    nullable: true
                     type: object
                   spec:
                     description: CloudStackMachineSpec defines the desired state of
