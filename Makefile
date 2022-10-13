@@ -87,7 +87,7 @@ all: build
 ## --------------------------------------
 
 .PHONY: binaries
-binaries: $(CONTROLLER_GEN KUSTOMIZE) $(GOLANGCI_LINT) $(STATIC_CHECK) $(GINKGO_V1) $(GINKGO_V2) $(MOCKGEN) $(KUSTOMIZE) managers # Builds and installs all binaries
+binaries: $(CONTROLLER_GEN) $(GOLANGCI_LINT) $(STATIC_CHECK) $(GINKGO_V1) $(GINKGO_V2) $(MOCKGEN) $(KUSTOMIZE) managers # Builds and installs all binaries
 
 .PHONY: managers
 managers:
