@@ -29,9 +29,9 @@
     export CLOUDSTACK_WORKER_MACHINE_OFFERING="Small Instance"
 
     # Referring to a prerequisite capi-compatible image you've loaded into Apache CloudStack
-    export CLOUDSTACK_TEMPLATE_NAME=kube-v1.20.10/ubuntu-2004
+    export CLOUDSTACK_TEMPLATE_NAME=kube-v1.23.3/ubuntu-2004
 
-    # The SSH KeyPair to log into the VM (Optional: use flavor *managed-ssh*)
+    # The SSH KeyPair to log into the VM (Optional: you must use clusterctl --flavor *managed-ssh*)
     export CLOUDSTACK_SSH_KEY_NAME=CAPCKeyPair6
     ```
 
@@ -50,7 +50,7 @@
     kubectl apply -f capc-cluster-spec.yaml
     ```
 
-4. Check the progress of capc-cluster, and wait for all the components to be ready
+4. Check the progress of capc-cluster, and wait for all the components (with the exception of MachineDeployment/capc-cluster-md-0) to be ready.  (MachineDeployment/capc-cluster-md-0 will not show ready until the CNI is installed.)
     ```
     clusterctl describe cluster capc-cluster
     ```
@@ -65,7 +65,7 @@
     KUBECONFIG=capc-cluster.kubeconfig kubectl apply -f https://projectcalico.docs.tigera.io/manifests/calico.yaml
     ```
 
-7. Verify the K8s cluster is fully up
+7. Verify the K8s cluster is fully up.  (It may take a minute for the nodes status to all reach *ready* state.)
    1. Run `KUBECONFIG=capc-cluster.kubeconfig kubectl get nodes`, and observe the following output
    ```
    NAME                               STATUS   ROLES                  AGE     VERSION
