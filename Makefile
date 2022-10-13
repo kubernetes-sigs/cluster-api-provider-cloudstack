@@ -247,7 +247,7 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 ## Tests
 ## --------------------------------------
 
-export KUBEBUILDER_ASSETS=$(REPO_ROOT)/$(TOOLS_BIN_DIR)
+export KUBEBUILDER_ASSETS=$(TOOLS_BIN_DIR)
 .PHONY: test
 test: generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) ## Run tests. At the moment this is only unit tests.
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
