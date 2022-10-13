@@ -1,17 +1,17 @@
 package dummies
 
 import (
-	"io/ioutil"
-	"os"
-
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/onsi/gomega"
 	"github.com/smallfish/simpleyaml"
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	"os"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -23,68 +23,70 @@ func GetYamlVal(variable string) string {
 }
 
 var ( // Declare exported dummy vars.
-	AffinityGroup       *cloud.AffinityGroup
-	CSAffinityGroup     *infrav1.CloudStackAffinityGroup
-	CSCluster           *infrav1.CloudStackCluster
-	CAPIMachine         *clusterv1.Machine
-	CSMachine1          *infrav1.CloudStackMachine
-	CAPICluster         *clusterv1.Cluster
-	ClusterLabel        map[string]string
-	ClusterName         string
-	ClusterNameSpace    string
-	CSMachineTemplate1  *infrav1.CloudStackMachineTemplate
-	ACSEndpointSecret1  *corev1.Secret
-	ACSEndpointSecret2  *corev1.Secret
-	Zone1               infrav1.CloudStackZoneSpec
-	Zone2               infrav1.CloudStackZoneSpec
-	CSFailureDomain1    *infrav1.CloudStackFailureDomain
-	CSFailureDomain2    *infrav1.CloudStackFailureDomain
-	Net1                infrav1.Network
-	Net2                infrav1.Network
-	ISONet1             infrav1.Network
-	CSISONet1           *infrav1.CloudStackIsolatedNetwork
-	Domain              cloud.Domain
-	DomainPath          string
-	DomainName          string
-	DomainID            string
-	Level2Domain        cloud.Domain
-	Level2DomainPath    string
-	Level2DomainName    string
-	Level2DomainID      string
-	Account             cloud.Account
-	AccountName         string
-	AccountID           string
-	Level2Account       cloud.Account
-	Level2AccountName   string
-	Level2AccountID     string
-	User                cloud.User
-	UserID              string
-	Username            string
-	Apikey              string
-	SecretKey           string
-	Tags                map[string]string
-	Tag1                map[string]string
-	Tag2                map[string]string
-	Tag1Key             string
-	Tag1Val             string
-	Tag2Key             string
-	Tag2Val             string
-	CSApiVersion        string
-	CSClusterKind       string
-	TestTags            map[string]string
-	CSClusterTagKey     string
-	CSClusterTagVal     string
-	CSClusterTag        map[string]string
-	CreatedByCapcKey    string
-	CreatedByCapcVal    string
-	LBRuleID            string
-	PublicIPID          string
-	EndPointHost        string
-	EndPointPort        int32
-	CSConf              *simpleyaml.Yaml
-	DiskOffering        infrav1.CloudStackResourceDiskOffering
-	BootstrapSecret     *corev1.Secret
-	BootstrapSecretName string
+	AffinityGroup           *cloud.AffinityGroup
+	CSAffinityGroup         *infrav1.CloudStackAffinityGroup
+	CSCluster               *infrav1.CloudStackCluster
+	CAPIMachine             *clusterv1.Machine
+	CSMachine1              *infrav1.CloudStackMachine
+	CAPICluster             *clusterv1.Cluster
+	ClusterLabel            map[string]string
+	ClusterName             string
+	ClusterNameSpace        string
+	CSMachineTemplate1      *infrav1.CloudStackMachineTemplate
+	ACSEndpointSecret1      *corev1.Secret
+	ACSEndpointSecret2      *corev1.Secret
+	Zone1                   infrav1.CloudStackZoneSpec
+	Zone2                   infrav1.CloudStackZoneSpec
+	CSFailureDomain1        *infrav1.CloudStackFailureDomain
+	CSFailureDomain2        *infrav1.CloudStackFailureDomain
+	Net1                    infrav1.Network
+	Net2                    infrav1.Network
+	ISONet1                 infrav1.Network
+	CSISONet1               *infrav1.CloudStackIsolatedNetwork
+	Domain                  cloud.Domain
+	DomainPath              string
+	DomainName              string
+	DomainID                string
+	Level2Domain            cloud.Domain
+	Level2DomainPath        string
+	Level2DomainName        string
+	Level2DomainID          string
+	Account                 cloud.Account
+	AccountName             string
+	AccountID               string
+	Level2Account           cloud.Account
+	Level2AccountName       string
+	Level2AccountID         string
+	User                    cloud.User
+	UserID                  string
+	Username                string
+	Apikey                  string
+	SecretKey               string
+	Tags                    map[string]string
+	Tag1                    map[string]string
+	Tag2                    map[string]string
+	Tag1Key                 string
+	Tag1Val                 string
+	Tag2Key                 string
+	Tag2Val                 string
+	CSApiVersion            string
+	CSClusterKind           string
+	TestTags                map[string]string
+	CSClusterTagKey         string
+	CSClusterTagVal         string
+	CSClusterTag            map[string]string
+	CreatedByCapcKey        string
+	CreatedByCapcVal        string
+	LBRuleID                string
+	PublicIPID              string
+	EndPointHost            string
+	EndPointPort            int32
+	CSConf                  *simpleyaml.Yaml
+	DiskOffering            infrav1.CloudStackResourceDiskOffering
+	BootstrapSecret         *corev1.Secret
+	BootstrapSecretName     string
+	CSMachineOwner          *fakes.CloudStackMachineOwner
+	CSMachineOwnerReference metav1.OwnerReference
 )
 
 // SetDummyVars sets/resets all dummy vars.
@@ -110,6 +112,8 @@ func SetDummyVars() {
 	SetDummyCSMachineVars()
 	SetDummyTagVars()
 	SetDummyBootstrapSecretVar()
+	SetCSMachineOwner()
+	SetDummyOwnerReferences()
 	LBRuleID = "FakeLBRuleID"
 }
 
@@ -144,6 +148,36 @@ func SetDummyTagVars() {
 	Tag1 = map[string]string{Tag2Key: Tag2Val}
 	Tag2 = map[string]string{Tag2Key: Tag2Val}
 	Tags = map[string]string{Tag1Key: Tag1Val, Tag2Key: Tag2Val}
+}
+
+func SetCSMachineOwner() {
+	CSMachineOwner = &fakes.CloudStackMachineOwner{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: fakes.GroupVersion.String(),
+			Kind:       "CloudStackMachineOwner",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ClusterName,
+			Namespace: ClusterNameSpace,
+		},
+		Spec: fakes.CloudStackMachineOwnerSpec{
+			Replicas: nil,
+		},
+		Status: fakes.CloudStackMachineOwnerStatus{
+			Replicas:      nil,
+			Ready:         nil,
+			ReadyReplicas: nil,
+		},
+	}
+}
+
+func SetDummyOwnerReferences() {
+	CSMachineOwnerReference = metav1.OwnerReference{
+		Kind:       "CloudStackMachineOwner",
+		APIVersion: fakes.GroupVersion.String(),
+		Name:       ClusterName,
+		UID:        "uniqueness",
+	}
 }
 
 // SetDummyCSMachineTemplateVars resets the values in each of the exported CloudStackMachinesTemplate dummy variables.
@@ -364,11 +398,12 @@ func SetDummyIsoNetToNameOnly() {
 
 func SetDummyBootstrapSecretVar() {
 	BootstrapSecretName := "such-secret-much-wow"
+	BootstrapSecretValue := "{{ ds.meta_data.hostname }}"
 	BootstrapSecret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ClusterNameSpace,
 			Name:      BootstrapSecretName},
-		Data: map[string][]byte{"value": make([]byte, 0)}}
+		Data: map[string][]byte{"value": []byte(BootstrapSecretValue)}}
 }
 
 // Sets cluster spec to specified network.

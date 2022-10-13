@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"regexp"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -38,6 +39,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+)
+
+var (
+	hostnameMatcher      = regexp.MustCompile(`\{\{\s*ds\.meta_data\.hostname\s*\}\}`)
+	failuredomainMatcher = regexp.MustCompile(`\{\{\s*ds\.meta_data\.failuredomain\s*\}\}`)
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
@@ -169,7 +175,8 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
 
-	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, string(data))
+	userData := processCustomMetadata(data, r)
+	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
 
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
@@ -177,6 +184,14 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	// Always add the finalizer regardless. It can't be added twice anyway.
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	return ctrl.Result{}, err
+}
+
+func processCustomMetadata(data []byte, r *CloudStackMachineReconciliationRunner) string {
+	// since cloudstack metadata does not allow custom data added into meta_data, following line is a workaround to specify a hostname name
+	// {{ ds.meta_data.hostname }} is expected to be used as a node name when kubelet register a node
+	userData := hostnameMatcher.ReplaceAllString(string(data), r.CAPIMachine.Name)
+	userData = failuredomainMatcher.ReplaceAllString(userData, r.FailureDomain.Spec.Name)
+	return userData
 }
 
 // ConfirmVMStatus checks the Instance's status for running state and requeues otherwise.
