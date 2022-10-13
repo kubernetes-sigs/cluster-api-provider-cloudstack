@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-include $(ROOT_DIR_RELATIVE)/versions.mk
+include $(REPO_ROOT)/versions.mk
 
 # Ensure Make is run with bash shell as some syntax below is bash-specific
 SHELL:=bash
 .ONESHELL:
-.SHELLFLAGS := -eu -o pipefail -c
+# .SHELLFLAGS := -eu -o pipefail -c
 .DELETE_ON_ERROR:
 MAKEFLAGS += --no-builtin-rules
 
-TOOLS_DIR := $(ROOT_DIR_RELATIVE)/hack/tools
+TOOLS_DIR := $(REPO_ROOT)/hack/tools
 TOOLS_DIR_DEPS := $(TOOLS_DIR)/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/Makefile
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 UID := $(shell id -u)

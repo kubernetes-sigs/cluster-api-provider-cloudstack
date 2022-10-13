@@ -12,18 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIR_RELATIVE := .
+export REPO_ROOT := $(shell git rev-parse --show-toplevel)
 
-include $(ROOT_DIR_RELATIVE)/common.mk
+include $(REPO_ROOT)/common.mk
 
 # Directories
-TOOLS_DIR := hack/tools
+TOOLS_DIR := $(REPO_ROOT)/hack/tools
 TOOLS_DIR_DEPS := $(TOOLS_DIR)/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/Makefile
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR ?= bin
 RELEASE_DIR ?= out
 
-export REPO_ROOT := $(shell git rev-parse --show-toplevel)
 GH_REPO ?= kubernetes-sigs/cluster-api-provider-cloudstack
 
 # Binaries
@@ -71,7 +70,6 @@ endif
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 # SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
-
 # Quiet Ginkgo for now.
 # The warnings are in regards to a future release.
 export ACK_GINKGO_DEPRECATIONS := 1.16.5
