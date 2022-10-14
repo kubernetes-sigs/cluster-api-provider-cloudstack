@@ -17,7 +17,8 @@ include $(REPO_ROOT)/versions.mk
 # Ensure Make is run with bash shell as some syntax below is bash-specific
 SHELL:=bash
 .ONESHELL:
-.SHELLFLAGS := -euc # No spaces allowed in linux SHELLFLAGS, so omitting -o pipefail
+# No spaces allowed in linux SHELLFLAGS, so omitting -o pipefail
+.SHELLFLAGS := -euc
 .DELETE_ON_ERROR:
 MAKEFLAGS += --no-builtin-rules
 
