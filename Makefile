@@ -12,18 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ROOT_DIR_RELATIVE := .
+export REPO_ROOT := $(shell git rev-parse --show-toplevel)
 
-include $(ROOT_DIR_RELATIVE)/common.mk
+include $(REPO_ROOT)/common.mk
 
 # Directories
-TOOLS_DIR := hack/tools
+TOOLS_DIR := $(REPO_ROOT)/hack/tools
 TOOLS_DIR_DEPS := $(TOOLS_DIR)/go.sum $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/Makefile
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR ?= bin
 RELEASE_DIR ?= out
 
-export REPO_ROOT := $(shell git rev-parse --show-toplevel)
 GH_REPO ?= kubernetes-sigs/cluster-api-provider-cloudstack
 
 # Binaries
@@ -86,7 +85,7 @@ all: build
 ## --------------------------------------
 
 .PHONY: binaries
-binaries: $(CONTROLLER_GEN KUSTOMIZE) $(GOLANGCI_LINT) $(STATIC_CHECK) $(GINKGO_V1) $(GINKGO_V2) $(MOCKGEN) $(KUSTOMIZE) managers # Builds and installs all binaries
+binaries: $(CONTROLLER_GEN) $(GOLANGCI_LINT) $(STATIC_CHECK) $(GINKGO_V1) $(GINKGO_V2) $(MOCKGEN) $(KUSTOMIZE) managers # Builds and installs all binaries
 
 .PHONY: managers
 managers:
@@ -247,7 +246,8 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 ## --------------------------------------
 ## Tests
 ## --------------------------------------
-export KUBEBUILDER_ASSETS=$(REPO_ROOT)/$(TOOLS_BIN_DIR)
+
+export KUBEBUILDER_ASSETS=$(TOOLS_BIN_DIR)
 DEEPCOPY_GEN_TARGETS_TEST=$(shell find test/fakes -type d -name "fakes" -exec echo {}\/zz_generated.deepcopy.go \;)
 DEEPCOPY_GEN_INPUTS_TEST=$(shell find test/fakes/* -name "*zz_generated*" -prune -o -type f -print)
 .PHONY: generate-deepcopy-test
