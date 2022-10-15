@@ -43,7 +43,7 @@ import (
 
 var (
 	hostnameMatcher      = regexp.MustCompile(`\{\{\s*ds\.meta_data\.hostname\s*\}\}`)
-	failuredomainMatcher = regexp.MustCompile(`\{\{\s*ds\.meta_data\.failuredomain\s*\}\}`)
+	failuredomainMatcher = regexp.MustCompile(`ds\.meta_data\.failuredomain`)
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
@@ -99,6 +99,7 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 
 func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result, reterr error) {
 	return r.RunReconciliationStages(
+		r.DeleteMachineIfFailuredomainNotExist,
 		r.GetObjectByName("placeholder", r.IsoNet,
 			func() string { return r.IsoNetMetaName(r.FailureDomain.Spec.Zone.Network.Name) }),
 		r.RunIf(func() bool { return r.FailureDomain.Spec.Zone.Network.Type == cloud.NetworkTypeIsolated },
@@ -153,6 +154,29 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 		r.ReconciliationSubject.Spec.FailureDomainName = name
 		r.ReconciliationSubject.Labels[infrav1.FailureDomainLabelName] = infrav1.FailureDomainHashedMetaName(name, r.CAPICluster.Name)
 	}
+	return ctrl.Result{}, nil
+}
+
+// DeleteMachineIfFailuredomainNotExist delete CAPI machine if machine is deployed in a failuredomain that does not exist anymore.
+func (r *CloudStackMachineReconciliationRunner) DeleteMachineIfFailuredomainNotExist() (retRes ctrl.Result, reterr error) {
+	if r.CAPIMachine.Spec.FailureDomain == nil {
+		return ctrl.Result{}, nil
+	}
+	capiAssignedFailuredomainName := *r.CAPIMachine.Spec.FailureDomain
+	exist := false
+	for _, fd := range r.CSCluster.Spec.FailureDomains {
+		if capiAssignedFailuredomainName == fd.Name {
+			exist = true
+			break
+		}
+	}
+	if !exist {
+		r.Log.Info("CAPI Machine in non-existent failuredomain. Deleting associated Machine.", "csMachine", r.ReconciliationSubject.GetName(), "failuredomain", capiAssignedFailuredomainName)
+		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
