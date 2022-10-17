@@ -85,7 +85,7 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 						Ω(err).ShouldNot(HaveOccurred())
 						dummies.CAPICluster.Status.Conditions = []clusterv1.Condition{
 							{
-								Type:   "ControlPlaneReady",
+								Type:   "Ready",
 								Status: "False",
 							},
 						}

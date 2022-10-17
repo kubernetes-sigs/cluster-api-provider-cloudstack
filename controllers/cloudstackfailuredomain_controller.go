@@ -32,8 +32,8 @@ import (
 )
 
 const (
-	conditionTypeManagedEtcdReady = "ManagedEtcdReady"
-	conditionStatusFalse          = "False"
+	conditionTypeReady   = "Ready"
+	conditionStatusFalse = "False"
 )
 
 // CloudStackFailureDomainReconciler is the k8s controller manager's interface to reconcile a CloudStackFailureDomain.
@@ -158,11 +158,8 @@ func (r *CloudStackFailureDomainReconciliationRunner) GetAllMachinesInFailureDom
 func (r *CloudStackFailureDomainReconciliationRunner) RequeueIfClusterNotReady() (ctrl.Result, error) {
 	if len(r.Machines) > 0 {
 		for _, condition := range r.CAPICluster.Status.Conditions {
-			if condition.Type == clusterv1.ControlPlaneReadyCondition && condition.Status == conditionStatusFalse {
-				return r.RequeueWithMessage("cluster control plane not ready,")
-			}
-			if condition.Type == conditionTypeManagedEtcdReady && condition.Status == conditionStatusFalse {
-				return r.RequeueWithMessage("cluster managed etcd not ready,")
+			if condition.Type == conditionTypeReady && condition.Status == conditionStatusFalse {
+				return r.RequeueWithMessage("cluster status not ready,")
 			}
 		}
 	}
