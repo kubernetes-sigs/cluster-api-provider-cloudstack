@@ -43,7 +43,7 @@ import (
 
 var (
 	hostnameMatcher      = regexp.MustCompile(`\{\{\s*ds\.meta_data\.hostname\s*\}\}`)
-	failuredomainMatcher = regexp.MustCompile(`ds\.meta_data\.failuredomain`)
+	failuredomainMatcher = regexp.MustCompile(`\{\{\s*ds\.meta_data\.failuredomain\s*\}\}`)
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
