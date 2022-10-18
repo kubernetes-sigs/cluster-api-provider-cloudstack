@@ -17,6 +17,7 @@ limitations under the License.
 package controllers_test
 
 import (
+	"fmt"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -73,13 +74,14 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
 		})
 
-		It("Should replace ds.meta_data.hostname with capi machine name.", func() {
+		It("Should replace ds.meta_data.xxx with proper values.", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),
 				gomock.Any(), gomock.Any(), gomock.Any()).Do(
 				func(arg1, _, _, _, _, userdata interface{}) {
-					Ω(userdata == dummies.CAPIMachine.Name).Should(BeTrue())
+					expectedUserdata := fmt.Sprintf("%s{{%s}}", dummies.CAPIMachine.Name, dummies.CSMachine1.Spec.FailureDomainName)
+					Ω(userdata == expectedUserdata).Should(BeTrue())
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
 				}).AnyTimes()
 

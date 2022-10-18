@@ -227,8 +227,9 @@ func SetDummyCSMachineVars() {
 			Labels:    ClusterLabel,
 		},
 		Spec: infrav1.CloudStackMachineSpec{
-			Name:       "test-machine-1",
-			InstanceID: pointer.String("Instance1"),
+			Name:              "test-machine-1",
+			InstanceID:        pointer.String("Instance1"),
+			FailureDomainName: GetYamlVal("CLOUDSTACK_FD1_NAME"),
 			Template: infrav1.CloudStackResourceIdentifier{
 				Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
 			},
@@ -398,7 +399,7 @@ func SetDummyIsoNetToNameOnly() {
 
 func SetDummyBootstrapSecretVar() {
 	BootstrapSecretName := "such-secret-much-wow"
-	BootstrapSecretValue := "{{ ds.meta_data.hostname }}"
+	BootstrapSecretValue := "{{ ds.meta_data.hostname }}{{ds.meta_data.failuredomain}}"
 	BootstrapSecret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ClusterNameSpace,
