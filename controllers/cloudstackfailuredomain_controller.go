@@ -31,6 +31,11 @@ import (
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 )
 
+const (
+	conditionTypeReady   = "Ready"
+	conditionStatusFalse = "False"
+)
+
 // CloudStackFailureDomainReconciler is the k8s controller manager's interface to reconcile a CloudStackFailureDomain.
 // This is primarily to adapt to k8s.
 type CloudStackFailureDomainReconciler struct {
@@ -122,6 +127,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) ReconcileDelete() (ctrl.Re
 
 	return r.RunReconciliationStages(
 		r.GetAllMachinesInFailureDomain,
+		r.RequeueIfClusterNotReady,
 		r.RequeueIfMachineCannotBeRemoved,
 		r.ClearMachines,
 		r.DeleteOwnedObjects(
@@ -145,6 +151,21 @@ func (r *CloudStackFailureDomainReconciliationRunner) GetAllMachinesInFailureDom
 		return items[i].Name < items[j].Name
 	})
 	r.Machines = items
+	return ctrl.Result{}, nil
+}
+
+// RequeueIfClusterNotReady check cluster to see if there is any rolling update going on.
+func (r *CloudStackFailureDomainReconciliationRunner) RequeueIfClusterNotReady() (ctrl.Result, error) {
+	if len(r.Machines) > 0 {
+		if !r.CAPICluster.DeletionTimestamp.IsZero() {
+			return ctrl.Result{}, nil
+		}
+		for _, condition := range r.CAPICluster.Status.Conditions {
+			if condition.Type == conditionTypeReady && condition.Status == conditionStatusFalse {
+				return r.RequeueWithMessage("cluster status not ready,")
+			}
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
