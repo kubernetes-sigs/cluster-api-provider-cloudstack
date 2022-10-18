@@ -157,6 +157,9 @@ func (r *CloudStackFailureDomainReconciliationRunner) GetAllMachinesInFailureDom
 // RequeueIfClusterNotReady check cluster to see if there is any rolling update going on.
 func (r *CloudStackFailureDomainReconciliationRunner) RequeueIfClusterNotReady() (ctrl.Result, error) {
 	if len(r.Machines) > 0 {
+		if !r.CAPICluster.DeletionTimestamp.IsZero() {
+			return ctrl.Result{}, nil
+		}
 		for _, condition := range r.CAPICluster.Status.Conditions {
 			if condition.Type == conditionTypeReady && condition.Status == conditionStatusFalse {
 				return r.RequeueWithMessage("cluster status not ready,")
