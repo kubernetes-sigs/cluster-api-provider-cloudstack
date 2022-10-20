@@ -315,7 +315,7 @@ release-manifests: $(RELEASE_MANIFEST_TARGETS) ## Create kustomized release mani
 $(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
 	@mkdir -p $(RELEASE_DIR)
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
-	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
+	$(KUSTOMIZE) build $(RELEASE_MANIFEST_SOURCE_BASE) > $(RELEASE_DIR)/infrastructure-components.yaml
 
 .PHONY: release-manifests-metrics-port
 release-manifests-metrics-port:
