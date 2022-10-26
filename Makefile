@@ -75,7 +75,7 @@ endif
 export ACK_GINKGO_DEPRECATIONS := 1.16.5
 export ACK_GINKGO_RC=true
 
-export PATH := $(REPO_ROOT)/$(TOOLS_BIN_DIR):$(PATH)
+export PATH := $(TOOLS_BIN_DIR):$(PATH)
 
 all: build
 
@@ -199,7 +199,7 @@ run: generate-deepcopy generate-conversion ## Run a controller from your host.
 
 .PHONY: deploy
 deploy: generate-deepcopy generate-manifests $(KUSTOMIZE) ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(REPO_ROOT)/$(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	cd $(REPO_ROOT)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
