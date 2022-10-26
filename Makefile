@@ -199,7 +199,7 @@ run: generate-deepcopy generate-conversion ## Run a controller from your host.
 
 .PHONY: deploy
 deploy: generate-deepcopy generate-manifests $(KUSTOMIZE) ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(REPO_ROOT)/$(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	cd $(REPO_ROOT)
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
