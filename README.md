@@ -199,3 +199,4 @@ All the CAPC contributors:
 [k1.23-u20-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.23.3-xen.vhd.bz2.md5
 [k1.24-u20-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.24.7-xen.vhd.bz2
 [k1.24-u20-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.24.7-xen.vhd.bz2.md5
+
