@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//Package metrics implements custom metrics for CAPC
+// Package metrics implements custom metrics for CAPC
 package metrics
 
 import (

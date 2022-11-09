@@ -40,9 +40,9 @@ type VMIface interface {
 
 // Set infrastructure spec and status from the CloudStack API's virtual machine metrics type.
 func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, csMachine *infrav1.CloudStackMachine) {
-	csMachine.Spec.ProviderID = pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
+	csMachine.Spec.ProviderID = pointer.String(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
 	// InstanceID is later used as required parameter to destroy VM.
-	csMachine.Spec.InstanceID = pointer.StringPtr(vmResponse.Id)
+	csMachine.Spec.InstanceID = pointer.String(vmResponse.Id)
 	csMachine.Status.Addresses = []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vmResponse.Ipaddress}}
 	newInstanceState := vmResponse.State
 	if newInstanceState != csMachine.Status.InstanceState || (newInstanceState != "" && csMachine.Status.InstanceStateLastUpdated.IsZero()) {
@@ -280,10 +280,10 @@ func (c *client) GetOrCreateVMInstance(
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err2)
 			return err
 		}
-		csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)
+		csMachine.Spec.InstanceID = pointer.String(listVirtualMachinesResponse.VirtualMachines[0].Id)
 		csMachine.Status.InstanceState = listVirtualMachinesResponse.VirtualMachines[0].State
 	} else {
-		csMachine.Spec.InstanceID = pointer.StringPtr(deployVMResp.Id)
+		csMachine.Spec.InstanceID = pointer.String(deployVMResp.Id)
 		csMachine.Status.Status = pointer.String(metav1.StatusSuccess)
 	}
 	// Resolve uses a VM metrics request response to fill cloudstack machine status.

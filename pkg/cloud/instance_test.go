@@ -88,8 +88,8 @@ var _ = Describe("Instance", func() {
 			vmsResp := &cloudstack.VirtualMachinesMetric{Id: *dummies.CSMachine1.Spec.InstanceID}
 			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).Return(vmsResp, 1, nil)
 			Ω(client.ResolveVMInstanceDetails(dummies.CSMachine1)).Should(Succeed())
-			Ω(dummies.CSMachine1.Spec.ProviderID).Should(Equal(pointer.StringPtr("cloudstack:///" + vmsResp.Id)))
-			Ω(dummies.CSMachine1.Spec.InstanceID).Should(Equal(pointer.StringPtr(vmsResp.Id)))
+			Ω(dummies.CSMachine1.Spec.ProviderID).Should(Equal(pointer.String("cloudstack:///" + vmsResp.Id)))
+			Ω(dummies.CSMachine1.Spec.InstanceID).Should(Equal(pointer.String(vmsResp.Id)))
 		})
 
 		It("handles an unknown error when fetching by name", func() {
@@ -114,8 +114,8 @@ var _ = Describe("Instance", func() {
 
 			Ω(client.ResolveVMInstanceDetails(dummies.CSMachine1)).Should(Succeed())
 			Ω(dummies.CSMachine1.Spec.ProviderID).Should(Equal(
-				pointer.StringPtr(fmt.Sprintf("cloudstack:///%s", *dummies.CSMachine1.Spec.InstanceID))))
-			Ω(dummies.CSMachine1.Spec.InstanceID).Should(Equal(pointer.StringPtr(*dummies.CSMachine1.Spec.InstanceID)))
+				pointer.String(fmt.Sprintf("cloudstack:///%s", *dummies.CSMachine1.Spec.InstanceID))))
+			Ω(dummies.CSMachine1.Spec.InstanceID).Should(Equal(pointer.String(*dummies.CSMachine1.Spec.InstanceID)))
 		})
 	})
 

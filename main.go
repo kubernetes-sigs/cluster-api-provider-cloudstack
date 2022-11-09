@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
@@ -151,7 +152,8 @@ func main() {
 		Recorder:   mgr.GetEventRecorderFor("capc-controller-manager"),
 		Scheme:     mgr.GetScheme()}
 
-	setupReconcilers(base, mgr)
+	ctx := ctrl.SetupSignalHandler()
+	setupReconcilers(ctx, base, mgr)
 	infrav1b2.K8sClient = base.K8sClient
 
 	// +kubebuilder:scaffold:builder
@@ -181,14 +183,14 @@ func main() {
 	}
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
 }
 
-func setupReconcilers(base utils.ReconcilerBase, mgr manager.Manager) {
-	if err := (&controllers.CloudStackClusterReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, mgr manager.Manager) {
+	if err := (&controllers.CloudStackClusterReconciler{ReconcilerBase: base}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
 	}

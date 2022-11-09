@@ -459,6 +459,12 @@ spec:
               ready:
                 description: Ready indicates the readiness of the provider resource.
                 type: boolean
+              reason:
+                description: Reason indicates the reason of status failure
+                type: string
+              status:
+                description: Status indicates the status of the provider resource.
+                type: string
             required:
             - ready
             type: object

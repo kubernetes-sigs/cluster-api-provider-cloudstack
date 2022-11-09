@@ -153,7 +153,7 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 }
 
 // Called in main, this registers the cluster reconciler to the CAPI controller manager.
-func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackCluster{}).
 		WithEventFilter(
@@ -186,7 +186,7 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(mgr ctrl.Manager
 	err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(
-			util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackCluster"))),
+			util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("CloudStackCluster"), mgr.GetClient(), &infrav1.CloudStackCluster{})),
 		predicate.Funcs{
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldCluster := e.ObjectOld.(*clusterv1.Cluster)

@@ -21,7 +21,7 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"reflect"
 
 	"github.com/golang/mock/gomock"
@@ -40,7 +40,7 @@ var _ = Describe("Helpers", func() {
 
 		compressedData, _ := base64.StdEncoding.DecodeString(compressedAndEncodedData)
 		reader, _ := gzip.NewReader(bytes.NewReader(compressedData))
-		result, _ := ioutil.ReadAll(reader)
+		result, _ := io.ReadAll(reader)
 
 		Ω(err).Should(BeNil())
 		Ω(string(result)).Should(Equal(str))
@@ -76,11 +76,11 @@ func (p paramMatcher) Matches(x interface{}) (retVal bool) {
 //
 // This generates translation matchers:
 //
-//    Essentially it will generate a matcher that checks the value from p.Get<some field>() is Equal to an input String.
+//	   Essentially it will generate a matcher that checks the value from p.Get<some field>() is Equal to an input String.
 //
-// 		DomainIDEquals = FieldMatcherGenerator("GetDomainid")
-//      p := &CreateNewSomethingParams{Domainid: "FakeDomainID"}
-//      Ω(p).DomainIDEquals("FakeDomainID")
+//			DomainIDEquals = FieldMatcherGenerator("GetDomainid")
+//	     p := &CreateNewSomethingParams{Domainid: "FakeDomainID"}
+//	     Ω(p).DomainIDEquals("FakeDomainID")
 func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
 	return func(expected string) types.GomegaMatcher {
 		return WithTransform(

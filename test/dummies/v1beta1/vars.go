@@ -1,7 +1,6 @@
 package dummies
 
 import (
-	"io/ioutil"
 	"os"
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
@@ -85,7 +84,7 @@ var ( // Declare exported dummy vars.
 // SetDummyVars sets/resets all dummy vars.
 func SetDummyVars() {
 	repoRoot := os.Getenv("REPO_ROOT")
-	source, err := ioutil.ReadFile(repoRoot + "/test/e2e/config/cloudstack.yaml")
+	source, err := os.ReadFile(repoRoot + "/test/e2e/config/cloudstack.yaml")
 	if err != nil {
 		panic(err)
 	}

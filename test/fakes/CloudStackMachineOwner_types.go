@@ -44,7 +44,7 @@ type CloudStackMachineOwnerStatus struct {
 	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 // CloudStackMachineOwnerrList contains a list of CloudStackMachineOwner
 type CloudStackMachineOwnerList struct {
 	metav1.TypeMeta `json:",inline"`
