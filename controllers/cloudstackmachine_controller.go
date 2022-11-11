@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -268,6 +269,17 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 }
 
 func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, reterr error) {
+	if r.ReconciliationSubject.Spec.InstanceID == nil {
+		// InstanceID is not set until deploying VM finishes which can take minutes, and CloudStack Machine can be deleted before VM deployment complete.
+		// ResolveVMInstanceDetails can get InstanceID by CS machine name
+		err := r.CSClient.ResolveVMInstanceDetails(r.ReconciliationSubject)
+		if err != nil {
+			r.ReconciliationSubject.Status.Status = metav1.StatusFailure
+			r.ReconciliationSubject.Status.Reason = err.Error()
+			// Cloudstack VM may be not found or more than one found by name
+			return ctrl.Result{}, err
+		}
+	}
 	if r.ReconciliationSubject.Spec.InstanceID != nil {
 		r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
 		// Use CSClient instead of CSUser here to expunge as admin.
@@ -280,10 +292,13 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 			}
 			return ctrl.Result{}, err
 		}
+
+		controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
+		r.Log.Info("VM Deleted", "instanceID", r.ReconciliationSubject.Spec.InstanceID)
+		return ctrl.Result{}, nil
 	}
-	r.Log.Info("VM Deleted")
-	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
-	return ctrl.Result{}, nil
+
+	return ctrl.Result{}, errors.Errorf("could not destroy VM %s without instanceID", r.ReconciliationSubject.Name)
 }
 
 // SetupWithManager registers the machine reconciler to the CAPI controller manager.

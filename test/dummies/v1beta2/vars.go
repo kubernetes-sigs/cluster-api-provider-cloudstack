@@ -423,7 +423,7 @@ func SetDummyCAPIMachineVars() {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:   ClusterName,
-			FailureDomain: pointer.String(Zone1.ID)},
+			FailureDomain: pointer.String("fd1")},
 	}
 }
 

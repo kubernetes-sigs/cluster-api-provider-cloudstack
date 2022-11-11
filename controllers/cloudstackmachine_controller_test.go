@@ -21,13 +21,17 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var _ = Describe("CloudStackMachineReconciler", func() {
@@ -72,6 +76,95 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 				}
 				return false
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		})
+
+		It("Should call DestroyVMInstance when CS machine deleted", func() {
+			// Mock a call to GetOrCreateVMInstance and set the machine to running.
+			mockCloudClient.EXPECT().GetOrCreateVMInstance(
+				gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _, _ interface{}) {
+					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
+					controllerutil.AddFinalizer(arg1.(*infrav1.CloudStackMachine), infrav1.MachineFinalizer)
+				}).AnyTimes()
+
+			mockCloudClient.EXPECT().DestroyVMInstance(gomock.Any()).Times(1).Return(nil)
+			// Have to do this here or the reconcile call to GetOrCreateVMInstance may happen too early.
+			setupMachineCRDs()
+
+			// Eventually the machine should set ready to true.
+			Eventually(func() bool {
+				tempMachine := &infrav1.CloudStackMachine{}
+				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
+					if tempMachine.Status.Ready == true {
+						return true
+					}
+				}
+				return false
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+
+			Ω(k8sClient.Delete(ctx, dummies.CSMachine1)).Should(Succeed())
+
+			Eventually(func() bool {
+				tempMachine := &infrav1.CloudStackMachine{}
+				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+				if err := k8sClient.Get(ctx, key, tempMachine); err != nil {
+					return errors.IsNotFound(err)
+				}
+				return false
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+
+		})
+
+		It("Should call ResolveVMInstanceDetails when CS machine without instanceID deleted", func() {
+			instanceID := pointer.String("instance-id-123")
+			// Mock a call to GetOrCreateVMInstance and set the machine to running.
+			mockCloudClient.EXPECT().GetOrCreateVMInstance(
+				gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _, _ interface{}) {
+					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
+					controllerutil.AddFinalizer(arg1.(*infrav1.CloudStackMachine), infrav1.MachineFinalizer)
+				}).AnyTimes()
+
+			mockCloudClient.EXPECT().ResolveVMInstanceDetails(gomock.Any()).Do(
+				func(arg1 interface{}) {
+					arg1.(*infrav1.CloudStackMachine).Spec.InstanceID = instanceID
+				}).AnyTimes().Return(nil)
+
+			mockCloudClient.EXPECT().DestroyVMInstance(gomock.Any()).Times(1).Return(nil)
+			// Have to do this here or the reconcile call to GetOrCreateVMInstance may happen too early.
+			setupMachineCRDs()
+
+			// Eventually the machine should set ready to true.
+			Eventually(func() bool {
+				tempMachine := &infrav1.CloudStackMachine{}
+				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
+					if tempMachine.Status.Ready == true {
+						return true
+					}
+				}
+				return false
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+
+			// remove instanceID from CS machine
+			ph, err := patch.NewHelper(dummies.CSMachine1, k8sClient)
+			Ω(err).ShouldNot(HaveOccurred())
+			dummies.CSMachine1.Spec.InstanceID = nil
+			Ω(ph.Patch(ctx, dummies.CSMachine1)).Should(Succeed())
+			Ω(k8sClient.Delete(ctx, dummies.CSMachine1)).Should(Succeed())
+
+			Eventually(func() bool {
+				tempMachine := &infrav1.CloudStackMachine{}
+				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+				if err := k8sClient.Get(ctx, key, tempMachine); err != nil {
+					return errors.IsNotFound(err)
+				}
+				return false
+			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+
 		})
 
 		It("Should replace ds.meta_data.xxx with proper values.", func() {
