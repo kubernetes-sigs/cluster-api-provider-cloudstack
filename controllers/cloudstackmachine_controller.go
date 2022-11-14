@@ -278,30 +278,26 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 			r.ReconciliationSubject.Status.Status = pointer.String(metav1.StatusFailure)
 			r.ReconciliationSubject.Status.Reason = pointer.String(err.Error() +
 				fmt.Sprintf(" If this VM has already been deleted, please remove the finalizer named %s from object %s",
-					"cloudstackmachine.infrastructure.cluster.x-k8s.io",  r.ReconciliationSubject.Name))
+					"cloudstackmachine.infrastructure.cluster.x-k8s.io", r.ReconciliationSubject.Name))
 			// Cloudstack VM may be not found or more than one found by name
 			return ctrl.Result{}, err
 		}
 	}
-	if r.ReconciliationSubject.Spec.InstanceID != nil {
-		r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
-		// Use CSClient instead of CSUser here to expunge as admin.
-		// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
-		// non-domain admin user.
-		if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
-			if err.Error() == "VM deletion in progress" {
-				r.Log.Info(err.Error())
-				return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
-			}
-			return ctrl.Result{}, err
+	r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
+	// Use CSClient instead of CSUser here to expunge as admin.
+	// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
+	// non-domain admin user.
+	if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
+		if err.Error() == "VM deletion in progress" {
+			r.Log.Info(err.Error())
+			return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
 		}
-
-		controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
-		r.Log.Info("VM Deleted", "instanceID", r.ReconciliationSubject.Spec.InstanceID)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, errors.Errorf("could not destroy VM %s without instanceID", r.ReconciliationSubject.Name)
+	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
+	r.Log.Info("VM Deleted", "instanceID", r.ReconciliationSubject.Spec.InstanceID)
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager registers the machine reconciler to the CAPI controller manager.
