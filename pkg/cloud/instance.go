@@ -282,7 +282,7 @@ func (c *client) GetOrCreateVMInstance(
 		return err
 	}
 	csMachine.Spec.InstanceID = pointer.StringPtr(deployVMResp.Id)
-	csMachine.Status.Status = metav1.StatusSuccess
+	csMachine.Status.Status = pointer.String(metav1.StatusSuccess)
 	// Resolve uses a VM metrics request response to fill cloudstack machine status.
 	// The deployment response is insufficient.
 	return c.ResolveVMInstanceDetails(csMachine)

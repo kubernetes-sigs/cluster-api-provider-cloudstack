@@ -128,11 +128,11 @@ type CloudStackMachineStatus struct {
 
 	// Status indicates the status of the provider resource.
 	// +optional
-	Status string `json:"status"`
+	Status *string `json:"status,omitempty"`
 
 	// Reason indicates the reason of status failure
 	// +optional
-	Reason string `json:"reason"`
+	Reason *string `json:"reason,omitempty"`
 }
 
 // TimeSinceLastStateChange returns the amount of time that's elapsed since the state was last updated.  If the state

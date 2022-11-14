@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"k8s.io/utils/pointer"
 	"math/rand"
 	"reflect"
 	"regexp"
@@ -274,8 +275,8 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 		// ResolveVMInstanceDetails can get InstanceID by CS machine name
 		err := r.CSClient.ResolveVMInstanceDetails(r.ReconciliationSubject)
 		if err != nil {
-			r.ReconciliationSubject.Status.Status = metav1.StatusFailure
-			r.ReconciliationSubject.Status.Reason = err.Error()
+			r.ReconciliationSubject.Status.Status = pointer.String(metav1.StatusFailure)
+			r.ReconciliationSubject.Status.Reason = pointer.String(err.Error())
 			// Cloudstack VM may be not found or more than one found by name
 			return ctrl.Result{}, err
 		}
