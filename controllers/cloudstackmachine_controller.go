@@ -276,7 +276,9 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 		err := r.CSClient.ResolveVMInstanceDetails(r.ReconciliationSubject)
 		if err != nil {
 			r.ReconciliationSubject.Status.Status = pointer.String(metav1.StatusFailure)
-			r.ReconciliationSubject.Status.Reason = pointer.String(err.Error())
+			r.ReconciliationSubject.Status.Reason = pointer.String(err.Error() +
+				fmt.Sprintf(" If this VM has already been deleted, please remove the finalizer named %s from object %s",
+					"cloudstackmachine.infrastructure.cluster.x-k8s.io",  r.ReconciliationSubject.Name))
 			// Cloudstack VM may be not found or more than one found by name
 			return ctrl.Result{}, err
 		}
