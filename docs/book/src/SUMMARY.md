@@ -14,3 +14,4 @@
     - [Development With Tilt](development/tilt.md)
     - [Building CAPC](development/building.md)
     - [E2E Tests](development/e2e.md)
+    - [Releasing](development/releasing.md)
