@@ -95,7 +95,7 @@ func NetworkInterruptionToxiSpec(ctx context.Context, inputGetter func() CommonS
 			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
-				ClusterctlConfigPath:     input.ClusterctlConfigPath,
+				ClusterctlConfigPath:     cloudStackToxiProxyContext.ConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   flavor,
