@@ -79,6 +79,17 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 }
 
 func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.Namespace, specName string, clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult, affinityType string) []string {
+	csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+	zoneName := input.E2EConfig.GetVariable("CLOUDSTACK_ZONE_NAME")
+	numHosts := GetHostCount(csClient, zoneName)
+	machineCount := int64(3) // Must allocate an odd number of CP machines w/ stacked etcd
+	if numHosts < 3 {
+		// If not enough ACS hosts to support 3 machines with anti-affinity, fall back to just allocating one machine.
+		//  Test will only confirm that the single VM is in an anti-affinity group, but not that ACS anti-affinty works.
+		By("Fewer than three host in ACS env.  Only verifying that a single VM gets placed in an AG, not that true affinity/anti-affinity is ultimately achieved.")
+		machineCount = int64(1)
+	}
+
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:    input.BootstrapClusterProxy,
 		CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
@@ -91,14 +102,13 @@ func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.N
 			Namespace:                namespace.Name,
 			ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-			ControlPlaneMachineCount: pointer.Int64Ptr(1),
-			WorkerMachineCount:       pointer.Int64Ptr(1),
+			ControlPlaneMachineCount: pointer.Int64Ptr(int64(machineCount)),
+			WorkerMachineCount:       pointer.Int64Ptr(machineCount),
 		},
 		WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 		WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 		WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 	}, clusterResources)
 
-	csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
 	return CheckAffinityGroup(csClient, clusterResources.Cluster.Name, affinityType)
 }

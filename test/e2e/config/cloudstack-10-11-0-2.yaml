@@ -1,0 +1,174 @@
+---
+# E2E test scenario using local dev images and manifests built from the source tree for following providers:
+# - cluster-api
+# - bootstrap kubeadm
+# - control-plane kubeadm
+# - cloudstack
+
+managementClusterName: capi-test
+
+images:
+  # Use local dev images built source tree;
+  - name: localhost:5000/cluster-api-provider-cloudstack:latest
+    loadBehavior: mustLoad
+
+  ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+
+  # Cluster API v1beta1 Preloads
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:v1.0.0
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:v1.0.0
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:v1.0.0
+    loadBehavior: tryLoad
+  - name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:v1.0.0
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.5.3
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-webhook:v1.5.3
+    loadBehavior: tryLoad
+  - name: quay.io/jetstack/cert-manager-controller:v1.5.3
+    loadBehavior: tryLoad
+
+providers:
+  - name: cluster-api
+    type: CoreProvider
+    versions:
+      - name: v1.0.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/core-components.yaml"
+        type: "url"
+        contract: v1beta1
+        replacements:
+        - old: --metrics-addr=127.0.0.1:8080
+          new: --metrics-addr=:8080
+        files:
+        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+
+  - name: kubeadm
+    type: BootstrapProvider
+    versions:
+      - name: v1.0.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/bootstrap-components.yaml"
+        type: "url"
+        contract: v1beta1
+        replacements:
+        - old: --metrics-addr=127.0.0.1:8080
+          new: --metrics-addr=:8080
+        files:
+        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+
+  - name: kubeadm
+    type: ControlPlaneProvider
+    versions:
+      - name: v1.0.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.0/control-plane-components.yaml"
+        type: "url"
+        contract: v1beta1
+        replacements:
+        - old: --metrics-addr=127.0.0.1:8080
+          new: --metrics-addr=:8080
+        files:
+        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+
+  - name: cloudstack
+    type: InfrastructureProvider
+    files:
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-zone.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-account.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-domain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-cp-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-insufficient-compute-resources.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-insufficient-compute-resources-for-upgrade.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-node-drain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-machine-remediation.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-affinity-group-pro.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-affinity-group-anti.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-resource-cleanup.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-second-cluster.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-shared-network-kubevip.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-disk-offering-size-for-non-customized.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-disk-offering-size-for-customized.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-custom-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-subdomain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-ip.yaml"
+      - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    versions:
+      - name: v1.0.0
+        value: ../../../config/default
+        contract: v1beta1
+        replacements:
+          - old: --metrics-bind-addr=localhost:8080
+            new: --metrics-bind-addr=:8080
+          - old: "--leader-elect"
+            new: "--leader-elect\n        - --metrics-bind-addr=:8080"
+
+variables:
+  KUBERNETES_VERSION_MANAGEMENT: "v1.20.10"
+  KUBERNETES_VERSION: "v1.20.10"
+  CNI: "./data/cni/kindnet.yaml"
+  IP_FAMILY: "IPv4"
+  NODE_DRAIN_TIMEOUT: "60s"
+
+  CLOUDSTACK_FD1_NAME: "fd1"
+  CLOUDSTACK_FD1_SECRET_NAME: "secret1"
+  CLOUDSTACK_FD1_SECRET_NAMESPACE: "default"
+  CLOUDSTACK_ZONE_NAME: Zone2
+  CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
+  CLOUDSTACK_INVALID_NETWORK_NAME: networkXXXX
+  CLOUDSTACK_ACCOUNT_NAME: admin
+  CLOUDSTACK_INVALID_ACCOUNT_NAME: accountXXXX
+  CLOUDSTACK_DOMAIN_NAME: ROOT
+  CLOUDSTACK_INVALID_DOMAIN_NAME: domainXXXX
+  CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
+  CLOUDSTACK_NEW_NETWORK_NAME: isolated-for-e2e-new
+  CLOUDSTACK_SHARED_NETWORK_NAME: SharedNet2
+  CLUSTER_ENDPOINT_IP: 10.11.3.98
+  CLUSTER_ENDPOINT_IP_2: 10.11.3.97
+  CLOUDSTACK_INVALID_IP: 1.2.3.4
+  CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING: "Fruitstand Instance"
+  CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING: "OfferingXXXX"
+  CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING: "Impossible Instance"
+  CLOUDSTACK_WORKER_MACHINE_OFFERING: "Medium Instance"
+  CLOUDSTACK_IMPOSSIBLE_WORKER_MACHINE_OFFERING: "Impossible Instance"
+  CLOUDSTACK_TEMPLATE_NAME: ubuntu-2004-kube-v1.20.10
+  CLOUDSTACK_INVALID_TEMPLATE_NAME: templateXXXX
+  CLOUDSTACK_SSH_KEY_NAME: CAPCKeyPair6
+
+  CLOUDSTACK_INVALID_DISK_OFFERING_NAME: diskOfferingXXXX
+  CLOUDSTACK_DISK_OFFERING_NAME: Small
+  CLOUDSTACK_CUSTOM_DISK_OFFERING_NAME: Custom
+  CLOUDSTACK_DISK_OFFERING_CUSTOM_SIZE: 1
+  CLOUDSTACK_DISK_OFFERING_DEVICE: /dev/vdc
+  CLOUDSTACK_DISK_OFFERING_FILESYSTEM: ext4
+  CLOUDSTACK_DISK_OFFERING_LABEL: my_disk
+  CLOUDSTACK_DISK_OFFERING_MOUNT_PATH: /my_disk
+
+  CLOUDSTACK_SUBDOMAIN_PATH: SUBDOMAIN
+  CLOUDSTACK_SUBDOMAIN_ACCOUNT_NAME:	SUBDOMAIN-ADMIN
+
+  CONFORMANCE_CONFIGURATION: "./data/kubetest/conformance.yaml"
+  CONFORMANCE_WORKER_MACHINE_COUNT: "3"
+  CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
+
+intervals:
+  conformance/wait-control-plane: ["20m", "10s"]
+  conformance/wait-worker-nodes: ["20m", "10s"]
+
+  default/wait-errors: ["5m", "10s"]
+  default/wait-controllers: ["3m", "10s"]
+  default/wait-cluster: ["5m", "10s"]
+  default/wait-control-plane: ["20m", "10s"]
+  default/wait-worker-nodes: ["20m", "10s"]
+  default/wait-delete-cluster: ["20m", "10s"]
+  default/wait-machine-remediation: ["20m", "10s"]
+  default/wait-machine-upgrade: ["20m", "10s"]
+
+  node-drain/wait-deployment-available: ["3m", "10s"]
+  node-drain/wait-control-plane: ["15m", "10s"]
+  node-drain/wait-machine-deleted: ["5m", "10s"]
+
+
