@@ -33,16 +33,26 @@ The first step to running the e2e tests is setting up the required environment v
 | `CLOUDSTACK_TEMPLATE_NAME`                  | The machine template for both control plane and worke node VM instances          | `kube-v1.20.10/ubuntu-2004` |
 | `CLOUDSTACK_SSH_KEY_NAME`                   | The name of SSH key added to the VM instances                                    | `CAPCKeyPair6`              |
 
-You also have to export `CLOUDSTACK_B64ENCODED_SECRET` environment variable using this command `export CLOUDSTACK_B64ENCODED_SECRET=$(base64 -i cloud-config)` after creating `cloud-config` file with the following format.
+Default values for these variables are defined in *config/cloudstack.yaml*.  This cloudstack.yaml can be completely overridden 
+by providing make with the *fully qualified* path of another cloudstack.yaml via environment variable `E2E_CONFIG`
+
+You will also have to define a k8s secret in a *cloud-config.yaml* file in the project root, containing a pointer to and 
+credentials for the CloudStack backend that will be used for the test:
 
 ```
-[Global]
-api-key    = XXXXX
-secret-key = XXXXX
-api-url    = http://192.168.1.96:8080/client/api
-verify-ssl = true or false
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret1
+  namespace: default
+type: Opaque
+stringData:
+  api-key: XXXX
+  secret-key: XXXX
+  api-url: http://1.2.3.4:8080/client/api
+  verify-ssl: "false"
 ```
-
+This will be applied to the kind cluster that hosts CAPI/CAPC for the test, allowing CAPC to access the cluster. 
 The api-key and secret-key can be found or generated at Home > Accounts > admin > Users > admin of the ACS management UI. `verify-ssl` is an optional flag and its default value is true. CAPC skips verifying the host SSL certificates when the flag is set to false.
 
 ### Running the e2e tests

@@ -102,7 +102,7 @@ func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.N
 			Namespace:                namespace.Name,
 			ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-			ControlPlaneMachineCount: pointer.Int64Ptr(int64(machineCount)),
+			ControlPlaneMachineCount: pointer.Int64Ptr(machineCount),
 			WorkerMachineCount:       pointer.Int64Ptr(machineCount),
 		},
 		WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),

@@ -292,7 +292,7 @@ func GetHostCount(client *cloudstack.CloudStackClient, zoneName string) int {
 	pz.SetName(zoneName)
 	listZonesResponse, err := client.Zone.ListZones(pz)
 	Expect(err).To(BeNil(), "error listing zones")
-	Expect(listZonesResponse.Count).To(Equal(1), "multiple zones resolve to zone name %s", zoneName)
+	Expect(listZonesResponse.Count).To(Equal(1), "no zones, or more than one zone resolve to zone name %s", zoneName)
 	zoneId := listZonesResponse.Zones[0].Id
 
 	ph := client.Host.NewListHostsParams()
