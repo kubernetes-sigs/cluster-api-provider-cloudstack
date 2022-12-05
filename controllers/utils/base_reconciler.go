@@ -19,6 +19,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"k8s.io/client-go/tools/record"
 	"strings"
 	"time"
 
@@ -46,6 +47,7 @@ type ReconcilerBase struct {
 	Scheme     *runtime.Scheme
 	K8sClient  client.Client
 	CSClient   cloud.Client
+	Recorder   record.EventRecorder
 	CloudClientExtension
 }
 
@@ -453,6 +455,7 @@ func (r *ReconcilerBase) InitFromMgr(mgr ctrl.Manager, client cloud.Client) {
 	r.K8sClient = mgr.GetClient()
 	r.BaseLogger = ctrl.Log.WithName("controllers")
 	r.Scheme = mgr.GetScheme()
+	r.Recorder = mgr.GetEventRecorderFor("capc-controller-manager")
 	r.CSClient = client
 }
 
