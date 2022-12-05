@@ -187,7 +187,7 @@ func (r *CloudStackMachineReconciliationRunner) DeleteMachineIfFailuredomainNotE
 // Implicitly it also fetches its bootstrap secret in order to create said instance.
 func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes ctrl.Result, reterr error) {
 	if r.CAPIMachine.Spec.Bootstrap.DataSecretName == nil {
-		r.Recorder.Event(r.ReconciliationSubject, "Normal", "Creating", "Bootstrap DataSecretName not yet available.")
+		r.Recorder.Event(r.ReconciliationSubject, "Normal", "Creating", "Bootstrap DataSecretName not yet available")
 		return r.RequeueWithMessage("Bootstrap DataSecretName not yet available.")
 	}
 	r.Log.Info("Got Bootstrap DataSecretName.")
@@ -233,14 +233,14 @@ func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (r
 		r.Log.Info("Machine instance is Running...")
 		r.ReconciliationSubject.Status.Ready = true
 	} else if r.ReconciliationSubject.Status.InstanceState == "Error" {
-		r.Recorder.Event(r.ReconciliationSubject, "Warning", "Error", "CloudStackMachine VM in error state. Deleting associated Machine.")
+		r.Recorder.Event(r.ReconciliationSubject, "Warning", "Error", "CloudStackMachine VM in error state. Deleting associated Machine")
 		r.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", r.ReconciliationSubject.GetName())
 		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	} else {
-		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", r.ReconciliationSubject.Status.InstanceState, "Instance not ready, is %s.", r.ReconciliationSubject.Status.InstanceState)
+		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", r.ReconciliationSubject.Status.InstanceState, "Instance not ready, is %s", r.ReconciliationSubject.Status.InstanceState)
 		r.Log.Info(fmt.Sprintf("Instance not ready, is %s.", r.ReconciliationSubject.Status.InstanceState))
 		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	}
