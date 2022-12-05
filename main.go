@@ -148,6 +148,7 @@ func main() {
 	base := utils.ReconcilerBase{
 		K8sClient:  mgr.GetClient(),
 		BaseLogger: ctrl.Log.WithName("controllers"),
+		Recorder:   mgr.GetEventRecorderFor("capc-controller-manager"),
 		Scheme:     mgr.GetScheme()}
 
 	setupReconcilers(base, mgr)

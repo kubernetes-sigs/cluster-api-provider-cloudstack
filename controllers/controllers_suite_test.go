@@ -21,6 +21,7 @@ import (
 	"flag"
 	"fmt"
 	"go/build"
+	"k8s.io/client-go/tools/record"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -69,8 +70,9 @@ var (
 )
 
 const (
-	timeout      = 10 * time.Second
-	pollInterval = 1 * time.Second
+	timeout             = 10 * time.Second
+	pollInterval        = 1 * time.Second
+	fakeEventBufferSize = 10
 )
 
 func envOr(envKey, defaultValue string) string {
@@ -114,6 +116,7 @@ var (
 	cfg            *rest.Config
 	logger         logr.Logger
 	fakeCtrlClient client.Client
+	fakeRecorder   *record.FakeRecorder
 
 	// Mock Vars.
 	mockCtrl        *gomock.Controller
@@ -254,17 +257,20 @@ func setupFakeTestClient() {
 
 	// Make a fake k8s client with CloudStack and CAPI cluster.
 	fakeCtrlClient = fake.NewClientBuilder().WithObjects(dummies.CSCluster, dummies.CAPICluster).Build()
-
+	fakeRecorder = record.NewFakeRecorder(fakeEventBufferSize)
 	// Setup mock clients.
 	mockCSAPIClient = cloudstack.NewMockClient(mockCtrl)
 	mockCloudClient = mocks.NewMockClient(mockCtrl)
 
 	// Base reconciler shared across reconcilers.
 	base := csCtrlrUtils.ReconcilerBase{
-		K8sClient:  fakeCtrlClient,
-		Scheme:     scheme.Scheme,
-		CSClient:   mockCloudClient,
-		BaseLogger: logger}
+		K8sClient:            fakeCtrlClient,
+		Scheme:               scheme.Scheme,
+		CSClient:             mockCloudClient,
+		BaseLogger:           logger,
+		Recorder:             fakeRecorder,
+		CloudClientExtension: &MockCtrlrCloudClientImplementation{},
+	}
 
 	ctx, cancel = context.WithCancel(context.TODO())
 
@@ -312,9 +318,9 @@ var _ = AfterEach(func() {
 var _ = AfterSuite(func() {})
 
 // setClusterReady patches the clsuter with ready status true.
-func setClusterReady() {
+func setClusterReady(client client.Client) {
 	Eventually(func() error {
-		ph, err := patch.NewHelper(dummies.CSCluster, k8sClient)
+		ph, err := patch.NewHelper(dummies.CSCluster, client)
 		Ω(err).ShouldNot(HaveOccurred())
 		dummies.CSCluster.Status.Ready = true
 		return ph.Patch(ctx, dummies.CSCluster, patch.WithStatusObservedGeneration{})
