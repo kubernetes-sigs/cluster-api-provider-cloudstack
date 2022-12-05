@@ -252,12 +252,12 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(res.RequeueAfter).Should(BeZero())
-			
+
 			Eventually(func() bool {
 				for event := range fakeRecorder.Events {
 					return strings.Contains(event, "Normal Created CloudStack instance Created") ||
 						strings.Contains(event, "Normal Running Machine instance is Running...") ||
-						strings.Contains(event, "Normal Machine State Checker CloudStackMachineStateChecker Instance1 created")
+						strings.Contains(event, "Normal Machine State Checker CloudStackMachineStateChecker created")
 				}
 				return false
 			}, timeout).Should(BeTrue())
