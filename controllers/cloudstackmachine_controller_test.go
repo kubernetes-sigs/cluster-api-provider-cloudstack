@@ -32,6 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strings"
 )
 
 var _ = Describe("CloudStackMachineReconciler", func() {
@@ -50,7 +51,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 
 			// Setup a failure domain for the machine reconciler to find.
 			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
-			setClusterReady()
+			setClusterReady(k8sClient)
 		})
 
 		It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
@@ -197,8 +198,9 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 
 	Context("With a fake ctrlRuntimeClient and no test Env at all.", func() {
 		BeforeEach(func() {
-			dummies.SetDummyVars()
 			setupFakeTestClient()
+			dummies.CSCluster.Spec.FailureDomains = dummies.CSCluster.Spec.FailureDomains[:1]
+			dummies.CSCluster.Spec.FailureDomains[0].Name = dummies.CSFailureDomain1.Spec.Name
 		})
 
 		It("Should exit having not found a failure domain to place the machine in.", func() {
@@ -218,6 +220,47 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(res.RequeueAfter).ShouldNot(BeZero())
+		})
+
+		It("Should create event Machine instance is Running", func() {
+			key := client.ObjectKeyFromObject(dummies.CSCluster)
+			dummies.CAPIMachine.Name = "someMachine"
+			dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = &dummies.BootstrapSecret.Name
+			dummies.CSMachine1.OwnerReferences = append(dummies.CSMachine1.OwnerReferences, metav1.OwnerReference{
+				Kind:       "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       dummies.CAPIMachine.Name,
+				UID:        "uniqueness",
+			})
+			mockCloudClient.EXPECT().GetOrCreateVMInstance(
+				gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _, _ interface{}) {
+					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
+				}).AnyTimes()
+			Ω(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).Should(Succeed())
+			Ω(fakeCtrlClient.Create(ctx, dummies.CAPIMachine)).Should(Succeed())
+			Ω(fakeCtrlClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
+			Ω(fakeCtrlClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
+			Ω(fakeCtrlClient.Create(ctx, dummies.ACSEndpointSecret1)).Should(Succeed())
+			Ω(fakeCtrlClient.Create(ctx, dummies.BootstrapSecret)).Should(Succeed())
+
+			setClusterReady(fakeCtrlClient)
+
+			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+			MachineReconciler.AsFailureDomainUser(&dummies.CSFailureDomain1.Spec)
+			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(res.RequeueAfter).Should(BeZero())
+
+			Eventually(func() bool {
+				for event := range fakeRecorder.Events {
+					return strings.Contains(event, "Normal Created CloudStack instance Created") ||
+						strings.Contains(event, "Normal Running Machine instance is Running...") ||
+						strings.Contains(event, "Normal Machine State Checker CloudStackMachineStateChecker created")
+				}
+				return false
+			}, timeout).Should(BeTrue())
 		})
 	})
 })

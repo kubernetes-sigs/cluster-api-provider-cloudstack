@@ -48,12 +48,26 @@ var (
 	failuredomainMatcher = regexp.MustCompile(`ds\.meta_data\.failuredomain`)
 )
 
+const (
+	BootstrapDataNotReady                      = "Bootstrap DataSecretName not yet available"
+	CSMachineCreationSuccess                   = "CloudStack instance Created"
+	CSMachineCreationFailed                    = "Creating CloudStack machine failed: %s"
+	MachineInstanceRunning                     = "Machine instance is Running..."
+	MachineInErrorMessage                      = "CloudStackMachine VM in error state. Deleting associated Machine"
+	MachineNotReadyMessage                     = "Instance not ready, is %s"
+	CSMachineStateCheckerCreationFailed        = "error encountered when creating CloudStackMachineStateChecker"
+	CSMachineStateCheckerCreationSuccess       = "CloudStackMachineStateChecker created"
+	CSMachineDeletionMessage                   = "Deleting CloudStack Machine %s"
+	CSMachineDeletionInstanceIDNotFoundMessage = "Deleting CloudStack Machine %s instanceID not found"
+)
+
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/finalizers,verbs=update
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // CloudStackMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStack machine reconciliation.
 type CloudStackMachineReconciliationRunner struct {
@@ -186,7 +200,8 @@ func (r *CloudStackMachineReconciliationRunner) DeleteMachineIfFailuredomainNotE
 // Implicitly it also fetches its bootstrap secret in order to create said instance.
 func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes ctrl.Result, reterr error) {
 	if r.CAPIMachine.Spec.Bootstrap.DataSecretName == nil {
-		return r.RequeueWithMessage("Bootstrap DataSecretName not yet available.")
+		r.Recorder.Event(r.ReconciliationSubject, "Normal", "Creating", BootstrapDataNotReady)
+		return r.RequeueWithMessage(BootstrapDataNotReady + ".")
 	}
 	r.Log.Info("Got Bootstrap DataSecretName.")
 
@@ -204,8 +219,12 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	userData := processCustomMetadata(data, r)
 	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
 
+	if err != nil {
+		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", "Creating", CSMachineCreationFailed, err.Error())
+	}
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
-		r.Log.Info("CloudStack instance Created", "instanceStatus", r.ReconciliationSubject.Status)
+		r.Recorder.Eventf(r.ReconciliationSubject, "Normal", "Created", CSMachineCreationSuccess)
+		r.Log.Info(CSMachineCreationSuccess, "instanceStatus", r.ReconciliationSubject.Status)
 	}
 	// Always add the finalizer regardless. It can't be added twice anyway.
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
@@ -223,16 +242,19 @@ func processCustomMetadata(data []byte, r *CloudStackMachineReconciliationRunner
 // ConfirmVMStatus checks the Instance's status for running state and requeues otherwise.
 func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (retRes ctrl.Result, reterr error) {
 	if r.ReconciliationSubject.Status.InstanceState == "Running" {
-		r.Log.Info("Machine instance is Running...")
+		r.Recorder.Event(r.ReconciliationSubject, "Normal", "Running", MachineInstanceRunning)
+		r.Log.Info(MachineInstanceRunning)
 		r.ReconciliationSubject.Status.Ready = true
 	} else if r.ReconciliationSubject.Status.InstanceState == "Error" {
-		r.Log.Info("CloudStackMachine VM in error state. Deleting associated Machine.", "csMachine", r.ReconciliationSubject.GetName())
+		r.Recorder.Event(r.ReconciliationSubject, "Warning", "Error", MachineInErrorMessage)
+		r.Log.Info(MachineInErrorMessage, "csMachine", r.ReconciliationSubject.GetName())
 		if err := r.K8sClient.Delete(r.RequestCtx, r.CAPIMachine); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	} else {
-		r.Log.Info(fmt.Sprintf("Instance not ready, is %s.", r.ReconciliationSubject.Status.InstanceState))
+		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", r.ReconciliationSubject.Status.InstanceState, MachineNotReadyMessage, r.ReconciliationSubject.Status.InstanceState)
+		r.Log.Info(fmt.Sprintf(MachineNotReadyMessage, r.ReconciliationSubject.Status.InstanceState))
 		return ctrl.Result{RequeueAfter: utils.RequeueTimeout}, nil
 	}
 	return ctrl.Result{}, nil
@@ -263,9 +285,10 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker()
 	}
 
 	if err := r.K8sClient.Create(r.RequestCtx, csMachineStateChecker); err != nil && !utils.ContainsAlreadyExistsSubstring(err) {
-		return r.ReturnWrappedError(err, "error encountered when creating CloudStackMachineStateChecker")
+		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", "Machine State Checker", CSMachineStateCheckerCreationFailed)
+		return r.ReturnWrappedError(err, CSMachineStateCheckerCreationFailed)
 	}
-
+	r.Recorder.Eventf(r.ReconciliationSubject, "Normal", "Machine State Checker", CSMachineStateCheckerCreationSuccess)
 	return r.GetObjectByName(*checkerName, r.StateChecker)()
 }
 
@@ -280,9 +303,12 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 				fmt.Sprintf(" If this VM has already been deleted, please remove the finalizer named %s from object %s",
 					"cloudstackmachine.infrastructure.cluster.x-k8s.io", r.ReconciliationSubject.Name))
 			// Cloudstack VM may be not found or more than one found by name
+			r.Recorder.Eventf(r.ReconciliationSubject, "Warning", "Deleting", CSMachineDeletionInstanceIDNotFoundMessage, r.ReconciliationSubject.Name)
+			r.Log.Error(err, fmt.Sprintf(CSMachineDeletionInstanceIDNotFoundMessage, r.ReconciliationSubject.Name))
 			return ctrl.Result{}, err
 		}
 	}
+	r.Recorder.Eventf(r.ReconciliationSubject, "Normal", "Deleting", CSMachineDeletionMessage, r.ReconciliationSubject.Name)
 	r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
 	// Use CSClient instead of CSUser here to expunge as admin.
 	// The CloudStack-Go API does not return an error, but the VM won't delete with Expunge set if requested by
@@ -364,6 +390,7 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager
 		return err
 	}
 
+	reconciler.Recorder = mgr.GetEventRecorderFor("capc-machine-controller")
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
 	return controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
