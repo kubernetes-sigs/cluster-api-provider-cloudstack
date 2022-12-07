@@ -95,6 +95,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-custom-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-subdomain.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-invalid-ip.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta2/cluster-template-account-quota.yaml"
       - sourcePath: "../data/shared/v1beta1/metadata.yaml"
     versions:
       - name: v1.0.0
@@ -149,6 +150,7 @@ variables:
 
   CLOUDSTACK_SUBDOMAIN_PATH: SUBDOMAIN
   CLOUDSTACK_SUBDOMAIN_ACCOUNT_NAME:	SUBDOMAIN-ADMIN
+  CLOUDSTACK_QUOTA_ACCOUNT_NAME: quota-account
 
   CONFORMANCE_CONFIGURATION: "./data/kubetest/conformance.yaml"
   CONFORMANCE_WORKER_MACHINE_COUNT: "3"

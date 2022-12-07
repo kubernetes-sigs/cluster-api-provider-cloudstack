@@ -104,6 +104,10 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 		testInvalidResource(ctx, input, "invalid-ip", "no public addresses found in available networks")
 	})
 
+	It("Should fail due to exceeding account quota [TC22]", func() {
+		testInvalidResource(ctx, input, "account-quota", "CloudStack API error 535 (CSExceptionErrorCode: 9999): Maximum amount of resources of Type")
+	})
+
 	Context("When starting with a healthy cluster", func() {
 		var logFolder string
 
