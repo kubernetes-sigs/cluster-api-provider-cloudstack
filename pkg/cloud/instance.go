@@ -277,13 +277,15 @@ func (c *client) GetOrCreateVMInstance(
 		listVirtualMachineParams.SetName(csMachine.Name)
 		if listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams); err2 == nil && listVirtualMachinesResponse.Count > 0 {
 			csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)
+			csMachine.Status.InstanceState = listVirtualMachinesResponse.VirtualMachines[0].State
 		} else {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err2)
+			return err
 		}
-		return err
+	} else {
+		csMachine.Spec.InstanceID = pointer.StringPtr(deployVMResp.Id)
+		csMachine.Status.Status = pointer.String(metav1.StatusSuccess)
 	}
-	csMachine.Spec.InstanceID = pointer.StringPtr(deployVMResp.Id)
-	csMachine.Status.Status = pointer.String(metav1.StatusSuccess)
 	// Resolve uses a VM metrics request response to fill cloudstack machine status.
 	// The deployment response is insufficient.
 	return c.ResolveVMInstanceDetails(csMachine)

@@ -223,11 +223,11 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", "Creating", CSMachineCreationFailed, err.Error())
 	}
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
+		controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 		r.Recorder.Eventf(r.ReconciliationSubject, "Normal", "Created", CSMachineCreationSuccess)
 		r.Log.Info(CSMachineCreationSuccess, "instanceStatus", r.ReconciliationSubject.Status)
 	}
-	// Always add the finalizer regardless. It can't be added twice anyway.
-	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
+	
 	return ctrl.Result{}, err
 }
 
