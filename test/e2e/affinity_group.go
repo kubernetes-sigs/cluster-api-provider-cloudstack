@@ -45,6 +45,14 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 	BeforeEach(func() {
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
 		input = inputGetter()
+
+		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+		zoneName := input.E2EConfig.GetVariable("CLOUDSTACK_ZONE_NAME")
+		numHosts := GetHostCount(csClient, zoneName)
+		if numHosts < 3 {
+			Skip("Too few ACS hosts to run conclusive affinity tests.  Please provision at least three for the zone.")
+		}
+
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
@@ -91,8 +99,8 @@ func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.N
 			Namespace:                namespace.Name,
 			ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-			ControlPlaneMachineCount: pointer.Int64Ptr(1),
-			WorkerMachineCount:       pointer.Int64Ptr(1),
+			ControlPlaneMachineCount: pointer.Int64Ptr(3),
+			WorkerMachineCount:       pointer.Int64Ptr(2),
 		},
 		WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 		WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),

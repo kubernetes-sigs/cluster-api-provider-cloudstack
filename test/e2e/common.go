@@ -287,6 +287,24 @@ func CheckAffinityGroupsDeleted(client *cloudstack.CloudStackClient, affinityIds
 	return nil
 }
 
+func GetHostCount(client *cloudstack.CloudStackClient, zoneName string) int {
+	pz := client.Zone.NewListZonesParams()
+	pz.SetName(zoneName)
+	listZonesResponse, err := client.Zone.ListZones(pz)
+	Expect(err).To(BeNil(), "error listing zones")
+	Expect(listZonesResponse.Count).To(Equal(1), "no zones, or more than one zone resolve to zone name %s", zoneName)
+	zoneId := listZonesResponse.Zones[0].Id
+
+	ph := client.Host.NewListHostsParams()
+	ph.SetZoneid(zoneId)
+	ph.SetHypervisor("KVM")
+	ph.SetResourcestate("Enabled")
+	ph.SetState("Up")
+	listHostsResponse, err := client.Host.ListHosts(ph)
+	Expect(err).To(BeNil(), "error listing hosts")
+	return listHostsResponse.Count
+}
+
 func CheckAffinityGroup(client *cloudstack.CloudStackClient, clusterName string, affinityType string) []string {
 	By("Listing all machines")
 	p := client.VirtualMachine.NewListVirtualMachinesParams()
