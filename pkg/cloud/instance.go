@@ -275,13 +275,13 @@ func (c *client) GetOrCreateVMInstance(
 		listVirtualMachineParams.SetZoneid(fd.Spec.Zone.ID)
 		listVirtualMachineParams.SetNetworkid(fd.Spec.Zone.Network.ID)
 		listVirtualMachineParams.SetName(csMachine.Name)
-		if listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams); err2 == nil && listVirtualMachinesResponse.Count > 0 {
-			csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)
-			csMachine.Status.InstanceState = listVirtualMachinesResponse.VirtualMachines[0].State
-		} else {
+		listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams)
+		if err2 != nil || listVirtualMachinesResponse.Count <= 0 {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err2)
 			return err
 		}
+		csMachine.Spec.InstanceID = pointer.StringPtr(listVirtualMachinesResponse.VirtualMachines[0].Id)
+		csMachine.Status.InstanceState = listVirtualMachinesResponse.VirtualMachines[0].State
 	} else {
 		csMachine.Spec.InstanceID = pointer.StringPtr(deployVMResp.Id)
 		csMachine.Status.Status = pointer.String(metav1.StatusSuccess)

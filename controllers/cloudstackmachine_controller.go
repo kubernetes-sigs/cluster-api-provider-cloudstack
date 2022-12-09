@@ -223,11 +223,14 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", "Creating", CSMachineCreationFailed, err.Error())
 	}
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
+		// adding a finalizer will require CPAC reconcile-delete trying to destroy associated VM through instanceID,
+		// so if err is not nil, which means it could not get associated VM through instanceID or name, we should not add finalizer to CloudStackMachine,
+		// otherwise, reconciler-delete will be stuck trying to wait instanceID to ba available.
 		controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 		r.Recorder.Eventf(r.ReconciliationSubject, "Normal", "Created", CSMachineCreationSuccess)
 		r.Log.Info(CSMachineCreationSuccess, "instanceStatus", r.ReconciliationSubject.Status)
 	}
-	
+
 	return ctrl.Result{}, err
 }
 

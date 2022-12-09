@@ -72,7 +72,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
 					if tempMachine.Status.Ready == true {
-						return true
+						return len(tempMachine.ObjectMeta.Finalizers) > 0
 					}
 				}
 				return false
