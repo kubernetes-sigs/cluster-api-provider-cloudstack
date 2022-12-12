@@ -26,7 +26,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/helpers"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/toxiproxy"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -41,8 +41,8 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		clusterResources                 *clusterctl.ApplyClusterTemplateAndWaitResult
 		bootstrapClusterToxicName        string
 		cloudStackToxicName              string
-		bootstrapClusterToxiProxyContext *helpers.ToxiProxyContext
-		cloudStackToxiProxyContext       *helpers.ToxiProxyContext
+		bootstrapClusterToxiProxyContext *toxiproxy.Context
+		cloudStackToxiProxyContext       *toxiproxy.Context
 		appName                          = "httpd"
 		appManifestPath                  = "data/fixture/sample-application.yaml"
 		expectedHtmlPath                 = "data/fixture/expected-webpage.html"
@@ -66,14 +66,14 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// Set up a toxiProxy for bootstrap server.
-		bootstrapClusterToxiProxyContext = helpers.SetupForToxiProxyTestingBootstrapCluster(input.BootstrapClusterProxy, clusterName)
+		bootstrapClusterToxiProxyContext = toxiproxy.SetupForToxiProxyTestingBootstrapCluster(input.BootstrapClusterProxy, clusterName)
 		const ToxicLatencyMs = 100
 		const ToxicJitterMs = 100
 		const ToxicToxicity = 1
 		bootstrapClusterToxicName = bootstrapClusterToxiProxyContext.AddLatencyToxic(ToxicLatencyMs, ToxicJitterMs, ToxicToxicity, false)
 
 		// Set up a toxiProxy for CloudStack
-		cloudStackToxiProxyContext = helpers.SetupForToxiProxyTestingACS(
+		cloudStackToxiProxyContext = toxiproxy.SetupForToxiProxyTestingACS(
 			ctx,
 			clusterName,
 			input.BootstrapClusterProxy,
@@ -154,9 +154,9 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 
 		// Tear down the ToxiProxies
 		cloudStackToxiProxyContext.RemoveToxic(cloudStackToxicName)
-		helpers.TearDownToxiProxyACS(ctx, input.BootstrapClusterProxy, cloudStackToxiProxyContext)
+		toxiproxy.TearDownToxiProxyACS(ctx, input.BootstrapClusterProxy, cloudStackToxiProxyContext)
 
 		bootstrapClusterToxiProxyContext.RemoveToxic(bootstrapClusterToxicName)
-		helpers.TearDownToxiProxyBootstrap(bootstrapClusterToxiProxyContext)
+		toxiproxy.TearDownToxiProxyBootstrap(bootstrapClusterToxiProxyContext)
 	})
 }

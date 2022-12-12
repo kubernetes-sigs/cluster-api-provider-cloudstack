@@ -25,7 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	go_runtime "runtime"
-	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/helpers"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/toxiproxy"
 	"strings"
 	"testing"
 	"time"
@@ -122,7 +122,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// Toxiproxy running in a docker container requires docker host networking, only available in linux.
 	if go_runtime.GOOS == "linux" {
 		By("Launching Toxiproxy Server")
-		Expect(helpers.ToxiProxyServerExec(ctx)).To(Succeed())
+		Expect(toxiproxy.ServerExec(ctx)).To(Succeed())
 	}
 
 	if clusterctlConfig == "" {
@@ -180,7 +180,7 @@ var _ = SynchronizedAfterSuite(func() {
 
 	if go_runtime.GOOS == "linux" {
 		By("Killing Toxiproxy Server")
-		Expect(helpers.ToxiProxyServerKill(ctx)).To(Succeed())
+		Expect(toxiproxy.ServerKill(ctx)).To(Succeed())
 	}
 })
 

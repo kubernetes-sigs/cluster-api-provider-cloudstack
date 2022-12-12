@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package helpers
+package toxiproxy
 
 import (
 	"context"
@@ -29,13 +29,14 @@ import (
 	toxiproxyapi "github.com/Shopify/toxiproxy/v2/client"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/kubeconfig_helper"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func ToxiProxyServerExec(ctx context.Context) error {
+func ServerExec(ctx context.Context) error {
 	execArgs := []string{"run", "-d", "--name=capc-e2e-toxiproxy", "--net=host", "--rm", "ghcr.io/shopify/toxiproxy"}
 	runCmd := exec.NewCommand(
 		exec.WithCommand("docker"),
@@ -48,7 +49,7 @@ func ToxiProxyServerExec(ctx context.Context) error {
 	return err
 }
 
-func ToxiProxyServerKill(ctx context.Context) error {
+func ServerKill(ctx context.Context) error {
 	execArgs := []string{"stop", "capc-e2e-toxiproxy"}
 	runCmd := exec.NewCommand(
 		exec.WithCommand("docker"),
@@ -58,7 +59,7 @@ func ToxiProxyServerKill(ctx context.Context) error {
 	return err
 }
 
-type ToxiProxyContext struct {
+type Context struct {
 	KubeconfigPath string
 	Secret         corev1.Secret
 	ClusterProxy   framework.ClusterProxy
@@ -66,9 +67,9 @@ type ToxiProxyContext struct {
 	ConfigPath     string
 }
 
-func SetupForToxiProxyTestingBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, clusterName string) *ToxiProxyContext {
+func SetupForToxiProxyTestingBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, clusterName string) *Context {
 	// Read/parse the actual kubeconfig for the cluster
-	kubeConfig := NewKubeconfig()
+	kubeConfig := kubeconfig_helper.NewKubeconfig()
 	unproxiedKubeconfigPath := bootstrapClusterProxy.GetKubeconfigPath()
 	err := kubeConfig.Load(unproxiedKubeconfigPath)
 	Expect(err).To(BeNil())
@@ -112,14 +113,14 @@ func SetupForToxiProxyTestingBootstrapCluster(bootstrapClusterProxy framework.Cl
 		framework.WithMachineLogCollector(framework.DockerLogCollector{}),
 	)
 
-	return &ToxiProxyContext{
+	return &Context{
 		KubeconfigPath: toxiProxyKubeconfigPath,
 		ClusterProxy:   toxiproxyBootstrapClusterProxy,
 		ToxiProxy:      proxy,
 	}
 }
 
-func TearDownToxiProxyBootstrap(toxiProxyContext *ToxiProxyContext) {
+func TearDownToxiProxyBootstrap(toxiProxyContext *Context) {
 	// Tear down the proxy
 	err := toxiProxyContext.ToxiProxy.Delete()
 	Expect(err).To(BeNil())
@@ -129,12 +130,12 @@ func TearDownToxiProxyBootstrap(toxiProxyContext *ToxiProxyContext) {
 	Expect(err).To(BeNil())
 }
 
-func (tp *ToxiProxyContext) RemoveToxic(toxicName string) {
+func (tp *Context) RemoveToxic(toxicName string) {
 	err := tp.ToxiProxy.RemoveToxic(toxicName)
 	Expect(err).To(BeNil())
 }
 
-func (tp *ToxiProxyContext) AddLatencyToxic(latencyMs int, jitterMs int, toxicity float32, upstream bool) string {
+func (tp *Context) AddLatencyToxic(latencyMs int, jitterMs int, toxicity float32, upstream bool) string {
 	stream := "downstream"
 	if upstream == true {
 		stream = "upstream"
@@ -150,15 +151,15 @@ func (tp *ToxiProxyContext) AddLatencyToxic(latencyMs int, jitterMs int, toxicit
 	return toxicName
 }
 
-func (tp *ToxiProxyContext) Disable() {
+func (tp *Context) Disable() {
 	tp.ToxiProxy.Disable()
 }
 
-func (tp *ToxiProxyContext) Enable() {
+func (tp *Context) Enable() {
 	tp.ToxiProxy.Enable()
 }
 
-func SetupForToxiProxyTestingACS(ctx context.Context, clusterName string, clusterProxy framework.ClusterProxy, e2eConfig *clusterctl.E2EConfig, configPath string) *ToxiProxyContext {
+func SetupForToxiProxyTestingACS(ctx context.Context, clusterName string, clusterProxy framework.ClusterProxy, e2eConfig *clusterctl.E2EConfig, configPath string) *Context {
 	// Get the cloud-config secret that CAPC will use to access CloudStack
 	fdEndpointSecretObjectKey := client.ObjectKey{
 		Namespace: e2eConfig.GetVariable("CLOUDSTACK_FD1_SECRET_NAMESPACE"),
@@ -209,14 +210,14 @@ func SetupForToxiProxyTestingACS(ctx context.Context, clusterName string, cluste
 	editConfigFile(newConfigFilePath, configPath, "CLOUDSTACK_FD1_SECRET_NAME", toxiProxyFdEndpointSecret.Name)
 
 	// Return a context
-	return &ToxiProxyContext{
+	return &Context{
 		Secret:     toxiProxyFdEndpointSecret,
 		ToxiProxy:  proxy,
 		ConfigPath: newConfigFilePath,
 	}
 }
 
-func TearDownToxiProxyACS(ctx context.Context, clusterProxy framework.ClusterProxy, toxiProxyContext *ToxiProxyContext) {
+func TearDownToxiProxyACS(ctx context.Context, clusterProxy framework.ClusterProxy, toxiProxyContext *Context) {
 	// Tear down the proxy
 	err := toxiProxyContext.ToxiProxy.Delete()
 	Expect(err).To(BeNil())

@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/helpers"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/toxiproxy"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -41,7 +42,7 @@ func NetworkInterruptionToxiSpec(ctx context.Context, inputGetter func() CommonS
 		namespace                         *corev1.Namespace
 		cancelWatches                     context.CancelFunc
 		clusterResources                  *clusterctl.ApplyClusterTemplateAndWaitResult
-		cloudStackToxiProxyContext        *helpers.ToxiProxyContext
+		cloudStackToxiProxyContext        *toxiproxy.Context
 		clusterName                       = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		networkInterruptorShutdownChannel = make(chan bool, 2)
 	)
@@ -59,7 +60,7 @@ func NetworkInterruptionToxiSpec(ctx context.Context, inputGetter func() CommonS
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// Set up a toxiProxy for CloudStack
-		cloudStackToxiProxyContext = helpers.SetupForToxiProxyTestingACS(
+		cloudStackToxiProxyContext = toxiproxy.SetupForToxiProxyTestingACS(
 			ctx,
 			clusterName,
 			input.BootstrapClusterProxy,
@@ -121,11 +122,11 @@ func NetworkInterruptionToxiSpec(ctx context.Context, inputGetter func() CommonS
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
 		// Tear down the ToxiProxies
-		helpers.TearDownToxiProxyACS(ctx, input.BootstrapClusterProxy, cloudStackToxiProxyContext)
+		toxiproxy.TearDownToxiProxyACS(ctx, input.BootstrapClusterProxy, cloudStackToxiProxyContext)
 	})
 }
 
-func networkInterruptor(toxiProxyContext *helpers.ToxiProxyContext, shutdownChannel chan bool) {
+func networkInterruptor(toxiProxyContext *toxiproxy.Context, shutdownChannel chan bool) {
 	// Wait for ApplyClusterTemplateAndWait() to make some progress
 	helpers.InterruptibleSleep(15*time.Second, time.Second, shutdownChannel)
 

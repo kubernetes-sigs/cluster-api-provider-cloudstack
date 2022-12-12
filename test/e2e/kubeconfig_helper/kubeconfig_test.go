@@ -14,18 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package helpers_test
+package kubeconfig_helper_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"io/ioutil"
-	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/helpers"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/kubeconfig_helper"
 )
 
 var _ = Describe("Test kubeconfig helper methods", func() {
 	It("should work", func() {
-		kubeconfig := helpers.NewKubeconfig()
+		kubeconfig := kubeconfig_helper.NewKubeconfig()
 
 		var kubeconfigPath string = "./data/kubeconfig"
 		var unmodifiedKubeconfigPath string = "/tmp/unmodifiedKubeconfig"
