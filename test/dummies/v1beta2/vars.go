@@ -1,14 +1,14 @@
 package dummies
 
 import (
+	"os"
+
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/onsi/gomega"
 	"github.com/smallfish/simpleyaml"
-	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	"os"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
@@ -92,7 +92,7 @@ var ( // Declare exported dummy vars.
 // SetDummyVars sets/resets all dummy vars.
 func SetDummyVars() {
 	projDir := os.Getenv("REPO_ROOT")
-	source, err := ioutil.ReadFile(projDir + "/test/e2e/config/cloudstack.yaml")
+	source, err := os.ReadFile(projDir + "/test/e2e/config/cloudstack.yaml")
 	if err != nil {
 		panic(err)
 	}

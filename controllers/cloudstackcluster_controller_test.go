@@ -30,7 +30,7 @@ var _ = Describe("CloudStackClusterReconciler", func() {
 	Context("With k8s like test environment.", func() {
 		BeforeEach(func() {
 			SetupTestEnvironment()                                                    // Must happen before setting up managers/reconcilers.
-			Ω(ClusterReconciler.SetupWithManager(k8sManager)).Should(Succeed())       // Register CloudStack ClusterReconciler.
+			Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager)).Should(Succeed())  // Register CloudStack ClusterReconciler.
 			Ω(FailureDomainReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack FailureDomainReconciler.
 		})
 
