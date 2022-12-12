@@ -283,7 +283,7 @@ JOB ?= .*
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
 	$(KUBECTL) apply -f cloud-config.yaml && \
 	cd test/e2e && \
-	$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -skipPackage=helpers -nodes=1 -noColor=false ./... -- \
+	$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -skipPackage=kubeconfig_helper -nodes=1 -noColor=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${REPO_ROOT}/test/e2e/config/cloudstack.yaml \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true

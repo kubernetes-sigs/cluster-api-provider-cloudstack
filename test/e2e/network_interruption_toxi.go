@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// DeployAppToxiSpec implements a test that verifies that an app deployed to the workload cluster works.
+// NetworkInterruptionToxiSpec implements a test that verifies that an app deployed to the workload cluster works.
 func NetworkInterruptionToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
 		specName                          = "network-interruption-toxi"
