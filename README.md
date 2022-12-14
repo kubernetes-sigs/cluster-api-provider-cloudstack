@@ -135,7 +135,7 @@ Thank you to all contributors and a special thanks to our current maintainers & 
 | --------------------------------------------------------- | ------------------------------------------------------ |
 | [@rohityadavcloud](https://github.com/rohityadavcloud)    | [@rohityadavcloud](https://github.com/rohityadavcloud) |
 | [@davidjumani](https://github.com/davidjumani)            | [@davidjumani](https://github.com/davidjumani)         |
-| [@maxdrib](https://github.com/maxdrib)                    | [@maxdrib](https://github.com/maxdrib)                 |
+| [@jweite-amazon](https://github.com/jweite-amazon)        | [@jweite-amazon](https://github.com/jweite-amazon)     |
 
 All the CAPC contributors:
 
