@@ -1,4 +1,4 @@
-package helpers_test
+package kubeconfig_helper_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestHelpers(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Helpers Suite")
+	RunSpecs(t, "Kubeconfig Helpers Suite")
 }
