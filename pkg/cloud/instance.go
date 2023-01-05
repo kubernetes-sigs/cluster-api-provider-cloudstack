@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 	return errors.New("no match found")
 }
 
-func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (offeringID string, retErr error) {
+func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine, zoneID string) (offeringID string, retErr error) {
 	if len(csMachine.Spec.Offering.ID) > 0 {
 		csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering.ID)
 		if err != nil {
@@ -102,14 +102,14 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine) (o
 		}
 		return csMachine.Spec.Offering.ID, nil
 	}
-	offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering.Name)
+	offeringID, count, err := c.cs.ServiceOffering.GetServiceOfferingID(csMachine.Spec.Offering.Name, cloudstack.WithZone(zoneID))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return "", multierror.Append(retErr, errors.Wrapf(
-			err, "could not get Service Offering ID from %s", csMachine.Spec.Offering.Name))
+			err, "could not get Service Offering ID from %s in zone %s", csMachine.Spec.Offering.Name, zoneID))
 	} else if count != 1 {
 		return "", multierror.Append(retErr, errors.Errorf(
-			"expected 1 Service Offering with name %s, but got %d", csMachine.Spec.Offering.Name, count))
+			"expected 1 Service Offering with name %s in zone %s, but got %d", csMachine.Spec.Offering.Name, zoneID, count))
 	}
 	return offeringID, nil
 }
@@ -221,7 +221,7 @@ func (c *client) GetOrCreateVMInstance(
 		return err
 	}
 
-	offeringID, err := c.ResolveServiceOffering(csMachine)
+	offeringID, err := c.ResolveServiceOffering(csMachine, fd.Spec.Zone.ID)
 	if err != nil {
 		return err
 	}
