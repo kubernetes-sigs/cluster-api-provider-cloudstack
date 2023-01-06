@@ -161,15 +161,15 @@ func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine, zoneI
 				err, "could not get DiskOffering ID from %s", csMachine.Spec.DiskOffering.Name))
 		} else if count != 1 {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"expected 1 DiskOffering with name %s, but got %d", csMachine.Spec.DiskOffering.Name, count))
+				"expected 1 DiskOffering with name %s in zone %s, but got %d", csMachine.Spec.DiskOffering.Name, zoneID, count))
 		} else if len(csMachine.Spec.DiskOffering.ID) > 0 && diskID != csMachine.Spec.DiskOffering.ID {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"diskOffering ID %s does not match ID %s returned using name %s",
-				csMachine.Spec.DiskOffering.ID, diskID, csMachine.Spec.DiskOffering.Name))
+				"diskOffering ID %s does not match ID %s returned using name %s in zone %s",
+				csMachine.Spec.DiskOffering.ID, diskID, csMachine.Spec.DiskOffering.Name, zoneID))
 		} else if len(diskID) == 0 {
 			return "", multierror.Append(retErr, errors.Errorf(
-				"empty diskOffering ID %s returned using name %s",
-				diskID, csMachine.Spec.DiskOffering.Name))
+				"empty diskOffering ID %s returned using name %s in zone %s",
+				diskID, csMachine.Spec.DiskOffering.Name, zoneID))
 		}
 		diskOfferingID = diskID
 	}
