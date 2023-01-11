@@ -3,8 +3,10 @@ linters-settings:
     values:
       const:
         AUTHOR: The Kubernetes Authors
+      regexp:
+        YR: '\d\d\d\d'
     template:  |-
-      Copyright {{ YEAR }} {{ AUTHOR }}.
+      Copyright {{ YR }} {{ AUTHOR }}.
 
       Licensed under the Apache License, Version 2.0 (the "License");
       you may not use this file except in compliance with the License.
