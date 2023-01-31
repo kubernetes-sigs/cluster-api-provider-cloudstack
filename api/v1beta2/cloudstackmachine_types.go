@@ -83,6 +83,12 @@ type CloudStackMachineSpec struct {
 	// +optional
 	// +k8s:conversion-gen=false
 	FailureDomainName string `json:"failureDomainName,omitempty"`
+
+	// UncompressedUserData specifies whether the user data is gzip-compressed.
+	// cloud-init has built-in support for gzip-compressed user data, ignition does not
+	//
+	// +optional
+	UncompressedUserData *bool `json:"uncompressedUserData,omitempty"`
 }
 
 type CloudStackResourceIdentifier struct {

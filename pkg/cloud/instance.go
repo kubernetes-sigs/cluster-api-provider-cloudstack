@@ -17,6 +17,7 @@ limitations under the License.
 package cloud
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -244,11 +245,11 @@ func (c *client) GetOrCreateVMInstance(
 
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
-	compressedAndEncodedUserData, err := CompressAndEncodeString(userData)
+	userData, err = handleUserData(userData, csMachine.Spec.UncompressedUserData)
 	if err != nil {
 		return err
 	}
-	setIfNotEmpty(compressedAndEncodedUserData, p.SetUserdata)
+	setIfNotEmpty(userData, p.SetUserdata)
 
 	if len(csMachine.Spec.AffinityGroupIDs) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIDs)
@@ -344,4 +345,16 @@ func (c *client) listVMInstanceDatadiskVolumeIDs(instanceID string) ([]string, e
 
 	return ret, nil
 
+}
+
+// handleUserData optionally compresses and then base64 encodes userdata
+func handleUserData(userData string, uncompressed *bool) (string, error) {
+	var err error
+	if uncompressed != nil && !*uncompressed {
+		userData, err = CompressString(userData)
+		if err != nil {
+			return "", err
+		}
+	}
+	return base64.StdEncoding.EncodeToString([]byte(userData)), nil
 }
