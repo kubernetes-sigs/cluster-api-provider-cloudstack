@@ -141,12 +141,6 @@ func (c *client) GetPublicIP(
 		// Ignore already allocated here since the IP was specified.
 		return publicAddresses.PublicIpAddresses[0], nil
 	} else if publicAddresses.Count > 0 { // Endpoint not specified.
-		// TODO: Use tags to prevent clash with this logic.
-		for _, v := range publicAddresses.PublicIpAddresses { // Pick first available address.
-			if v.Allocated != "" && v.Associatednetworkid == isoNet.Spec.ID && !v.Issourcenat { // IP Already allocated.
-				return v, nil
-			}
-		}
 		for _, v := range publicAddresses.PublicIpAddresses { // Pick first available address.
 			if v.Allocated == "" { // Found un-allocated Public IP.
 				return v, nil
