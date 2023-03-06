@@ -41,7 +41,7 @@ ETCD := $(TOOLS_BIN_DIR)/etcd
 STAGING_REGISTRY := gcr.io/k8s-staging-capi-cloudstack
 STAGING_BUCKET ?= artifacts.k8s-staging-capi-cloudstack.appspot.com
 BUCKET ?= $(STAGING_BUCKET)
-PROD_REGISTRY ?= k8s.gcr.io/capi-cloudstack
+PROD_REGISTRY ?= registry.k8s.io/capi-cloudstack
 REGISTRY ?= $(STAGING_REGISTRY)
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 PULL_BASE_REF ?= $(RELEASE_TAG)
