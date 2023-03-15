@@ -423,6 +423,11 @@ spec:
                     description: Cloudstack resource Name
                     type: string
                 type: object
+              uncompressedUserData:
+                description: UncompressedUserData specifies whether the user data
+                  is gzip-compressed. cloud-init has built-in support for gzip-compressed
+                  user data, ignition does not
+                type: boolean
             required:
             - offering
             - template

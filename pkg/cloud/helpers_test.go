@@ -19,7 +19,6 @@ package cloud_test
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"reflect"
@@ -36,10 +35,9 @@ var _ = Describe("Helpers", func() {
 	It("should compress and encode string", func() {
 		str := "Hello World"
 
-		compressedAndEncodedData, err := cloud.CompressAndEncodeString(str)
+		compressedData, err := cloud.CompressString(str)
 
-		compressedData, _ := base64.StdEncoding.DecodeString(compressedAndEncodedData)
-		reader, _ := gzip.NewReader(bytes.NewReader(compressedData))
+		reader, _ := gzip.NewReader(bytes.NewReader([]byte(compressedData)))
 		result, _ := io.ReadAll(reader)
 
 		Ω(err).Should(BeNil())
