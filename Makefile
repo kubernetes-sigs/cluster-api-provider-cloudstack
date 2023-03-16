@@ -95,7 +95,7 @@ managers:
 manager-cloudstack-infrastructure: ## Build manager binary.
 	CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
 
-export K8S_VERSION=1.19.2
+export K8S_VERSION=1.25.0
 $(KUBECTL) $(API_SERVER) $(ETCD) &:
 	cd $(TOOLS_DIR) && curl --silent -L "https://go.kubebuilder.io/test-tools/${K8S_VERSION}/$(shell go env GOOS)/$(shell go env GOARCH)" --output - | \
 		tar -C ./ --strip-components=1 -zvxf -
