@@ -20,7 +20,7 @@ The value should point to an empty directory on the node
 ```yaml
   kubeadmConfigSpec:
     clusterConfiguration:
-      imageRepository: k8s.gcr.io
+      imageRepository: registry.k8s.io
       etcd:
         local:
           dataDir: /var/lib/etcddisk/etcd
@@ -51,7 +51,7 @@ The value should point to an empty directory on the node
 ```yaml
   kubeadmConfigSpec:
     clusterConfiguration:
-      imageRepository: k8s.gcr.io
+      imageRepository: registry.k8s.io
       etcd:
         external:
           endpoints:
