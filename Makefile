@@ -95,7 +95,7 @@ managers:
 manager-cloudstack-infrastructure: ## Build manager binary.
 	CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
 
-export K8S_VERSION=1.19.2
+export K8S_VERSION=1.25.0
 $(KUBECTL) $(API_SERVER) $(ETCD) &:
 	cd $(TOOLS_DIR) && curl --silent -L "https://go.kubebuilder.io/test-tools/${K8S_VERSION}/$(shell go env GOOS)/$(shell go env GOARCH)" --output - | \
 		tar -C ./ --strip-components=1 -zvxf -
@@ -133,8 +133,8 @@ lint: $(GOLANGCI_LINT) $(STATIC_CHECK) generate-mocks ## Run linting for the pro
 
 .PHONY: modules
 modules: ## Runs go mod to ensure proper vendoring.
-	go mod tidy -compat=1.17
-	cd $(TOOLS_DIR); go mod tidy -compat=1.17
+	go mod tidy -compat=1.19
+	cd $(TOOLS_DIR); go mod tidy -compat=1.19
 
 .PHONY: generate-all
 generate-all: generate-mocks generate-deepcopy generate-manifests

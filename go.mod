@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api-provider-cloudstack
 
-go 1.18
+go 1.19
 
 require (
 	github.com/ReneKroon/ttlcache v1.7.0
