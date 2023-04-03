@@ -21,7 +21,7 @@ require (
 	k8s.io/client-go v0.25.3
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/utils v0.0.0-20221108210102-8e77b1f39fe2
-	sigs.k8s.io/cluster-api v1.2.11
+	sigs.k8s.io/cluster-api v1.2.12
 	sigs.k8s.io/controller-runtime v0.13.1
 )
 
@@ -102,6 +102,6 @@ require (
 
 replace github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.0.0 // Indirect upgrade to address https://github.com/advisories/GHSA-w73w-5m7g-f7qc
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.2.11
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.2.12
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.2.11
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.2.12
