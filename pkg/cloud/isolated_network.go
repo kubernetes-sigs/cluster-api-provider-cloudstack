@@ -110,12 +110,26 @@ func (c *client) CreateIsolatedNetwork(fd *infrav1.CloudStackFailureDomain, isoN
 	return c.AddCreatedByCAPCTag(ResourceTypeNetwork, isoNet.Spec.ID)
 }
 
-// OpenFirewallRules opens a CloudStack firewall for an isolated network.
+// OpenFirewallRules opens a CloudStack egress firewall for an isolated network.
 func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
-	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, NetworkProtocolTCP)
-	_, retErr = c.cs.Firewall.CreateEgressFirewallRule(p)
-	if retErr != nil && strings.Contains(strings.ToLower(retErr.Error()), "there is already") { // Already a firewall rule here.
-		retErr = nil
+	protocols := []string{NetworkProtocolTCP, NetworkProtocolUDP, NetworkProtocolICMP}
+	for _, proto := range protocols {
+		p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, proto)
+
+		if proto == "icmp" {
+			p.SetIcmptype(-1)
+			p.SetIcmpcode(-1)
+		}
+
+		_, err := c.cs.Firewall.CreateEgressFirewallRule(p)
+		if err != nil &&
+			// Ignore errors regarding already existing fw rules for TCP/UDP
+			!strings.Contains(strings.ToLower(err.Error()), "there is already") &&
+			// Ignore errors regarding already existing fw rule for ICMP
+			!strings.Contains(strings.ToLower(err.Error()), "new rule conflicts with existing rule") {
+			retErr = multierror.Append(retErr, errors.Wrapf(
+				err, "failed creating egress firewall rule for network ID %s protocol %s", isoNet.Spec.ID, proto))
+		}
 	}
 	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 	return retErr

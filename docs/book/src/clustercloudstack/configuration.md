@@ -61,7 +61,8 @@ cmk list zones listall=true | jq '.zone[] | {name, id}'
 
 The network must be declared as an environment variable `CLOUDSTACK_NETWORK_NAME` and is a mandatory parameter.
 As of now, only isolated and shared networks are supported.
-If the specified network does not exist, a new isolated network will be created.
+
+If the specified network does not exist, a new isolated network will be created. The newly created network will have a default egress firewall policy that allows all TCP, UDP and ICMP traffic from the cluster to the outside world.
 
 The list of networks for the specific zone can be fetched using the cmk cli as follows :
 ```
