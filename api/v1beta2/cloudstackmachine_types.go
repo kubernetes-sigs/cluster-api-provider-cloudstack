@@ -23,12 +23,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
+const MachineFinalizer = "cloudstackmachine.infrastructure.cluster.x-k8s.io"
+
 const (
-	// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
-	MachineFinalizer = "cloudstackmachine.infrastructure.cluster.x-k8s.io"
-	ProAffinity      = "pro"
-	AntiAffinity     = "anti"
-	NoAffinity       = "no"
+	ProAffinity  = "pro"
+	AntiAffinity = "anti"
+	NoAffinity   = "no"
 )
 
 // CloudStackMachineSpec defines the desired state of CloudStackMachine

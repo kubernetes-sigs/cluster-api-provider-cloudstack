@@ -79,17 +79,20 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 	}
 	oldSpec := oldMachine.Spec
 
-	errorList = webhookutil.EnsureBothFieldsAreEqual(r.Spec.Offering.ID, r.Spec.Offering.Name, oldSpec.Offering.ID, oldSpec.Offering.Name, "offering", errorList)
-	errorList = webhookutil.EnsureBothFieldsAreEqual(r.Spec.DiskOffering.ID, r.Spec.DiskOffering.Name, oldSpec.DiskOffering.ID, oldSpec.DiskOffering.Name, "diskOffering", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.Offering.ID, oldSpec.Offering.ID, "offering", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.Offering.Name, oldSpec.Offering.Name, "offering", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.ID, oldSpec.DiskOffering.ID, "diskOffering", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Name, oldSpec.DiskOffering.Name, "diskOffering", errorList)
 	errorList = webhookutil.EnsureIntFieldsAreNotNegative(r.Spec.DiskOffering.CustomSize, "customSizeInGB", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.DiskOffering.MountPath, oldSpec.DiskOffering.MountPath, "mountPath", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.DiskOffering.Device, oldSpec.DiskOffering.Device, "device", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.DiskOffering.Filesystem, oldSpec.DiskOffering.Filesystem, "filesystem", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.DiskOffering.Label, oldSpec.DiskOffering.Label, "label", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
-	errorList = webhookutil.EnsureBothFieldsAreEqual(r.Spec.Template.ID, r.Spec.Template.Name, oldSpec.Template.ID, oldSpec.Template.Name, "template", errorList)
-	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&r.Spec.Details, &oldSpec.Details, "details", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(r.Spec.Affinity, oldSpec.Affinity, "affinity", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.MountPath, oldSpec.DiskOffering.MountPath, "mountPath", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Device, oldSpec.DiskOffering.Device, "device", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Filesystem, oldSpec.DiskOffering.Filesystem, "filesystem", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Label, oldSpec.DiskOffering.Label, "label", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.Template.ID, oldSpec.Template.ID, "template", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.Template.Name, oldSpec.Template.Name, "template", errorList)
+	errorList = webhookutil.EnsureEqualMapStringString(&r.Spec.Details, &oldSpec.Details, "details", errorList)
+	errorList = webhookutil.EnsureEqualStrings(r.Spec.Affinity, oldSpec.Affinity, "affinity", errorList)
 
 	if !reflect.DeepEqual(r.Spec.AffinityGroupIDs, oldSpec.AffinityGroupIDs) { // Equivalent to other Ensure funcs.
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"), "AffinityGroupIDs"))

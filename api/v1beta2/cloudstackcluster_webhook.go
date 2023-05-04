@@ -102,9 +102,9 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 	}
 
 	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
-		errorList = webhookutil.EnsureStringFieldsAreEqual(
+		errorList = webhookutil.EnsureEqualStrings(
 			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpoint.host", errorList)
-		errorList = webhookutil.EnsureStringFieldsAreEqual(
+		errorList = webhookutil.EnsureEqualStrings(
 			string(spec.ControlPlaneEndpoint.Port), string(oldSpec.ControlPlaneEndpoint.Port),
 			"controlplaneendpoint.port", errorList)
 	}
