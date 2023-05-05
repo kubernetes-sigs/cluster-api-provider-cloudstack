@@ -48,18 +48,17 @@ func (r *CloudStackMachineTemplate) Default() {
 	// No defaulted values supported yet.
 }
 
-//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachinetemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta2,name=vcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta1
-
+// +kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachinetemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta2,name=vcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1beta1
 var _ webhook.Validator = &CloudStackMachineTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) ValidateCreate() error {
 	cloudstackmachinetemplatelog.V(1).Info("entered validate create webhook", "api resource name", r.Name)
 
-	var (
-		errorList field.ErrorList
-		spec      = r.Spec.Spec.Spec // CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
-	)
+	var errorList field.ErrorList
+
+	// CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
+	spec := r.Spec.Spec.Spec
 
 	affinity := strings.ToLower(spec.Affinity)
 	if !(affinity == "" || affinity == "no" || affinity == "pro" || affinity == "anti") {
@@ -91,12 +90,15 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	oldSpec := oldMachineTemplate.Spec.Spec.Spec
 
 	errorList := field.ErrorList(nil)
-	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.Offering.ID, spec.Offering.Name, oldSpec.Offering.ID, oldSpec.Offering.Name, "offering", errorList)
-	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.DiskOffering.ID, spec.DiskOffering.Name, oldSpec.DiskOffering.ID, oldSpec.DiskOffering.Name, "diskOffering", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
-	errorList = webhookutil.EnsureBothFieldsAreEqual(spec.Template.ID, spec.Template.Name, oldSpec.Template.ID, oldSpec.Template.Name, "template", errorList)
-	errorList = webhookutil.EnsureStringStringMapFieldsAreEqual(&spec.Details, &oldSpec.Details, "details", errorList)
-	errorList = webhookutil.EnsureStringFieldsAreEqual(spec.Affinity, oldSpec.Affinity, "affinity", errorList)
+	errorList = webhookutil.EnsureEqualStrings(spec.Offering.ID, oldSpec.Offering.ID, "offering", errorList)
+	errorList = webhookutil.EnsureEqualStrings(spec.Offering.Name, oldSpec.Offering.Name, "offering", errorList)
+	errorList = webhookutil.EnsureEqualStrings(spec.DiskOffering.ID, oldSpec.DiskOffering.ID, "diskOffering", errorList)
+	errorList = webhookutil.EnsureEqualStrings(spec.DiskOffering.Name, oldSpec.DiskOffering.Name, "diskOffering", errorList)
+	errorList = webhookutil.EnsureEqualStrings(spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
+	errorList = webhookutil.EnsureEqualStrings(spec.Template.ID, oldSpec.Template.ID, "template", errorList)
+	errorList = webhookutil.EnsureEqualStrings(spec.Template.Name, oldSpec.Template.Name, "template", errorList)
+	errorList = webhookutil.EnsureEqualMapStringString(&spec.Details, &oldSpec.Details, "details", errorList)
+	errorList = webhookutil.EnsureEqualStrings(spec.Affinity, oldSpec.Affinity, "affinity", errorList)
 
 	if !reflect.DeepEqual(spec.AffinityGroupIDs, oldSpec.AffinityGroupIDs) { // Equivalent to other Ensure funcs.
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"), "AffinityGroupIDs"))

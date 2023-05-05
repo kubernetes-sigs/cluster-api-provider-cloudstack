@@ -38,7 +38,6 @@ type CloudStackClusterSpec struct {
 
 // The status of the CloudStackCluster object.
 type CloudStackClusterStatus struct {
-
 	// CAPI recognizes failure domains as a method to spread machines.
 	// CAPC sets failure domains to indicate functioning CloudStackFailureDomains.
 	// +optional

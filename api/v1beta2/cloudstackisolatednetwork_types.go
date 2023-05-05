@@ -21,10 +21,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-const (
-	// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
-	IsolatedNetworkFinalizer = "cloudstackisolatednetwork.infrastructure.cluster.x-k8s.io"
-)
+// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
+const IsolatedNetworkFinalizer = "cloudstackisolatednetwork.infrastructure.cluster.x-k8s.io"
 
 // CloudStackIsolatedNetworkSpec defines the desired state of CloudStackIsolatedNetwork
 type CloudStackIsolatedNetworkSpec struct {

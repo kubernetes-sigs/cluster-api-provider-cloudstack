@@ -20,9 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	AffinityGroupFinalizer = "affinitygroup.infrastructure.cluster.x-k8s.io"
-)
+const AffinityGroupFinalizer = "affinitygroup.infrastructure.cluster.x-k8s.io"
 
 // CloudStackAffinityGroupSpec defines the desired state of CloudStackAffinityGroup
 type CloudStackAffinityGroupSpec struct {

@@ -16,9 +16,7 @@ limitations under the License.
 
 package v1beta2
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
+import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // CloudStackMachineStateCheckerSpec
 type CloudStackMachineStateCheckerSpec struct {

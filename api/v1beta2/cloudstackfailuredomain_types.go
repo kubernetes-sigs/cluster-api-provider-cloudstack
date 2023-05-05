@@ -35,8 +35,11 @@ func FailureDomainHashedMetaName(fdName, clusterName string) string {
 const (
 	FailureDomainFinalizer = "cloudstackfailuredomain.infrastructure.cluster.x-k8s.io"
 	FailureDomainLabelName = "cloudstackfailuredomain.infrastructure.cluster.x-k8s.io/name"
-	NetworkTypeIsolated    = "Isolated"
-	NetworkTypeShared      = "Shared"
+)
+
+const (
+	NetworkTypeIsolated = "Isolated"
+	NetworkTypeShared   = "Shared"
 )
 
 type Network struct {

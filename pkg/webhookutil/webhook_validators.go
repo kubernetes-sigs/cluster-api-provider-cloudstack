@@ -38,7 +38,7 @@ func EnsureAtLeastOneFieldExists(value1 string, value2 string, name string, allE
 	return allErrs
 }
 
-func EnsureStringFieldsAreEqual(new string, old string, name string, allErrs field.ErrorList) field.ErrorList {
+func EnsureEqualStrings(new string, old string, name string, allErrs field.ErrorList) field.ErrorList {
 	if new != old {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))
 	}
@@ -52,14 +52,7 @@ func EnsureIntFieldsAreNotNegative(new int64, name string, allErrs field.ErrorLi
 	return allErrs
 }
 
-func EnsureBothFieldsAreEqual(new1 string, new2 string, old1 string, old2 string, name string, allErrs field.ErrorList) field.ErrorList {
-	if new1 != old1 || new2 != old2 {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", name), name))
-	}
-	return allErrs
-}
-
-func EnsureStringStringMapFieldsAreEqual(new *map[string]string, old *map[string]string, name string, allErrs field.ErrorList) field.ErrorList {
+func EnsureEqualMapStringString(new *map[string]string, old *map[string]string, name string, allErrs field.ErrorList) field.ErrorList {
 	if old == nil && new == nil {
 		return allErrs
 	}
