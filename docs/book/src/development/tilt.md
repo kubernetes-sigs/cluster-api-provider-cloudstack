@@ -63,7 +63,7 @@ An example **tilt-settings.json**:
         "CLOUDSTACK_B64ENCODED_CREDENTIALS": "RANDOM_STRING==",
     },
     "debug": {
-    "CloudStack": {
+    "cloudstack": {
         "continue": true,
         "port": 30000
     }
