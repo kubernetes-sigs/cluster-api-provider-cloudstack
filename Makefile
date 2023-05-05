@@ -229,7 +229,7 @@ docker-push: .dockerflag.mk ## Push docker image with the manager.
 ## --------------------------------------
 
 .PHONY: tilt-up
-tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json manifests ## Setup and run tilt for development.
+tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json generate-manifests ## Setup and run tilt for development.
 	cd cluster-api && tilt up
 
 .PHONY: kind-cluster
