@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2
+package v1beta3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,6 +63,7 @@ func (n *CloudStackIsolatedNetwork) Network() *Network {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 
 // CloudStackIsolatedNetwork is the Schema for the cloudstackisolatednetworks API
 type CloudStackIsolatedNetwork struct {

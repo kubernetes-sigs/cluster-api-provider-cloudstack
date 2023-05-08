@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2
+package v1beta3
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -32,6 +32,7 @@ type CloudStackMachineStateCheckerStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 
 // CloudStackMachineStateChecker is the Schema for the cloudstackmachinestatecheckers API
 type CloudStackMachineStateChecker struct {

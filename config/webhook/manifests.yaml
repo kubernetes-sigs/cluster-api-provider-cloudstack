@@ -45,6 +45,46 @@ webhooks:
     resources:
     - cloudstackmachines
   sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster
+  failurePolicy: Fail
+  name: mcloudstackcluster.kb.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cloudstackclusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachine
+  failurePolicy: Fail
+  name: mcloudstackmachine.kb.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cloudstackmachines
+  sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -98,9 +138,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachinetemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster
   failurePolicy: Fail
-  name: vcloudstackmachinetemplate.kb.io
+  name: vcloudstackcluster.kb.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -110,5 +150,25 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - cloudstackmachinetemplates
+    - cloudstackclusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachine
+  failurePolicy: Fail
+  name: vcloudstackmachine.kb.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cloudstackmachines
   sideEffects: None

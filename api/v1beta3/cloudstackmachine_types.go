@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2
+package v1beta3
 
 import (
 	"time"
@@ -92,10 +92,6 @@ type CloudStackMachineSpec struct {
 	UncompressedUserData *bool `json:"uncompressedUserData,omitempty"`
 }
 
-func (c *CloudStackMachine) CompressUserdata() bool {
-	return c.Spec.UncompressedUserData == nil || !*c.Spec.UncompressedUserData
-}
-
 type CloudStackResourceIdentifier struct {
 	// Cloudstack resource ID.
 	// +optional
@@ -157,6 +153,7 @@ func (s *CloudStackMachineStatus) TimeSinceLastStateChange() time.Duration {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=cloudstackmachines,scope=Namespaced,categories=cluster-api,shortName=csm
+// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this CloudStackMachine belongs"
 // +kubebuilder:printcolumn:name="InstanceState",type="string",JSONPath=".status.instanceState",description="CloudStack instance state"
