@@ -128,7 +128,7 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 	)
 }
 
-// ConsiderAffinity sets machine affinity if needed. It also creates or gets an affinity group CRD if required and
+// ConsiderAffinity sets machine affinity if needed. It also creates or gets an affinity group resource if required and
 // checks it for readiness.
 func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result, error) {
 	if r.ReconciliationSubject.Spec.Affinity == infrav1.NoAffinity ||
@@ -138,7 +138,8 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 
 	agName, err := utils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
 	if err != nil {
-		r.Log.Info("getting affinity group name", err)
+		r.Log.Info("getting affinity group name", err.Error())
+		return ctrl.Result{}, err
 	}
 
 	// Set failure domain name and owners.
