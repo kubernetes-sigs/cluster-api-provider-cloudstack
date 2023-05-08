@@ -138,7 +138,6 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 
 	agName, err := utils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
 	if err != nil {
-		r.Log.Info("getting affinity group name", err.Error())
 		return ctrl.Result{}, err
 	}
 
