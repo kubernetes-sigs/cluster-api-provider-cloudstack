@@ -512,7 +512,17 @@ func CheckDiskOfferingOfVmInstances(client *cloudstack.CloudStackClient, cluster
 	}
 	for _, vm := range listResp.VirtualMachines {
 		if strings.Contains(vm.Name, clusterName) {
-			Expect(vm.Diskofferingname).To(Equal(diskOfferingName))
+			p := client.Volume.NewListVolumesParams()
+			p.SetVirtualmachineid(vm.Id)
+			volResp, err := client.Volume.ListVolumes(p)
+			if err != nil {
+				Fail(fmt.Sprintf("Failed to list volumes for VM instance %s", vm.Id))
+			}
+			for _, vol := range volResp.Volumes {
+				if strings.Contains(vol.Name, DataVolumePrefix) {
+					Expect(vol.Diskofferingname).To(Equal(diskOfferingName))
+				}
+			}
 		}
 	}
 }
