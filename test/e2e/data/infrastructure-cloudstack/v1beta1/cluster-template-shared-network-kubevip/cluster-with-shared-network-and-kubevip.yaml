@@ -43,7 +43,7 @@ spec:
         kubeletExtraArgs:
           provider-id: cloudstack:///'{{ ds.meta_data.instance_id }}'
     clusterConfiguration:
-      imageRepository: registry.k8s.io
+      imageRepository: ""
     joinConfiguration:
       nodeRegistration:
         name: '{{ local_hostname }}'
