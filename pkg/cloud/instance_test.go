@@ -17,6 +17,7 @@ limitations under the License.
 package cloud_test
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
@@ -264,14 +265,27 @@ var _ = Describe("Instance", func() {
 
 				deploymentResp := &cloudstack.DeployVirtualMachineResponse{Id: *dummies.CSMachine1.Spec.InstanceID}
 
+				expectUserData := "my special userdata"
+
 				vms.EXPECT().DeployVirtualMachine(gomock.Any()).Do(
 					func(p interface{}) {
-						displayName, _ := p.(*cloudstack.DeployVirtualMachineParams).GetDisplayname()
+						params := p.(*cloudstack.DeployVirtualMachineParams)
+						displayName, _ := params.GetDisplayname()
 						Ω(displayName == dummies.CAPIMachine.Name).Should(BeTrue())
+
+						b64UserData, _ := params.GetUserdata()
+
+						userData, err := base64.StdEncoding.DecodeString(b64UserData)
+						Ω(err).ToNot(HaveOccurred())
+
+						decompressedUserData, err := decompress(userData)
+						Ω(err).ToNot(HaveOccurred())
+
+						Ω(string(decompressedUserData)).To(Equal(expectUserData))
 					}).Return(deploymentResp, nil)
 
 				Ω(client.GetOrCreateVMInstance(
-					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, expectUserData)).
 					Should(Succeed())
 			}
 
@@ -423,6 +437,69 @@ var _ = Describe("Instance", func() {
 					Should(MatchError(MatchRegexp(requiredRegexp, dummies.CSMachine1.Spec.DiskOffering.ID, diskOfferingFakeID+"-not-match", dummies.CSMachine1.Spec.DiskOffering.Name)))
 
 			})
+		})
+
+		It("doesn't compress user data", func() {
+			dummies.CSMachine1.Spec.DiskOffering.ID = diskOfferingFakeID
+			dummies.CSMachine1.Spec.Offering.ID = ""
+			dummies.CSMachine1.Spec.Template.ID = ""
+			dummies.CSMachine1.Spec.Offering.Name = "offering"
+			dummies.CSMachine1.Spec.Template.Name = "template"
+			dummies.CSMachine1.Spec.UncompressedUserData = pointer.Bool(true)
+
+			vms.EXPECT().
+				GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
+				Return(nil, -1, notFoundError)
+			vms.EXPECT().
+				GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).
+				Return(&cloudstack.VirtualMachinesMetric{}, 1, nil)
+			vms.EXPECT().
+				GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).
+				Return(nil, -1, notFoundError)
+			sos.EXPECT().
+				GetServiceOfferingID(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
+				Return(offeringFakeID, 1, nil)
+			dos.EXPECT().
+				GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).
+				Return(diskOfferingFakeID, 1, nil)
+			dos.EXPECT().
+				GetDiskOfferingByID(dummies.CSMachine1.Spec.DiskOffering.ID).
+				Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
+			ts.EXPECT().
+				GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).
+				Return(templateFakeID, 1, nil)
+			vms.EXPECT().
+				NewDeployVirtualMachineParams(offeringFakeID, templateFakeID, dummies.Zone1.ID).
+				Return(&cloudstack.DeployVirtualMachineParams{})
+
+			deploymentResp := &cloudstack.DeployVirtualMachineResponse{
+				Id: *dummies.CSMachine1.Spec.InstanceID,
+			}
+
+			expectUserData := "my special userdata"
+
+			vms.EXPECT().DeployVirtualMachine(gomock.Any()).Do(
+				func(p interface{}) {
+					params := p.(*cloudstack.DeployVirtualMachineParams)
+					displayName, _ := params.GetDisplayname()
+					Ω(displayName == dummies.CAPIMachine.Name).Should(BeTrue())
+
+					// Ensure the user data is only base64 encoded.
+					b64UserData, _ := params.GetUserdata()
+					userData, err := base64.StdEncoding.DecodeString(b64UserData)
+					Ω(err).ToNot(HaveOccurred())
+					Ω(string(userData)).To(Equal(expectUserData))
+				}).Return(deploymentResp, nil)
+
+			err := client.GetOrCreateVMInstance(
+				dummies.CSMachine1,
+				dummies.CAPIMachine,
+				dummies.CSCluster,
+				dummies.CSFailureDomain1,
+				dummies.CSAffinityGroup,
+				expectUserData,
+			)
+			Ω(err).Should(Succeed())
 		})
 	})
 

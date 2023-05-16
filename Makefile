@@ -263,7 +263,8 @@ config/.flag-test.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS_TEST)
 	@touch config/.flag-test.mk
 
 .PHONY: test
-test: generate-deepcopy-test generate-manifest-test generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) ## Run tests. At the moment this is only unit tests.
+test: ## Run tests.
+test: generate-deepcopy-test generate-manifest-test generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD)
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
