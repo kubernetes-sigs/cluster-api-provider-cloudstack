@@ -164,6 +164,7 @@ func (c *client) ResolveUser(user *User) error {
 	p.SetAccount(user.Account.Name)
 	p.SetDomainid(user.Domain.ID)
 	p.SetListall(true)
+	setIfNotEmpty(user.ID, p.SetId)
 	resp, err := c.cs.User.ListUsers(p)
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
