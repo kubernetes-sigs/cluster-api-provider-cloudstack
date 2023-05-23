@@ -92,6 +92,10 @@ type CloudStackMachineSpec struct {
 	UncompressedUserData *bool `json:"uncompressedUserData,omitempty"`
 }
 
+func (c *CloudStackMachine) CompressUserdata() bool {
+	return c.Spec.UncompressedUserData == nil || !*c.Spec.UncompressedUserData
+}
+
 type CloudStackResourceIdentifier struct {
 	// Cloudstack resource ID.
 	// +optional
