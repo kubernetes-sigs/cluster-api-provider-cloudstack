@@ -292,6 +292,7 @@ run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select 
 	kind delete clusters capi-test
 
 run-e2e-smoke:
+	hack/ensure-kind.sh
 	JOB="\"CAPC E2E SMOKE TEST\"" $(MAKE) run-e2e
 
 ##@ Cleanup
