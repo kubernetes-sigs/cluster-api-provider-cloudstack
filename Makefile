@@ -298,6 +298,9 @@ run-e2e-smoke:
 	./hack/ensure-cloud-config-yaml.sh
 	JOB="\"CAPC E2E SMOKE TEST\"" $(MAKE) run-e2e
 
+run-e2e-smoke:
+	JOB="\"CAPC E2E SMOKE TEST\"" $(MAKE) run-e2e
+
 ##@ Cleanup
 ## --------------------------------------
 ## Cleanup

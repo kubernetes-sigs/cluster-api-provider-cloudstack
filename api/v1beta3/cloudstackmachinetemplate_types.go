@@ -18,18 +18,9 @@ package v1beta3
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-type CloudStackMachineTemplateResource struct {
-	// Standard object's metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-	// +optional
-	// +nullable
-	ObjectMeta metav1.ObjectMeta     `json:"metadata,omitempty"`
-	Spec       CloudStackMachineSpec `json:"spec"`
-}
-
 // CloudStackMachineTemplateSpec defines the desired state of CloudStackMachineTemplate
 type CloudStackMachineTemplateSpec struct {
-	Spec CloudStackMachineTemplateResource `json:"template"`
+	Template CloudStackMachineSpec `json:"template"`
 }
 
 //+kubebuilder:object:root=true

@@ -82,7 +82,6 @@ type CloudStackMachineSpec struct {
 
 	// FailureDomainName -- the name of the FailureDomain the machine is placed in.
 	// +optional
-	// +k8s:conversion-gen=false
 	FailureDomainName string `json:"failureDomainName,omitempty"`
 
 	// UncompressedUserData specifies whether the user data is gzip-compressed.
