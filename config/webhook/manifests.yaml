@@ -92,23 +92,3 @@ webhooks:
     resources:
     - cloudstackmachines
   sideEffects: None
-- admissionReviewVersions:
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachinetemplate
-  failurePolicy: Fail
-  name: vcloudstackmachinetemplate.kb.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - cloudstackmachinetemplates
-  sideEffects: None
