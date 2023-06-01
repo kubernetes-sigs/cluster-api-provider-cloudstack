@@ -289,10 +289,13 @@ run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select 
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${E2E_CONFIG} \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	EXIT_STATUS=$$?
 	kind delete clusters capi-test
+	exit $$EXIT_STATUS
 
 run-e2e-smoke:
-	hack/ensure-kind.sh
+	./hack/ensure-kind.sh
+	./hack/ensure-cloud-config-yaml.sh
 	JOB="\"CAPC E2E SMOKE TEST\"" $(MAKE) run-e2e
 
 ##@ Cleanup
