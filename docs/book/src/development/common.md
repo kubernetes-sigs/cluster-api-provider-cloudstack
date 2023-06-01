@@ -65,11 +65,7 @@
     KUBECONFIG=capc-cluster.kubeconfig kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/master/manifests/calico.yaml
     
     ```    
-    
-    ```
      or
- 
-    ```
     
     ```
     KUBECONFIG=capc-cluster.kubeconfig kubectl apply -f https://raw.githubusercontent.com/weaveworks/weave/master/prog/weave-kube/weave-daemonset-k8s-1.11.yaml
