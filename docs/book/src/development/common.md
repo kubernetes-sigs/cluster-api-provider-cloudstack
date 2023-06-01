@@ -60,9 +60,20 @@
     clusterctl get kubeconfig capc-cluster > capc-cluster.kubeconfig
     ```
 
-6. Install calico on the workload cluster so that pods can see each other
+6. Install calico or weave net cni plugin on the workload cluster so that pods can see each other
     ```
-    KUBECONFIG=capc-cluster.kubeconfig kubectl apply -f https://projectcalico.docs.tigera.io/manifests/calico.yaml
+    KUBECONFIG=capc-cluster.kubeconfig kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/master/manifests/calico.yaml
+    
+    ```    
+    
+    ```
+     or
+ 
+    ```
+    
+    ```
+    KUBECONFIG=capc-cluster.kubeconfig kubectl apply -f https://raw.githubusercontent.com/weaveworks/weave/master/prog/weave-kube/weave-daemonset-k8s-1.11.yaml
+    
     ```
 
 7. Verify the K8s cluster is fully up.  (It may take a minute for the nodes status to all reach *ready* state.)
@@ -87,7 +98,7 @@ KUBECONFIG=capc-cluster.kubeconfig kubectl logs test-thing
 ```
 
 ### kubectl/clusterctl Reference:
-- Pods in capc-cluster -- cluster running in Apache CloudStack
+- Pods in capc-cluster -- cluster running in Apache CloudStack with calico cni
 ```
 % KUBECONFIG=capc-cluster.kubeconfig kubectl get pods -A
 NAMESPACE     NAME                                                       READY   STATUS      RESTARTS   AGE
@@ -103,6 +114,23 @@ kube-system   kube-controller-manager-capc-cluster-control-plane-tknwx   1/1    
 kube-system   kube-proxy-6g9zb                                           1/1     Running     0          9m3s
 kube-system   kube-proxy-7gjbv                                           1/1     Running     0          9m18s
 kube-system   kube-scheduler-capc-cluster-control-plane-tknwx            1/1     Running     0          9m21s
+```
+- Pods in capc-cluster -- cluster running in Apache CloudStack with weave net cni
+
+```
+%KUBECONFIG=capc-cluster.kubeconfig kubectl get pods -A
+NAMESPACE     NAME                                                       READY   STATUS      RESTARTS       AGE
+default       test-thing                                                 0/1     Completed   0              38s
+kube-system   coredns-5d78c9869d-9xq2s                                   1/1     Running     0              21h
+kube-system   coredns-5d78c9869d-gphs2                                   1/1     Running     0              21h
+kube-system   etcd-capc-cluster-control-plane-49khm                      1/1     Running     0              21h
+kube-system   kube-apiserver-capc-cluster-control-plane-49khm            1/1     Running     0              21h
+kube-system   kube-controller-manager-capc-cluster-control-plane-49khm   1/1     Running     0              21h
+kube-system   kube-proxy-8lfnm                                           1/1     Running     0              21h
+kube-system   kube-proxy-brj78                                           1/1     Running     0              21h
+kube-system   kube-scheduler-capc-cluster-control-plane-49khm            1/1     Running     0              21h
+kube-system   weave-net-rqckr                                            2/2     Running     1 (3h8m ago)   3h8m
+kube-system   weave-net-rzms4                                            2/2     Running     1 (3h8m ago)   3h8m
 ```
 
 - Pods in original kind cluster (also called bootstrap cluster, management cluster)
