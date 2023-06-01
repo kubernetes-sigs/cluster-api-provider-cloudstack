@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"strconv"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -205,18 +206,20 @@ func DeployAppToWorkloadClusterAndWaitForDeploymentReady(ctx context.Context, wo
 func DownloadFromAppInWorkloadCluster(ctx context.Context, workloadKubeconfigPath string, appName string, port int, path string) (string, error) {
 	runArgs := []string{
 		// Required by below: container name is runArg zero.
-		"dummy", "-i", "--restart=Never", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", "--show-error", fmt.Sprintf("%s:%d%s", appName, port, path),
+		"dummy", "-i", "--restart=Never", "--image=gcr.io/cloud-builders/curl", "--command", "--", "curl", "--silent", "--show-error", fmt.Sprintf("%s:%d%s", appName, port, path),
 	}
 	var result, err = KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
 	if err != nil {
 		return result, err
 	}
-	if result == "" {
+	numRetries := 3
+	for result == "" && numRetries > 0 {
 		// A single retry to accommodate occasional cases where an empty string is returned, ostensibly
 		//  because the service isn't fully ready.  Subsequent requests have always worked.
-		fmt.Println("Retrying html download")
+		numRetries--
+		fmt.Println("Retrying html download. Number of retries remaining:", numRetries)
 		time.Sleep(5 * time.Second)
-		runArgs[0] = "dummy2" // Assumed: container name is runArg zero.
+		runArgs[0] = "dummy" + strconv.Itoa(numRetries) // Assumed: container name is runArg zero.
 		result, err = KubectlExec(ctx, "run", workloadKubeconfigPath, runArgs...)
 	}
 	return result, err
@@ -232,7 +235,7 @@ func DownloadMetricsFromCAPCManager(ctx context.Context, bootstrapKubeconfigPath
 
 	// Scrape the metrics from the service
 	runArgs = []string{
-		"-i", "--restart=Never", "dummy", "--image=dockerqa/curl:ubuntu-trusty", "--command", "--", "curl", "--silent", "capc-controller-manager-metrics.capc-system:8080/metrics",
+		"-i", "--restart=Never", "dummy", "--image=gcr.io/cloud-builders/curl", "--command", "--", "curl", "--silent", "capc-controller-manager-metrics.capc-system:8080/metrics",
 	}
 	result, err := KubectlExec(ctx, "run", bootstrapKubeconfigPath, runArgs...)
 	Ω(err).ShouldNot(HaveOccurred())
