@@ -35,6 +35,7 @@ It is built atop the lessons learned from previous cluster managers such as [kop
 
 Check out the [Getting Started Guide][getting_started] to create your first Kubernetes cluster on Apache CloudStack using Cluster API.
 
+
 ## Features
 
 - Native Kubernetes manifests and API
