@@ -26,9 +26,6 @@ _artifacts
 # CAPI used with Tilt.
 cluster-api
 
-# Ignore output of Makefile sed operations created when generating manifests.
-config/default/manager_image_patch_edited.yaml
-
 # Ignore output of e2e kustomization of templates.
 test/e2e/data/infrastructure-cloudstack/v1beta*/*yaml
 

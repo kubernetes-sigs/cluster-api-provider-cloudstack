@@ -318,8 +318,10 @@ RELEASE_MANIFEST_INPUTS=$(KUSTOMIZE) config/.flag.mk $(shell find config)
 RELEASE_MANIFEST_SOURCE_BASE ?= config/default
 release-manifests: $(RELEASE_MANIFEST_TARGETS) ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
 $(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
+	rm -rf $(RELEASE_DIR)
 	@mkdir -p $(RELEASE_DIR)
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
+	sed -i'' -e 's@image: .*@image: '"$(IMG)"'@' config/default/manager_image_patch.yaml
 	$(KUSTOMIZE) build $(RELEASE_MANIFEST_SOURCE_BASE) > $(RELEASE_DIR)/infrastructure-components.yaml
 
 .PHONY: release-manifests-metrics-port
