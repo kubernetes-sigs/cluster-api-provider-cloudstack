@@ -25,7 +25,7 @@ bases:
 #- ../prometheus
 
 patchesStrategicMerge:
-- manager_image_patch_edited.yaml
+- manager_image_patch.yaml
 - manager_webhook_patch.yaml
 - webhookcainjection_patch.yaml
 - manager_prometheus_metrics_patch.yaml
