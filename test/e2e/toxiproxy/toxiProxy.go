@@ -203,11 +203,13 @@ func SetupForToxiProxyTestingACS(ctx context.Context, clusterName string, cluste
 	Expect(err).To(BeNil())
 
 	// Override the test config to use this alternate cloud-config secret
+	originalSecretName := e2eConfig.GetVariable("CLOUDSTACK_FD1_SECRET_NAME")
 	e2eConfig.Variables["CLOUDSTACK_FD1_SECRET_NAME"] = toxiProxyFdEndpointSecret.Name
 
 	// Overriding e2e config file into a new temp copy, so as not to inadvertently override the other e2e tests.
 	newConfigFilePath := fmt.Sprintf("/tmp/%v.yaml", toxiProxyName)
 	editConfigFile(newConfigFilePath, configPath, "CLOUDSTACK_FD1_SECRET_NAME", toxiProxyFdEndpointSecret.Name)
+	e2eConfig.Variables["CLOUDSTACK_FD1_SECRET_NAME"] = originalSecretName
 
 	// Return a context
 	return &Context{
