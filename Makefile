@@ -119,6 +119,8 @@ fmt: ## Run go fmt on the whole project.
 
 .PHONY: vet
 vet: ## Run go vet on the whole project.
+	ls /home/prow/go/src/github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1
+	go test ./api/...
 	go vet ./...
 
 .PHONY: lint
