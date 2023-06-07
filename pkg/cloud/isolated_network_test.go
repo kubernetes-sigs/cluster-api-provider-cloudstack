@@ -84,10 +84,24 @@ var _ = Describe("Network", func() {
 					PublicIpAddresses: []*csapi.PublicIpAddress{{Id: dummies.PublicIPID, Ipaddress: "fakeIP"}}}, nil)
 			as.EXPECT().NewAssociateIpAddressParams().Return(&csapi.AssociateIpAddressParams{})
 			as.EXPECT().AssociateIpAddress(gomock.Any())
-			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, cloud.NetworkProtocolTCP).
-				Return(&csapi.CreateEgressFirewallRuleParams{})
-			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
-				Return(&csapi.CreateEgressFirewallRuleResponse{}, nil)
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, gomock.Any()).
+				DoAndReturn(func(networkid string, protocol string) *csapi.CreateEgressFirewallRuleParams {
+					p := &csapi.CreateEgressFirewallRuleParams{}
+					if protocol == "icmp" {
+						p.SetIcmptype(-1)
+						p.SetIcmpcode(-1)
+					}
+					return p
+				}).Times(3)
+
+			ruleParamsICMP := &csapi.CreateEgressFirewallRuleParams{}
+			ruleParamsICMP.SetIcmptype(-1)
+			ruleParamsICMP.SetIcmpcode(-1)
+			gomock.InOrder(
+				fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
+					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil).Times(2),
+				fs.EXPECT().CreateEgressFirewallRule(ruleParamsICMP).
+					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil))
 
 			// Will add cluster tag once to Network and once to PublicIP.
 			createdByResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: cloud.CreatedByCAPCTagName, Value: "1"}}}
@@ -124,10 +138,24 @@ var _ = Describe("Network", func() {
 	Context("for a closed firewall", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall", func() {
 			dummies.Zone1.Network = dummies.ISONet1
-			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, cloud.NetworkProtocolTCP).
-				Return(&csapi.CreateEgressFirewallRuleParams{})
-			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
-				Return(&csapi.CreateEgressFirewallRuleResponse{}, nil)
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, gomock.Any()).
+				DoAndReturn(func(networkid string, protocol string) *csapi.CreateEgressFirewallRuleParams {
+					p := &csapi.CreateEgressFirewallRuleParams{}
+					if protocol == "icmp" {
+						p.SetIcmptype(-1)
+						p.SetIcmpcode(-1)
+					}
+					return p
+				}).Times(3)
+
+			ruleParamsICMP := &csapi.CreateEgressFirewallRuleParams{}
+			ruleParamsICMP.SetIcmptype(-1)
+			ruleParamsICMP.SetIcmpcode(-1)
+			gomock.InOrder(
+				fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
+					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil).Times(2),
+				fs.EXPECT().CreateEgressFirewallRule(ruleParamsICMP).
+					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil))
 
 			Ω(client.OpenFirewallRules(dummies.CSISONet1)).Should(Succeed())
 		})
@@ -137,10 +165,24 @@ var _ = Describe("Network", func() {
 		It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
 			dummies.Zone1.Network = dummies.ISONet1
 
-			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, "tcp").
-				Return(&csapi.CreateEgressFirewallRuleParams{})
-			fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
-				Return(&csapi.CreateEgressFirewallRuleResponse{}, errors.New("there is already a rule like this"))
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, gomock.Any()).
+				DoAndReturn(func(networkid string, protocol string) *csapi.CreateEgressFirewallRuleParams {
+					p := &csapi.CreateEgressFirewallRuleParams{}
+					if protocol == "icmp" {
+						p.SetIcmptype(-1)
+						p.SetIcmpcode(-1)
+					}
+					return p
+				}).Times(3)
+
+			ruleParamsICMP := &csapi.CreateEgressFirewallRuleParams{}
+			ruleParamsICMP.SetIcmptype(-1)
+			ruleParamsICMP.SetIcmpcode(-1)
+			gomock.InOrder(
+				fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
+					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil).Times(2),
+				fs.EXPECT().CreateEgressFirewallRule(ruleParamsICMP).
+					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil))
 
 			Ω(client.OpenFirewallRules(dummies.CSISONet1)).Should(Succeed())
 		})
