@@ -149,7 +149,7 @@ DEEPCOPY_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_gener
 .PHONY: generate-deepcopy
 generate-deepcopy: $(DEEPCOPY_GEN_TARGETS) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 api/%/zz_generated.deepcopy.go: $(CONTROLLER_GEN) $(DEEPCOPY_GEN_INPUTS)
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	CGO_ENABLED=0 $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 MANIFEST_GEN_INPUTS=$(shell find ./api ./controllers -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
 # Using a flag file here as config output is too complicated to be a target.
