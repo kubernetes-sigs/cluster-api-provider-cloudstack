@@ -119,14 +119,10 @@ fmt: ## Run go fmt on the whole project.
 
 .PHONY: vet
 vet: ## Run go vet on the whole project.
-	ls /home/prow/go/src/github.com/kubernetes-sigs/cluster-api-provider-cloudstack/api/v1beta1
-	go test ./api/...
 	go vet ./...
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) $(STATIC_CHECK) generate-go ## Run linting for the project.
-	$(MAKE) fmt
-	$(MAKE) vet
+lint: $(GOLANGCI_LINT) $(STATIC_CHECK) fmt vet ## Run linting for the project.
 	$(GOLANGCI_LINT) run -v --timeout 360s ./...
 	$(STATIC_CHECK) ./...
 	@ # The below string of commands checks that ginkgo isn't present in the controllers.
@@ -181,7 +177,7 @@ generate-conversion: $(CONVERSION_GEN)
 
 MANAGER_BIN_INPUTS=$(shell find ./controllers ./api ./pkg -name "*mock*" -prune -o -name "*test*" -prune -o -type f -print) main.go go.mod go.sum
 .PHONY: build
-build: binaries generate lint release-manifests ## Build manager binary.
+build: lint binaries generate release-manifests ## Build manager binary.
 $(BIN_DIR)/manager: $(MANAGER_BIN_INPUTS)
 	go build -o $(BIN_DIR)/manager main.go
 
@@ -262,7 +258,7 @@ generate-manifest-test: $(CONTROLLER_GEN) ## Generates crd, webhook, rbac, and o
 
 .PHONY: test
 test: ## Run tests.
-test: generate generate-manifest-test lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD)
+test: lint generate generate-manifest-test $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD)
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
