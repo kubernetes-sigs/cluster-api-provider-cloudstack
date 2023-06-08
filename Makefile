@@ -316,13 +316,15 @@ clean: ## Cleans up everything.
 ## Release
 ## --------------------------------------
 
+$(RELEASE_DIR):
+	@mkdir -p $(RELEASE_DIR)
+
 .PHONY: release-manifests
 RELEASE_MANIFEST_TARGETS=$(RELEASE_DIR)/infrastructure-components.yaml $(RELEASE_DIR)/metadata.yaml
 RELEASE_MANIFEST_INPUTS=$(KUSTOMIZE) config/.flag.mk $(shell find config)
 RELEASE_MANIFEST_SOURCE_BASE ?= config/default
 release-manifests: $(RELEASE_MANIFEST_TARGETS) ## Create kustomized release manifest in $RELEASE_DIR (defaults to out).
-$(RELEASE_DIR)/%: $(RELEASE_MANIFEST_INPUTS)
-	@mkdir -p $(RELEASE_DIR)
+$(RELEASE_DIR)/%: $(RELEASE_DIR) $(RELEASE_MANIFEST_INPUTS)
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 	$(KUSTOMIZE) build $(RELEASE_MANIFEST_SOURCE_BASE) > $(RELEASE_DIR)/infrastructure-components.yaml
 
