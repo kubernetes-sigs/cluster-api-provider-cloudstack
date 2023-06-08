@@ -344,7 +344,8 @@ release-alias-tag: # Adds the tag to the last build tag.
 	gcloud container images add-tag -q $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-templates
-release-templates: $(RELEASE_DIR) ## Generate release templates
+release-templates: ## Generate release templates
+	@mkdir -p $(RELEASE_DIR)
 	cp templates/cluster-template*.yaml $(RELEASE_DIR)/
 
 .PHONY: upload-staging-artifacts
