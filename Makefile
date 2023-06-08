@@ -310,6 +310,7 @@ clean: ## Cleans up everything.
 	rm -rf $(TOOLS_BIN_DIR)
 	rm -rf cluster-api
 	rm -rf test/e2e/data/infrastructure-cloudstack/*/*yaml
+	rm -rf config/.flag.mk config/.flag-test.mk .dockerflag.mk
 
 ##@ Release
 ## --------------------------------------
