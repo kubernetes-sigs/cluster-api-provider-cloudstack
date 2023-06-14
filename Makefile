@@ -149,7 +149,7 @@ DEEPCOPY_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_gener
 .PHONY: generate-deepcopy
 generate-deepcopy: $(DEEPCOPY_GEN_TARGETS) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 api/%/zz_generated.deepcopy.go: $(CONTROLLER_GEN) $(DEEPCOPY_GEN_INPUTS)
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	CGO_ENABLED=0 $(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 MANIFEST_GEN_INPUTS=$(shell find ./api ./controllers -type f -name "*test*" -prune -o -name "*zz_generated*" -prune -o -print)
 # Using a flag file here as config output is too complicated to be a target.
@@ -237,7 +237,7 @@ kind-cluster: cluster-api ## Create a kind cluster with a local Docker repositor
 	./cluster-api/hack/kind-install-for-capd.sh
 
 cluster-api: ## Clone cluster-api repository for tilt use.
-	git clone --branch v1.2.11 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
+	git clone --branch v1.2.12 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
 
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
@@ -263,13 +263,14 @@ config/.flag-test.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS_TEST)
 	@touch config/.flag-test.mk
 
 .PHONY: test
-test: generate-deepcopy-test generate-manifest-test generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) ## Run tests. At the moment this is only unit tests.
+test: ## Run tests.
+test: generate-deepcopy-test generate-manifest-test generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD)
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 
-CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/*/cluster-template* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
+CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/cluster-template* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
 CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)
 .PHONY: e2e-cluster-templates
 e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster template files for e2e testing.
@@ -288,7 +289,14 @@ run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select 
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${E2E_CONFIG} \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	EXIT_STATUS=$$?
 	kind delete clusters capi-test
+	exit $$EXIT_STATUS
+
+run-e2e-smoke:
+	./hack/ensure-kind.sh
+	./hack/ensure-cloud-config-yaml.sh
+	JOB="\"CAPC E2E SMOKE TEST\"" $(MAKE) run-e2e
 
 ##@ Cleanup
 ## --------------------------------------
@@ -302,6 +310,7 @@ clean: ## Cleans up everything.
 	rm -rf $(TOOLS_BIN_DIR)
 	rm -rf cluster-api
 	rm -rf test/e2e/data/infrastructure-cloudstack/*/*yaml
+	rm -rf config/.flag.mk config/.flag-test.mk .dockerflag.mk
 
 ##@ Release
 ## --------------------------------------
@@ -336,7 +345,8 @@ release-alias-tag: # Adds the tag to the last build tag.
 	gcloud container images add-tag -q $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-templates
-release-templates: $(RELEASE_DIR) ## Generate release templates
+release-templates: ## Generate release templates
+	@mkdir -p $(RELEASE_DIR)
 	cp templates/cluster-template*.yaml $(RELEASE_DIR)/
 
 .PHONY: upload-staging-artifacts

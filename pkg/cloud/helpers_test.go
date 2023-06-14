@@ -24,26 +24,9 @@ import (
 	"reflect"
 
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 )
-
-var _ = Describe("Helpers", func() {
-
-	It("should compress and encode string", func() {
-		str := "Hello World"
-
-		compressedData, err := cloud.CompressString(str)
-
-		reader, _ := gzip.NewReader(bytes.NewReader([]byte(compressedData)))
-		result, _ := io.ReadAll(reader)
-
-		Ω(err).Should(BeNil())
-		Ω(string(result)).Should(Equal(str))
-	})
-})
 
 // This matcher is used to make gomega matching compatible with gomock parameter matching.
 // It's pretty awesome!
@@ -91,9 +74,16 @@ func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
 	}
 }
 
-var (
-	DomainIDEquals = FieldMatcherGenerator("GetDomainid")
-	AccountEquals  = FieldMatcherGenerator("GetAccount")
-	IDEquals       = FieldMatcherGenerator("GetId")
-	NameEquals     = FieldMatcherGenerator("GetName")
-)
+var NameEquals = FieldMatcherGenerator("GetName")
+
+func decompress(data []byte) ([]byte, error) {
+	reader, err := gzip.NewReader(bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
+	data, err = io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}

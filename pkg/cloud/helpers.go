@@ -18,7 +18,7 @@ package cloud
 
 import (
 	"bytes"
-	"compress/gzip"
+	cgzip "compress/gzip"
 )
 
 type set func(string)
@@ -43,13 +43,13 @@ func setIntIfPositive(num int64, setFn setInt) {
 	}
 }
 
-func CompressString(str string) (string, error) {
-	buf := &bytes.Buffer{}
-	gzipWriter := gzip.NewWriter(buf)
-	if _, err := gzipWriter.Write([]byte(str)); err != nil {
+func compress(str string) (string, error) {
+	var buf bytes.Buffer
+	w := cgzip.NewWriter(&buf)
+	if _, err := w.Write([]byte(str)); err != nil {
 		return "", err
 	}
-	if err := gzipWriter.Close(); err != nil {
+	if err := w.Close(); err != nil {
 		return "", err
 	}
 	return buf.String(), nil

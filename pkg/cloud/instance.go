@@ -214,7 +214,8 @@ func (c *client) GetOrCreateVMInstance(
 	csCluster *infrav1.CloudStackCluster,
 	fd *infrav1.CloudStackFailureDomain,
 	affinity *infrav1.CloudStackAffinityGroup,
-	userData string) error {
+	userData string,
+) error {
 
 	// Check if VM instance already exists.
 	if err := c.ResolveVMInstanceDetails(csMachine); err == nil ||
@@ -245,19 +246,19 @@ func (c *client) GetOrCreateVMInstance(
 
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
-	userData, err = handleUserData(userData, csMachine.Spec.UncompressedUserData)
-	if err != nil {
-		return err
+	if csMachine.CompressUserdata() {
+		userData, err = compress(userData)
+		if err != nil {
+			return err
+		}
 	}
+	userData = base64.StdEncoding.EncodeToString([]byte(userData))
 	setIfNotEmpty(userData, p.SetUserdata)
 
 	if len(csMachine.Spec.AffinityGroupIDs) > 0 {
 		p.SetAffinitygroupids(csMachine.Spec.AffinityGroupIDs)
 	} else if strings.ToLower(csMachine.Spec.Affinity) != "no" && csMachine.Spec.Affinity != "" {
 		p.SetAffinitygroupids([]string{affinity.Spec.ID})
-		if err != nil {
-			return err
-		}
 	}
 
 	if csMachine.Spec.Details != nil {
@@ -268,21 +269,22 @@ func (c *client) GetOrCreateVMInstance(
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 
-		// Just because an error was returned doesn't mean a (failed) VM wasn't created and will need to be dealt with.
-		// Regretfully the deployVMResp may be nil, so we need to get the VM ID with a separate query, so we
-		// can return it to the caller, so they can clean it up.
-		listVirtualMachineParams := c.cs.VirtualMachine.NewListVirtualMachinesParams()
-		listVirtualMachineParams.SetTemplateid(templateID)
-		listVirtualMachineParams.SetZoneid(fd.Spec.Zone.ID)
-		listVirtualMachineParams.SetNetworkid(fd.Spec.Zone.Network.ID)
-		listVirtualMachineParams.SetName(csMachine.Name)
-		listVirtualMachinesResponse, err2 := c.cs.VirtualMachine.ListVirtualMachines(listVirtualMachineParams)
-		if err2 != nil || listVirtualMachinesResponse.Count <= 0 {
-			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err2)
+		// CloudStack may have created the VM even though it reported an error. We attempt to
+		// retrieve the VM so we can populate the CloudStackMachine for the user to manually
+		// clean up.
+		vm, findErr := findVirtualMachine(c.cs.VirtualMachine, templateID, fd, csMachine)
+		if findErr != nil {
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(findErr)
+			return fmt.Errorf("%v; find virtual machine: %v", err, findErr)
+		}
+
+		// We didn't find a VM so return the original error.
+		if vm == nil {
 			return err
 		}
-		csMachine.Spec.InstanceID = pointer.String(listVirtualMachinesResponse.VirtualMachines[0].Id)
-		csMachine.Status.InstanceState = listVirtualMachinesResponse.VirtualMachines[0].State
+
+		csMachine.Spec.InstanceID = pointer.String(vm.Id)
+		csMachine.Status.InstanceState = vm.State
 	} else {
 		csMachine.Spec.InstanceID = pointer.String(deployVMResp.Id)
 		csMachine.Status.Status = pointer.String(metav1.StatusSuccess)
@@ -290,6 +292,32 @@ func (c *client) GetOrCreateVMInstance(
 	// Resolve uses a VM metrics request response to fill cloudstack machine status.
 	// The deployment response is insufficient.
 	return c.ResolveVMInstanceDetails(csMachine)
+}
+
+// findVirtualMachine retrieves a virtual machine by matching its expected name, template, failure
+// domain zone and failure domain network. If no virtual machine is found it returns nil, nil.
+func findVirtualMachine(
+	client cloudstack.VirtualMachineServiceIface,
+	templateID string,
+	failureDomain *infrav1.CloudStackFailureDomain,
+	machine *infrav1.CloudStackMachine,
+) (*cloudstack.VirtualMachine, error) {
+	params := client.NewListVirtualMachinesParams()
+	params.SetTemplateid(templateID)
+	params.SetZoneid(failureDomain.Spec.Zone.ID)
+	params.SetNetworkid(failureDomain.Spec.Zone.Network.ID)
+	params.SetName(machine.Name)
+
+	response, err := client.ListVirtualMachines(params)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.Count == 0 {
+		return nil, nil
+	}
+
+	return response.VirtualMachines[0], nil
 }
 
 // DestroyVMInstance Destroys a VM instance. Assumes machine has been fetched prior and has an instance ID.
@@ -345,16 +373,4 @@ func (c *client) listVMInstanceDatadiskVolumeIDs(instanceID string) ([]string, e
 
 	return ret, nil
 
-}
-
-// handleUserData optionally compresses and then base64 encodes userdata
-func handleUserData(userData string, uncompressed *bool) (string, error) {
-	var err error
-	if uncompressed != nil && !*uncompressed {
-		userData, err = CompressString(userData)
-		if err != nil {
-			return "", err
-		}
-	}
-	return base64.StdEncoding.EncodeToString([]byte(userData)), nil
 }

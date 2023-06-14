@@ -33,6 +33,8 @@ const (
 	NetworkTypeIsolated = "Isolated"
 	NetworkTypeShared   = "Shared"
 	NetworkProtocolTCP  = "tcp"
+	NetworkProtocolUDP  = "udp"
+	NetworkProtocolICMP = "icmp"
 )
 
 // NetworkExists checks that the network already exists based on the presence of all fields.
