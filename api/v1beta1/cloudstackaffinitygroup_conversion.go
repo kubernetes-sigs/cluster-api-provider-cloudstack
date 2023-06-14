@@ -17,16 +17,16 @@ limitations under the License.
 package v1beta1
 
 import (
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func (src *CloudStackAffinityGroup) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*v1beta3.CloudStackAffinityGroup)
-	return Convert_v1beta1_CloudStackAffinityGroup_To_v1beta3_CloudStackAffinityGroup(src, dst, nil)
+	dst := dstRaw.(*v1beta2.CloudStackAffinityGroup)
+	return Convert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(src, dst, nil)
 }
 
 func (dst *CloudStackAffinityGroup) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*v1beta3.CloudStackAffinityGroup)
-	return Convert_v1beta3_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(src, dst, nil)
+	src := srcRaw.(*v1beta2.CloudStackAffinityGroup)
+	return Convert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(src, dst, nil)
 }
