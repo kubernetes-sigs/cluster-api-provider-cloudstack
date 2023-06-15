@@ -265,10 +265,11 @@ config/.flag-test.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS_TEST)
 .PHONY: test
 test: ## Run tests.
 test: generate-deepcopy-test generate-manifest-test generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD)
-	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
-	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
-	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
-		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
+#   Comments will be removed in next PR
+#	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
+#	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
+#	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
+#		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 
 CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/cluster-template* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
 CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)

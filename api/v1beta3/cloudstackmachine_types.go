@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2
+package v1beta3
 
 import (
 	"time"
@@ -82,19 +82,13 @@ type CloudStackMachineSpec struct {
 
 	// FailureDomainName -- the name of the FailureDomain the machine is placed in.
 	// +optional
-	// +k8s:conversion-gen=false
 	FailureDomainName string `json:"failureDomainName,omitempty"`
 
 	// UncompressedUserData specifies whether the user data is gzip-compressed.
 	// cloud-init has built-in support for gzip-compressed user data, ignition does not
 	//
 	// +optional
-	// +k8s:conversion-gen=false
 	UncompressedUserData *bool `json:"uncompressedUserData,omitempty"`
-}
-
-func (c *CloudStackMachine) CompressUserdata() bool {
-	return c.Spec.UncompressedUserData == nil || !*c.Spec.UncompressedUserData
 }
 
 type CloudStackResourceIdentifier struct {
@@ -140,12 +134,10 @@ type CloudStackMachineStatus struct {
 
 	// Status indicates the status of the provider resource.
 	// +optional
-	// +k8s:conversion-gen=false
 	Status *string `json:"status,omitempty"`
 
 	// Reason indicates the reason of status failure
 	// +optional
-	// +k8s:conversion-gen=false
 	Reason *string `json:"reason,omitempty"`
 }
 
@@ -160,6 +152,7 @@ func (s *CloudStackMachineStatus) TimeSinceLastStateChange() time.Duration {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=cloudstackmachines,scope=Namespaced,categories=cluster-api,shortName=csm
+// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this CloudStackMachine belongs"
 // +kubebuilder:printcolumn:name="InstanceState",type="string",JSONPath=".status.instanceState",description="CloudStack instance state"

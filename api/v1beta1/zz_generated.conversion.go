@@ -652,6 +652,7 @@ func autoConvert_v1beta2_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(
 	out.AffinityGroupRef = in.AffinityGroupRef
 	out.ProviderID = in.ProviderID
 	// INFO: in.FailureDomainName opted out of conversion generation
+	// INFO: in.UncompressedUserData opted out of conversion generation
 	return nil
 }
 
@@ -793,6 +794,8 @@ func autoConvert_v1beta2_CloudStackMachineStatus_To_v1beta1_CloudStackMachineSta
 	out.InstanceState = InstanceState(in.InstanceState)
 	out.InstanceStateLastUpdated = in.InstanceStateLastUpdated
 	out.Ready = in.Ready
+	// INFO: in.Status opted out of conversion generation
+	// INFO: in.Reason opted out of conversion generation
 	return nil
 }
 

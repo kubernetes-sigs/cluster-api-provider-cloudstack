@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2
+package v1beta3
 
 import (
 	"crypto/md5" // #nosec G501 -- weak cryptographic primitive doesn't matter here. Not security related.
@@ -97,7 +97,7 @@ type CloudStackFailureDomainStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+ks8:conversion-gen=false
+//+kubebuilder:storageversion
 
 // CloudStackFailureDomain is the Schema for the cloudstackfailuredomains API
 type CloudStackFailureDomain struct {
