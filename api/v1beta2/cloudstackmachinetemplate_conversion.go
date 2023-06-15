@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1beta2
 
 import (
 	machineryconversion "k8s.io/apimachinery/pkg/conversion"
@@ -25,7 +25,7 @@ import (
 
 func (src *CloudStackMachineTemplate) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*v1beta3.CloudStackMachineTemplate)
-	if err := Convert_v1beta1_CloudStackMachineTemplate_To_v1beta3_CloudStackMachineTemplate(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_CloudStackMachineTemplate_To_v1beta3_CloudStackMachineTemplate(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -45,13 +45,13 @@ func (src *CloudStackMachineTemplate) ConvertTo(dstRaw conversion.Hub) error { /
 
 func (dst *CloudStackMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*v1beta3.CloudStackMachineTemplate)
-	return Convert_v1beta3_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(src, dst, nil)
+	return Convert_v1beta3_CloudStackMachineTemplate_To_v1beta2_CloudStackMachineTemplate(src, dst, nil)
 }
 
-func Convert_v1beta1_CloudStackMachineTemplateSpec_To_v1beta3_CloudStackMachineTemplateSpec(in *CloudStackMachineTemplateSpec, out *v1beta3.CloudStackMachineTemplateSpec, s machineryconversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(&in.Spec.Spec, &out.Template, s)
+func Convert_v1beta2_CloudStackMachineTemplateSpec_To_v1beta3_CloudStackMachineTemplateSpec(in *CloudStackMachineTemplateSpec, out *v1beta3.CloudStackMachineTemplateSpec, s machineryconversion.Scope) error {
+	return autoConvert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(&in.Spec.Spec, &out.Template, s)
 }
 
-func Convert_v1beta3_CloudStackMachineTemplateSpec_To_v1beta1_CloudStackMachineTemplateSpec(in *v1beta3.CloudStackMachineTemplateSpec, out *CloudStackMachineTemplateSpec, s machineryconversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(&in.Template, &out.Spec.Spec, s)
+func Convert_v1beta3_CloudStackMachineTemplateSpec_To_v1beta2_CloudStackMachineTemplateSpec(in *v1beta3.CloudStackMachineTemplateSpec, out *CloudStackMachineTemplateSpec, s machineryconversion.Scope) error {
+	return autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(&in.Template, &out.Spec.Spec, s)
 }
