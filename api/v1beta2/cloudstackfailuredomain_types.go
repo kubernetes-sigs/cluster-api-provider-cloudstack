@@ -97,7 +97,6 @@ type CloudStackFailureDomainStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+ks8:conversion-gen=false
 
 // CloudStackFailureDomain is the Schema for the cloudstackfailuredomains API
 type CloudStackFailureDomain struct {

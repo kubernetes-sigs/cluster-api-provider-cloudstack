@@ -21,9 +21,11 @@ limitations under the License.
 package v1beta1
 
 import (
+	unsafe "unsafe"
+
+	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	v1beta2 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	v1beta3 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 )
 
@@ -234,8 +236,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*CloudStackCluster)(nil), (*v1beta2.CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(a.(*CloudStackCluster), b.(*v1beta2.CloudStackCluster), scope)
+	if err := s.AddConversionFunc((*CloudStackCluster)(nil), (*v1beta3.CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackCluster_To_v1beta3_CloudStackCluster(a.(*CloudStackCluster), b.(*v1beta3.CloudStackCluster), scope)
 	}); err != nil {
 		return err
 	}
@@ -244,13 +246,13 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta2.CloudStackCluster)(nil), (*CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_CloudStackCluster_To_v1beta1_CloudStackCluster(a.(*v1beta2.CloudStackCluster), b.(*CloudStackCluster), scope)
+	if err := s.AddConversionFunc((*v1beta3.CloudStackAffinityGroupSpec)(nil), (*CloudStackAffinityGroupSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(a.(*v1beta3.CloudStackAffinityGroupSpec), b.(*CloudStackAffinityGroupSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta3.CloudStackAffinityGroupSpec)(nil), (*CloudStackAffinityGroupSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(a.(*v1beta3.CloudStackAffinityGroupSpec), b.(*CloudStackAffinityGroupSpec), scope)
+	if err := s.AddConversionFunc((*v1beta3.CloudStackCluster)(nil), (*CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta3_CloudStackCluster_To_v1beta1_CloudStackCluster(a.(*v1beta3.CloudStackCluster), b.(*CloudStackCluster), scope)
 	}); err != nil {
 		return err
 	}
@@ -586,7 +588,7 @@ func Convert_v1beta3_CloudStackMachineList_To_v1beta1_CloudStackMachineList(in *
 func autoConvert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(in *CloudStackMachineSpec, out *v1beta3.CloudStackMachineSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
-	out.InstanceID = in.InstanceID
+	out.InstanceID = (*string)(unsafe.Pointer(in.InstanceID))
 	if err := Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta3_CloudStackResourceIdentifier(&in.Offering, &out.Offering, s); err != nil {
 		return err
 	}
@@ -597,11 +599,11 @@ func autoConvert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(
 		return err
 	}
 	out.SSHKey = in.SSHKey
-	out.Details = in.Details
-	out.AffinityGroupIDs = in.AffinityGroupIDs
+	out.Details = *(*map[string]string)(unsafe.Pointer(&in.Details))
+	out.AffinityGroupIDs = *(*[]string)(unsafe.Pointer(&in.AffinityGroupIDs))
 	out.Affinity = in.Affinity
-	out.AffinityGroupRef = in.AffinityGroupRef
-	out.ProviderID = in.ProviderID
+	out.AffinityGroupRef = (*v1.ObjectReference)(unsafe.Pointer(in.AffinityGroupRef))
+	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	// INFO: in.ZoneID opted out of conversion generation
 	// INFO: in.ZoneName opted out of conversion generation
 	// INFO: in.IdentityRef opted out of conversion generation
@@ -616,7 +618,7 @@ func Convert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(in *
 func autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
-	out.InstanceID = in.InstanceID
+	out.InstanceID = (*string)(unsafe.Pointer(in.InstanceID))
 	if err := Convert_v1beta3_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(&in.Offering, &out.Offering, s); err != nil {
 		return err
 	}
@@ -627,11 +629,11 @@ func autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(
 		return err
 	}
 	out.SSHKey = in.SSHKey
-	out.Details = in.Details
-	out.AffinityGroupIDs = in.AffinityGroupIDs
+	out.Details = *(*map[string]string)(unsafe.Pointer(&in.Details))
+	out.AffinityGroupIDs = *(*[]string)(unsafe.Pointer(&in.AffinityGroupIDs))
 	out.Affinity = in.Affinity
-	out.AffinityGroupRef = in.AffinityGroupRef
-	out.ProviderID = in.ProviderID
+	out.AffinityGroupRef = (*v1.ObjectReference)(unsafe.Pointer(in.AffinityGroupRef))
+	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	// WARNING: in.FailureDomainName requires manual conversion: does not exist in peer-type
 	// WARNING: in.UncompressedUserData requires manual conversion: does not exist in peer-type
 	return nil
@@ -671,17 +673,7 @@ func Convert_v1beta3_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineS
 
 func autoConvert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta3_CloudStackMachineStateCheckerList(in *CloudStackMachineStateCheckerList, out *v1beta3.CloudStackMachineStateCheckerList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]v1beta3.CloudStackMachineStateChecker, len(*in))
-		for i := range *in {
-			if err := Convert_v1beta1_CloudStackMachineStateChecker_To_v1beta3_CloudStackMachineStateChecker(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]v1beta3.CloudStackMachineStateChecker)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -692,17 +684,7 @@ func Convert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta3_CloudStackMach
 
 func autoConvert_v1beta3_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList(in *v1beta3.CloudStackMachineStateCheckerList, out *CloudStackMachineStateCheckerList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	if in.Items != nil {
-		in, out := &in.Items, &out.Items
-		*out = make([]CloudStackMachineStateChecker, len(*in))
-		for i := range *in {
-			if err := Convert_v1beta3_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker(&(*in)[i], &(*out)[i], s); err != nil {
-				return err
-			}
-		}
-	} else {
-		out.Items = nil
-	}
+	out.Items = *(*[]CloudStackMachineStateChecker)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
@@ -753,7 +735,7 @@ func Convert_v1beta3_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMa
 
 func autoConvert_v1beta1_CloudStackMachineStatus_To_v1beta3_CloudStackMachineStatus(in *CloudStackMachineStatus, out *v1beta3.CloudStackMachineStatus, s conversion.Scope) error {
 	// INFO: in.ZoneID opted out of conversion generation
-	out.Addresses = in.Addresses
+	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = string(in.InstanceState)
 	out.InstanceStateLastUpdated = in.InstanceStateLastUpdated
 	out.Ready = in.Ready
@@ -766,7 +748,7 @@ func Convert_v1beta1_CloudStackMachineStatus_To_v1beta3_CloudStackMachineStatus(
 }
 
 func autoConvert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in *v1beta3.CloudStackMachineStatus, out *CloudStackMachineStatus, s conversion.Scope) error {
-	out.Addresses = in.Addresses
+	out.Addresses = *(*[]v1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = InstanceState(in.InstanceState)
 	out.InstanceStateLastUpdated = in.InstanceStateLastUpdated
 	out.Ready = in.Ready

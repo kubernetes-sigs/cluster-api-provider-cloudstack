@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,16 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package v1beta1
 
 import (
 	"context"
 	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	conv "k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -30,18 +28,18 @@ import (
 const DefaultEndpointCredential = "global"
 
 //nolint:golint,revive,stylecheck
-func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudStackCluster, out *v1beta2.CloudStackCluster, s conv.Scope) error {
+func Convert_v1beta1_CloudStackCluster_To_v1beta3_CloudStackCluster(in *CloudStackCluster, out *v1beta3.CloudStackCluster, s conv.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	failureDomains, err := GetFailureDomains(in)
 	if err != nil {
 		return err
 	}
-	out.Spec = v1beta2.CloudStackClusterSpec{
+	out.Spec = v1beta3.CloudStackClusterSpec{
 		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
 		FailureDomains:       failureDomains,
 	}
 
-	out.Status = v1beta2.CloudStackClusterStatus{
+	out.Status = v1beta3.CloudStackClusterStatus{
 		FailureDomains: in.Status.FailureDomains,
 		Ready:          in.Status.Ready,
 	}
@@ -49,9 +47,9 @@ func Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(in *CloudSta
 }
 
 //nolint:golint,revive,stylecheck
-func Convert_v1beta2_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta2.CloudStackCluster, out *CloudStackCluster, scope conv.Scope) error {
+func Convert_v1beta3_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta3.CloudStackCluster, out *CloudStackCluster, scope conv.Scope) error {
 	if len(in.Spec.FailureDomains) < 1 {
-		return fmt.Errorf("v1beta2 to v1beta1 conversion not supported when < 1 failure domain is provided. Input CloudStackCluster spec %s", in.Spec)
+		return fmt.Errorf("v1beta3 to v1beta1 conversion not supported when < 1 failure domain is provided. Input CloudStackCluster spec %s", in.Spec)
 	}
 	out.ObjectMeta = in.ObjectMeta
 	out.Spec = CloudStackClusterSpec{
@@ -69,7 +67,7 @@ func Convert_v1beta2_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta2.
 }
 
 // getZones maps failure domains to zones
-func getZones(csCluster *v1beta2.CloudStackCluster) []Zone {
+func getZones(csCluster *v1beta3.CloudStackCluster) []Zone {
 	var zones []Zone
 	for _, failureDomain := range csCluster.Spec.FailureDomains {
 		zone := failureDomain.Zone
@@ -86,21 +84,21 @@ func getZones(csCluster *v1beta2.CloudStackCluster) []Zone {
 	return zones
 }
 
-// GetFailureDomains maps v1beta1 zones to v1beta2 failure domains.
-func GetFailureDomains(csCluster *CloudStackCluster) ([]v1beta2.CloudStackFailureDomainSpec, error) {
-	var failureDomains []v1beta2.CloudStackFailureDomainSpec
+// GetFailureDomains maps v1beta1 zones to v1beta3 failure domains.
+func GetFailureDomains(csCluster *CloudStackCluster) ([]v1beta3.CloudStackFailureDomainSpec, error) {
+	var failureDomains []v1beta3.CloudStackFailureDomainSpec
 	namespace := csCluster.Namespace
 	for _, zone := range csCluster.Spec.Zones {
 		name, err := GetDefaultFailureDomainName(namespace, csCluster.Name, zone.ID, zone.Name)
 		if err != nil {
 			return nil, err
 		}
-		failureDomains = append(failureDomains, v1beta2.CloudStackFailureDomainSpec{
+		failureDomains = append(failureDomains, v1beta3.CloudStackFailureDomainSpec{
 			Name: name,
-			Zone: v1beta2.CloudStackZoneSpec{
+			Zone: v1beta3.CloudStackZoneSpec{
 				ID:   zone.ID,
 				Name: zone.Name,
-				Network: v1beta2.Network{
+				Network: v1beta3.Network{
 					ID:   zone.Network.ID,
 					Name: zone.Network.Name,
 					Type: zone.Network.Type,
@@ -149,7 +147,7 @@ func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID st
 func fetchZoneIDUsingK8s(namespace string, zoneName string) (string, error) {
 	zone := &CloudStackZone{}
 	key := client.ObjectKey{Name: zoneName, Namespace: namespace}
-	if err := v1beta2.K8sClient.Get(context.TODO(), key, zone); err != nil {
+	if err := v1beta3.K8sClient.Get(context.TODO(), key, zone); err != nil {
 		return "", err
 	}
 
@@ -161,7 +159,7 @@ func fetchZoneIDUsingCloudStack(secret *corev1.Secret, zoneName string) (string,
 	if err != nil {
 		return "", err
 	}
-	zone := &v1beta2.CloudStackZoneSpec{Name: zoneName}
+	zone := &v1beta3.CloudStackZoneSpec{Name: zoneName}
 	err = client.ResolveZone(zone)
 	return zone.ID, err
 }
@@ -169,7 +167,7 @@ func fetchZoneIDUsingCloudStack(secret *corev1.Secret, zoneName string) (string,
 func GetK8sSecret(name, namespace string) (*corev1.Secret, error) {
 	endpointCredentials := &corev1.Secret{}
 	key := client.ObjectKey{Name: name, Namespace: namespace}
-	if err := v1beta2.K8sClient.Get(context.TODO(), key, endpointCredentials); err != nil {
+	if err := v1beta3.K8sClient.Get(context.TODO(), key, endpointCredentials); err != nil {
 		return nil, err
 	}
 	return endpointCredentials, nil

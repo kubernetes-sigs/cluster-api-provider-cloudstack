@@ -24,9 +24,9 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
