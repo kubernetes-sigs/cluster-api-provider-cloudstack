@@ -127,7 +127,7 @@ func NetworkInterruptionToxiSpec(ctx context.Context, inputGetter func() CommonS
 }
 
 func networkInterruptor(toxiProxyContext *toxiproxy.Context, shutdownChannel chan bool) {
-	for {	
+	for {
 		// Wait for ApplyClusterTemplateAndWait() to make some progress
 		helpers.InterruptibleSleep(15*time.Second, time.Second, shutdownChannel)
 
@@ -135,7 +135,7 @@ func networkInterruptor(toxiProxyContext *toxiproxy.Context, shutdownChannel cha
 		toxiProxyContext.Disable()
 
 		// Leave the network disabled for some period of time
-		helpers.InterruptibleSleep(30*time.Second, time.Second, shutdownChannel)
+		helpers.InterruptibleSleep(15*time.Second, time.Second, shutdownChannel)
 
 		// Restore communications to ACS
 		toxiProxyContext.Enable()
