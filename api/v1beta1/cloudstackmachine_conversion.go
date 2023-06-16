@@ -62,10 +62,10 @@ func (dst *CloudStackMachine) ConvertFrom(srcRaw conversion.Hub) error { // noli
 	return nil
 }
 
-func Convert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s machineryconversion.Scope) error {
+func Convert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s machineryconversion.Scope) error { // nolint
 	return autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in, out, s)
 }
 
-func Convert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in *v1beta3.CloudStackMachineStatus, out *CloudStackMachineStatus, s machineryconversion.Scope) error {
+func Convert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in *v1beta3.CloudStackMachineStatus, out *CloudStackMachineStatus, s machineryconversion.Scope) error { // nolint
 	return autoConvert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in, out, s)
 }

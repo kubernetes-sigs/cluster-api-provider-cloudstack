@@ -53,6 +53,6 @@ func (dst *CloudStackIsolatedNetwork) ConvertFrom(srcRaw conversion.Hub) error {
 	return nil
 }
 
-func Convert_v1beta3_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(in *v1beta3.CloudStackIsolatedNetworkSpec, out *CloudStackIsolatedNetworkSpec, s machineryconversion.Scope) error {
+func Convert_v1beta3_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(in *v1beta3.CloudStackIsolatedNetworkSpec, out *CloudStackIsolatedNetworkSpec, s machineryconversion.Scope) error { // nolint
 	return autoConvert_v1beta3_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(in, out, s)
 }

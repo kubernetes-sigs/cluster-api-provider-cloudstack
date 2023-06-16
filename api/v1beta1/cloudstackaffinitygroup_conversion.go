@@ -53,6 +53,6 @@ func (dst *CloudStackAffinityGroup) ConvertFrom(srcRaw conversion.Hub) error { /
 	return nil
 }
 
-func Convert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in *v1beta3.CloudStackAffinityGroupSpec, out *CloudStackAffinityGroupSpec, s machineryconversion.Scope) error {
+func Convert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in *v1beta3.CloudStackAffinityGroupSpec, out *CloudStackAffinityGroupSpec, s machineryconversion.Scope) error { // nolint
 	return autoConvert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in, out, s)
 }
