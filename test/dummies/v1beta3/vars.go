@@ -184,7 +184,7 @@ func SetDummyOwnerReferences() {
 func SetDummyCSMachineTemplateVars() {
 	CSMachineTemplate1 = &infrav1.CloudStackMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta2",
+			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta3",
 			Kind:       "CloudStackMachineTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -267,7 +267,7 @@ func SetDummyCAPCClusterVars() {
 	Account = cloud.Account{Name: AccountName, Domain: Domain}
 	AccountName = "FakeLevel2AccountName"
 	Level2Account = cloud.Account{Name: Level2AccountName, Domain: Level2Domain}
-	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta2"
+	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta3"
 	CSClusterKind = "CloudStackCluster"
 	ClusterName = "test-cluster"
 	EndPointHost = "EndpointHost"
