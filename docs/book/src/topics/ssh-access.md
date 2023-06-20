@@ -36,7 +36,7 @@ Either use the exiting IP or acquire a new IP.
 
 ## SSH Into The Node
 
-Now access the node via the Public IP using the corresponding SSH Keypair
+Now access the node via the Public IP using the corresponding SSH Keypair. The username is `ubuntu` for ubuntu images and `cloud-user` for rockylinux8 images.
 
 ```
 $ ssh ubuntu@10.0.53.123 -i path/to/key
