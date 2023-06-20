@@ -22,9 +22,9 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -212,7 +212,7 @@ func DownloadFromAppInWorkloadCluster(ctx context.Context, workloadKubeconfigPat
 	if err != nil {
 		return result, err
 	}
-	numRetries := 3
+	numRetries := 10
 	for result == "" && numRetries > 0 {
 		// A single retry to accommodate occasional cases where an empty string is returned, ostensibly
 		//  because the service isn't fully ready.  Subsequent requests have always worked.
