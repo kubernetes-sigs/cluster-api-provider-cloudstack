@@ -166,9 +166,9 @@ intervals:
 
   default/wait-errors: ["5m", "10s"]
   default/wait-controllers: ["5m", "10s"]
-  default/wait-cluster: ["5m", "10s"]
-  default/wait-control-plane: ["20m", "10s"]
-  default/wait-worker-nodes: ["20m", "10s"]
+  default/wait-cluster: ["10m", "10s"]
+  default/wait-control-plane: ["25m", "10s"]
+  default/wait-worker-nodes: ["25m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-remediation: ["20m", "10s"]
   default/wait-machine-upgrade: ["20m", "10s"]
@@ -176,5 +176,3 @@ intervals:
   node-drain/wait-deployment-available: ["3m", "10s"]
   node-drain/wait-control-plane: ["15m", "10s"]
   node-drain/wait-machine-deleted: ["5m", "10s"]
-
-
