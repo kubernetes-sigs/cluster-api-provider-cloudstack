@@ -10,7 +10,7 @@ spec:
         - 192.168.0.0/16
     serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
     kind: CloudStackCluster
     name: ${CLUSTER_NAME}
   controlPlaneRef:
@@ -18,7 +18,7 @@ spec:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: ${CLUSTER_NAME}-control-plane
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
 kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -75,29 +75,28 @@ spec:
         - ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
       kind: CloudStackMachineTemplate
       name: "${CLUSTER_NAME}-control-plane"
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
 spec:
   template:
-    spec:
-      offering:
-        name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
-      diskOffering:
-        name: ${CLOUDSTACK_DISK_OFFERING_NAME}
-        mountPath: ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
-        device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
-        filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
-        label: ${CLOUDSTACK_DISK_OFFERING_LABEL}
-      template:
-        name: ${CLOUDSTACK_TEMPLATE_NAME}
+    offering:
+      name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
+    diskOffering:
+      name: ${CLOUDSTACK_DISK_OFFERING_NAME}
+      mountPath: ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
+      device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
+      filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
+      label: ${CLOUDSTACK_DISK_OFFERING_LABEL}
+    template:
+      name: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
@@ -119,26 +118,25 @@ spec:
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
         kind: CloudStackMachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
 spec:
   template:
-    spec:
-      offering:
-        name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
-      diskOffering:
-        name: ${CLOUDSTACK_DISK_OFFERING_NAME}
-        mountPath: ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
-        device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
-        filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
-        label: ${CLOUDSTACK_DISK_OFFERING_LABEL}
-      template:
-        name: ${CLOUDSTACK_TEMPLATE_NAME}
+    offering:
+      name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
+    diskOffering:
+      name: ${CLOUDSTACK_DISK_OFFERING_NAME}
+      mountPath: ${CLOUDSTACK_DISK_OFFERING_MOUNT_PATH}
+      device: ${CLOUDSTACK_DISK_OFFERING_DEVICE}
+      filesystem: ${CLOUDSTACK_DISK_OFFERING_FILESYSTEM}
+      label: ${CLOUDSTACK_DISK_OFFERING_LABEL}
+    template:
+      name: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

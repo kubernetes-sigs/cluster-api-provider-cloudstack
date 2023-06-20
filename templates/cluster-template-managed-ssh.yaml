@@ -10,7 +10,7 @@ spec:
         - 192.168.0.0/16
     serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
     kind: CloudStackCluster
     name: ${CLUSTER_NAME}
   controlPlaneRef:
@@ -18,7 +18,7 @@ spec:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: ${CLUSTER_NAME}-control-plane
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
 kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -56,24 +56,23 @@ spec:
       - swapoff -a
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
       kind: CloudStackMachineTemplate
       name: "${CLUSTER_NAME}-control-plane"
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
 spec:
   template:
-    spec:
-      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
-      offering: 
-        name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
-      template:
-        name: ${CLOUDSTACK_TEMPLATE_NAME}
+    sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+    offering:
+      name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
+    template:
+      name: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
@@ -95,21 +94,20 @@ spec:
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
         kind: CloudStackMachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
 spec:
   template:
-    spec:
-      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
-      offering: 
-        name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
-      template:
-        name: ${CLOUDSTACK_TEMPLATE_NAME}
+    sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+    offering:
+      name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
+    template:
+      name: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

@@ -32,12 +32,11 @@ metadata:
   name: ${CLUSTER_NAME}-control-plane
 spec:
   template:
-    spec:
-      offering:
-        name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
-      template:
-        name: ${CLOUDSTACK_UPGRADE_FROM_TEMPLATE_NAME}
-      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+    offering:
+      name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
+    template:
+      name: ${CLOUDSTACK_UPGRADE_FROM_TEMPLATE_NAME}
+    sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
@@ -68,10 +67,9 @@ metadata:
   name: ${CLUSTER_NAME}-md-0
 spec:
   template:
-    spec:
-      offering:
-        name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
-      template:
-        name: ${CLOUDSTACK_UPGRADE_FROM_TEMPLATE_NAME}
-      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+    offering:
+      name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
+    template:
+      name: ${CLOUDSTACK_UPGRADE_FROM_TEMPLATE_NAME}
+    sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
 
