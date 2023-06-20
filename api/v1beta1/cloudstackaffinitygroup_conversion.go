@@ -17,16 +17,42 @@ limitations under the License.
 package v1beta1
 
 import (
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	machineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func (src *CloudStackAffinityGroup) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*v1beta2.CloudStackAffinityGroup)
-	return Convert_v1beta1_CloudStackAffinityGroup_To_v1beta2_CloudStackAffinityGroup(src, dst, nil)
+	dst := dstRaw.(*v1beta3.CloudStackAffinityGroup)
+	if err := Convert_v1beta1_CloudStackAffinityGroup_To_v1beta3_CloudStackAffinityGroup(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data
+	restored := &v1beta3.CloudStackAffinityGroup{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	if restored.Spec.FailureDomainName != "" {
+		dst.Spec.FailureDomainName = restored.Spec.FailureDomainName
+	}
+	return nil
 }
 
 func (dst *CloudStackAffinityGroup) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*v1beta2.CloudStackAffinityGroup)
-	return Convert_v1beta2_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(src, dst, nil)
+	src := srcRaw.(*v1beta3.CloudStackAffinityGroup)
+	if err := Convert_v1beta3_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in *v1beta3.CloudStackAffinityGroupSpec, out *CloudStackAffinityGroupSpec, s machineryconversion.Scope) error { // nolint
+	return autoConvert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in, out, s)
 }

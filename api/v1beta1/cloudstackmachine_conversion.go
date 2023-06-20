@@ -17,16 +17,55 @@ limitations under the License.
 package v1beta1
 
 import (
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	machineryconversion "k8s.io/apimachinery/pkg/conversion"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func (src *CloudStackMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*v1beta2.CloudStackMachine)
-	return Convert_v1beta1_CloudStackMachine_To_v1beta2_CloudStackMachine(src, dst, nil)
+	dst := dstRaw.(*v1beta3.CloudStackMachine)
+	if err := Convert_v1beta1_CloudStackMachine_To_v1beta3_CloudStackMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data
+	restored := &v1beta3.CloudStackMachine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	if restored.Spec.FailureDomainName != "" {
+		dst.Spec.FailureDomainName = restored.Spec.FailureDomainName
+	}
+	if restored.Spec.UncompressedUserData != nil {
+		dst.Spec.UncompressedUserData = restored.Spec.UncompressedUserData
+	}
+	if restored.Status.Status != nil {
+		dst.Status.Status = restored.Status.Status
+	}
+	if restored.Status.Reason != nil {
+		dst.Status.Reason = restored.Status.Reason
+	}
+	return nil
 }
 
 func (dst *CloudStackMachine) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*v1beta2.CloudStackMachine)
-	return Convert_v1beta2_CloudStackMachine_To_v1beta1_CloudStackMachine(src, dst, nil)
+	src := srcRaw.(*v1beta3.CloudStackMachine)
+	if err := Convert_v1beta3_CloudStackMachine_To_v1beta1_CloudStackMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+	return nil
+}
+
+func Convert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s machineryconversion.Scope) error { // nolint
+	return autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in, out, s)
+}
+
+func Convert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in *v1beta3.CloudStackMachineStatus, out *CloudStackMachineStatus, s machineryconversion.Scope) error { // nolint
+	return autoConvert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in, out, s)
 }

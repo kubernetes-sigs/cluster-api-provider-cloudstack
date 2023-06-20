@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"

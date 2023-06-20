@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"

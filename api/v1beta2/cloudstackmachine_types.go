@@ -82,14 +82,12 @@ type CloudStackMachineSpec struct {
 
 	// FailureDomainName -- the name of the FailureDomain the machine is placed in.
 	// +optional
-	// +k8s:conversion-gen=false
 	FailureDomainName string `json:"failureDomainName,omitempty"`
 
 	// UncompressedUserData specifies whether the user data is gzip-compressed.
 	// cloud-init has built-in support for gzip-compressed user data, ignition does not
 	//
 	// +optional
-	// +k8s:conversion-gen=false
 	UncompressedUserData *bool `json:"uncompressedUserData,omitempty"`
 }
 
@@ -140,12 +138,10 @@ type CloudStackMachineStatus struct {
 
 	// Status indicates the status of the provider resource.
 	// +optional
-	// +k8s:conversion-gen=false
 	Status *string `json:"status,omitempty"`
 
 	// Reason indicates the reason of status failure
 	// +optional
-	// +k8s:conversion-gen=false
 	Reason *string `json:"reason,omitempty"`
 }
 

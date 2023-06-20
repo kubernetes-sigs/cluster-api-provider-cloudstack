@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sort"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 )
 
