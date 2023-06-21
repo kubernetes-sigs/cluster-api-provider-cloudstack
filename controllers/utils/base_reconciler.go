@@ -19,9 +19,10 @@ package utils
 import (
 	"context"
 	"fmt"
-	"k8s.io/client-go/tools/record"
 	"strings"
 	"time"
+
+	"k8s.io/client-go/tools/record"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
@@ -402,7 +403,7 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 		r.SetupPatcher,
 		r.GetCAPICluster,
 		r.GetCSCluster,
-		r.RequeueIfMissingBaseCRs,
+		r.RunIf(func() bool { return r.ReconciliationSubject.GetDeletionTimestamp().IsZero() }, r.RequeueIfMissingBaseCRs),
 		r.CheckIfPaused}
 	baseStages = append(
 		append(baseStages, r.additionalCommonStages...),
