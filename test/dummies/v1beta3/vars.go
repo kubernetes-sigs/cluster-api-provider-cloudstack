@@ -192,16 +192,18 @@ func SetDummyCSMachineTemplateVars() {
 			Namespace: "default",
 		},
 		Spec: infrav1.CloudStackMachineTemplateSpec{
-			Template: infrav1.CloudStackMachineSpec{
-				Template: infrav1.CloudStackResourceIdentifier{
-					Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
-				},
-				Offering: infrav1.CloudStackResourceIdentifier{
-					Name: GetYamlVal("CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING"),
-				},
-				DiskOffering: DiskOffering,
-				Details: map[string]string{
-					"memoryOvercommitRatio": "1.2",
+			Template: infrav1.CloudStackMachineTemplateResource{
+				Spec: infrav1.CloudStackMachineSpec{
+					Template: infrav1.CloudStackResourceIdentifier{
+						Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
+					},
+					Offering: infrav1.CloudStackResourceIdentifier{
+						Name: GetYamlVal("CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING"),
+					},
+					DiskOffering: DiskOffering,
+					Details: map[string]string{
+						"memoryOvercommitRatio": "1.2",
+					},
 				},
 			},
 		},
