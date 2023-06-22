@@ -34,11 +34,11 @@ func (src *CloudStackMachineTemplate) ConvertTo(dstRaw conversion.Hub) error { /
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
-	if restored.Spec.Template.FailureDomainName != "" {
-		dst.Spec.Template.FailureDomainName = restored.Spec.Template.FailureDomainName
+	if restored.Spec.Template.Spec.FailureDomainName != "" {
+		dst.Spec.Template.Spec.FailureDomainName = restored.Spec.Template.Spec.FailureDomainName
 	}
-	if restored.Spec.Template.UncompressedUserData != nil {
-		dst.Spec.Template.UncompressedUserData = restored.Spec.Template.UncompressedUserData
+	if restored.Spec.Template.Spec.UncompressedUserData != nil {
+		dst.Spec.Template.Spec.UncompressedUserData = restored.Spec.Template.Spec.UncompressedUserData
 	}
 	return nil
 }
@@ -49,9 +49,13 @@ func (dst *CloudStackMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 func Convert_v1beta2_CloudStackMachineTemplateSpec_To_v1beta3_CloudStackMachineTemplateSpec(in *CloudStackMachineTemplateSpec, out *v1beta3.CloudStackMachineTemplateSpec, s machineryconversion.Scope) error { // nolint
-	return autoConvert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(&in.Spec.Spec, &out.Template, s)
+	return autoConvert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(&in.Spec.Spec, &out.Template.Spec, s)
 }
 
 func Convert_v1beta3_CloudStackMachineTemplateSpec_To_v1beta2_CloudStackMachineTemplateSpec(in *v1beta3.CloudStackMachineTemplateSpec, out *CloudStackMachineTemplateSpec, s machineryconversion.Scope) error { // nolint
-	return autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(&in.Template, &out.Spec.Spec, s)
+	return autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(&in.Template.Spec, &out.Spec.Spec, s)
+}
+
+func Convert_v1beta2_CloudStackMachineTemplateResource_To_v1beta3_CloudStackMachineTemplateResource(in *CloudStackMachineTemplateResource, out *v1beta3.CloudStackMachineTemplateResource, s machineryconversion.Scope) error { //nolint
+	return autoConvert_v1beta2_CloudStackMachineTemplateResource_To_v1beta3_CloudStackMachineTemplateResource(in, out, s)
 }

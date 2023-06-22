@@ -60,7 +60,7 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 	var errorList field.ErrorList
 
 	// CloudStackMachineTemplateSpec.CloudStackMachineSpec
-	spec := r.Spec.Template
+	spec := r.Spec.Template.Spec
 
 	affinity := strings.ToLower(spec.Affinity)
 	if !(affinity == "" || affinity == "no" || affinity == "pro" || affinity == "anti") {
@@ -88,8 +88,8 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 	}
 
 	// CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
-	spec := r.Spec.Template
-	oldSpec := oldMachineTemplate.Spec.Template
+	spec := r.Spec.Template.Spec
+	oldSpec := oldMachineTemplate.Spec.Template.Spec
 
 	errorList := field.ErrorList(nil)
 	errorList = webhookutil.EnsureEqualStrings(spec.Offering.ID, oldSpec.Offering.ID, "offering", errorList)

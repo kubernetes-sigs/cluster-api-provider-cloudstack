@@ -4,14 +4,15 @@ metadata:
   name: ${CLUSTER_NAME}-control-plane
 spec:
   template:
-    offering:
-      name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
-    diskOffering:
-      name: ${CLOUDSTACK_INVALID_DISK_OFFERING_NAME}
-      mountPath: /disk
-      device: /dev/vdb
-      filesystem: ext4
-      label: my_disk
-    template:
-      name: ${CLOUDSTACK_TEMPLATE_NAME}
-    sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+    spec:
+      offering:
+        name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
+      diskOffering:
+        name: ${CLOUDSTACK_INVALID_DISK_OFFERING_NAME}
+        mountPath: /disk
+        device: /dev/vdb
+        filesystem: ext4
+        label: my_disk
+      template:
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
+      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}

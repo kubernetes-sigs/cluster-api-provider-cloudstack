@@ -73,10 +73,11 @@ metadata:
   name: ${CLUSTER_NAME}-control-plane
 spec:
   template:
-    offering:
-      name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
-    template:
-      name: ${CLOUDSTACK_TEMPLATE_NAME}
+    spec:
+      offering:
+        name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
+      template:
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
@@ -107,10 +108,11 @@ metadata:
   name: ${CLUSTER_NAME}-md-0
 spec:
   template:
-    offering:
-      name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
-    template:
-      name: ${CLOUDSTACK_TEMPLATE_NAME}
+    spec:
+      offering:
+        name: ${CLOUDSTACK_WORKER_MACHINE_OFFERING}
+      template:
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

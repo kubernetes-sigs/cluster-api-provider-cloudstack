@@ -4,11 +4,12 @@ metadata:
   name: ${CLUSTER_NAME}-upgrade-control-plane
 spec:
   template:
-    offering:
-      name: ${CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING}
-    template:
-      name: ${CLOUDSTACK_TEMPLATE_NAME}
-    sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+    spec:
+      offering:
+        name: ${CLOUDSTACK_IMPOSSIBLE_CONTROL_PLANE_MACHINE_OFFERING}
+      template:
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
+      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
 kind: CloudStackMachineTemplate
@@ -16,8 +17,9 @@ metadata:
   name: ${CLUSTER_NAME}-upgrade-md-0
 spec:
   template:
-    offering:
-      name: ${CLOUDSTACK_IMPOSSIBLE_WORKER_MACHINE_OFFERING}
-    template:
-      name: ${CLOUDSTACK_TEMPLATE_NAME}
-    sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+    spec:
+      offering:
+        name: ${CLOUDSTACK_IMPOSSIBLE_WORKER_MACHINE_OFFERING}
+      template:
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
+      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}

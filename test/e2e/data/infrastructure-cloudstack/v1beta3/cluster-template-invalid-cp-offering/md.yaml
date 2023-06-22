@@ -4,8 +4,9 @@ metadata:
   name: ${CLUSTER_NAME}-control-plane
 spec:
   template:
-    offering:
-      name: ${CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING}
-    template:
-      name: ${CLOUDSTACK_TEMPLATE_NAME}
-    sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+    spec:
+      offering:
+        name: ${CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING}
+      template:
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
+      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}

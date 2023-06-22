@@ -18,9 +18,15 @@ package v1beta3
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// CloudStackMachineTemplateSpec defines the desired state of CloudStackMachineTemplate
+// CloudStackMachineTemplateResource defines the data needed to create a CloudstackMachine from a template
+type CloudStackMachineTemplateResource struct {
+	// Spec is the specification of a desired behavior of the machine
+	Spec CloudStackMachineSpec `json:"spec"`
+}
+
+// CloudStackMachineTemplateSpec defines the desired state of CloudstackMachineTemplate
 type CloudStackMachineTemplateSpec struct {
-	Template CloudStackMachineSpec `json:"template"`
+	Template CloudStackMachineTemplateResource `json:"template"`
 }
 
 //+kubebuilder:object:root=true
