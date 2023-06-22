@@ -312,7 +312,7 @@ func (r *ReconciliationRunner) CheckOwnedObjectsDeleted(gvks ...schema.GroupVers
 
 // RequeueIfCloudStackClusterNotReady requeues the reconciliation request if the CloudStackCluster is not ready.
 func (r *ReconciliationRunner) RequeueIfCloudStackClusterNotReady() (ctrl.Result, error) {
-	if !r.CSCluster.Status.Ready {
+	if r.CSCluster.DeletionTimestamp.IsZero() && !r.CSCluster.Status.Ready {
 		r.Log.Info("CloudStackCluster not ready. Requeuing.")
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
