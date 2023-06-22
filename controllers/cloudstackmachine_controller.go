@@ -19,10 +19,11 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"k8s.io/utils/pointer"
 	"math/rand"
 	"reflect"
 	"regexp"
+
+	"k8s.io/utils/pointer"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -105,7 +106,7 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 	r := NewCSMachineReconciliationRunner()
 	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
 	r.WithAdditionalCommonStages(
-		r.GetParent(r.ReconciliationSubject, r.CAPIMachine),
+		r.RunIf(func() bool { return r.ReconciliationSubject.GetDeletionTimestamp().IsZero() }, r.GetParent(r.ReconciliationSubject, r.CAPIMachine)),
 		r.RequeueIfCloudStackClusterNotReady,
 		r.SetFailureDomainOnCSMachine,
 		r.GetFailureDomainByName(func() string { return r.ReconciliationSubject.Spec.FailureDomainName }, r.FailureDomain),
@@ -158,7 +159,8 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
 	if r.ReconciliationSubject.Spec.FailureDomainName == "" {
 		var name string
-		if r.CAPIMachine.Spec.FailureDomain != nil &&
+		// CAPIMachine is null if it's been deleted but we're still reconciling the CS machine.
+		if r.CAPIMachine != nil && r.CAPIMachine.Spec.FailureDomain != nil &&
 			(util.IsControlPlaneMachine(r.CAPIMachine) || // Is control plane machine -- CAPI will specify.
 				*r.CAPIMachine.Spec.FailureDomain != "") { // Or potentially another machine controller specified.
 			name = *r.CAPIMachine.Spec.FailureDomain
