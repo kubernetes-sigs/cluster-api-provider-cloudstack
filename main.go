@@ -60,6 +60,7 @@ func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(infrav1b1.AddToScheme(scheme))
 	utilruntime.Must(infrav1b2.AddToScheme(scheme))
+	utilruntime.Must(infrav1b3.AddToScheme(scheme))
 	utilruntime.Must(controlplanev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -155,7 +156,7 @@ func main() {
 
 	ctx := ctrl.SetupSignalHandler()
 	setupReconcilers(ctx, base, mgr)
-	infrav1b2.K8sClient = base.K8sClient
+	infrav1b3.K8sClient = base.K8sClient
 
 	// +kubebuilder:scaffold:builder
 

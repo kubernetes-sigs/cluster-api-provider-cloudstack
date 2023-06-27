@@ -35,5 +35,5 @@ var (
 	AddToScheme = SchemeBuilder.AddToScheme
 
 	// localSchemeBuilder is used for type conversions.
-	localSchemeBuilder = SchemeBuilder.SchemeBuilder
+	localSchemeBuilder = &SchemeBuilder.SchemeBuilder
 )

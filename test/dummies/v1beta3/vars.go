@@ -184,7 +184,7 @@ func SetDummyOwnerReferences() {
 func SetDummyCSMachineTemplateVars() {
 	CSMachineTemplate1 = &infrav1.CloudStackMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta2",
+			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta3",
 			Kind:       "CloudStackMachineTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -192,16 +192,18 @@ func SetDummyCSMachineTemplateVars() {
 			Namespace: "default",
 		},
 		Spec: infrav1.CloudStackMachineTemplateSpec{
-			Template: infrav1.CloudStackMachineSpec{
-				Template: infrav1.CloudStackResourceIdentifier{
-					Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
-				},
-				Offering: infrav1.CloudStackResourceIdentifier{
-					Name: GetYamlVal("CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING"),
-				},
-				DiskOffering: DiskOffering,
-				Details: map[string]string{
-					"memoryOvercommitRatio": "1.2",
+			Template: infrav1.CloudStackMachineTemplateResource{
+				Spec: infrav1.CloudStackMachineSpec{
+					Template: infrav1.CloudStackResourceIdentifier{
+						Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
+					},
+					Offering: infrav1.CloudStackResourceIdentifier{
+						Name: GetYamlVal("CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING"),
+					},
+					DiskOffering: DiskOffering,
+					Details: map[string]string{
+						"memoryOvercommitRatio": "1.2",
+					},
 				},
 			},
 		},
@@ -267,7 +269,7 @@ func SetDummyCAPCClusterVars() {
 	Account = cloud.Account{Name: AccountName, Domain: Domain}
 	AccountName = "FakeLevel2AccountName"
 	Level2Account = cloud.Account{Name: Level2AccountName, Domain: Level2Domain}
-	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta2"
+	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta3"
 	CSClusterKind = "CloudStackCluster"
 	ClusterName = "test-cluster"
 	EndPointHost = "EndpointHost"

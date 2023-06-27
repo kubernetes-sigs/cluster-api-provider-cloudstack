@@ -265,11 +265,10 @@ config/.flag-test.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS_TEST)
 .PHONY: test
 test: ## Run tests.
 test: generate-deepcopy-test generate-manifest-test generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD)
-#   Comments will be removed in next PR
-#	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
-#	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
-#	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
-#		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
+	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
+	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
+	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
+		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 
 CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/cluster-template* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
 CLUSTER_TEMPLATES_OUTPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack -type d -name "cluster-template*" -exec echo {}.yaml \;)
@@ -284,22 +283,20 @@ e2e-essentials: $(GINKGO_V1) $(KUBECTL) e2e-cluster-templates kind-cluster ## Fu
 JOB ?= .*
 E2E_CONFIG ?= ${REPO_ROOT}/test/e2e/config/cloudstack.yaml
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
-#   Comments will be removed in next PR
-#	$(KUBECTL) apply -f cloud-config.yaml && \
-#	cd test/e2e && \
-#	$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -skipPackage=kubeconfig_helper -nodes=1 -noColor=false ./... -- \
-#	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
-#	    -e2e.config=${E2E_CONFIG} \
-#	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
-#	EXIT_STATUS=$$?
-#	kind delete clusters capi-test
-#	exit $$EXIT_STATUS
+	$(KUBECTL) apply -f cloud-config.yaml && \
+	cd test/e2e && \
+	$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -skipPackage=kubeconfig_helper -nodes=1 -noColor=false ./... -- \
+	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
+	    -e2e.config=${E2E_CONFIG} \
+	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
+	EXIT_STATUS=$$?
+	kind delete clusters capi-test
+	exit $$EXIT_STATUS
 
 run-e2e-smoke:
-#   Comments will be removed in next PR
-#	./hack/ensure-kind.sh
-#	./hack/ensure-cloud-config-yaml.sh
-#	JOB="\"CAPC E2E SMOKE TEST\"" $(MAKE) run-e2e
+	./hack/ensure-kind.sh
+	./hack/ensure-cloud-config-yaml.sh
+	JOB="\"CAPC E2E SMOKE TEST\"" $(MAKE) run-e2e
 
 ##@ Cleanup
 ## --------------------------------------

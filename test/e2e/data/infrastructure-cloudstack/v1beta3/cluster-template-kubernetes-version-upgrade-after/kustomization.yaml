@@ -1,0 +1,4 @@
+bases:
+  - ./cluster.yaml
+  - ./upgrade-md.yaml
+  - ./upgrade-cp.yaml
