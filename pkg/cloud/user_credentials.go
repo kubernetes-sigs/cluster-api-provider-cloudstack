@@ -37,16 +37,22 @@ type UserCredIFace interface {
 
 // Domain contains specifications that identify a domain.
 type Domain struct {
-	Name string
-	Path string
-	ID   string
+	Name            string
+	Path            string
+	ID              string
+	CPUAvailable    string
+	MemoryAvailable string
+	VMAvailable     string
 }
 
 // Account contains specifications that identify an account.
 type Account struct {
-	Name   string
-	Domain Domain
-	ID     string
+	Name            string
+	Domain          Domain
+	ID              string
+	CPUAvailable    string
+	MemoryAvailable string
+	VMAvailable     string
 }
 
 // User contains information uniquely identifying and scoping a user.
@@ -105,6 +111,9 @@ func (c *client) ResolveDomain(domain *Domain) error {
 		}
 		domain.Path = resp.Domains[0].Path
 		domain.Name = resp.Domains[0].Name
+		domain.CPUAvailable = resp.Domains[0].Cpuavailable
+		domain.MemoryAvailable = resp.Domains[0].Memoryavailable
+		domain.VMAvailable = resp.Domains[0].Vmavailable
 		return nil
 	}
 
@@ -120,6 +129,9 @@ func (c *client) ResolveDomain(domain *Domain) error {
 	for _, possibleDomain := range resp.Domains {
 		if possibleDomain.Path == domain.Path {
 			domain.ID = possibleDomain.Id
+			domain.CPUAvailable = possibleDomain.Cpuavailable
+			domain.MemoryAvailable = possibleDomain.Memoryavailable
+			domain.VMAvailable = possibleDomain.Vmavailable
 			return nil
 		}
 	}
@@ -150,6 +162,9 @@ func (c *client) ResolveAccount(account *Account) error {
 	}
 	account.ID = resp.Accounts[0].Id
 	account.Name = resp.Accounts[0].Name
+	account.CPUAvailable = resp.Accounts[0].Cpuavailable
+	account.MemoryAvailable = resp.Accounts[0].Memoryavailable
+	account.VMAvailable = resp.Accounts[0].Vmavailable
 	return nil
 }
 
