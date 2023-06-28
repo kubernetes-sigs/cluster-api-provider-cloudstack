@@ -208,7 +208,6 @@ func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOff
 }
 
 // CheckAccountLimits Checks the account's limit of VM, CPU & Memory
-// before deploying a VM.
 func (c *client) CheckAccountLimits(fd *infrav1.CloudStackFailureDomain, offering cloudstack.ServiceOffering) error {
 	if c.user.Account.CPUAvailable != "Unlimited" {
 		cpuAvailable, err := strconv.ParseInt(c.user.Account.CPUAvailable, 10, 0)
@@ -234,7 +233,6 @@ func (c *client) CheckAccountLimits(fd *infrav1.CloudStackFailureDomain, offerin
 }
 
 // CheckDomainLimits Checks the domain's limit of VM, CPU & Memory
-// before deploying a VM.
 func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering cloudstack.ServiceOffering) error {
 	if c.user.Account.Domain.CPUAvailable != "Unlimited" {
 		cpuAvailable, err := strconv.ParseInt(c.user.Account.Domain.CPUAvailable, 10, 0)
@@ -259,8 +257,8 @@ func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering
 	return nil
 }
 
-// GetOrCreateVMInstance CreateVMInstance will fetch or create a VM instance, and
-// sets the infrastructure machine spec and status accordingly.
+// CheckLimitsAndCreateVM will check the account & domain limits and then create a
+// VM instance, and sets the infrastructure machine spec and status accordingly.
 func (c *client) CheckLimitsAndCreateVM(
 	csMachine *infrav1.CloudStackMachine,
 	capiMachine *clusterv1.Machine,
