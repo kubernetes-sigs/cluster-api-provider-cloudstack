@@ -257,6 +257,35 @@ func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering
 	return nil
 }
 
+// CheckNetworkLimits Checks the available IPs for a shared network
+func (c *client) CheckNetworkLimits(fd *infrav1.CloudStackFailureDomain) error {
+	if fd.Spec.Zone.Network.Type == NetworkTypeShared {
+
+		p := c.cs.Address.NewListPublicIpAddressesParams()
+		p.SetAllocatedonly(false)
+		p.SetNetworkid(fd.Spec.Zone.Network.ID)
+		p.SetZoneid(fd.Spec.Zone.ID)
+		p.SetListall(true)
+		p.SetForvirtualnetwork(false)
+		publicAddresses, err := c.cs.Address.ListPublicIpAddresses(p)
+		if err != nil {
+			return err
+		}
+
+		// freeAddressCount = publicAddresses.PublicIpAddresses
+		freeIPCount := 0
+		for _, publicIP := range publicAddresses.PublicIpAddresses {
+			if publicIP.State == "Free" {
+				freeIPCount++
+			}
+		}
+		if freeIPCount < 1 {
+			return fmt.Errorf("no public IPs available in the shared network id: %s name: %s", fd.Spec.Zone.ID, fd.Spec.Zone.Name)
+		}
+	}
+	return nil
+}
+
 // CheckLimitsAndCreateVM will check the account & domain limits and then create a
 // VM instance, and sets the infrastructure machine spec and status accordingly.
 func (c *client) CheckLimitsAndCreateVM(
@@ -361,6 +390,10 @@ func (c *client) GetOrCreateVMInstance(
 	// Check if VM instance already exists.
 	if err := c.ResolveVMInstanceDetails(csMachine); err == nil ||
 		!strings.Contains(strings.ToLower(err.Error()), "no match") {
+		return err
+	}
+
+	if err := c.CheckNetworkLimits(fd); err != nil {
 		return err
 	}
 
