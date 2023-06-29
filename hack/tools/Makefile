@@ -45,6 +45,10 @@ ifeq ($(OS), windows)
 endif
 
 GOLANGCI_LINT_VERSION := v1.51.2
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT := $(abspath $(BIN_DIR)/$(GOLANGCI_LINT_BIN))
+GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
+
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
@@ -68,9 +72,12 @@ CONVERSION_GEN := $(BIN_DIR)/conversion-gen
 $(CONVERSION_GEN): $(BIN_DIR) go.mod go.sum
 	go build -tags=tools -o $@ k8s.io/code-generator/cmd/conversion-gen
 
-GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
+# A target for compatibility with the root Makefile.
+$(BIN_DIR)/$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) 
+
+$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT)
 $(GOLANGCI_LINT): $(BIN_DIR) # Install golangci-lint in tools folder.
-	${REPO_ROOT}/hack/ensure-golangci-lint.sh -b $(BIN_DIR) ${GOLANGCI_LINT_VERSION}
+	GOBIN=$(abspath $(BIN_DIR)) go install $(GOLANGCI_LINT_PKG)@$(GOLANGCI_LINT_VERSION)
 
 STATIC_CHECK := $(BIN_DIR)/staticcheck
 $(STATIC_CHECK): $(BIN_DIR) go.mod go.sum # Build staticcheck from tools folder.
