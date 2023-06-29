@@ -91,7 +91,7 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine, zo
 		csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering.ID)
 		if err != nil {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-			return *csOffering, multierror.Append(retErr, errors.Wrapf(
+			return cloudstack.ServiceOffering{}, multierror.Append(retErr, errors.Wrapf(
 				err, "could not get Service Offering by ID %s", csMachine.Spec.Offering.ID))
 		} else if count != 1 {
 			return *csOffering, multierror.Append(retErr, errors.Errorf(
@@ -107,7 +107,7 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine, zo
 	csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByName(csMachine.Spec.Offering.Name, cloudstack.WithZone(zoneID))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-		return *csOffering, multierror.Append(retErr, errors.Wrapf(
+		return cloudstack.ServiceOffering{}, multierror.Append(retErr, errors.Wrapf(
 			err, "could not get Service Offering ID from %s in zone %s", csMachine.Spec.Offering.Name, zoneID))
 	} else if count != 1 {
 		return *csOffering, multierror.Append(retErr, errors.Errorf(
@@ -225,7 +225,7 @@ func (c *client) CheckAccountLimits(fd *infrav1.CloudStackFailureDomain, offerin
 
 	if c.user.Account.VMAvailable != "Unlimited" {
 		vmAvailable, err := strconv.ParseInt(c.user.Account.VMAvailable, 10, 0)
-		if err == nil && vmAvailable <= 0 {
+		if err == nil && vmAvailable < 1 {
 			return fmt.Errorf("VM Limit in account has reached it's maximum value")
 		}
 	}
@@ -250,7 +250,7 @@ func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering
 
 	if c.user.Account.Domain.VMAvailable != "Unlimited" {
 		vmAvailable, err := strconv.ParseInt(c.user.Account.Domain.VMAvailable, 10, 0)
-		if err == nil && vmAvailable > 0 {
+		if err == nil && vmAvailable < 1 {
 			return fmt.Errorf("VM Limit in domain has reached it's maximum value")
 		}
 	}

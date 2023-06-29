@@ -50,7 +50,7 @@ var _ = Describe("User Credentials", func() {
 		ds = mockClient.Domain.(*csapi.MockDomainServiceIface)
 		as = mockClient.Account.(*csapi.MockAccountServiceIface)
 		us = mockClient.User.(*csapi.MockUserServiceIface)
-		client = cloud.NewClientFromCSAPIClient(mockClient)
+		client = cloud.NewClientFromCSAPIClient(mockClient, nil)
 		dummies.SetDummyVars()
 		// dummies.SetDummyClusterStatus()
 		// dummies.SetDummyCSMachineStatuses()

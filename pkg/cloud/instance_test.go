@@ -66,7 +66,7 @@ var _ = Describe("Instance", func() {
 		ts = mockClient.Template.(*cloudstack.MockTemplateServiceIface)
 		vs = mockClient.Volume.(*cloudstack.MockVolumeServiceIface)
 		as = mockClient.Address.(*cloudstack.MockAddressServiceIface)
-		client = cloud.NewClientFromCSAPIClient(mockClient)
+		client = cloud.NewClientFromCSAPIClient(mockClient, nil)
 
 		dummies.SetDummyVars()
 	})
@@ -128,6 +128,8 @@ var _ = Describe("Instance", func() {
 		expectVMNotFound := func() {
 			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID).Return(nil, -1, notFoundError)
 			vms.EXPECT().GetVirtualMachinesMetricByName(dummies.CSMachine1.Name).Return(nil, -1, notFoundError)
+		}
+		expectPublicIPAddress := func() {
 			aslp := &cloudstack.ListPublicIpAddressesParams{}
 			as.EXPECT().NewListPublicIpAddressesParams().Return(aslp)
 			as.EXPECT().ListPublicIpAddresses(aslp).Return(&cloudstack.ListPublicIpAddressesResponse{
@@ -151,7 +153,21 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors occurring while fetching service offering information", func() {
 			expectVMNotFound()
+			expectPublicIPAddress()
 			sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).Return(&cloudstack.ServiceOffering{}, -1, unknownError)
+			Ω(client.GetOrCreateVMInstance(
+				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+				ShouldNot(Succeed())
+		})
+
+		It("returns errors occurring if not enough public IPs available", func() {
+			expectVMNotFound()
+
+			aslp := &cloudstack.ListPublicIpAddressesParams{}
+			as.EXPECT().NewListPublicIpAddressesParams().Return(aslp)
+			as.EXPECT().ListPublicIpAddresses(aslp).Return(&cloudstack.ListPublicIpAddressesResponse{
+				Count: 2, PublicIpAddresses: []*cloudstack.PublicIpAddress{{State: "Allocated"}, {State: "Allocated"}},
+			}, nil)
 			Ω(client.GetOrCreateVMInstance(
 				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
 				ShouldNot(Succeed())
@@ -159,6 +175,7 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors if more than one service offering found", func() {
 			expectVMNotFound()
+			expectPublicIPAddress()
 			sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).Return(&cloudstack.ServiceOffering{
 				Id:   dummies.CSMachine1.Spec.Offering.ID,
 				Name: dummies.CSMachine1.Spec.Offering.Name,
@@ -170,6 +187,7 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors while fetching template", func() {
 			expectVMNotFound()
+			expectPublicIPAddress()
 			sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
 				Return(&cloudstack.ServiceOffering{
 					Id:   dummies.CSMachine1.Spec.Offering.ID,
@@ -184,6 +202,7 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors when more than one template found", func() {
 			expectVMNotFound()
+			expectPublicIPAddress()
 			sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
 				Return(&cloudstack.ServiceOffering{
 					Id:   dummies.CSMachine1.Spec.Offering.ID,
@@ -197,6 +216,7 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors when more than one diskoffering found", func() {
 			expectVMNotFound()
+			expectPublicIPAddress()
 			sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
 				Return(&cloudstack.ServiceOffering{
 					Id:   dummies.CSMachine1.Spec.Offering.ID,
@@ -211,6 +231,7 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors when fetching diskoffering", func() {
 			expectVMNotFound()
+			expectPublicIPAddress()
 			sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
 				Return(&cloudstack.ServiceOffering{
 					Id:   dummies.CSMachine1.Spec.Offering.ID,
@@ -226,6 +247,7 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors when disk size not zero for non-customized disk offering", func() {
 			expectVMNotFound()
+			expectPublicIPAddress()
 			dummies.CSMachine1.Spec.DiskOffering.CustomSize = 1
 			sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
 				Return(&cloudstack.ServiceOffering{
@@ -242,6 +264,7 @@ var _ = Describe("Instance", func() {
 
 		It("returns errors when disk size zero for customized disk offering", func() {
 			expectVMNotFound()
+			expectPublicIPAddress()
 			dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
 			sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
 				Return(&cloudstack.ServiceOffering{
@@ -258,8 +281,203 @@ var _ = Describe("Instance", func() {
 				ShouldNot(Succeed())
 		})
 
+		Context("when account & domains have limits", func() {
+			It("returns errors when there are not enough available CPU in account", func() {
+				expectVMNotFound()
+				expectPublicIPAddress()
+				dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
+				sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
+					Return(&cloudstack.ServiceOffering{
+						Id:        dummies.CSMachine1.Spec.Offering.ID,
+						Name:      dummies.CSMachine1.Spec.Offering.Name,
+						Cpunumber: 2,
+						Memory:    1024,
+					}, 1, nil)
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
+				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
+				user := &cloud.User{
+					Account: cloud.Account{
+						Domain: cloud.Domain{
+							CPUAvailable:    "20",
+							MemoryAvailable: "2048",
+							VMAvailable:     "20",
+						},
+						CPUAvailable:    "1",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
+					},
+				}
+				c := cloud.NewClientFromCSAPIClient(mockClient, user)
+				Ω(c.GetOrCreateVMInstance(
+					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+					Should(MatchError(MatchRegexp("CPU available .* in account can't fulfil the requirement:.*")))
+			})
+
+			It("returns errors when there are not enough available CPU in domain", func() {
+				expectVMNotFound()
+				expectPublicIPAddress()
+				dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
+				sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
+					Return(&cloudstack.ServiceOffering{
+						Id:        dummies.CSMachine1.Spec.Offering.ID,
+						Name:      dummies.CSMachine1.Spec.Offering.Name,
+						Cpunumber: 2,
+						Memory:    1024,
+					}, 1, nil)
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
+				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
+				user := &cloud.User{
+					Account: cloud.Account{
+						Domain: cloud.Domain{
+							CPUAvailable:    "1",
+							MemoryAvailable: "2048",
+							VMAvailable:     "20",
+						},
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
+					},
+				}
+				c := cloud.NewClientFromCSAPIClient(mockClient, user)
+				Ω(c.GetOrCreateVMInstance(
+					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+					Should(MatchError(MatchRegexp("CPU available .* in domain can't fulfil the requirement:.*")))
+			})
+
+			It("returns errors when there is not enough available memory in account", func() {
+				expectVMNotFound()
+				expectPublicIPAddress()
+				dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
+				sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
+					Return(&cloudstack.ServiceOffering{
+						Id:        dummies.CSMachine1.Spec.Offering.ID,
+						Name:      dummies.CSMachine1.Spec.Offering.Name,
+						Cpunumber: 2,
+						Memory:    1024,
+					}, 1, nil)
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
+				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
+				user := &cloud.User{
+					Account: cloud.Account{
+						Domain: cloud.Domain{
+							CPUAvailable:    "20",
+							MemoryAvailable: "2048",
+							VMAvailable:     "20",
+						},
+						CPUAvailable:    "20",
+						MemoryAvailable: "512",
+						VMAvailable:     "20",
+					},
+				}
+				c := cloud.NewClientFromCSAPIClient(mockClient, user)
+				Ω(c.GetOrCreateVMInstance(
+					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+					Should(MatchError(MatchRegexp("memory available .* in account can't fulfil the requirement:.*")))
+			})
+
+			It("returns errors when there is not enough available memory in domain", func() {
+				expectVMNotFound()
+				expectPublicIPAddress()
+				dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
+				sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
+					Return(&cloudstack.ServiceOffering{
+						Id:        dummies.CSMachine1.Spec.Offering.ID,
+						Name:      dummies.CSMachine1.Spec.Offering.Name,
+						Cpunumber: 2,
+						Memory:    1024,
+					}, 1, nil)
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
+				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
+				user := &cloud.User{
+					Account: cloud.Account{
+						Domain: cloud.Domain{
+							CPUAvailable:    "20",
+							MemoryAvailable: "512",
+							VMAvailable:     "20",
+						},
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
+					},
+				}
+				c := cloud.NewClientFromCSAPIClient(mockClient, user)
+				Ω(c.GetOrCreateVMInstance(
+					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+					Should(MatchError(MatchRegexp("memory available .* in domain can't fulfil the requirement:.*")))
+			})
+
+			It("returns errors when there is not enough available VM limit in account", func() {
+				expectVMNotFound()
+				expectPublicIPAddress()
+				dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
+				sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
+					Return(&cloudstack.ServiceOffering{
+						Id:        dummies.CSMachine1.Spec.Offering.ID,
+						Name:      dummies.CSMachine1.Spec.Offering.Name,
+						Cpunumber: 2,
+						Memory:    1024,
+					}, 1, nil)
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
+				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
+				user := &cloud.User{
+					Account: cloud.Account{
+						Domain: cloud.Domain{
+							CPUAvailable:    "20",
+							MemoryAvailable: "2048",
+							VMAvailable:     "20",
+						},
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "0",
+					},
+				}
+				c := cloud.NewClientFromCSAPIClient(mockClient, user)
+				Ω(c.GetOrCreateVMInstance(
+					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+					Should(MatchError("VM Limit in account has reached it's maximum value"))
+			})
+
+			It("returns errors when there is not enough available VM limit in domain", func() {
+				expectVMNotFound()
+				expectPublicIPAddress()
+				dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
+				sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
+					Return(&cloudstack.ServiceOffering{
+						Id:        dummies.CSMachine1.Spec.Offering.ID,
+						Name:      dummies.CSMachine1.Spec.Offering.Name,
+						Cpunumber: 2,
+						Memory:    1024,
+					}, 1, nil)
+				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
+				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
+				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
+				user := &cloud.User{
+					Account: cloud.Account{
+						Domain: cloud.Domain{
+							CPUAvailable:    "20",
+							MemoryAvailable: "2048",
+							VMAvailable:     "0",
+						},
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "10",
+					},
+				}
+				c := cloud.NewClientFromCSAPIClient(mockClient, user)
+				Ω(c.GetOrCreateVMInstance(
+					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+					Should(MatchError("VM Limit in domain has reached it's maximum value"))
+			})
+		})
+
 		It("handles deployment errors", func() {
 			expectVMNotFound()
+			expectPublicIPAddress()
 			sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
 				Return(&cloudstack.ServiceOffering{
 					Id:        offeringFakeID,

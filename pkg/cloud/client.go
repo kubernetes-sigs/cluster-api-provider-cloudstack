@@ -221,12 +221,9 @@ func (c *client) NewClientInDomainAndAccount(domain string, account string) (Cli
 }
 
 // NewClientFromCSAPIClient creates a client from a CloudStack-Go API client. Used only for testing.
-func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
-	c := &client{
-		cs:            cs,
-		csAsync:       cs,
-		customMetrics: metrics.NewCustomMetrics(),
-		user: &User{
+func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient, user *User) Client {
+	if user == nil {
+		user = &User{
 			Account: Account{
 				Domain: Domain{
 					CPUAvailable:    "Unlimited",
@@ -237,7 +234,14 @@ func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
 				MemoryAvailable: "Unlimited",
 				VMAvailable:     "Unlimited",
 			},
-		}}
+		}
+	}
+	c := &client{
+		cs:            cs,
+		csAsync:       cs,
+		customMetrics: metrics.NewCustomMetrics(),
+		user:          user,
+	}
 	return c
 }
 

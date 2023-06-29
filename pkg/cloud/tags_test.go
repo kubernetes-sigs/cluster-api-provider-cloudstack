@@ -44,7 +44,7 @@ var _ = Describe("Tag Unit Tests", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = csapi.NewMockClient(mockCtrl)
 		rs = mockClient.Resourcetags.(*csapi.MockResourcetagsServiceIface)
-		client = cloud.NewClientFromCSAPIClient(mockClient)
+		client = cloud.NewClientFromCSAPIClient(mockClient, nil)
 	})
 
 	Context("Tag Integ Tests", Label("integ"), func() {
