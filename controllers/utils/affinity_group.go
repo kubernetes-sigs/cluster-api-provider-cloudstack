@@ -18,9 +18,10 @@ package utils
 
 import (
 	"fmt"
+	"strings"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"strings"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,6 +95,13 @@ func GenerateAffinityGroupName(csm infrav1.CloudStackMachine, capiMachine *clust
 		return "", errors.Errorf("could not find owner UID for %s/%s", csm.Namespace, csm.Name)
 	}
 	titleCaser := cases.Title(language.English)
+
+	// If the machine's owner is KubeadmControlPlane or EtcdadmCluster, then we don't consider the name and UID of the
+	// owner, since there will only be one of each of those per cluster.
+	if managerOwnerRef.Kind == "KubeadmControlPlane" || managerOwnerRef.Kind == "EtcdadmCluster" {
+		return fmt.Sprintf("%sAffinity-%s-%s",
+			titleCaser.String(csm.Spec.Affinity), managerOwnerRef.Kind, csm.Spec.FailureDomainName), nil
+	}
 	return fmt.Sprintf("%sAffinity-%s-%s-%s",
 		titleCaser.String(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID, csm.Spec.FailureDomainName), nil
 }
