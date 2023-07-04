@@ -89,7 +89,7 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(
 }
 
 // The computed affinity group name relevant to this machine.
-func GenerateAffinityGroupName(csm infrav1.CloudStackMachine, capiMachine *clusterv1.Machine) (string, error) {
+func GenerateAffinityGroupName(csm infrav1.CloudStackMachine, capiMachine *clusterv1.Machine, capiCluster *clusterv1.Cluster) (string, error) {
 	managerOwnerRef := GetManagementOwnerRef(capiMachine)
 	if managerOwnerRef == nil {
 		return "", errors.Errorf("could not find owner UID for %s/%s", csm.Namespace, csm.Name)
@@ -99,9 +99,9 @@ func GenerateAffinityGroupName(csm infrav1.CloudStackMachine, capiMachine *clust
 	// If the machine's owner is KubeadmControlPlane or EtcdadmCluster, then we don't consider the name and UID of the
 	// owner, since there will only be one of each of those per cluster.
 	if managerOwnerRef.Kind == "KubeadmControlPlane" || managerOwnerRef.Kind == "EtcdadmCluster" {
-		return fmt.Sprintf("%sAffinity-%s-%s",
-			titleCaser.String(csm.Spec.Affinity), managerOwnerRef.Kind, csm.Spec.FailureDomainName), nil
+		return fmt.Sprintf("%s-%s-%sAffinity-%s-%s",
+			capiCluster.Name, capiCluster.UID, titleCaser.String(csm.Spec.Affinity), managerOwnerRef.Kind, csm.Spec.FailureDomainName), nil
 	}
-	return fmt.Sprintf("%sAffinity-%s-%s-%s",
-		titleCaser.String(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID, csm.Spec.FailureDomainName), nil
+	return fmt.Sprintf("%s-%s-%sAffinity-%s-%s-%s",
+		capiCluster.Name, capiCluster.UID, titleCaser.String(csm.Spec.Affinity), managerOwnerRef.Name, managerOwnerRef.UID, csm.Spec.FailureDomainName), nil
 }
