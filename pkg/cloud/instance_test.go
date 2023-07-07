@@ -293,9 +293,6 @@ var _ = Describe("Instance", func() {
 						Cpunumber: 2,
 						Memory:    1024,
 					}, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
-				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 				user := &cloud.User{
 					Account: cloud.Account{
 						Domain: cloud.Domain{
@@ -325,9 +322,6 @@ var _ = Describe("Instance", func() {
 						Cpunumber: 2,
 						Memory:    1024,
 					}, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
-				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 				user := &cloud.User{
 					Account: cloud.Account{
 						Domain: cloud.Domain{
@@ -357,9 +351,6 @@ var _ = Describe("Instance", func() {
 						Cpunumber: 2,
 						Memory:    1024,
 					}, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
-				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 				user := &cloud.User{
 					Account: cloud.Account{
 						Domain: cloud.Domain{
@@ -389,9 +380,6 @@ var _ = Describe("Instance", func() {
 						Cpunumber: 2,
 						Memory:    1024,
 					}, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
-				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 				user := &cloud.User{
 					Account: cloud.Account{
 						Domain: cloud.Domain{
@@ -421,9 +409,6 @@ var _ = Describe("Instance", func() {
 						Cpunumber: 2,
 						Memory:    1024,
 					}, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
-				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 				user := &cloud.User{
 					Account: cloud.Account{
 						Domain: cloud.Domain{
@@ -453,9 +438,6 @@ var _ = Describe("Instance", func() {
 						Cpunumber: 2,
 						Memory:    1024,
 					}, 1, nil)
-				ts.EXPECT().GetTemplateID(dummies.CSMachine1.Spec.Template.Name, executableFilter, dummies.Zone1.ID).Return(dummies.CSMachine1.Spec.Template.ID, 1, nil)
-				dos.EXPECT().GetDiskOfferingID(dummies.CSMachine1.Spec.DiskOffering.Name, gomock.Any()).Return(diskOfferingFakeID, 1, nil)
-				dos.EXPECT().GetDiskOfferingByID(diskOfferingFakeID).Return(&cloudstack.DiskOffering{Iscustomized: false}, 1, nil)
 				user := &cloud.User{
 					Account: cloud.Account{
 						Domain: cloud.Domain{

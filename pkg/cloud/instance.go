@@ -208,7 +208,7 @@ func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOff
 }
 
 // CheckAccountLimits Checks the account's limit of VM, CPU & Memory
-func (c *client) CheckAccountLimits(fd *infrav1.CloudStackFailureDomain, offering cloudstack.ServiceOffering) error {
+func (c *client) CheckAccountLimits(fd *infrav1.CloudStackFailureDomain, offering *cloudstack.ServiceOffering) error {
 	if c.user.Account.CPUAvailable != "Unlimited" {
 		cpuAvailable, err := strconv.ParseInt(c.user.Account.CPUAvailable, 10, 0)
 		if err == nil && int64(offering.Cpunumber) > cpuAvailable {
@@ -233,7 +233,7 @@ func (c *client) CheckAccountLimits(fd *infrav1.CloudStackFailureDomain, offerin
 }
 
 // CheckDomainLimits Checks the domain's limit of VM, CPU & Memory
-func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering cloudstack.ServiceOffering) error {
+func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering *cloudstack.ServiceOffering) error {
 	if c.user.Account.Domain.CPUAvailable != "Unlimited" {
 		cpuAvailable, err := strconv.ParseInt(c.user.Account.Domain.CPUAvailable, 10, 0)
 		if err == nil && int64(offering.Cpunumber) > cpuAvailable {
@@ -257,8 +257,8 @@ func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering
 	return nil
 }
 
-// CheckNetworkLimits Checks the available IPs for a shared network
-func (c *client) CheckNetworkLimits(fd *infrav1.CloudStackFailureDomain) error {
+// CheckSharedNetworkFreeIps Checks the available IPs for a shared network
+func (c *client) CheckSharedNetworkFreeIps(fd *infrav1.CloudStackFailureDomain) error {
 	if fd.Spec.Zone.Network.Type == NetworkTypeShared {
 
 		p := c.cs.Address.NewListPublicIpAddressesParams()
@@ -280,43 +280,48 @@ func (c *client) CheckNetworkLimits(fd *infrav1.CloudStackFailureDomain) error {
 			}
 		}
 		if freeIPCount < 1 {
-			return fmt.Errorf("no public IPs available in the shared network id: %s name: %s", fd.Spec.Zone.ID, fd.Spec.Zone.Name)
+			return fmt.Errorf("no public IPs available in the shared network. networkid: %s network: %s zone: %s zoneid: %s", fd.Spec.Zone.Network.ID, fd.Spec.Zone.Network.Name, fd.Spec.Zone.ID, fd.Spec.Zone.Name)
 		}
 	}
 	return nil
 }
 
-// CheckLimitsAndCreateVM will check the account & domain limits and then create a
-// VM instance, and sets the infrastructure machine spec and status accordingly.
-func (c *client) CheckLimitsAndCreateVM(
+// CheckLimits will check the account & domain limits
+func (c *client) CheckLimits(
+	fd *infrav1.CloudStackFailureDomain,
+	offering *cloudstack.ServiceOffering,
+) error {
+
+	err := c.CheckAccountLimits(fd, offering)
+	if err != nil {
+		return err
+	}
+
+	err = c.CheckDomainLimits(fd, offering)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeployVM will create a VM instance,
+// and sets the infrastructure machine spec and status accordingly.
+func (c *client) DeployVM(
 	csMachine *infrav1.CloudStackMachine,
 	capiMachine *clusterv1.Machine,
 	csCluster *infrav1.CloudStackCluster,
 	fd *infrav1.CloudStackFailureDomain,
 	affinity *infrav1.CloudStackAffinityGroup,
+	offering *cloudstack.ServiceOffering,
 	userData string,
 ) error {
-
-	offering, err := c.ResolveServiceOffering(csMachine, fd.Spec.Zone.ID)
-	if err != nil {
-		return err
-	}
 
 	templateID, err := c.ResolveTemplate(csCluster, csMachine, fd.Spec.Zone.ID)
 	if err != nil {
 		return err
 	}
 	diskOfferingID, err := c.ResolveDiskOffering(csMachine, fd.Spec.Zone.ID)
-	if err != nil {
-		return err
-	}
-
-	err = c.CheckAccountLimits(fd, offering)
-	if err != nil {
-		return err
-	}
-
-	err = c.CheckDomainLimits(fd, offering)
 	if err != nil {
 		return err
 	}
@@ -393,12 +398,21 @@ func (c *client) GetOrCreateVMInstance(
 		return err
 	}
 
-	if err := c.CheckNetworkLimits(fd); err != nil {
+	if err := c.CheckSharedNetworkFreeIps(fd); err != nil {
 		return err
 	}
 
-	// Create VM instance.
-	if err := c.CheckLimitsAndCreateVM(csMachine, capiMachine, csCluster, fd, affinity, userData); err != nil {
+	offering, err := c.ResolveServiceOffering(csMachine, fd.Spec.Zone.ID)
+	if err != nil {
+		return err
+	}
+
+	err = c.CheckLimits(fd, &offering)
+	if err != nil {
+		return err
+	}
+
+	if err := c.DeployVM(csMachine, capiMachine, csCluster, fd, affinity, &offering, userData); err != nil {
 		return err
 	}
 
