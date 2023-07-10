@@ -19,10 +19,11 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"k8s.io/utils/pointer"
 	"math/rand"
 	"reflect"
 	"regexp"
+
+	"k8s.io/utils/pointer"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -135,17 +136,31 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 		r.ReconciliationSubject.Spec.Affinity == "" { // No managed affinity.
 		return ctrl.Result{}, nil
 	}
+	var agName string
+	var err error
 
-	agName, err := utils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine)
-	if err != nil {
-		return ctrl.Result{}, err
+	if r.ReconciliationSubject.Spec.AffinityGroupRef != nil {
+		agName = r.ReconciliationSubject.Spec.AffinityGroupRef.Name
+	} else {
+		agName, err = utils.GenerateAffinityGroupName(*r.ReconciliationSubject, r.CAPIMachine, r.CAPICluster)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Set failure domain name and owners.
 	r.AffinityGroup.Spec.FailureDomainName = r.ReconciliationSubject.Spec.FailureDomainName
-	if res, err := r.GetOrCreateAffinityGroup(
-		agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup, r.FailureDomain)(); r.ShouldReturn(res, err) {
+	res, err := r.GetOrCreateAffinityGroup(
+		agName, r.ReconciliationSubject.Spec.Affinity, r.AffinityGroup, r.FailureDomain)()
+	if r.ShouldReturn(res, err) {
 		return res, err
+	}
+	// Set affinity group reference.
+	r.ReconciliationSubject.Spec.AffinityGroupRef = &corev1.ObjectReference{
+		Kind:      r.AffinityGroup.Kind,
+		UID:       r.AffinityGroup.UID,
+		Name:      r.AffinityGroup.Name,
+		Namespace: r.AffinityGroup.Namespace,
 	}
 	if !r.AffinityGroup.Status.Ready {
 		return r.RequeueWithMessage("Required affinity group not ready.")

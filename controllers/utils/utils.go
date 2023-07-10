@@ -128,10 +128,10 @@ func fetchOwnerRef(refList []meta.OwnerReference, kind string) *meta.OwnerRefere
 func GetManagementOwnerRef(capiMachine *clusterv1.Machine) *meta.OwnerReference {
 	if util.IsControlPlaneMachine(capiMachine) {
 		return fetchOwnerRef(capiMachine.OwnerReferences, "KubeadmControlPlane")
-	} else if ref := fetchOwnerRef(capiMachine.OwnerReferences, "MachineSet"); ref != nil {
+	} else if ref := fetchOwnerRef(capiMachine.OwnerReferences, "EtcdadmCluster"); ref != nil {
 		return ref
 	}
-	return fetchOwnerRef(capiMachine.OwnerReferences, "EtcdadmCluster")
+	return fetchOwnerRef(capiMachine.OwnerReferences, "MachineSet")
 }
 
 // GetOwnerOfKind returns the Cluster object owning the current resource of passed kind.
