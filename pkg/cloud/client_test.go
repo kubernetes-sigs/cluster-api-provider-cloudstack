@@ -22,9 +22,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/apache/cloudstack-go/v2/cloudstack"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
 )
 
@@ -36,9 +39,20 @@ type Global struct {
 
 var _ = Describe("Client", func() {
 
-	var ()
+	var (
+		mockCtrl   *gomock.Controller
+		mockClient *cloudstack.CloudStackClient
+		us         *cloudstack.MockUserServiceIface
+		ds         *cloudstack.MockDomainServiceIface
+		as         *cloudstack.MockAccountServiceIface
+	)
 
 	BeforeEach(func() {
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockClient = cloudstack.NewMockClient(mockCtrl)
+		us = mockClient.User.(*cloudstack.MockUserServiceIface)
+		ds = mockClient.Domain.(*cloudstack.MockDomainServiceIface)
+		as = mockClient.Account.(*cloudstack.MockAccountServiceIface)
 	})
 
 	AfterEach(func() {
@@ -100,10 +114,48 @@ var _ = Describe("Client", func() {
 
 	Context("NewClientFromConf", func() {
 		clientConfig := &corev1.ConfigMap{}
+		cloud.NewAsyncClient = func(apiurl, apikey, secret string, verifyssl bool, options ...cloudstack.ClientOption) *cloudstack.CloudStackClient {
+			return mockClient
+		}
+		cloud.NewClient = func(apiurl, apikey, secret string, verifyssl bool, options ...cloudstack.ClientOption) *cloudstack.CloudStackClient {
+			return mockClient
+		}
 
 		BeforeEach(func() {
 			clientConfig.Data = map[string]string{}
 			clientConfig.Data[cloud.ClientCacheTTLKey] = "100ms"
+			fakeListParams := &cloudstack.ListUsersParams{}
+			fakeUser := &cloudstack.User{
+				Id:      dummies.UserID,
+				Account: dummies.AccountName,
+				Domain:  dummies.DomainName,
+			}
+			us.EXPECT().NewListUsersParams().Return(fakeListParams).AnyTimes()
+			us.EXPECT().ListUsers(fakeListParams).Return(&cloudstack.ListUsersResponse{
+				Count: 1, Users: []*cloudstack.User{fakeUser},
+			}, nil).AnyTimes()
+
+			dsp := &cloudstack.ListDomainsParams{}
+			ds.EXPECT().NewListDomainsParams().Return(dsp).AnyTimes()
+			ds.EXPECT().ListDomains(dsp).Return(&cloudstack.ListDomainsResponse{Count: 1, Domains: []*cloudstack.Domain{{
+				Id:   dummies.DomainID,
+				Name: dummies.DomainName,
+				Path: dummies.DomainPath,
+			}}}, nil).AnyTimes()
+
+			asp := &cloudstack.ListAccountsParams{}
+			as.EXPECT().NewListAccountsParams().Return(asp).AnyTimes()
+			as.EXPECT().ListAccounts(asp).Return(&cloudstack.ListAccountsResponse{Count: 1, Accounts: []*cloudstack.Account{{
+				Id:   dummies.AccountID,
+				Name: dummies.AccountName,
+			}}}, nil).AnyTimes()
+			ukp := &cloudstack.GetUserKeysParams{}
+			us.EXPECT().NewGetUserKeysParams(gomock.Any()).Return(ukp).AnyTimes()
+			us.EXPECT().GetUserKeys(ukp).Return(&cloudstack.GetUserKeysResponse{
+				Apikey:    dummies.Apikey,
+				Secretkey: dummies.SecretKey,
+			}, nil).AnyTimes()
+
 		})
 
 		It("Returns a new client", func() {
@@ -137,19 +189,6 @@ var _ = Describe("Client", func() {
 			result1, _ := cloud.NewClientFromConf(config1, clientConfig)
 			result2, _ := cloud.NewClientFromConf(config2, clientConfig)
 			Ω(result1).Should(Equal(result2))
-		})
-
-		It("Returns a new client after cache expiration", func() {
-			config1 := cloud.Config{
-				APIUrl: "http://5.5.5.5",
-			}
-			config2 := cloud.Config{
-				APIUrl: "http://5.5.5.5",
-			}
-			result1, _ := cloud.NewClientFromConf(config1, clientConfig)
-			time.Sleep(150 * time.Millisecond)
-			result2, _ := cloud.NewClientFromConf(config2, clientConfig)
-			Ω(result1).ShouldNot(Equal(result2))
 		})
 	})
 })

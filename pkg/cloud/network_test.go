@@ -43,7 +43,7 @@ var _ = Describe("Network", func() {
 		mockClient = csapi.NewMockClient(mockCtrl)
 		ns = mockClient.Network.(*csapi.MockNetworkServiceIface)
 		rs = mockClient.Resourcetags.(*csapi.MockResourcetagsServiceIface)
-		client = cloud.NewClientFromCSAPIClient(mockClient)
+		client = cloud.NewClientFromCSAPIClient(mockClient, nil)
 		dummies.SetDummyVars()
 	})
 

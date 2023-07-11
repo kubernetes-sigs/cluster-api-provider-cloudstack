@@ -59,6 +59,7 @@ type client struct {
 	cs            *cloudstack.CloudStackClient
 	csAsync       *cloudstack.CloudStackClient
 	config        Config
+	user          *User
 	customMetrics metrics.ACSCustomMetrics
 }
 
@@ -72,6 +73,9 @@ type SecretConfig struct {
 
 var clientCache *ttlcache.Cache
 var cacheMutex sync.Mutex
+
+var NewAsyncClient = cloudstack.NewAsyncClient
+var NewClient = cloudstack.NewClient
 
 const ClientConfigMapName = "capc-client-config"
 const ClientConfigMapNamespace = "capc-system"
@@ -168,9 +172,31 @@ func NewClientFromConf(conf Config, clientConfig *corev1.ConfigMap) (Client, err
 	// a client returned from NewClient works in an asynchronous way. Dive into the constructor definition
 	// comments for more details
 	c := &client{config: conf}
-	c.cs = cloudstack.NewAsyncClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
-	c.csAsync = cloudstack.NewClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
+	c.cs = NewClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
+	c.csAsync = NewAsyncClient(conf.APIUrl, conf.APIKey, conf.SecretKey, verifySSL)
 	c.customMetrics = metrics.NewCustomMetrics()
+
+	p := c.cs.User.NewListUsersParams()
+	userResponse, err := c.cs.User.ListUsers(p)
+	if err != nil {
+		return c, err
+	}
+	user := &User{
+		ID: userResponse.Users[0].Id,
+		Account: Account{
+			Name: userResponse.Users[0].Account,
+			Domain: Domain{
+				Path: userResponse.Users[0].Domain,
+			},
+		},
+	}
+	if found, err := c.GetUserWithKeys(user); err != nil {
+		return nil, err
+	} else if !found {
+		return nil, errors.Errorf(
+			"could not find sufficient user (with API keys) in domain/account %s/%s", userResponse.Users[0].Domain, userResponse.Users[0].Account)
+	}
+	c.user = user
 	clientCache.Set(clientCacheKey, c)
 
 	return c, nil
@@ -189,13 +215,33 @@ func (c *client) NewClientInDomainAndAccount(domain string, account string) (Cli
 	}
 	c.config.APIKey = user.APIKey
 	c.config.SecretKey = user.SecretKey
+	c.user = user
 
 	return NewClientFromConf(c.config, nil)
 }
 
-// NewClientFromCSAPIClient creates a client from a CloudStack-Go API client. Mostly used for testing.
-func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient) Client {
-	c := &client{cs: cs, csAsync: cs, customMetrics: metrics.NewCustomMetrics()}
+// NewClientFromCSAPIClient creates a client from a CloudStack-Go API client. Used only for testing.
+func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient, user *User) Client {
+	if user == nil {
+		user = &User{
+			Account: Account{
+				Domain: Domain{
+					CPUAvailable:    "Unlimited",
+					MemoryAvailable: "Unlimited",
+					VMAvailable:     "Unlimited",
+				},
+				CPUAvailable:    "Unlimited",
+				MemoryAvailable: "Unlimited",
+				VMAvailable:     "Unlimited",
+			},
+		}
+	}
+	c := &client{
+		cs:            cs,
+		csAsync:       cs,
+		customMetrics: metrics.NewCustomMetrics(),
+		user:          user,
+	}
 	return c
 }
 

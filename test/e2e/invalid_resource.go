@@ -40,12 +40,12 @@ import (
 )
 
 var (
-	specName           = "invalid-resource"
-	input              CommonSpecInput
-	namespace          *corev1.Namespace
-	cancelWatches      context.CancelFunc
-	clusterResources   *clusterctl.ApplyClusterTemplateAndWaitResult
-	instanceStateError = "\"instanceState\":\"Error\""
+	specName              = "invalid-resource"
+	input                 CommonSpecInput
+	namespace             *corev1.Namespace
+	cancelWatches         context.CancelFunc
+	clusterResources      *clusterctl.ApplyClusterTemplateAndWaitResult
+	MachineInErrorMessage = "CloudStackMachine VM in error state. Deleting associated Machine"
 )
 
 // InvalidResourceSpec implements a test that verifies that creating a new cluster fails when the specified resource does not exist
@@ -90,7 +90,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 	})
 
 	It("Should fail due to the compute resources are not sufficient for the specified offering [TC8]", func() {
-		testInvalidResource(ctx, input, "insufficient-compute-resources", instanceStateError)
+		testInvalidResource(ctx, input, "insufficient-compute-resources", MachineInErrorMessage)
 	})
 
 	It("Should fail due to the specified disk offer is not customized but the disk size is specified", func() {
@@ -135,7 +135,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 
 		It("Should fail to upgrade worker machine due to insufficient compute resources", func() {
 			By("Making sure the expected error didn't occur yet")
-			Expect(errorExistsInLog(logFolder, instanceStateError)).To(BeFalse())
+			Expect(errorExistsInLog(logFolder, MachineInErrorMessage)).To(BeFalse())
 
 			By("Increasing the machine deployment instance size")
 			deployment := clusterResources.MachineDeployments[0]
@@ -144,12 +144,12 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 			upgradeMachineDeploymentInfrastructureRef(ctx, deployment)
 
 			By("Checking for the expected error")
-			waitForErrorInLog(logFolder, instanceStateError)
+			waitForErrorInLog(logFolder, MachineInErrorMessage)
 		})
 
 		It("Should fail to upgrade control plane machine due to insufficient compute resources", func() {
 			By("Making sure the expected error didn't occur yet")
-			Expect(errorExistsInLog(logFolder, instanceStateError)).To(BeFalse())
+			Expect(errorExistsInLog(logFolder, MachineInErrorMessage)).To(BeFalse())
 
 			By("Increasing the machine deployment instance size")
 			cp := clusterResources.ControlPlane
@@ -158,7 +158,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 			upgradeControlPlaneInfrastructureRef(ctx, cp)
 
 			By("Checking for the expected error")
-			waitForErrorInLog(logFolder, instanceStateError)
+			waitForErrorInLog(logFolder, MachineInErrorMessage)
 		})
 	})
 
