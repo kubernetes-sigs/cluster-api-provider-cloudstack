@@ -6,19 +6,20 @@ metadata:
   name: mutating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
+  - v1
   - v1beta1
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackcluster
   failurePolicy: Fail
   name: mcloudstackcluster.kb.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta2
+    - v1beta3
     operations:
     - CREATE
     - UPDATE
@@ -26,24 +27,46 @@ webhooks:
     - cloudstackclusters
   sideEffects: None
 - admissionReviewVersions:
+  - v1
   - v1beta1
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachine
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachine
   failurePolicy: Fail
   name: mcloudstackmachine.kb.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta2
+    - v1beta3
     operations:
     - CREATE
     - UPDATE
     resources:
     - cloudstackmachines
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachinetemplate
+  failurePolicy: Fail
+  name: mcloudstackmachinetemplate.kb.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1beta3
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cloudstackmachinetemplates
   sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -53,19 +76,20 @@ metadata:
   name: validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
+  - v1
   - v1beta1
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackcluster
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackcluster
   failurePolicy: Fail
   name: vcloudstackcluster.kb.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta2
+    - v1beta3
     operations:
     - CREATE
     - UPDATE
@@ -73,19 +97,20 @@ webhooks:
     - cloudstackclusters
   sideEffects: None
 - admissionReviewVersions:
+  - v1
   - v1beta1
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachine
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachine
   failurePolicy: Fail
   name: vcloudstackmachine.kb.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta2
+    - v1beta3
     operations:
     - CREATE
     - UPDATE
@@ -93,19 +118,20 @@ webhooks:
     - cloudstackmachines
   sideEffects: None
 - admissionReviewVersions:
+  - v1
   - v1beta1
   clientConfig:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-cloudstackmachinetemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachinetemplate
   failurePolicy: Fail
   name: vcloudstackmachinetemplate.kb.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta2
+    - v1beta3
     operations:
     - CREATE
     - UPDATE

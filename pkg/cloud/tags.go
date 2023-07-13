@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 )
 
 type TagIface interface {

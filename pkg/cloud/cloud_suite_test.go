@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
 )
 
