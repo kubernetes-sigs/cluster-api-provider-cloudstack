@@ -37,6 +37,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -73,6 +74,8 @@ type managerOpts struct {
 	WatchingNamespace    string
 	WatchFilterValue     string
 	CertDir              string
+
+	CloudStackMachineConcurrency int
 }
 
 func setFlags() *managerOpts {
@@ -117,6 +120,13 @@ func setFlags() *managerOpts {
 		"webhook-cert-dir",
 		"/tmp/k8s-webhook-server/serving-certs/",
 		"Specify the directory where webhooks will get tls certificates.")
+	flag.IntVar(
+		&opts.CloudStackMachineConcurrency,
+		"cloudstackmachine-concurrency",
+		10,
+		"Maximum concurrent reconciles for CloudStackMachine resources",
+	)
+
 	return opts
 }
 
@@ -152,10 +162,11 @@ func main() {
 		K8sClient:  mgr.GetClient(),
 		BaseLogger: ctrl.Log.WithName("controllers"),
 		Recorder:   mgr.GetEventRecorderFor("capc-controller-manager"),
-		Scheme:     mgr.GetScheme()}
+		Scheme:     mgr.GetScheme(),
+	}
 
 	ctx := ctrl.SetupSignalHandler()
-	setupReconcilers(ctx, base, mgr)
+	setupReconcilers(ctx, base, *opts, mgr)
 	infrav1b3.K8sClient = base.K8sClient
 
 	// +kubebuilder:scaffold:builder
@@ -191,12 +202,12 @@ func main() {
 	}
 }
 
-func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, mgr manager.Manager) {
+func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, opts managerOpts, mgr manager.Manager) {
 	if err := (&controllers.CloudStackClusterReconciler{ReconcilerBase: base}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err := (&controllers.CloudStackMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+	if err := (&controllers.CloudStackMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: opts.CloudStackMachineConcurrency}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
 		os.Exit(1)
 	}

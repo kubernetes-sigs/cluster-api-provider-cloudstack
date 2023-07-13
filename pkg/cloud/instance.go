@@ -291,7 +291,6 @@ func (c *client) CheckLimits(
 	fd *infrav1.CloudStackFailureDomain,
 	offering *cloudstack.ServiceOffering,
 ) error {
-
 	err := c.CheckAccountLimits(fd, offering)
 	if err != nil {
 		return err
@@ -316,7 +315,6 @@ func (c *client) DeployVM(
 	offering *cloudstack.ServiceOffering,
 	userData string,
 ) error {
-
 	templateID, err := c.ResolveTemplate(csCluster, csMachine, fd.Spec.Zone.ID)
 	if err != nil {
 		return err
@@ -391,7 +389,6 @@ func (c *client) GetOrCreateVMInstance(
 	affinity *infrav1.CloudStackAffinityGroup,
 	userData string,
 ) error {
-
 	// Check if VM instance already exists.
 	if err := c.ResolveVMInstanceDetails(csMachine); err == nil ||
 		!strings.Contains(strings.ToLower(err.Error()), "no match") {
@@ -499,5 +496,4 @@ func (c *client) listVMInstanceDatadiskVolumeIDs(instanceID string) ([]string, e
 	}
 
 	return ret, nil
-
 }
