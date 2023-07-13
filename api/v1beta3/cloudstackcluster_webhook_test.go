@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta2_test
+package v1beta3_test
 
 import (
 	"context"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
-	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 )
 
 var _ = Describe("CloudStackCluster webhooks", func() {

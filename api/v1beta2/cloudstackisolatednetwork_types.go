@@ -37,7 +37,6 @@ type CloudStackIsolatedNetworkSpec struct {
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
-	//+k8s:conversion-gen=false
 	// FailureDomainName -- the FailureDomain the network is placed in.
 	FailureDomainName string `json:"failureDomainName"`
 }
@@ -63,7 +62,6 @@ func (n *CloudStackIsolatedNetwork) Network() *Network {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:storageversion
 
 // CloudStackIsolatedNetwork is the Schema for the cloudstackisolatednetworks API
 type CloudStackIsolatedNetwork struct {

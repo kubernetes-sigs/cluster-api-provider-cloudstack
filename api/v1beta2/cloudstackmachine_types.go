@@ -82,7 +82,6 @@ type CloudStackMachineSpec struct {
 
 	// FailureDomainName -- the name of the FailureDomain the machine is placed in.
 	// +optional
-	// +k8s:conversion-gen=false
 	FailureDomainName string `json:"failureDomainName,omitempty"`
 
 	// UncompressedUserData specifies whether the user data is gzip-compressed.
@@ -157,7 +156,6 @@ func (s *CloudStackMachineStatus) TimeSinceLastStateChange() time.Duration {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=cloudstackmachines,scope=Namespaced,categories=cluster-api,shortName=csm
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this CloudStackMachine belongs"
 // +kubebuilder:printcolumn:name="InstanceState",type="string",JSONPath=".status.instanceState",description="CloudStack instance state"

@@ -37,7 +37,6 @@ type CloudStackAffinityGroupSpec struct {
 
 	// FailureDomainName -- the name of the FailureDomain the machine is placed in.
 	// +optional
-	// +k8s:conversion-gen=false
 	FailureDomainName string `json:"failureDomainName,omitempty"`
 }
 
@@ -49,7 +48,6 @@ type CloudStackAffinityGroupStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:storageversion
 
 // CloudStackAffinityGroup is the Schema for the cloudstackaffinitygroups API
 type CloudStackAffinityGroup struct {

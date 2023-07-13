@@ -44,6 +44,7 @@ import (
 
 	infrav1b1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	infrav1b2 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	infrav1b3 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	//+kubebuilder:scaffold:imports
@@ -59,6 +60,7 @@ func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(infrav1b1.AddToScheme(scheme))
 	utilruntime.Must(infrav1b2.AddToScheme(scheme))
+	utilruntime.Must(infrav1b3.AddToScheme(scheme))
 	utilruntime.Must(controlplanev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -154,7 +156,7 @@ func main() {
 
 	ctx := ctrl.SetupSignalHandler()
 	setupReconcilers(ctx, base, mgr)
-	infrav1b2.K8sClient = base.K8sClient
+	infrav1b3.K8sClient = base.K8sClient
 
 	// +kubebuilder:scaffold:builder
 
@@ -169,15 +171,15 @@ func main() {
 	}
 
 	// Start the controller manager.
-	if err = (&infrav1b2.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1b3.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err = (&infrav1b2.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1b3.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachine")
 		os.Exit(1)
 	}
-	if err = (&infrav1b2.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1b3.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachineTemplate")
 		os.Exit(1)
 	}

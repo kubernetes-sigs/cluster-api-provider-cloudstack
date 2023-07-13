@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,18 +17,16 @@ limitations under the License.
 package v1beta1
 
 import (
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func (src *CloudStackCluster) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*v1beta2.CloudStackCluster)
-
-	return Convert_v1beta1_CloudStackCluster_To_v1beta2_CloudStackCluster(src, dst, nil)
+	dst := dstRaw.(*v1beta3.CloudStackCluster)
+	return Convert_v1beta1_CloudStackCluster_To_v1beta3_CloudStackCluster(src, dst, nil)
 }
 
 func (dst *CloudStackCluster) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*v1beta2.CloudStackCluster)
-
-	return Convert_v1beta2_CloudStackCluster_To_v1beta1_CloudStackCluster(src, dst, nil)
+	src := srcRaw.(*v1beta3.CloudStackCluster)
+	return Convert_v1beta3_CloudStackCluster_To_v1beta1_CloudStackCluster(src, dst, nil)
 }

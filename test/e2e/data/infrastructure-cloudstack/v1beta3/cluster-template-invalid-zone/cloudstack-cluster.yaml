@@ -1,0 +1,17 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
+kind: CloudStackCluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  failureDomains:
+  - acsEndpoint:
+      name: ${CLOUDSTACK_FD1_SECRET_NAME}
+      namespace: default
+    name: ${CLOUDSTACK_FD1_NAME}
+    zone:
+      name: ${CLOUDSTACK_INVALID_ZONE_NAME}
+      network:
+        name: ${CLOUDSTACK_NETWORK_NAME}
+  controlPlaneEndpoint:
+    host: ""
+    port: 6443
