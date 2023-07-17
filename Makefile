@@ -229,15 +229,23 @@ docker-push: .dockerflag.mk ## Push docker image with the manager.
 ## --------------------------------------
 
 .PHONY: tilt-up
-tilt-up: cluster-api kind-cluster cluster-api/tilt-settings.json generate-manifests ## Setup and run tilt for development.
+tilt-up: cluster-api create-kind-cluster cluster-api/tilt-settings.json generate-manifests ## Setup and run tilt for development.
 	cd cluster-api && tilt up
 
-.PHONY: kind-cluster
-kind-cluster: cluster-api ## Create a kind cluster with a local Docker repository.
-	./cluster-api/hack/kind-install-for-capd.sh
+KIND_CLUSTER_NAME := $(shell cat ./hack/tilt-settings.json | grep kind_cluster_name | cut -d: -f2 | xargs)
+
+.PHONY: create-kind-cluster
+create-kind-cluster: cluster-api cluster-api/tilt-settings.json ## Create a kind cluster with a local Docker repository.
+	@if [ -z "$$(kind get clusters | grep $(KIND_CLUSTER_NAME))" ]; then \
+		CAPI_KIND_CLUSTER_NAME=$(KIND_CLUSTER_NAME) ./cluster-api/hack/kind-install-for-capd.sh; \
+	fi;
+
+.PHONY: delete-kind-cluster
+delete-kind-cluster:
+	kind delete cluster --name $(KIND_CLUSTER_NAME)
 
 cluster-api: ## Clone cluster-api repository for tilt use.
-	git clone --branch v1.2.12 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
+	git clone --branch v1.3.9 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
 
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
@@ -277,7 +285,7 @@ e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster tem
 cluster-template%yaml: $(KUSTOMIZE) $(CLUSTER_TEMPLATES_INPUT_FILES)
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(basename $@) > $@
 
-e2e-essentials: $(GINKGO_V1) $(KUBECTL) e2e-cluster-templates kind-cluster ## Fulfill essential tasks for e2e testing.
+e2e-essentials: $(GINKGO_V1) $(KUBECTL) e2e-cluster-templates create-kind-cluster ## Fulfill essential tasks for e2e testing.
 	IMG=$(IMG_LOCAL) make generate-manifests docker-build docker-push
 
 JOB ?= .*
