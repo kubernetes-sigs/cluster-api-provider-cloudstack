@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -233,7 +234,6 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 
 	userData := processCustomMetadata(data, r)
 	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
-
 	if err != nil {
 		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", "Creating", CSMachineCreationFailed, err.Error())
 	}
@@ -345,8 +345,9 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 }
 
 // SetupWithManager registers the machine reconciler to the CAPI controller manager.
-func (reconciler *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (reconciler *CloudStackMachineReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&infrav1.CloudStackMachine{}).
 		WithEventFilter(
 			predicate.Funcs{

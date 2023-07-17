@@ -18,6 +18,8 @@ package controllers_test
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,8 +33,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strings"
 )
 
 var _ = Describe("CloudStackMachineReconciler", func() {
@@ -43,7 +45,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			dummies.CSCluster.Spec.FailureDomains[0].Name = dummies.CSFailureDomain1.Spec.Name
 
 			SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
-			Ω(MachineReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register the CloudStack MachineReconciler.
+			Ω(MachineReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(Succeed()) // Register the CloudStack MachineReconciler.
 
 			// Point CAPI machine Bootstrap secret ref to dummy bootstrap secret.
 			dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = &dummies.BootstrapSecret.Name
