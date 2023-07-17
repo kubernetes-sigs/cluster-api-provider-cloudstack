@@ -257,41 +257,11 @@ func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering
 	return nil
 }
 
-// CheckSharedNetworkFreeIps Checks the available IPs for a shared network
-func (c *client) CheckSharedNetworkFreeIps(fd *infrav1.CloudStackFailureDomain) error {
-	if fd.Spec.Zone.Network.Type == NetworkTypeShared {
-
-		p := c.cs.Address.NewListPublicIpAddressesParams()
-		p.SetAllocatedonly(false)
-		p.SetNetworkid(fd.Spec.Zone.Network.ID)
-		p.SetZoneid(fd.Spec.Zone.ID)
-		p.SetListall(true)
-		p.SetForvirtualnetwork(false)
-		publicAddresses, err := c.cs.Address.ListPublicIpAddresses(p)
-		if err != nil {
-			return err
-		}
-
-		// freeAddressCount = publicAddresses.PublicIpAddresses
-		freeIPCount := 0
-		for _, publicIP := range publicAddresses.PublicIpAddresses {
-			if publicIP.State == "Free" {
-				freeIPCount++
-			}
-		}
-		if freeIPCount < 1 {
-			return fmt.Errorf("no public IPs available in the shared network. networkid: %s network: %s zone: %s zoneid: %s", fd.Spec.Zone.Network.ID, fd.Spec.Zone.Network.Name, fd.Spec.Zone.ID, fd.Spec.Zone.Name)
-		}
-	}
-	return nil
-}
-
 // CheckLimits will check the account & domain limits
 func (c *client) CheckLimits(
 	fd *infrav1.CloudStackFailureDomain,
 	offering *cloudstack.ServiceOffering,
 ) error {
-
 	err := c.CheckAccountLimits(fd, offering)
 	if err != nil {
 		return err
@@ -316,7 +286,6 @@ func (c *client) DeployVM(
 	offering *cloudstack.ServiceOffering,
 	userData string,
 ) error {
-
 	templateID, err := c.ResolveTemplate(csCluster, csMachine, fd.Spec.Zone.ID)
 	if err != nil {
 		return err
@@ -391,14 +360,9 @@ func (c *client) GetOrCreateVMInstance(
 	affinity *infrav1.CloudStackAffinityGroup,
 	userData string,
 ) error {
-
 	// Check if VM instance already exists.
 	if err := c.ResolveVMInstanceDetails(csMachine); err == nil ||
 		!strings.Contains(strings.ToLower(err.Error()), "no match") {
-		return err
-	}
-
-	if err := c.CheckSharedNetworkFreeIps(fd); err != nil {
 		return err
 	}
 
@@ -499,5 +463,4 @@ func (c *client) listVMInstanceDatadiskVolumeIDs(instanceID string) ([]string, e
 	}
 
 	return ret, nil
-
 }
