@@ -22,6 +22,7 @@ import (
 	"reflect"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -129,7 +130,8 @@ func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ct
 	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
 		metaHashName := infrav1.FailureDomainHashedMetaName(fdSpec.Name, r.CAPICluster.Name)
 		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{
-			ControlPlane: true, Attributes: map[string]string{"MetaHashName": metaHashName}}
+			ControlPlane: true, Attributes: map[string]string{"MetaHashName": metaHashName},
+		}
 	}
 	return ctrl.Result{}, nil
 }
@@ -153,8 +155,9 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 }
 
 // Called in main, this registers the cluster reconciler to the CAPI controller manager.
-func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&infrav1.CloudStackCluster{}).
 		WithEventFilter(
 			predicate.Funcs{
@@ -194,6 +197,7 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Cont
 				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
 			},
 			DeleteFunc: func(e event.DeleteEvent) bool { return false },
-			CreateFunc: func(e event.CreateEvent) bool { return false }})
+			CreateFunc: func(e event.CreateEvent) bool { return false },
+		})
 	return errors.Wrap(err, "building CloudStackCluster controller")
 }

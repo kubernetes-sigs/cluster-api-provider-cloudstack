@@ -22,6 +22,7 @@ spec:
         - /manager
         args:
         - --leader-elect
+        - --cloudstackcluster-concurrency=${CAPC_CLOUDSTACKCLUSTER_CONCURRENCY:=10}
         - --cloudstackmachine-concurrency=${CAPC_CLOUDSTACKMACHINE_CONCURRENCY:=10}
         image: controller:latest
         name: manager

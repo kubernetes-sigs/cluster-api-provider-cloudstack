@@ -24,14 +24,15 @@ import (
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 var _ = Describe("CloudStackClusterReconciler", func() {
 	Context("With k8s like test environment.", func() {
 		BeforeEach(func() {
-			SetupTestEnvironment()                                                    // Must happen before setting up managers/reconcilers.
-			Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager)).Should(Succeed())  // Register CloudStack ClusterReconciler.
-			Ω(FailureDomainReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack FailureDomainReconciler.
+			SetupTestEnvironment()                                                                         // Must happen before setting up managers/reconcilers.
+			Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager, controller.Options{})).Should(Succeed()) // Register CloudStack ClusterReconciler.
+			Ω(FailureDomainReconciler.SetupWithManager(k8sManager)).Should(Succeed())                      // Register CloudStack FailureDomainReconciler.
 		})
 
 		It("Should create a CloudStackFailureDomain.", func() {
