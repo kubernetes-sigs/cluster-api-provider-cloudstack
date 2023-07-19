@@ -72,7 +72,7 @@ var _ = Describe("Network", func() {
 			dummies.Zone1.Network.ID = ""
 
 			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
-			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&csapi.CreateNetworkParams{})
 			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(nil, 0, nil)
 			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(nil, 0, nil)
