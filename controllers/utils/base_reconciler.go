@@ -19,9 +19,10 @@ package utils
 import (
 	"context"
 	"fmt"
-	"k8s.io/client-go/tools/record"
 	"strings"
 	"time"
+
+	"k8s.io/client-go/tools/record"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
@@ -311,7 +312,7 @@ func (r *ReconciliationRunner) CheckOwnedObjectsDeleted(gvks ...schema.GroupVers
 
 // RequeueIfCloudStackClusterNotReady requeues the reconciliation request if the CloudStackCluster is not ready.
 func (r *ReconciliationRunner) RequeueIfCloudStackClusterNotReady() (ctrl.Result, error) {
-	if !r.CSCluster.Status.Ready {
+	if r.CSCluster.DeletionTimestamp.IsZero() && !r.CSCluster.Status.Ready {
 		r.Log.Info("CloudStackCluster not ready. Requeuing.")
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
@@ -402,7 +403,7 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 		r.SetupPatcher,
 		r.GetCAPICluster,
 		r.GetCSCluster,
-		r.RequeueIfMissingBaseCRs,
+		r.RunIf(func() bool { return r.ReconciliationSubject.GetDeletionTimestamp().IsZero() }, r.RequeueIfMissingBaseCRs),
 		r.CheckIfPaused}
 	baseStages = append(
 		append(baseStages, r.additionalCommonStages...),
