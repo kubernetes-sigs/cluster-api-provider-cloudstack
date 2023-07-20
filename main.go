@@ -75,6 +75,7 @@ type managerOpts struct {
 	WatchFilterValue     string
 	CertDir              string
 
+	CloudStackClusterConcurrency int
 	CloudStackMachineConcurrency int
 }
 
@@ -120,6 +121,12 @@ func setFlags() *managerOpts {
 		"webhook-cert-dir",
 		"/tmp/k8s-webhook-server/serving-certs/",
 		"Specify the directory where webhooks will get tls certificates.")
+	flag.IntVar(
+		&opts.CloudStackClusterConcurrency,
+		"cloudstackcluster-concurrency",
+		10,
+		"Maximum concurrent reconciles for CloudStackCluster resources",
+	)
 	flag.IntVar(
 		&opts.CloudStackMachineConcurrency,
 		"cloudstackmachine-concurrency",
@@ -203,7 +210,7 @@ func main() {
 }
 
 func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, opts managerOpts, mgr manager.Manager) {
-	if err := (&controllers.CloudStackClusterReconciler{ReconcilerBase: base}).SetupWithManager(ctx, mgr); err != nil {
+	if err := (&controllers.CloudStackClusterReconciler{ReconcilerBase: base}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: opts.CloudStackClusterConcurrency}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
 	}
