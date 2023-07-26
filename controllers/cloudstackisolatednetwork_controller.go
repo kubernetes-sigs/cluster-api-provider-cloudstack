@@ -75,6 +75,9 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 	if err != nil {
 		return r.ReturnWrappedError(retErr, "setting up CloudStackCluster patcher")
 	}
+	if r.FailureDomain.Spec.Zone.ID == "" {
+		return r.RequeueWithMessage("Zone ID not resolved yet.")
+	}
 	if err := r.CSUser.GetOrCreateIsolatedNetwork(r.FailureDomain, r.ReconciliationSubject, r.CSCluster); err != nil {
 		return ctrl.Result{}, err
 	}
