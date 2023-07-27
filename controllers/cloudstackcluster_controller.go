@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -94,7 +95,26 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 		r.GetFailureDomains(r.FailureDomains),
 		r.RemoveExtraneousFailureDomains(r.FailureDomains),
 		r.VerifyFailureDomainCRDs,
+		r.GetOrCreateUnmanagedCluster,
 		r.SetReady)
+}
+
+// GetOrCreateUnmanagedCluster checks if an unmanaged cluster is present in Cloudstack else creates one.
+func (r *CloudStackClusterReconciliationRunner) GetOrCreateUnmanagedCluster() (ctrl.Result, error) {
+	res, err := r.AsFailureDomainUser(&r.CSCluster.Spec.FailureDomains[0])()
+	if r.ShouldReturn(res, err) {
+		return res, err
+	}
+	err = r.CSUser.GetOrCreateUnmanagedCluster(r.CAPICluster, r.ReconciliationSubject, &r.FailureDomains.Items[0].Spec)
+	if err != nil {
+		if strings.Contains(err.Error(), "Kubernetes Service plugin is disabled") {
+			r.Log.Info("Kubernetes Service plugin is disabled on CloudStack. Skipping ExternalManaged kubernetes cluster creation")
+			return ctrl.Result{}, nil
+		}
+		// Not requeueing the failure to support CloudStack v4.18 and before
+		r.Log.Info(fmt.Sprintf("Failed creating ExternalManaged kubernetes cluster on CloudStack. Error: %s", err.Error()))
+	}
+	return ctrl.Result{}, nil
 }
 
 // SetReady adds a finalizer and sets the cluster status to ready.
@@ -151,7 +171,27 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 		}
 		return r.RequeueWithMessage("Child FailureDomains still present, requeueing.")
 	}
+	if res, err := r.DeleteUnmanagedCluster(); r.ShouldReturn(res, err) {
+		return res, err
+	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
+	return ctrl.Result{}, nil
+}
+
+// DeleteUnmanagedCluster checks if an unmanaged cluster is present in Cloudstack and then deletes it.
+func (r *CloudStackClusterReconciliationRunner) DeleteUnmanagedCluster() (ctrl.Result, error) {
+	// If field is present and delete fails, then requeue
+	res, err := r.AsFailureDomainUser(&r.CSCluster.Spec.FailureDomains[0])()
+	if r.ShouldReturn(res, err) {
+		return res, err
+	}
+	err = r.CSUser.DeleteUnmanagedCluster(r.ReconciliationSubject)
+	if err != nil {
+		if strings.Contains(err.Error(), " not found") {
+			return ctrl.Result{}, nil
+		}
+		return r.RequeueWithMessage(fmt.Sprintf("Deleting unmanaged kubernetes cluster on CloudStack failed. error: %s", err.Error()))
+	}
 	return ctrl.Result{}, nil
 }
 

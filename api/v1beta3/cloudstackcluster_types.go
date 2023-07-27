@@ -43,6 +43,10 @@ type CloudStackClusterStatus struct {
 	// +optional
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 
+	// Id of CAPC managed kubernetes cluster created in CloudStack
+	// +optional
+	CloudStackClusterID string `json:"cloudStackClusterId"`
+
 	// Reflects the readiness of the CS cluster.
 	Ready bool `json:"ready"`
 }

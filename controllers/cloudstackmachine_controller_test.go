@@ -54,6 +54,17 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			// Setup a failure domain for the machine reconciler to find.
 			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
 			setClusterReady(k8sClient)
+
+			mockCloudClient.EXPECT().GetOrCreateUnmanagedCluster(gomock.Any(), gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _ interface{}) {
+					arg1.(*infrav1.CloudStackCluster).Status.CloudStackClusterID = "cluster-id-123"
+				}).AnyTimes().Return(nil)
+
+			mockCloudClient.EXPECT().AddVMToUnmanagedCluster(
+				gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+
+			mockCloudClient.EXPECT().RemoveVMFromUnmanagedCluster(
+				gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 		})
 
 		It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
@@ -240,6 +251,8 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 				func(arg1, _, _, _, _, _ interface{}) {
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
 				}).AnyTimes()
+			mockCloudClient.EXPECT().AddVMToUnmanagedCluster(
+				gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 			Ω(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).Should(Succeed())
 			Ω(fakeCtrlClient.Create(ctx, dummies.CAPIMachine)).Should(Succeed())
 			Ω(fakeCtrlClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())

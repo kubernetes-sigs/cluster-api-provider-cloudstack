@@ -251,6 +251,17 @@ func DownloadMetricsFromCAPCManager(ctx context.Context, bootstrapKubeconfigPath
 	return result, nil
 }
 
+func GetACSVersion(client *cloudstack.CloudStackClient) (string, error) {
+	msServersResp, err := client.InfrastructureUsage.ListManagementServersMetrics(client.InfrastructureUsage.NewListManagementServersMetricsParams())
+	if err != nil {
+		return "", err
+	}
+	if msServersResp.Count == 0 {
+		return "", errors.New("no management servers found")
+	}
+	return msServersResp.ManagementServersMetrics[0].Version, nil
+}
+
 func DestroyOneMachine(client *cloudstack.CloudStackClient, clusterName string, machineType string) {
 	matcher := clusterName + "-" + machineType
 

@@ -21,15 +21,16 @@ import (
 	"flag"
 	"fmt"
 	"go/build"
-	"k8s.io/client-go/tools/record"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
 	"strings"
 	"testing"
 	"time"
+
+	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
