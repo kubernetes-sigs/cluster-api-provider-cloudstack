@@ -127,6 +127,7 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		r.RequeueIfInstanceNotRunning,
 		r.AddToLBIfNeeded,
 		r.GetOrCreateMachineStateChecker,
+		r.AttachVM,
 	)
 }
 
@@ -210,6 +211,20 @@ func (r *CloudStackMachineReconciliationRunner) DeleteMachineIfFailuredomainNotE
 		}
 	}
 
+	return ctrl.Result{}, nil
+}
+
+// AttachVM adds the VM to CloudStack Unmanaged kubernetes.
+// No action taken if it fails
+func (r *CloudStackMachineReconciliationRunner) AttachVM() (retRes ctrl.Result, reterr error) {
+	_ = r.CSUser.AddVMToCluster(r.CSCluster, r.ReconciliationSubject)
+	return ctrl.Result{}, nil
+}
+
+// RemoveVM removes the VM from CloudStack Unmanaged kubernetes.
+// No action taken if it fails
+func (r *CloudStackMachineReconciliationRunner) RemoveVM() (retRes ctrl.Result, reterr error) {
+	_ = r.CSUser.RemoveVMFromCluster(r.CSCluster, r.ReconciliationSubject)
 	return ctrl.Result{}, nil
 }
 
@@ -340,6 +355,7 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 		return ctrl.Result{}, err
 	}
 
+	r.RemoveVM()
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer)
 	r.Log.Info("VM Deleted", "instanceID", r.ReconciliationSubject.Spec.InstanceID)
 	return ctrl.Result{}, nil

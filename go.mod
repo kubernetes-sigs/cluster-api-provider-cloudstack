@@ -105,3 +105,5 @@ replace github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.0.0 // In
 replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.2.12
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.2.12
+
+replace github.com/apache/cloudstack-go/v2 => github.com/shapeblue/cloudstack-go/v2 support-for-unmanaged-k8s

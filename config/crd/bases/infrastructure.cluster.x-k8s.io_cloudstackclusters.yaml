@@ -417,6 +417,9 @@ spec:
           status:
             description: The actual cluster state reported by CloudStack.
             properties:
+              cloudStackClusterId:
+                description: Id of CAPC managed kubernetes cluster created in CloudStack
+                type: string
               failureDomains:
                 additionalProperties:
                   description: FailureDomainSpec is the Schema for Cluster API failure
