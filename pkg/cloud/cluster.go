@@ -51,22 +51,24 @@ func withExternalManaged() cloudstack.OptionFunc {
 func (c *client) GetOrCreateCluster(cluster *clusterv1.Cluster, csCluster *infrav1.CloudStackCluster, fd *infrav1.CloudStackFailureDomainSpec) error {
 	// Get cluster
 	if csCluster.Status.CloudStackClusterID != "" {
-		_, count, err := c.cs.Kubernetes.GetKubernetesClusterByID(csCluster.Status.CloudStackClusterID, withExternalManaged())
+		externalManagedCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByID(csCluster.Status.CloudStackClusterID, withExternalManaged())
 		if err != nil {
 			return err
-		}
-		if count == 1 {
+		} else if count > 0 {
+			csCluster.Status.CloudStackClusterID = externalManagedCluster.Id
 			return nil
 		}
 	}
 
 	// Check if a cluster exists with the same name
-	clusterName := fmt.Sprintf("%s - %s", cluster.GetName(), csCluster.GetName())
-	csUnmanagedCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByName(clusterName, withExternalManaged())
+	clusterName := fmt.Sprintf("%s - %s - %s", cluster.GetName(), csCluster.GetName(), csCluster.GetUID())
+	externalManagedCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByName(clusterName, withExternalManaged())
 	if err != nil && !strings.Contains(err.Error(), "No match found for ") {
 		return err
 	}
-	if count <= 0 {
+	if count > 0 {
+		csCluster.Status.CloudStackClusterID = externalManagedCluster.Id
+	} else if err == nil || (err != nil && strings.Contains(err.Error(), "No match found for ")) {
 		// Create cluster
 		domain := Domain{Path: rootDomain}
 		if csCluster.Spec.FailureDomains[0].Domain != "" {
@@ -91,27 +93,20 @@ func (c *client) GetOrCreateCluster(cluster *clusterv1.Cluster, csCluster *infra
 		setIfNotEmpty(csCluster.Spec.ControlPlaneEndpoint.Host, params.SetExternalloadbalanceripaddress)
 		params.SetClustertype("ExternalManaged")
 
-		r, err := c.cs.Kubernetes.CreateKubernetesCluster(params)
+		cloudStackCKSCluster, err := c.cs.Kubernetes.CreateKubernetesCluster(params)
 		if err != nil {
 			return err
 		}
-		csUnmanagedCluster, count, err = c.cs.Kubernetes.GetKubernetesClusterByID(r.Id)
-		if err != nil {
-			return err
-		}
-		if count == 0 {
-			return errors.New("cluster not found")
-		}
+		csCluster.Status.CloudStackClusterID = cloudStackCKSCluster.Id
 	}
-	csCluster.Status.CloudStackClusterID = csUnmanagedCluster.Id
 	return nil
 }
 
 func (c *client) DeleteCluster(csCluster *infrav1.CloudStackCluster) error {
 	if csCluster.Status.CloudStackClusterID != "" {
 		csUnmanagedCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByID(csCluster.Status.CloudStackClusterID, withExternalManaged())
-		if err != nil {
-			return err
+		if err != nil && strings.Contains(err.Error(), " not found") {
+			return nil
 		}
 		if count != 0 {
 			params := c.cs.Kubernetes.NewDeleteKubernetesClusterParams(csUnmanagedCluster.Id)
@@ -121,7 +116,6 @@ func (c *client) DeleteCluster(csCluster *infrav1.CloudStackCluster) error {
 			}
 		}
 		csCluster.Status.CloudStackClusterID = ""
-		return nil
 	}
 	return nil
 }
