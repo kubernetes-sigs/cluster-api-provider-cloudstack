@@ -27,10 +27,16 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-export DRY_RUN=false
-export VERBOSE=false
-export NAMESPACE=default
-export KUBECONFIG=$HOME/.kube/config
+# script params
+DRY_RUN=false
+VERBOSE=false
+# k8s params
+NAMESPACE=default
+KUBECONFIG=$HOME/.kube/config
+# cmk params
+CS_URL=
+CS_APIKEY=
+CS_SECRETKEY=
 
 debug() {
   if [[ "$VERBOSE" == "true" ]]; then
@@ -39,7 +45,7 @@ debug() {
 }
 
 _kubectl() {
-  kubectl -n $NAMESPACE -o json $@
+  KUBECONFIG=$KUBECONFIG kubectl -n $NAMESPACE -o json $@
 }
 
 _cmk() {
@@ -51,27 +57,27 @@ get_affinity_groups() {
 }
 
 get_cluster() {
-  affinityGroup=$1
+  local affinityGroup=$1
   _kubectl get cloudstackaffinitygroup $affinityGroup | jq -r '.metadata.labels."cluster.x-k8s.io/cluster-name"'
 }
 
 get_cluster_credentials() {
-  cluster=$1
+  local cluster=$1
   _kubectl get cloudstackcluster $cluster | jq -r '.spec.failureDomains[].acsEndpoint.name' | uniq
 }
 
 setup_acs_credentials() {
-  credential=$1
-  export CS_URL=$(_kubectl get secret $credential | jq -r '.data."api-url"' | base64 -D)
-  export CS_APIKEY=$(_kubectl get secret $credential | jq -r '.data."api-key"' | base64 -D)
-  export CS_SECRETKEY=$(_kubectl get secret $credential | jq -r '.data."secret-key"' | base64 -D)
+  local credential=$1
+  CS_URL=$(_kubectl get secret $credential | jq -r '.data."api-url"' | base64 -D)
+  CS_APIKEY=$(_kubectl get secret $credential | jq -r '.data."api-key"' | base64 -D)
+  CS_SECRETKEY=$(_kubectl get secret $credential | jq -r '.data."secret-key"' | base64 -D)
   debug "Using CloudStack Control Plane URL: $CS_URL and CloudStack Account: $(_cmk list users | jq -r '.user[] | .account + " and User: " + .username')"
 }
 
 main() {
   for ag in $(get_affinity_groups); do
     echo "[info] Checking CloudStack Affinity Group: $ag"
-    cluster=$(get_cluster $ag)
+    local cluster=$(get_cluster $ag)
     for credential in $(get_cluster_credentials $cluster); do
       setup_acs_credentials $credential
       CS_AG_ID=$(_kubectl get cloudstackaffinitygroup $ag | jq -r '.spec.id')
@@ -112,13 +118,13 @@ help() {
 while getopts ":dkvh" option; do
    case $option in
       d)
-         export DRY_RUN=true;;
+         DRY_RUN=true;;
       k)
-         export KUBECONFIG=$OPTARG;;
+         KUBECONFIG=$OPTARG;;
       v)
-         export VERBOSE=true;;
+         VERBOSE=true;;
       n)
-         export NAMESPACE=$OPTARG;;
+         NAMESPACE=$OPTARG;;
       h)
          help
          exit;;
