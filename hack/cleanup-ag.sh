@@ -141,7 +141,7 @@ then
     exit 1
 fi
 
-if ! command -v cmkd &> /dev/null
+if ! command -v cmk &> /dev/null
 then
     echo "[error] cmk could not be found, please install https://github.com/apache/cloudstack-cloudmonkey/releases/tag/6.4.0-rc1 or newer"
     exit 1
