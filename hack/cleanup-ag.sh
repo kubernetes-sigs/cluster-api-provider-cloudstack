@@ -29,38 +29,43 @@ set -o pipefail
 
 export DRY_RUN=false
 export VERBOSE=false
+export NAMESPACE=default
 export KUBECONFIG=$HOME/.kube/config
 
 debug() {
   if [[ "$VERBOSE" == "true" ]]; then
-    echo $@
+    echo "[debug] $@"
   fi
 }
 
+_kubectl() {
+  kubectl -n $NAMESPACE -o json $@
+}
+
+_cmk() {
+  cmk -u $CS_URL -k $CS_APIKEY -s $CS_SECRETKEY -o json $@
+}
+
 get_affinity_groups() {
-  kubectl get cloudstackaffinitygroups -o json -A | jq -r '.items[].metadata.name'
+  _kubectl get cloudstackaffinitygroups | jq -r '.items[].metadata.name'
 }
 
 get_cluster() {
   affinityGroup=$1
-  kubectl get cloudstackaffinitygroup $affinityGroup -o json | jq -r '.metadata.labels."cluster.x-k8s.io/cluster-name"'
+  _kubectl get cloudstackaffinitygroup $affinityGroup | jq -r '.metadata.labels."cluster.x-k8s.io/cluster-name"'
 }
 
 get_cluster_credentials() {
   cluster=$1
-  kubectl get cloudstackcluster $cluster -o json | jq -r '.spec.failureDomains[].acsEndpoint.name' | uniq
+  _kubectl get cloudstackcluster $cluster | jq -r '.spec.failureDomains[].acsEndpoint.name' | uniq
 }
 
 setup_acs_credentials() {
   credential=$1
-  export CS_URL=$(kubectl get secret $credential -o json | jq -r '.data."api-url"' | base64 -D)
-  export CS_APIKEY=$(kubectl get secret $credential -o json | jq -r '.data."api-key"' | base64 -D)
-  export CS_SECRETKEY=$(kubectl get secret $credential -o json | jq -r '.data."secret-key"' | base64 -D)
-  debug "Using CloudStack Control Plane URL: $CS_URL and CloudStack Account: $(run_cmk list users | jq -r '.user[] | .account + " and User: " + .username')"
-}
-
-run_cmk() {
-  cmk -u $CS_URL -k $CS_APIKEY -s $CS_SECRETKEY -o json $@
+  export CS_URL=$(_kubectl get secret $credential | jq -r '.data."api-url"' | base64 -D)
+  export CS_APIKEY=$(_kubectl get secret $credential | jq -r '.data."api-key"' | base64 -D)
+  export CS_SECRETKEY=$(_kubectl get secret $credential | jq -r '.data."secret-key"' | base64 -D)
+  debug "Using CloudStack Control Plane URL: $CS_URL and CloudStack Account: $(_cmk list users | jq -r '.user[] | .account + " and User: " + .username')"
 }
 
 main() {
@@ -69,15 +74,15 @@ main() {
     cluster=$(get_cluster $ag)
     for credential in $(get_cluster_credentials $cluster); do
       setup_acs_credentials $credential
-      CS_AG_ID=$(kubectl get cloudstackaffinitygroup $ag -o json | jq -r '.spec.id')
-      CS_AG_VMS=$(run_cmk list affinitygroups id=$CS_AG_ID | jq -r '.affinitygroup[0].virtualmachineIds')
+      CS_AG_ID=$(_kubectl get cloudstackaffinitygroup $ag | jq -r '.spec.id')
+      CS_AG_VMS=$(_cmk list affinitygroups id=$CS_AG_ID | jq -r '.affinitygroup[0].virtualmachineIds')
       if [[ "$CS_AG_VMS" == "null" ]]; then
         echo "Found Affinity Group ($CS_AG_ID) with no instances assigned:" $ag
         if [[ "$DRY_RUN" == "false" ]]; then
-          kubectl delete cloudstackaffinitygroup $ag
-          echo "Affinity Group ($CS_AG_ID) $ag has been removed"
+          _kubectl delete cloudstackaffinitygroup $ag
+          echo "[info] Affinity Group ($CS_AG_ID) $ag has been removed"
         else
-          echo "[DRY RUN] Affinity Group ($CS_AG_ID) $ag has been removed"
+          echo "[dryrun] Affinity Group ($CS_AG_ID) $ag has been removed"
         fi
       fi
     done
@@ -98,6 +103,7 @@ help() {
   echo "Options:"
   echo "-d     Runs the tools in dry-run mode"
   echo "-k     Pass custom kube config, default: \$HOME/.kube/config"
+  echo "-n     Kubernetes namespace, default: default"
   echo "-h     Print this help"
   echo "-v     Verbose mode"
   echo
@@ -111,6 +117,8 @@ while getopts ":dkvh" option; do
          export KUBECONFIG=$OPTARG;;
       v)
          export VERBOSE=true;;
+      n)
+         export NAMESPACE=$OPTARG;;
       h)
          help
          exit;;
@@ -121,4 +129,26 @@ while getopts ":dkvh" option; do
    esac
 done
 
+if ! command -v jq &> /dev/null
+then
+    echo "[error] jq could not be found, please install first"
+    exit 1
+fi
+
+if ! command -v kubectl &> /dev/null
+then
+    echo "[error] kubectl could not be found, please install first"
+    exit 1
+fi
+
+if ! command -v cmkd &> /dev/null
+then
+    echo "[error] cmk could not be found, please install https://github.com/apache/cloudstack-cloudmonkey/releases/tag/6.4.0-rc1 or newer"
+    exit 1
+fi
+
+debug "[options] DRY_RUN=$DRY_RUN"
+debug "[options] VERBOSE=$VERBOSE"
+debug "[options] NAMESPACE=$NAMESPACE"
+debug "[options] KUBECONFIG=$KUBECONFIG"
 main
