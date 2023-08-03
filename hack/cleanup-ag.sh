@@ -70,7 +70,7 @@ setup_acs_credentials() {
 
 main() {
   for ag in $(get_affinity_groups); do
-    echo "Checking CloudStack Affinity Group: $ag"
+    echo "[info] Checking CloudStack Affinity Group: $ag"
     cluster=$(get_cluster $ag)
     for credential in $(get_cluster_credentials $cluster); do
       setup_acs_credentials $credential
@@ -79,7 +79,7 @@ main() {
       if [[ "$CS_AG_VMS" == "null" ]]; then
         echo "[info] Found Affinity Group ($CS_AG_ID) with no instances assigned:" $ag
         if [[ "$DRY_RUN" == "false" ]]; then
-          _kubectl delete cloudstackaffinitygroup $ag
+          kubectl -n $NAMESPACE delete cloudstackaffinitygroup $ag
           echo "[info] Affinity Group ($CS_AG_ID) $ag has been removed"
         else
           echo "[dryrun] Affinity Group ($CS_AG_ID) $ag has been removed"
