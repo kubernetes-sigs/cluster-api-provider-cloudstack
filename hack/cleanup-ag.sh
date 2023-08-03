@@ -77,7 +77,7 @@ main() {
       CS_AG_ID=$(_kubectl get cloudstackaffinitygroup $ag | jq -r '.spec.id')
       CS_AG_VMS=$(_cmk list affinitygroups id=$CS_AG_ID | jq -r '.affinitygroup[0].virtualmachineIds')
       if [[ "$CS_AG_VMS" == "null" ]]; then
-        echo "Found Affinity Group ($CS_AG_ID) with no instances assigned:" $ag
+        echo "[info] Found Affinity Group ($CS_AG_ID) with no instances assigned:" $ag
         if [[ "$DRY_RUN" == "false" ]]; then
           _kubectl delete cloudstackaffinitygroup $ag
           echo "[info] Affinity Group ($CS_AG_ID) $ag has been removed"
