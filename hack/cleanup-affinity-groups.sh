@@ -20,8 +20,8 @@
 # management cluster which are not assigned to any instances.
 #
 # Usage and help:
-# chmod +x cleanup-ag.sh
-# ./cleanup-ag.sh -h
+# chmod +x cleanup-affinity-groups.sh
+# ./cleanup-affinity-groups.sh -h
 
 set -o errexit
 set -o nounset
@@ -30,9 +30,11 @@ set -o pipefail
 # script params
 DRY_RUN=false
 VERBOSE=false
+
 # k8s params
 NAMESPACE=default
 KUBECONFIG=$HOME/.kube/config
+
 # cmk params
 CS_URL=
 CS_APIKEY=
@@ -40,7 +42,7 @@ CS_SECRETKEY=
 
 debug() {
   if [[ "$VERBOSE" == "true" ]]; then
-    echo "[debug] $@"
+    echo -e "[debug] $@"
   fi
 }
 
@@ -57,8 +59,8 @@ get_affinity_groups() {
 }
 
 get_cluster() {
-  local affinityGroup=$1
-  _kubectl get cloudstackaffinitygroup $affinityGroup | jq -r '.metadata.labels."cluster.x-k8s.io/cluster-name"'
+  local affinitygroup=$1
+  _kubectl get cloudstackaffinitygroup $affinitygroup | jq -r '.metadata.labels."cluster.x-k8s.io/cluster-name"'
 }
 
 get_cluster_credentials() {
@@ -75,20 +77,22 @@ setup_acs_credentials() {
 }
 
 main() {
-  for ag in $(get_affinity_groups); do
-    echo "[info] Checking CloudStack Affinity Group: $ag"
+  local ags=$(get_affinity_groups)
+  debug "Affinity groups in the namespace $NAMESPACE:\n$ags"
+  for ag in $ags; do
+    echo -e "\033[0;32m[info]\033[0m Checking CloudStack Affinity Group: $ag"
     local cluster=$(get_cluster $ag)
     for credential in $(get_cluster_credentials $cluster); do
       setup_acs_credentials $credential
-      CS_AG_ID=$(_kubectl get cloudstackaffinitygroup $ag | jq -r '.spec.id')
-      CS_AG_VMS=$(_cmk list affinitygroups id=$CS_AG_ID | jq -r '.affinitygroup[0].virtualmachineIds')
-      if [[ "$CS_AG_VMS" == "null" ]]; then
-        echo "[info] Found Affinity Group ($CS_AG_ID) with no instances assigned:" $ag
+      local ag_uuid=$(_kubectl get cloudstackaffinitygroup $ag | jq -r '.spec.id')
+      local ag_instances=$(_cmk list affinitygroups id=$ag_uuid | jq -r '.affinitygroup[0].virtualmachineIds')
+      if [[ "$ag_instances" == "null" ]]; then
+        echo -e "\033[0;35m[info]\033[0m Found Affinity Group ($ag_uuid) with no instances assigned: $ag"
         if [[ "$DRY_RUN" == "false" ]]; then
           kubectl -n $NAMESPACE delete cloudstackaffinitygroup $ag
-          echo "[info] Affinity Group ($CS_AG_ID) $ag has been removed"
+          echo -e "\033[0;31m[info]\033[0m Affinity Group ($ag_uuid) $ag has been removed"
         else
-          echo "[dryrun] Affinity Group ($CS_AG_ID) $ag has been removed"
+          echo -e "\033[0;35m[info]\033[0m [dryrun] Affinity Group ($ag_uuid) $ag has been removed"
         fi
       fi
     done
@@ -115,7 +119,7 @@ help() {
   echo
 }
 
-while getopts ":dkvh" option; do
+while getopts ":dk:vn:h" option; do
    case $option in
       d)
          DRY_RUN=true;;
