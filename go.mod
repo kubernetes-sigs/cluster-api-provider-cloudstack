@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/ReneKroon/ttlcache v1.7.0
-	github.com/apache/cloudstack-go/v2 v2.13.0
+	github.com/apache/cloudstack-go/v2 v2.16.0-rc.1
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1
@@ -108,5 +108,3 @@ replace github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.0.0 // In
 replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.2.12
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.2.12
-
-replace github.com/apache/cloudstack-go/v2 => github.com/shapeblue/cloudstack-go/v2 v2.9.1-0.20230717062313-73e4efc8a510

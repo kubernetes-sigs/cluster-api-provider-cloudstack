@@ -110,7 +110,7 @@ func (r *CloudStackClusterReconciliationRunner) GetOrCreateCluster() (ctrl.Resul
 			r.Log.Info("Kubernetes Service plugin is disabled on CloudStack. Skipping ExternalManaged kubernetes cluster creation")
 			return ctrl.Result{}, nil
 		}
-		// Not requeing the failure to support CloudStack v4.18 and before
+		// Not requeueing the failure to support CloudStack v4.18 and before
 		r.Log.Info(fmt.Sprintf("Failed creating ExternalManaged kubernetes cluster on CloudStack. Error: %s", err.Error()))
 	}
 	return ctrl.Result{}, nil
