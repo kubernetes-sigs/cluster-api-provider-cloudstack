@@ -55,15 +55,15 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
 			setClusterReady(k8sClient)
 
-			mockCloudClient.EXPECT().GetOrCreateCluster(gomock.Any(), gomock.Any(), gomock.Any()).Do(
+			mockCloudClient.EXPECT().GetOrCreateUnmanagedCluster(gomock.Any(), gomock.Any(), gomock.Any()).Do(
 				func(arg1, _, _ interface{}) {
 					arg1.(*infrav1.CloudStackCluster).Status.CloudStackClusterID = "cluster-id-123"
 				}).AnyTimes().Return(nil)
 
-			mockCloudClient.EXPECT().AddVMToCluster(
+			mockCloudClient.EXPECT().AddVMToUnmanagedCluster(
 				gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 
-			mockCloudClient.EXPECT().RemoveVMFromCluster(
+			mockCloudClient.EXPECT().RemoveVMFromUnmanagedCluster(
 				gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 		})
 
@@ -251,7 +251,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 				func(arg1, _, _, _, _, _ interface{}) {
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
 				}).AnyTimes()
-			mockCloudClient.EXPECT().AddVMToCluster(
+			mockCloudClient.EXPECT().AddVMToUnmanagedCluster(
 				gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
 			Ω(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).Should(Succeed())
 			Ω(fakeCtrlClient.Create(ctx, dummies.CAPIMachine)).Should(Succeed())

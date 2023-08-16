@@ -217,14 +217,14 @@ func (r *CloudStackMachineReconciliationRunner) DeleteMachineIfFailuredomainNotE
 // AttachVM adds the VM to CloudStack Unmanaged kubernetes.
 // No action taken if it fails
 func (r *CloudStackMachineReconciliationRunner) AttachVM() (retRes ctrl.Result, reterr error) {
-	_ = r.CSUser.AddVMToCluster(r.CSCluster, r.ReconciliationSubject)
+	_ = r.CSUser.AddVMToUnmanagedCluster(r.CSCluster, r.ReconciliationSubject)
 	return ctrl.Result{}, nil
 }
 
 // RemoveVM removes the VM from CloudStack Unmanaged kubernetes.
 // No action taken if it fails
 func (r *CloudStackMachineReconciliationRunner) RemoveVM() (retRes ctrl.Result, reterr error) {
-	_ = r.CSUser.RemoveVMFromCluster(r.CSCluster, r.ReconciliationSubject)
+	_ = r.CSUser.RemoveVMFromUnmanagedCluster(r.CSCluster, r.ReconciliationSubject)
 	return ctrl.Result{}, nil
 }
 

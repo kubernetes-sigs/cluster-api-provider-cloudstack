@@ -94,17 +94,17 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 		r.GetFailureDomains(r.FailureDomains),
 		r.RemoveExtraneousFailureDomains(r.FailureDomains),
 		r.VerifyFailureDomainCRDs,
-		r.GetOrCreateCluster,
+		r.GetOrCreateUnmanagedCluster,
 		r.SetReady)
 }
 
-// GetOrCreateCluster checks if an unmanaged cluster is present in Cloudstack else creates one.
-func (r *CloudStackClusterReconciliationRunner) GetOrCreateCluster() (ctrl.Result, error) {
+// GetOrCreateUnmanagedCluster checks if an unmanaged cluster is present in Cloudstack else creates one.
+func (r *CloudStackClusterReconciliationRunner) GetOrCreateUnmanagedCluster() (ctrl.Result, error) {
 	res, err := r.AsFailureDomainUser(&r.CSCluster.Spec.FailureDomains[0])()
 	if r.ShouldReturn(res, err) {
 		return res, err
 	}
-	err = r.CSUser.GetOrCreateCluster(r.CAPICluster, r.ReconciliationSubject, &r.FailureDomains.Items[0].Spec)
+	err = r.CSUser.GetOrCreateUnmanagedCluster(r.CAPICluster, r.ReconciliationSubject, &r.FailureDomains.Items[0].Spec)
 	if err != nil {
 		if strings.Contains(err.Error(), "Kubernetes Service plugin is disabled") {
 			r.Log.Info("Kubernetes Service plugin is disabled on CloudStack. Skipping ExternalManaged kubernetes cluster creation")
@@ -170,21 +170,21 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 		}
 		return r.RequeueWithMessage("Child FailureDomains still present, requeueing.")
 	}
-	if res, err := r.DeleteCluster(); r.ShouldReturn(res, err) {
+	if res, err := r.DeleteUnmanagedCluster(); r.ShouldReturn(res, err) {
 		return res, err
 	}
 	controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
 	return ctrl.Result{}, nil
 }
 
-// DeleteCluster checks if an unmanaged cluster is present in Cloudstack and then deletes it.
-func (r *CloudStackClusterReconciliationRunner) DeleteCluster() (ctrl.Result, error) {
+// DeleteUnmanagedCluster checks if an unmanaged cluster is present in Cloudstack and then deletes it.
+func (r *CloudStackClusterReconciliationRunner) DeleteUnmanagedCluster() (ctrl.Result, error) {
 	// If field is present and delete fails, then requeue
 	res, err := r.AsFailureDomainUser(&r.CSCluster.Spec.FailureDomains[0])()
 	if r.ShouldReturn(res, err) {
 		return res, err
 	}
-	err = r.CSUser.DeleteCluster(r.ReconciliationSubject)
+	err = r.CSUser.DeleteUnmanagedCluster(r.ReconciliationSubject)
 	if err != nil {
 		if strings.Contains(err.Error(), " not found") {
 			return ctrl.Result{}, nil
