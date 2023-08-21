@@ -91,6 +91,8 @@ github.com/antlr/antlr4/runtime/Go/antlr v1.4.10 h1:yL7+Jz0jTC6yykIK/Wh74gnTJnrG
 github.com/antlr/antlr4/runtime/Go/antlr v1.4.10/go.mod h1:F7bn7fEU90QkQ3tnmaTx3LTKLEDqnwWODIYppRQ5hnY=
 github.com/apache/cloudstack-go/v2 v2.16.0-rc.1 h1:Jzp5XG9dxnYJMU9F7+7jXR5fuD2KlcIXaxe3JzkcYdo=
 github.com/apache/cloudstack-go/v2 v2.16.0-rc.1/go.mod h1:Mc+tXpujtslBuZFk5atoGT2LanVxOrXS2GGgidAoz1A=
+github.com/apache/cloudstack-go/v2 v2.16.0-rc.2 h1:Vare0MkgdEbAEY1dZtcz/m6HRdK+NKkuoiF6WwC1t2g=
+github.com/apache/cloudstack-go/v2 v2.16.0-rc.2/go.mod h1:Mc+tXpujtslBuZFk5atoGT2LanVxOrXS2GGgidAoz1A=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=

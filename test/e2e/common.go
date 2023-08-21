@@ -22,9 +22,9 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -248,6 +248,17 @@ func DownloadMetricsFromCAPCManager(ctx context.Context, bootstrapKubeconfigPath
 	Ω(err).ShouldNot(HaveOccurred())
 
 	return result, nil
+}
+
+func GetACSVersion(client *cloudstack.CloudStackClient) (string, error) {
+	msServersResp, err := client.InfrastructureUsage.ListManagementServersMetrics(client.InfrastructureUsage.NewListManagementServersMetricsParams())
+	if err != nil {
+		return "", err
+	}
+	if msServersResp.Count == 0 {
+		return "", errors.New("no management servers found")
+	}
+	return msServersResp.ManagementServersMetrics[0].Version, nil
 }
 
 func DestroyOneMachine(client *cloudstack.CloudStackClient, clusterName string, machineType string) {
