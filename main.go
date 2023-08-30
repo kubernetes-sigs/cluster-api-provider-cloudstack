@@ -214,7 +214,7 @@ func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, opts manag
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err := (&controllers.CloudStackMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: opts.CloudStackMachineConcurrency}); err != nil {
+	if err := (&controllers.CloudStackMachineReconciler{ReconcilerBase: base}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: opts.CloudStackMachineConcurrency}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
 		os.Exit(1)
 	}

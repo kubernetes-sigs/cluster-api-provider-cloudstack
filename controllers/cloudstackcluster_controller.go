@@ -34,6 +34,7 @@ import (
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // RBAC permissions used in all reconcilers. Events and Secrets.
@@ -156,6 +157,8 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 
 // Called in main, this registers the cluster reconciler to the CAPI controller manager.
 func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&infrav1.CloudStackCluster{}).
@@ -186,18 +189,14 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Cont
 	}
 
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
-	err = controller.Watch(
+	if err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(
 			util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("CloudStackCluster"), mgr.GetClient(), &infrav1.CloudStackCluster{})),
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldCluster := e.ObjectOld.(*clusterv1.Cluster)
-				newCluster := e.ObjectNew.(*clusterv1.Cluster)
-				return oldCluster.Spec.Paused && !newCluster.Spec.Paused
-			},
-			DeleteFunc: func(e event.DeleteEvent) bool { return false },
-			CreateFunc: func(e event.CreateEvent) bool { return false },
-		})
-	return errors.Wrap(err, "building CloudStackCluster controller")
+		predicates.ClusterUnpaused(log),
+	); err != nil {
+		return errors.Wrap(err, "building CloudStackCluster controller")
+	}
+
+	return nil
 }
