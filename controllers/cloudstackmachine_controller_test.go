@@ -44,8 +44,8 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			dummies.CSCluster.Spec.FailureDomains = dummies.CSCluster.Spec.FailureDomains[:1]
 			dummies.CSCluster.Spec.FailureDomains[0].Name = dummies.CSFailureDomain1.Spec.Name
 
-			SetupTestEnvironment()                                              // Must happen before setting up managers/reconcilers.
-			Ω(MachineReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(Succeed()) // Register the CloudStack MachineReconciler.
+			SetupTestEnvironment()                                                                         // Must happen before setting up managers/reconcilers.
+			Ω(MachineReconciler.SetupWithManager(ctx, k8sManager, controller.Options{})).Should(Succeed()) // Register the CloudStack MachineReconciler.
 
 			// Point CAPI machine Bootstrap secret ref to dummy bootstrap secret.
 			dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = &dummies.BootstrapSecret.Name
