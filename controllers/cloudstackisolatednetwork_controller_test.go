@@ -20,15 +20,18 @@ import (
 	g "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/types"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("CloudStackIsolatedNetworkReconciler", func() {
 	Context("With k8s like test environment.", func() {
 		BeforeEach(func() {
-			SetupTestEnvironment()                                             // Must happen before setting up managers/reconcilers.
+			SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
+			dummies.SetDummyVars()
 			Ω(IsoNetReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack IsoNetReconciler.
 		})
 
@@ -36,15 +39,39 @@ var _ = Describe("CloudStackIsolatedNetworkReconciler", func() {
 			mockCloudClient.EXPECT().GetOrCreateIsolatedNetwork(g.Any(), g.Any(), g.Any()).AnyTimes()
 			mockCloudClient.EXPECT().AddClusterTag(g.Any(), g.Any(), g.Any()).AnyTimes()
 
+			// We use CSFailureDomain2 here because CSFailureDomain1 has an empty Spec.Zone.ID
+			dummies.CSISONet1.Spec.FailureDomainName = dummies.CSFailureDomain2.Spec.Name
+			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain2)).Should(Succeed())
 			Ω(k8sClient.Create(ctx, dummies.CSISONet1)).Should(Succeed())
+
 			Eventually(func() bool {
 				tempIsoNet := &infrav1.CloudStackIsolatedNetwork{}
 				key := client.ObjectKeyFromObject(dummies.CSISONet1)
 				if err := k8sClient.Get(ctx, key, tempIsoNet); err == nil {
-					return true
+					if tempIsoNet.Status.Ready == true {
+						return true
+					}
 				}
 				return false
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		})
+	})
+
+	Context("With a fake ctrlRuntimeClient and no test Env at all.", func() {
+		BeforeEach(func() {
+			setupFakeTestClient()
+		})
+
+		It("Should requeue in case the zone ID is not resolved yet.", func() {
+			// We use CSFailureDomain1 here because it has an empty Spec.Zone.ID
+			dummies.CSISONet1.Spec.FailureDomainName = dummies.CSFailureDomain1.Spec.Name
+			Ω(fakeCtrlClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
+			Ω(fakeCtrlClient.Create(ctx, dummies.CSISONet1)).Should(Succeed())
+
+			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSISONet1.Name}
+			res, err := IsoNetReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(res.RequeueAfter).ShouldNot(BeZero())
 		})
 	})
 })
