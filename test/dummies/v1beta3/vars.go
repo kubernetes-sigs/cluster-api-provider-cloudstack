@@ -276,7 +276,7 @@ func SetDummyCAPCClusterVars() {
 	EndPointPort = int32(5309)
 	PublicIPID = "FakePublicIPID"
 	ClusterNameSpace = "default"
-	ClusterLabel = map[string]string{clusterv1.ClusterLabelName: ClusterName}
+	ClusterLabel = map[string]string{clusterv1.ClusterNameLabel: ClusterName}
 	AffinityGroup = &cloud.AffinityGroup{
 		Name: "fakeaffinitygroup",
 		Type: cloud.AffinityGroupType,

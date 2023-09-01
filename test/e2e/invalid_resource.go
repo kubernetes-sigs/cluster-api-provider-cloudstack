@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -216,7 +216,7 @@ func generateClusterName() string {
 // it is generated randomly per test case.
 func errorExistsInLog(logFolder string, expectedError string) (bool, error) {
 	expectedErrorFound := errors.New("expected error found")
-	controllerLogPath := filepath.Join(logFolder, "controllers", "capc-controller-manager")
+	controllerLogPath := filepath.Join(logFolder, "logs/capc-system/capc-controller-manager")
 
 	err := filepath.Walk(controllerLogPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

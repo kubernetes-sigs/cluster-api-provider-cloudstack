@@ -83,12 +83,8 @@ STATIC_CHECK := $(BIN_DIR)/staticcheck
 $(STATIC_CHECK): $(BIN_DIR) go.mod go.sum # Build staticcheck from tools folder.
 	go build -tags=tools -o $@ honnef.co/go/tools/cmd/staticcheck
 
-GINKGO_V1 := $(BIN_DIR)/ginkgo_v1
-$(GINKGO_V1): $(BIN_DIR) go.mod go.sum # Build staticcheck from tools folder.
-	go build -tags=tools -o $@ github.com/onsi/ginkgo/ginkgo
-
-GINKGO_V2 := $(BIN_DIR)/ginkgo_v2
-$(GINKGO_V2): $(BIN_DIR) go.mod go.sum # Build staticcheck from tools folder.
+GINKGO := $(BIN_DIR)/ginkgo
+$(GINKGO): $(BIN_DIR) go.mod go.sum # Build staticcheck from tools folder.
 	go build -tags=tools -o $@ github.com/onsi/ginkgo/v2/ginkgo
 
 ENVSUBST := $(BIN_DIR)/envsubst
@@ -108,10 +104,6 @@ GH: $(GTAR) $(GH_SHARE)/gh.tar.gz
 	$(GTAR) -xvf share/gh/gh.tar.gz gh_$(GH_VERSION)_$(GH_ARCH_SUFFIX)/bin/gh --strip-components 1 --directory $(BIN_DIR)
 	chmod +x $@
 	touch -m $@
-
-GINKGO := $(BIN_DIR)/ginkgo
-$(GINKGO): $(BIN_DIR) go.mod go.sum
-	go build -tags=tools -o $@ github.com/onsi/ginkgo/ginkgo
 
 KIND := $(BIN_DIR)/kind
 $(KIND): $(BIN_DIR) go.mod go.sum

@@ -23,6 +23,7 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 
 	flag "github.com/spf13/pflag"
@@ -31,7 +32,10 @@ import (
 	goflag "flag"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/klog/v2"
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	logsv1 "k8s.io/component-base/logs/api/v1"
+	"sigs.k8s.io/cluster-api/util/flags"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -54,9 +58,14 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+
+	tlsOptions = flags.TLSOptions{}
+	logOptions = logs.NewOptions()
 )
 
 func init() {
+	klog.InitFlags(nil)
+
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(infrav1b1.AddToScheme(scheme))
@@ -138,12 +147,25 @@ func setFlags() *managerOpts {
 }
 
 func main() {
-	opts := setFlags()                                // Add our options to flag set.
-	klog.InitFlags(nil)                               // Add klog options to flag set.
-	flag.CommandLine.AddGoFlagSet(goflag.CommandLine) // Merge klog's gofloag flags into the pflags.
+	opts := setFlags() // Add our options to flag set.
+	logsv1.AddFlags(logOptions, flag.CommandLine)
+	flags.AddTLSOptions(flag.CommandLine, &tlsOptions)
+	flag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	flag.CommandLine.AddGoFlagSet(goflag.CommandLine) // Merge klog's goflag flags into the pflags.
 	flag.Parse()
 
+	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
 	ctrl.SetLogger(klogr.New())
+
+	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	if err != nil {
+		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		os.Exit(1)
+	}
 
 	// Create the controller manager.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -155,6 +177,7 @@ func main() {
 		LeaderElectionID:       "capc-leader-election-controller",
 		Namespace:              opts.WatchingNamespace,
 		CertDir:                opts.CertDir,
+		TLSOpts:                tlsOptionOverrides,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
