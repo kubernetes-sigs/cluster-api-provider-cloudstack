@@ -23,6 +23,8 @@ import (
 	. "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 var _ = Describe("CloudStackCluster webhooks", func() {
@@ -79,6 +81,26 @@ var _ = Describe("CloudStackCluster webhooks", func() {
 			dummies.CSCluster.Spec.ControlPlaneEndpoint.Port = int32(1234)
 			Ω(k8sClient.Update(ctx, dummies.CSCluster)).
 				Should(MatchError(MatchRegexp(forbiddenRegex, "controlplaneendpoint\\.port")))
+		})
+	})
+
+	Context("When updating a CloudStackCluster's annotations", func() {
+		It("Should reject removal of externally managed ('managed-by') annotation from CloudStackCluster", func() {
+			// Create a CloudStackCluster with managed-by annotation
+			annotations.AddAnnotations(dummies.CSCluster, map[string]string{clusterv1.ManagedByAnnotation: ""})
+			Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
+
+			// Remove the annotation and update CloudStackCluster
+			dummies.CSCluster.Annotations = make(map[string]string)
+			Ω(k8sClient.Update(ctx, dummies.CSCluster)).
+				Should(MatchError(MatchRegexp(forbiddenRegex, "removal of externally managed")))
+		})
+
+		It("Should allow adding of externally managed ('managed-by') annotation to CloudStackCluster", func() {
+			Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
+
+			annotations.AddAnnotations(dummies.CSCluster, map[string]string{clusterv1.ManagedByAnnotation: ""})
+			Ω(k8sClient.Update(ctx, dummies.CSCluster)).Should(Succeed())
 		})
 	})
 })
