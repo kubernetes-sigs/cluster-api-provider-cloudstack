@@ -39,9 +39,19 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
 {
     "default_registry": "gcr.io/your-project-name-here",
     "provider_repos": ["../cluster-api-provider-cloudstack"],
+    "enable_providers": ["kubeadm-bootstrap", "kubeadm-control-plane", "cloudstack"]
+}
+```
+
+**Example `tilt-settings.json` for CAPC clusters with experimental feature gate:**
+
+```json
+{
+    "default_registry": "gcr.io/your-project-name-here",
+    "provider_repos": ["../cluster-api-provider-cloudstack"],
     "enable_providers": ["kubeadm-bootstrap", "kubeadm-control-plane", "cloudstack"],
     "kustomize_substitutions": {
-        "CLOUDSTACK_B64ENCODED_CREDENTIALS": "RANDOM_STRING==",
+        "EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION": "true",
     }
 }
 ```
