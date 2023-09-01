@@ -25,15 +25,17 @@ import (
 	"os"
 	"path/filepath"
 	go_runtime "runtime"
-	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/toxiproxy"
 	"strings"
 	"testing"
 	"time"
+
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/toxiproxy"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -94,6 +96,7 @@ func TestE2E(t *testing.T) {
 		artifactFolder = prowArtifactFolder
 	}
 
+	ctrl.SetLogger(klog.Background())
 	RegisterFailHandler(Fail)
 
 	junitReporter := framework.CreateJUnitReporterForProw(artifactFolder)

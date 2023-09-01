@@ -245,7 +245,7 @@ delete-kind-cluster:
 	kind delete cluster --name $(KIND_CLUSTER_NAME)
 
 cluster-api: ## Clone cluster-api repository for tilt use.
-	git clone --branch v1.4.4 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
+	git clone --branch v1.4.8 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
 
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
