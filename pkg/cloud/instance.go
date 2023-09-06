@@ -337,16 +337,17 @@ func (c *client) DeployVM(
 		}
 
 		// We didn't find a VM so return the original error.
-		if vm == nil {
-			return err
+		if vm != nil {
+			csMachine.Spec.InstanceID = pointer.String(vm.Id)
+			csMachine.Status.InstanceState = vm.State
 		}
 
-		csMachine.Spec.InstanceID = pointer.String(vm.Id)
-		csMachine.Status.InstanceState = vm.State
-	} else {
-		csMachine.Spec.InstanceID = pointer.String(deployVMResp.Id)
-		csMachine.Status.Status = pointer.String(metav1.StatusSuccess)
+		return err
 	}
+
+	csMachine.Spec.InstanceID = pointer.String(deployVMResp.Id)
+	csMachine.Status.Status = pointer.String(metav1.StatusSuccess)
+
 	return nil
 }
 
