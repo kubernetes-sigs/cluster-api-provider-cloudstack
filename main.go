@@ -161,6 +161,12 @@ func main() {
 
 	ctrl.SetLogger(klogr.New())
 
+	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	if err != nil {
+		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		os.Exit(1)
+	}
+
 	// Create the controller manager.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -171,6 +177,7 @@ func main() {
 		LeaderElectionID:       "capc-leader-election-controller",
 		Namespace:              opts.WatchingNamespace,
 		CertDir:                opts.CertDir,
+		TLSOpts:                tlsOptionOverrides,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
