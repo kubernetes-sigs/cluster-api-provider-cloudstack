@@ -343,10 +343,13 @@ func (c *client) DeployVM(
 
 		csMachine.Spec.InstanceID = pointer.String(vm.Id)
 		csMachine.Status.InstanceState = vm.State
-	} else {
-		csMachine.Spec.InstanceID = pointer.String(deployVMResp.Id)
-		csMachine.Status.Status = pointer.String(metav1.StatusSuccess)
+
+		return fmt.Errorf("incomplete vm deployment (vm_id=%v): %w", vm.Id, err)
 	}
+
+	csMachine.Spec.InstanceID = pointer.String(deployVMResp.Id)
+	csMachine.Status.Status = pointer.String(metav1.StatusSuccess)
+
 	return nil
 }
 
