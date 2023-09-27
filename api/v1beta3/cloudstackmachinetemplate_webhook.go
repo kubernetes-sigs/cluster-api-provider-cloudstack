@@ -64,9 +64,9 @@ func (r *CloudStackMachineTemplate) ValidateCreate() (admission.Warnings, error)
 	spec := r.Spec.Template.Spec
 
 	affinity := strings.ToLower(spec.Affinity)
-	if !(affinity == "" || affinity == "no" || affinity == "pro" || affinity == "anti") {
+	if !(affinity == "" || affinity == "no" || affinity == "pro" || affinity == "anti" || affinity == "soft-pro" || affinity == "soft-anti") {
 		errorList = append(errorList, field.Invalid(field.NewPath("spec", "Affinity"), spec.Affinity,
-			`Affinity must be "no", "pro", "anti", or unspecified.`))
+			`Affinity must be "no", "pro", "anti", "soft-pro", "soft-anti", or unspecified.`))
 	}
 	if affinity != "no" && affinity != "" && len(spec.AffinityGroupIDs) > 0 {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"),
