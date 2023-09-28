@@ -15,27 +15,27 @@ images:
   ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
 
   # Cluster API v1beta1 Preloads
-  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller:v1.2.12
+  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller:v1.4.8
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:v1.2.12
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:v1.4.8
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:v1.2.12
+  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:v1.4.8
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:v1.0.0
+  - name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:v1.4.8
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-cainjector:v1.5.3
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.13.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v1.5.3
+  - name: quay.io/jetstack/cert-manager-webhook:v1.13.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v1.5.3
+  - name: quay.io/jetstack/cert-manager-controller:v1.13.1
     loadBehavior: tryLoad
 
 providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v1.2.12
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.12/core-components.yaml"
+      - name: v1.4.8
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.8/core-components.yaml"
         type: "url"
         contract: v1beta1
         replacements:
@@ -47,8 +47,8 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: v1.2.12
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.12/bootstrap-components.yaml"
+      - name: v1.4.8
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.8/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         replacements:
@@ -60,8 +60,8 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: v1.2.12
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.12/control-plane-components.yaml"
+      - name: v1.4.8
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.8/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         replacements:

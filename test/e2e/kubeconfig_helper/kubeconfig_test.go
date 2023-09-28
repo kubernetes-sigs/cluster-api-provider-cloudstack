@@ -17,9 +17,10 @@ limitations under the License.
 package kubeconfig_helper_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/kubeconfig_helper"
 )
 

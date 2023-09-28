@@ -21,7 +21,8 @@ package e2e
 
 import (
 	"context"
-	. "github.com/onsi/ginkgo"
+
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("When testing app deployment to the workload cluster with network interruption [ToxiProxy]", func() {
