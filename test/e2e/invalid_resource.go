@@ -216,7 +216,7 @@ func generateClusterName() string {
 // it is generated randomly per test case.
 func errorExistsInLog(logFolder string, expectedError string) (bool, error) {
 	expectedErrorFound := errors.New("expected error found")
-	controllerLogPath := filepath.Join(logFolder, "controllers", "capc-controller-manager")
+	controllerLogPath := filepath.Join(logFolder, "logs/capc-system/capc-controller-manager")
 
 	err := filepath.Walk(controllerLogPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
