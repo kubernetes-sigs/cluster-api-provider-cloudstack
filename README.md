@@ -51,20 +51,19 @@ Check out the [Getting Started Guide][getting_started] to create your first Kube
 
 This provider's versions are able to install and manage the following versions of Kubernetes:
 
-| Kubernetes Version          | v1.22 | v1.23 | v1.24 |
-| --------------------------- | ----- | ----- | ----- |
-| CloudStack Provider  (v0.4) |   ✓   |   ✓   |   ✓   |
+| Kubernetes Version          | v1.22 | v1.23 | v1.24 | v1.25 | v1.26 | v1.27 |
+| --------------------------- | ----- | ----- | ----- | ----- | ----- | ----- |
+| CloudStack Provider  (v0.4) |   ✓   |   ✓   |   ✓   |   ✓   |   ✓   |   ✓   |
 
 ## Compatibility with Apache CloudStack Versions
 
 
 This provider's versions are able to work on the following versions of Apache CloudStack:
 
-| CloudStack Version          | 4.14 | 4.15 | 4.16 | 4.17 |
-| --------------------------- | ---- | ---- | ---- | ---- |
-| CloudStack Provider  (v0.4) |   ✓  |   ✓  |   ✓  |   ✓  |
+| CloudStack Version          | 4.14 | 4.15 | 4.16 | 4.17 | 4.18 | 4.19 |
+| --------------------------- | ---- | ---- | ---- | ---- | ---- | ---- |
+| CloudStack Provider  (v0.4) |   ✓  |   ✓  |   ✓  |   ✓  |   ✓  |   ✓  |
 
-------
 
 ## Operating system images
 
@@ -79,12 +78,21 @@ Prebuilt images can be found below :
 | KVM        | v1.22              | [qcow2][k1.22-rl8-qcow2], [md5][k1.22-rl8-qcow2-md5] | [qcow2][k1.22-u20-qcow2], [md5][k1.22-u20-qcow2-md5] |
 |            | v1.23              | [qcow2][k1.23-rl8-qcow2], [md5][k1.23-rl8-qcow2-md5] | [qcow2][k1.23-u20-qcow2], [md5][k1.23-u20-qcow2-md5] |
 |            | v1.24              | [qcow2][k1.24-rl8-qcow2], [md5][k1.24-rl8-qcow2-md5] | [qcow2][k1.24-u20-qcow2], [md5][k1.24-u20-qcow2-md5] |
+|            | v1.25              | [qcow2][k1.25-rl8-qcow2], [md5][k1.25-rl8-qcow2-md5] | [qcow2][k1.25-u20-qcow2], [md5][k1.25-u20-qcow2-md5] |
+|            | v1.26              | [qcow2][k1.26-rl8-qcow2], [md5][k1.26-rl8-qcow2-md5] | [qcow2][k1.26-u20-qcow2], [md5][k1.26-u20-qcow2-md5] |
+|            | v1.27              | [qcow2][k1.27-rl8-qcow2], [md5][k1.27-rl8-qcow2-md5] | [qcow2][k1.27-u20-qcow2], [md5][k1.27-u20-qcow2-md5] |
 | VMware     | v1.22              | [ova][k1.22-rl8-ova], [md5][k1.22-rl8-ova-md5]       | [ova][k1.22-u20-ova], [md5][k1.22-u20-ova-md5]       |
 |            | v1.23              | [ova][k1.23-rl8-ova], [md5][k1.23-rl8-ova-md5]       | [ova][k1.23-u20-ova], [md5][k1.23-u20-ova-md5]       |
 |            | v1.24              | [ova][k1.24-rl8-ova], [md5][k1.24-rl8-ova-md5]       | [ova][k1.24-u20-ova], [md5][k1.24-u20-ova-md5]       |
+|            | v1.25              | [ova][k1.25-rl8-ova], [md5][k1.25-rl8-ova-md5]       | [ova][k1.25-u20-ova], [md5][k1.25-u20-ova-md5]       |
+|            | v1.26              | [ova][k1.26-rl8-ova], [md5][k1.26-rl8-ova-md5]       | [ova][k1.26-u20-ova], [md5][k1.26-u20-ova-md5]       |
+|            | v1.27              | [ova][k1.27-rl8-ova], [md5][k1.27-rl8-ova-md5]       | [ova][k1.27-u20-ova], [md5][k1.27-u20-ova-md5]       |
 | XenServer  | v1.22              | [vhd][k1.22-rl8-vhd], [md5][k1.22-rl8-vhd-md5]       | [vhd][k1.22-u20-vhd], [md5][k1.22-u20-vhd-md5]       |
 |            | v1.23              | [vhd][k1.23-rl8-vhd], [md5][k1.23-rl8-vhd-md5]       | [vhd][k1.23-u20-vhd], [md5][k1.23-u20-vhd-md5]       |
 |            | v1.24              | [vhd][k1.24-rl8-vhd], [md5][k1.24-rl8-vhd-md5]       | [vhd][k1.24-u20-vhd], [md5][k1.24-u20-vhd-md5]       |
+|            | v1.25              | [vhd][k1.25-rl8-vhd], [md5][k1.25-rl8-vhd-md5]       | [vhd][k1.25-u20-vhd], [md5][k1.25-u20-vhd-md5]       |
+|            | v1.26              | [vhd][k1.26-rl8-vhd], [md5][k1.26-rl8-vhd-md5]       | [vhd][k1.26-u20-vhd], [md5][k1.26-u20-vhd-md5]       |
+|            | v1.27              | [vhd][k1.27-rl8-vhd], [md5][k1.27-rl8-vhd-md5]       | [vhd][k1.27-u20-vhd], [md5][k1.27-u20-vhd-md5]       |
 
 ------
 ## Getting involved and contributing
@@ -163,39 +171,75 @@ All the CAPC contributors:
 [k1.22-rl8-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.22.6-kvm.qcow2.bz2.md5
 [k1.23-rl8-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.23.3-kvm.qcow2.bz2
 [k1.23-rl8-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.23.3-kvm.qcow2.bz2.md5
-[k1.24-rl8-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.24.7-kvm.qcow2.bz2
-[k1.24-rl8-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.24.7-kvm.qcow2.bz2.md5
+[k1.24-rl8-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.24.14-kvm.qcow2.bz2
+[k1.24-rl8-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.24.14-kvm.qcow2.bz2.md5
+[k1.25-rl8-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.25.10-kvm.qcow2.bz2
+[k1.25-rl8-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.25.10-kvm.qcow2.bz2.md5
+[k1.26-rl8-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.26.5-kvm.qcow2.bz2
+[k1.26-rl8-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.26.5-kvm.qcow2.bz2.md5
+[k1.27-rl8-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.27.2-kvm.qcow2.bz2
+[k1.27-rl8-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/rockylinux-8-kube-v1.27.2-kvm.qcow2.bz2.md5
 [k1.22-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.22.6-kvm.qcow2.bz2
 [k1.22-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.22.6-kvm.qcow2.bz2.md5
 [k1.23-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.23.3-kvm.qcow2.bz2
 [k1.23-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.23.3-kvm.qcow2.bz2.md5
 [k1.24-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.24.7-kvm.qcow2.bz2
 [k1.24-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.24.7-kvm.qcow2.bz2.md5
+[k1.25-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.25.10-kvm.qcow2.bz2
+[k1.25-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.25.10-kvm.qcow2.bz2.md5
+[k1.26-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.26.5-kvm.qcow2.bz2
+[k1.26-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.26.5-kvm.qcow2.bz2.md5
+[k1.27-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.27.2-kvm.qcow2.bz2
+[k1.27-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.27.2-kvm.qcow2.bz2.md5
 
 <!-- VMware -->
 [k1.22-rl8-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.22.6-vmware.ova
 [k1.22-rl8-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.22.6-vmware.ova.md5
 [k1.23-rl8-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.23.3-vmware.ova
 [k1.23-rl8-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.23.3-vmware.ova.md5
-[k1.24-rl8-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.24.7-vmware.ova
-[k1.24-rl8-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.24.7-vmware.ova.md5
+[k1.24-rl8-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.24.14-vmware.ova
+[k1.24-rl8-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.24.14-vmware.ova.md5
+[k1.25-rl8-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.25.10-vmware.ova
+[k1.25-rl8-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.25.10-vmware.ova.md5
+[k1.26-rl8-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.26.5-vmware.ova
+[k1.26-rl8-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.26.5-vmware.ova.md5
+[k1.27-rl8-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.27.2-vmware.ova
+[k1.27-rl8-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/rockylinux-8-kube-v1.27.2-vmware.ova.md5
 [k1.22-u20-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.22.6-vmware.ova
 [k1.22-u20-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.22.6-vmware.ova.md5
 [k1.23-u20-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.23.3-vmware.ova
 [k1.23-u20-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.23.3-vmware.ova.md5
-[k1.24-u20-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.24.7-vmware.ova
-[k1.24-u20-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.24.7-vmware.ova.md5
+[k1.24-u20-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.24.14-vmware.ova
+[k1.24-u20-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.24.14-vmware.ova.md5
+[k1.25-u20-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.25.10-vmware.ova
+[k1.25-u20-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.25.10-vmware.ova.md5
+[k1.26-u20-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.26.5-vmware.ova
+[k1.26-u20-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.26.5-vmware.ova.md5
+[k1.27-u20-ova]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.27.2-vmware.ova
+[k1.27-u20-ova-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/vmware/ubuntu-2004-kube-v1.27.2-vmware.ova.md5
 
 <!-- XenServer -->
 [k1.22-rl8-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.22.6-xen.vhd.bz2
 [k1.22-rl8-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.22.6-xen.vhd.bz2.md5
 [k1.23-rl8-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.23.3-xen.vhd.bz2
 [k1.23-rl8-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.23.3-xen.vhd.bz2.md5
-[k1.24-rl8-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.24.7-xen.vhd.bz2
-[k1.24-rl8-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.24.7-xen.vhd.bz2.md5
+[k1.24-rl8-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.24.14-xen.vhd.bz2
+[k1.24-rl8-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.24.14-xen.vhd.bz2.md5
+[k1.25-rl8-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.25.10-xen.vhd.bz2
+[k1.25-rl8-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.25.10-xen.vhd.bz2.md5
+[k1.26-rl8-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.26.5-xen.vhd.bz2
+[k1.26-rl8-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.26.5-xen.vhd.bz2.md5
+[k1.27-rl8-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.27.2-xen.vhd.bz2
+[k1.27-rl8-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/rockylinux-8-kube-v1.27.2-xen.vhd.bz2.md5
 [k1.22-u20-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.22.6-xen.vhd.bz2
 [k1.22-u20-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.22.6-xen.vhd.bz2.md5
 [k1.23-u20-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.23.3-xen.vhd.bz2
 [k1.23-u20-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.23.3-xen.vhd.bz2.md5
-[k1.24-u20-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.24.7-xen.vhd.bz2
-[k1.24-u20-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.24.7-xen.vhd.bz2.md5
+[k1.24-u20-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.24.14-xen.vhd.bz2
+[k1.24-u20-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.24.14-xen.vhd.bz2.md5
+[k1.25-u20-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.25.10-xen.vhd.bz2
+[k1.25-u20-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.25.10-xen.vhd.bz2.md5
+[k1.26-u20-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.26.5-xen.vhd.bz2
+[k1.26-u20-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.26.5-xen.vhd.bz2.md5
+[k1.27-u20-vhd]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.27.2-xen.vhd.bz2
+[k1.27-u20-vhd-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/xen/ubuntu-2004-kube-v1.27.2-xen.vhd.bz2.md5
