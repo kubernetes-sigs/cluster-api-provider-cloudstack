@@ -183,8 +183,8 @@ All the CAPC contributors:
 [k1.22-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.22.6-kvm.qcow2.bz2.md5
 [k1.23-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.23.3-kvm.qcow2.bz2
 [k1.23-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.23.3-kvm.qcow2.bz2.md5
-[k1.24-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.24.7-kvm.qcow2.bz2
-[k1.24-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.24.7-kvm.qcow2.bz2.md5
+[k1.24-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.24.14-kvm.qcow2.bz2
+[k1.24-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.24.14-kvm.qcow2.bz2.md5
 [k1.25-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.25.10-kvm.qcow2.bz2
 [k1.25-u20-qcow2-md5]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.25.10-kvm.qcow2.bz2.md5
 [k1.26-u20-qcow2]:     http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/kvm/ubuntu-2004-kube-v1.26.5-kvm.qcow2.bz2
