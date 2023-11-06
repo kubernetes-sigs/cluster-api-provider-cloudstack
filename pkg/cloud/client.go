@@ -186,7 +186,7 @@ func NewClientFromConf(conf Config, clientConfig *corev1.ConfigMap) (Client, err
 		Account: Account{
 			Name: userResponse.Users[0].Account,
 			Domain: Domain{
-				Path: userResponse.Users[0].Domain,
+				ID: userResponse.Users[0].Domainid,
 			},
 		},
 	}
