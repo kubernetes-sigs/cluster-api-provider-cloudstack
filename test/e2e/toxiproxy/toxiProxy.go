@@ -235,7 +235,7 @@ func TearDownToxiProxyACS(ctx context.Context, clusterProxy framework.ClusterPro
 }
 
 func parseUrl(url string) (string, string, int, string) {
-	serverRegex := regexp.MustCompilePOSIX("(https?)://([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):([0-9]+)?(.*)")
+	serverRegex := regexp.MustCompilePOSIX("(https?)://([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+|[a-zA-Z0-9. _-]+):([0-9]+)?(.*)")
 
 	urlComponents := serverRegex.FindStringSubmatch(url)
 	Expect(len(urlComponents)).To(BeNumerically(">=", 4))

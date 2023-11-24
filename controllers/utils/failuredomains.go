@@ -58,7 +58,7 @@ func (r *ReconciliationRunner) CreateFailureDomains(fdSpecs []infrav1.CloudStack
 // GetFailureDomains gets CloudStackFailureDomains owned by a CloudStackCluster.
 func (r *ReconciliationRunner) GetFailureDomains(fds *infrav1.CloudStackFailureDomainList) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		capiClusterLabel := map[string]string{clusterv1.ClusterLabelName: r.CSCluster.GetLabels()[clusterv1.ClusterLabelName]}
+		capiClusterLabel := map[string]string{clusterv1.ClusterNameLabel: r.CSCluster.GetLabels()[clusterv1.ClusterNameLabel]}
 		if err := r.K8sClient.List(
 			r.RequestCtx,
 			fds,

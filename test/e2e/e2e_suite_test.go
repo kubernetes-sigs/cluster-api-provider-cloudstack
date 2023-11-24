@@ -25,15 +25,17 @@ import (
 	"os"
 	"path/filepath"
 	go_runtime "runtime"
-	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/toxiproxy"
 	"strings"
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	"sigs.k8s.io/cluster-api-provider-cloudstack-staging/test/e2e/toxiproxy"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -94,10 +96,10 @@ func TestE2E(t *testing.T) {
 		artifactFolder = prowArtifactFolder
 	}
 
+	ctrl.SetLogger(klog.Background())
 	RegisterFailHandler(Fail)
 
-	junitReporter := framework.CreateJUnitReporterForProw(artifactFolder)
-	RunSpecsWithDefaultAndCustomReporters(t, "capi-e2e", []Reporter{junitReporter})
+	RunSpecs(t, "capi-e2e")
 }
 
 // Using a SynchronizedBeforeSuite for controlling how to create resources shared across ParallelNodes (~ginkgo threads).

@@ -22,15 +22,16 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog/v2"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/blang/semver"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/gomega"
@@ -114,7 +115,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	})
 
 	if !skipCleanup {
-		Byf("Deleting cluster %s/%s", cluster.Namespace, cluster.Name)
+		Byf("Deleting cluster %s", klog.KObj(cluster))
 		// While https://github.com/kubernetes-sigs/cluster-api/issues/2955 is addressed in future iterations, there is a chance
 		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
 		// instead of DeleteClusterAndWait
@@ -172,13 +173,13 @@ func GetK8sObject(ctx context.Context, resourceType, name, namespace, kubeconfig
 	getArgs := []string{"--ignore-not-found", "--namespace", namespace, resourceType, name, "-o", "json"}
 	stdOut, err := KubectlExec(ctx, "get", kubeconfigPath, getArgs...)
 	if err != nil {
-		return fmt.Errorf("getting %s/%s/%s with kubectl: %v", resourceType, namespace, name, err)
+		return fmt.Errorf("getting %s/%s with kubectl: %v", resourceType, klog.KRef(namespace, name), err)
 	}
 	if len(stdOut) == 0 {
-		return fmt.Errorf("not found %s/%s/%s", resourceType, namespace, name)
+		return fmt.Errorf("not found %s/%s", resourceType, klog.KRef(namespace, name))
 	}
 	if err = json.Unmarshal([]byte(stdOut), obj); err != nil {
-		return fmt.Errorf("parsing %s/%s/%s response: %v", resourceType, namespace, name, err)
+		return fmt.Errorf("parsing %s/%s response: %v", resourceType, klog.KRef(namespace, name), err)
 	}
 
 	return nil

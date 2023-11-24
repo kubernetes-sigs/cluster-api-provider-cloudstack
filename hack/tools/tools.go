@@ -21,7 +21,6 @@ package tools
 import (
 	_ "github.com/a8m/envsubst"
 	_ "github.com/golang/mock/mockgen"
-	_ "github.com/onsi/ginkgo"
 	_ "github.com/onsi/ginkgo/ginkgo"
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
 	_ "honnef.co/go/tools/cmd/staticcheck"
