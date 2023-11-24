@@ -105,8 +105,6 @@ providers:
         replacements:
           - old: --metrics-bind-addr=localhost:8080
             new: --metrics-bind-addr=:8080
-          - old: "--leader-elect"
-            new: "--leader-elect\n        - --metrics-bind-addr=:8080"
 
 variables:
   KUBERNETES_VERSION_MANAGEMENT: "v1.25.3"
