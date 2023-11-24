@@ -22,11 +22,13 @@ import (
 	"reflect"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/pkg/errors"
@@ -34,6 +36,7 @@ import (
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -183,16 +186,35 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Cont
 					return !reflect.DeepEqual(oldCluster, newCluster)
 				},
 			},
-		).Build(reconciler)
+		).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(log)).
+		Build(reconciler)
 	if err != nil {
 		return errors.Wrap(err, "building CloudStackCluster controller")
 	}
 
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
+	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("CloudStackCluster"), mgr.GetClient(), &infrav1.CloudStackCluster{})
 	if err = controller.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(
-			util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("CloudStackCluster"), mgr.GetClient(), &infrav1.CloudStackCluster{})),
+		handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
+			requests := clusterToInfraFn(o)
+			if requests == nil {
+				return nil
+			}
+
+			c := &infrav1.CloudStackCluster{}
+			if err := reconciler.K8sClient.Get(ctx, requests[0].NamespacedName, c); err != nil {
+				log.V(4).Error(err, "Failed to get CloudStack cluster")
+				return nil
+			}
+
+			if annotations.IsExternallyManaged(c) {
+				log.V(4).Info("CloudStackCluster is externally managed, skipping mapping")
+				return nil
+			}
+			return requests
+		}),
 		predicates.ClusterUnpaused(log),
 	); err != nil {
 		return errors.Wrap(err, "building CloudStackCluster controller")
