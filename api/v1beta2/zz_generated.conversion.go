@@ -213,16 +213,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineSpec)(nil), (*v1beta3.CloudStackMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(a.(*CloudStackMachineSpec), b.(*v1beta3.CloudStackMachineSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackMachineSpec)(nil), (*CloudStackMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(a.(*v1beta3.CloudStackMachineSpec), b.(*CloudStackMachineSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStateChecker)(nil), (*v1beta3.CloudStackMachineStateChecker)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_CloudStackMachineStateChecker_To_v1beta3_CloudStackMachineStateChecker(a.(*CloudStackMachineStateChecker), b.(*v1beta3.CloudStackMachineStateChecker), scope)
 	}); err != nil {
@@ -353,6 +343,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*CloudStackMachineSpec)(nil), (*v1beta3.CloudStackMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(a.(*CloudStackMachineSpec), b.(*v1beta3.CloudStackMachineSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*CloudStackMachineTemplateSpec)(nil), (*v1beta3.CloudStackMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_CloudStackMachineTemplateSpec_To_v1beta3_CloudStackMachineTemplateSpec(a.(*CloudStackMachineTemplateSpec), b.(*v1beta3.CloudStackMachineTemplateSpec), scope)
 	}); err != nil {
@@ -360,6 +355,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta3.CloudStackFailureDomainSpec)(nil), (*CloudStackFailureDomainSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta3_CloudStackFailureDomainSpec_To_v1beta2_CloudStackFailureDomainSpec(a.(*v1beta3.CloudStackFailureDomainSpec), b.(*CloudStackFailureDomainSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta3.CloudStackMachineSpec)(nil), (*CloudStackMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(a.(*v1beta3.CloudStackMachineSpec), b.(*CloudStackMachineSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -869,7 +869,17 @@ func Convert_v1beta3_CloudStackMachine_To_v1beta2_CloudStackMachine(in *v1beta3.
 
 func autoConvert_v1beta2_CloudStackMachineList_To_v1beta3_CloudStackMachineList(in *CloudStackMachineList, out *v1beta3.CloudStackMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta3.CloudStackMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta3.CloudStackMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_CloudStackMachine_To_v1beta3_CloudStackMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -880,7 +890,17 @@ func Convert_v1beta2_CloudStackMachineList_To_v1beta3_CloudStackMachineList(in *
 
 func autoConvert_v1beta3_CloudStackMachineList_To_v1beta2_CloudStackMachineList(in *v1beta3.CloudStackMachineList, out *CloudStackMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]CloudStackMachine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]CloudStackMachine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta3_CloudStackMachine_To_v1beta2_CloudStackMachine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -899,9 +919,7 @@ func autoConvert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(
 	if err := Convert_v1beta2_CloudStackResourceIdentifier_To_v1beta3_CloudStackResourceIdentifier(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta2_CloudStackResourceDiskOffering_To_v1beta3_CloudStackResourceDiskOffering(&in.DiskOffering, &out.DiskOffering, s); err != nil {
-		return err
-	}
+	// WARNING: in.DiskOffering requires manual conversion: inconvertible types (./api/v1beta2.CloudStackResourceDiskOffering vs *sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3.CloudStackResourceDiskOffering)
 	out.SSHKey = in.SSHKey
 	out.Details = *(*map[string]string)(unsafe.Pointer(&in.Details))
 	out.AffinityGroupIDs = *(*[]string)(unsafe.Pointer(&in.AffinityGroupIDs))
@@ -911,11 +929,6 @@ func autoConvert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(
 	out.FailureDomainName = in.FailureDomainName
 	out.UncompressedUserData = (*bool)(unsafe.Pointer(in.UncompressedUserData))
 	return nil
-}
-
-// Convert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec is an autogenerated conversion function.
-func Convert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(in *CloudStackMachineSpec, out *v1beta3.CloudStackMachineSpec, s conversion.Scope) error {
-	return autoConvert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(in, out, s)
 }
 
 func autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s conversion.Scope) error {
@@ -928,9 +941,7 @@ func autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(
 	if err := Convert_v1beta3_CloudStackResourceIdentifier_To_v1beta2_CloudStackResourceIdentifier(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta3_CloudStackResourceDiskOffering_To_v1beta2_CloudStackResourceDiskOffering(&in.DiskOffering, &out.DiskOffering, s); err != nil {
-		return err
-	}
+	// WARNING: in.DiskOffering requires manual conversion: inconvertible types (*sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3.CloudStackResourceDiskOffering vs ./api/v1beta2.CloudStackResourceDiskOffering)
 	out.SSHKey = in.SSHKey
 	out.Details = *(*map[string]string)(unsafe.Pointer(&in.Details))
 	out.AffinityGroupIDs = *(*[]string)(unsafe.Pointer(&in.AffinityGroupIDs))
@@ -940,11 +951,6 @@ func autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(
 	out.FailureDomainName = in.FailureDomainName
 	out.UncompressedUserData = (*bool)(unsafe.Pointer(in.UncompressedUserData))
 	return nil
-}
-
-// Convert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(in, out, s)
 }
 
 func autoConvert_v1beta2_CloudStackMachineStateChecker_To_v1beta3_CloudStackMachineStateChecker(in *CloudStackMachineStateChecker, out *v1beta3.CloudStackMachineStateChecker, s conversion.Scope) error {

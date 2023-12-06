@@ -154,6 +154,9 @@ func (c *client) ResolveTemplate(
 // disk offering name matches name provided in spec.
 // If disk offering ID is not provided, the disk offering name is used to retrieve disk offering ID.
 func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine, zoneID string) (diskOfferingID string, retErr error) {
+	if csMachine.Spec.DiskOffering == nil {
+		return "", nil
+	}
 	diskOfferingID = csMachine.Spec.DiskOffering.ID
 	if len(csMachine.Spec.DiskOffering.Name) > 0 {
 		diskID, count, err := c.cs.DiskOffering.GetDiskOfferingID(csMachine.Spec.DiskOffering.Name, cloudstack.WithZone(zoneID), cloudstack.WithProject(c.user.Project.ID))
@@ -334,8 +337,10 @@ func (c *client) DeployVM(
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(capiMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
+	if csMachine.Spec.DiskOffering != nil {
+		setIntIfPositive(csMachine.Spec.DiskOffering.CustomSize, p.SetSize)
+	}
 	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
-	setIntIfPositive(csMachine.Spec.DiskOffering.CustomSize, p.SetSize)
 
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
 
