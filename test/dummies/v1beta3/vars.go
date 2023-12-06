@@ -82,7 +82,7 @@ var ( // Declare exported dummy vars.
 	EndPointHost            string
 	EndPointPort            int32
 	CSConf                  *simpleyaml.Yaml
-	DiskOffering            infrav1.CloudStackResourceDiskOffering
+	DiskOffering            *infrav1.CloudStackResourceDiskOffering
 	BootstrapSecret         *corev1.Secret
 	BootstrapSecretName     string
 	CSMachineOwner          *fakes.CloudStackMachineOwner
@@ -118,7 +118,7 @@ func SetDummyVars() {
 }
 
 func SetDiskOfferingVars() {
-	DiskOffering = infrav1.CloudStackResourceDiskOffering{CloudStackResourceIdentifier: infrav1.CloudStackResourceIdentifier{Name: "Small"},
+	DiskOffering = &infrav1.CloudStackResourceDiskOffering{CloudStackResourceIdentifier: infrav1.CloudStackResourceIdentifier{Name: "Small"},
 		MountPath:  "/data",
 		Device:     "/dev/vdb",
 		Filesystem: "ext4",
@@ -232,7 +232,7 @@ func SetDummyCSMachineVars() {
 			Offering: infrav1.CloudStackResourceIdentifier{
 				Name: GetYamlVal("CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING"),
 			},
-			DiskOffering: infrav1.CloudStackResourceDiskOffering{
+			DiskOffering: &infrav1.CloudStackResourceDiskOffering{
 				CloudStackResourceIdentifier: infrav1.CloudStackResourceIdentifier{
 					Name: "DiskOffering",
 				},

@@ -468,7 +468,11 @@ func (in *CloudStackMachineSpec) DeepCopyInto(out *CloudStackMachineSpec) {
 	}
 	out.Offering = in.Offering
 	out.Template = in.Template
-	out.DiskOffering = in.DiskOffering
+	if in.DiskOffering != nil {
+		in, out := &in.DiskOffering, &out.DiskOffering
+		*out = new(CloudStackResourceDiskOffering)
+		**out = **in
+	}
 	if in.Details != nil {
 		in, out := &in.Details, &out.Details
 		*out = make(map[string]string, len(*in))
