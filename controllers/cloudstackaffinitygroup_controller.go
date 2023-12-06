@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -89,8 +90,9 @@ func (r *CloudStackAGReconciliationRunner) ReconcileDelete() (ctrl.Result, error
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (reconciler *CloudStackAffinityGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (reconciler *CloudStackAffinityGroupReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackAffinityGroup{}).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), reconciler.WatchFilterValue)).
 		Complete(reconciler)
 }

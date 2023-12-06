@@ -28,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -54,7 +55,7 @@ func (r *CloudStackMachineTemplate) Default() {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackMachineTemplate) ValidateCreate() error {
+func (r *CloudStackMachineTemplate) ValidateCreate() (admission.Warnings, error) {
 	cloudstackmachinetemplatelog.V(1).Info("entered validate create webhook", "api resource name", r.Name)
 
 	var errorList field.ErrorList
@@ -75,16 +76,16 @@ func (r *CloudStackMachineTemplate) ValidateCreate() error {
 	errorList = webhookutil.EnsureAtLeastOneFieldExists(spec.Offering.ID, spec.Offering.Name, "Offering", errorList)
 	errorList = webhookutil.EnsureAtLeastOneFieldExists(spec.Template.ID, spec.Template.Name, "Template", errorList)
 
-	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return nil, webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
+func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	cloudstackmachinetemplatelog.V(1).Info("entered validate update webhook", "api resource name", r.Name)
 
 	oldMachineTemplate, ok := old.(*CloudStackMachineTemplate)
 	if !ok {
-		return errors.NewBadRequest(fmt.Sprintf("expected a CloudStackMachineTemplate but got a %T", old))
+		return nil, errors.NewBadRequest(fmt.Sprintf("expected a CloudStackMachineTemplate but got a %T", old))
 	}
 
 	// CloudStackMachineTemplateSpec.CloudStackMachineTemplateResource.CloudStackMachineSpec
@@ -108,12 +109,12 @@ func (r *CloudStackMachineTemplate) ValidateUpdate(old runtime.Object) error {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"), "AffinityGroupIDs"))
 	}
 
-	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return nil, webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackMachineTemplate) ValidateDelete() error {
+func (r *CloudStackMachineTemplate) ValidateDelete() (admission.Warnings, error) {
 	cloudstackmachinetemplatelog.V(1).Info("entered validate delete webhook", "api resource name", r.Name)
 	// No deletion validations.  Deletion webhook not enabled.
-	return nil
+	return nil, nil
 }
