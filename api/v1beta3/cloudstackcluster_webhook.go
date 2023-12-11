@@ -39,19 +39,19 @@ func (r *CloudStackCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackcluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1beta3,name=mcloudstackcluster.kb.io,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackcluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,versions=v1beta3,name=validation.cloudstackcluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackcluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,versions=v1beta3,name=default.cloudstackcluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &CloudStackCluster{}
+var (
+	_ webhook.Defaulter = &CloudStackCluster{}
+	_ webhook.Validator = &CloudStackCluster{}
+)
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CloudStackCluster) Default() {
 	cloudstackclusterlog.V(1).Info("entered api default setting webhook", "api resource name", r.Name)
 	// No defaulted values supported yet.
 }
-
-// +kubebuilder:webhook:name=vcloudstackcluster.kb.io,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,versions=v1beta3,verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackcluster,mutating=false,failurePolicy=fail,sideEffects=None,admissionReviewVersions=v1;v1beta1
-
-var _ webhook.Validator = &CloudStackCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackCluster) ValidateCreate() error {

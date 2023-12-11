@@ -39,19 +39,19 @@ func (r *CloudStackMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) er
 		Complete()
 }
 
-// +kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachinetemplate,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta3,name=mcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,versions=v1beta3,name=validation.cloudstackmachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachinetemplate,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,versions=v1beta3,name=default.cloudstackmachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &CloudStackMachineTemplate{}
+var (
+	_ webhook.Defaulter = &CloudStackMachineTemplate{}
+	_ webhook.Validator = &CloudStackMachineTemplate{}
+)
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) Default() {
 	cloudstackmachinetemplatelog.V(1).Info("entered default setting webhook", "api resource name", r.Name)
 	// No defaulted values supported yet.
 }
-
-// +kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachinetemplate,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinetemplates,verbs=create;update,versions=v1beta3,name=vcloudstackmachinetemplate.kb.io,admissionReviewVersions=v1;v1beta1
-
-var _ webhook.Validator = &CloudStackMachineTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackMachineTemplate) ValidateCreate() error {
