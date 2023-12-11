@@ -27,6 +27,7 @@ GH_REPO ?= kubernetes-sigs/cluster-api-provider-cloudstack
 
 # Binaries
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
+CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 GINKGO := $(TOOLS_BIN_DIR)/ginkgo
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
@@ -80,7 +81,7 @@ all: build
 ## --------------------------------------
 
 .PHONY: binaries
-binaries: $(CONTROLLER_GEN) $(GOLANGCI_LINT) $(STATIC_CHECK) $(GINKGO) $(MOCKGEN) $(KUSTOMIZE) managers # Builds and installs all binaries
+binaries: $(CONTROLLER_GEN) $(CONVERSION_GEN) $(GOLANGCI_LINT) $(STATIC_CHECK) $(GINKGO) $(MOCKGEN) $(KUSTOMIZE) managers # Builds and installs all binaries
 
 .PHONY: managers
 managers:
@@ -158,12 +159,14 @@ config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
 	@touch config/.flag.mk
 
 CONVERSION_GEN_TARGET=$(shell find api -type d -name "v*1" -exec echo {}\/zz_generated.conversion.go \;)
-CONVERSION_GEN_INPUTS=$(shell find ./api -name "*test*" -prune -o -name "*zz_generated*" -prune -o -type f -print)
 .PHONY: generate-conversion
-generate-conversion: $(CONVERSION_GEN_TARGET) ## Generate code to convert api/v1beta1 to api/v1beta2
-api/%/zz_generated.conversion.go: bin/conversion-gen $(CONVERSION_GEN_INPUTS)
-	conversion-gen --go-header-file "./hack/boilerplate.go.txt" --input-dirs "./api/v1beta1" \
-	--output-base "." --output-file-base="zz_generated.conversion" --skip-unsafe=true
+generate-conversion: $(CONTROLLER_GEN) ## Generate code to convert api/v1beta1 and api/v1beta2 to api/v1beta3
+	$(CONVERSION_GEN) \
+		--input-dirs=./api/v1beta1 \
+		--input-dirs=./api/v1beta2 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--go-header-file=./hack/boilerplate.go.txt \
+		--output-base=. --output-file-base=zz_generated.conversion
 
 ##@ Build
 ## --------------------------------------
