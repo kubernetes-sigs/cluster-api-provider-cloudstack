@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -105,8 +106,9 @@ func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Re
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (reconciler *CloudStackIsoNetReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (reconciler *CloudStackIsoNetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackIsolatedNetwork{}).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), reconciler.WatchFilterValue)).
 		Complete(reconciler)
 }

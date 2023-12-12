@@ -34,8 +34,8 @@ var _ = Describe("CloudStackFailureDomainReconciler", func() {
 	Context("With k8s like test environment.", func() {
 		BeforeEach(func() {
 			dummies.SetDummyVars()
-			SetupTestEnvironment()                                                    // Must happen before setting up managers/reconcilers.
-			Ω(FailureDomainReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack FailureDomainReconciler.
+			SetupTestEnvironment()                                                         // Must happen before setting up managers/reconcilers.
+			Ω(FailureDomainReconciler.SetupWithManager(ctx, k8sManager)).Should(Succeed()) // Register CloudStack FailureDomainReconciler.
 			// Modify failure domain name the same way the cluster controller would.
 			dummies.CSFailureDomain1.Name = dummies.CSFailureDomain1.Name + "-" + dummies.CSCluster.Name
 
