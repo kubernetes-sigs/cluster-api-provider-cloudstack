@@ -22,9 +22,9 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -344,6 +344,12 @@ func CheckAffinityGroup(client *cloudstack.CloudStackClient, clusterName string,
 					Fail(affinity.Type + " does not match " + affinityType)
 				}
 				if affinityType == "anti" && affinity.Type != "host anti-affinity" {
+					Fail(affinity.Type + " does not match " + affinityType)
+				}
+				if affinityType == "soft-pro" && affinity.Type != "non-strict host affinity" {
+					Fail(affinity.Type + " does not match " + affinityType)
+				}
+				if affinityType == "soft-anti" && affinity.Type != "non-strict host anti-affinity" {
 					Fail(affinity.Type + " does not match " + affinityType)
 				}
 			}

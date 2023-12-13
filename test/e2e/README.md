@@ -150,6 +150,8 @@ E2E Test Run Logs: https://github.com/blueorangutan/capc-prs/releases/download/c
 [PASS] When testing with disk offering Should successfully create a cluster with disk offering
 [PASS] When testing affinity group Should have host affinity group when affinity is pro
 [PASS] When testing affinity group Should have host affinity group when affinity is anti
+[PASS] When testing affinity group Should have host affinity group when affinity is soft-pro
+[PASS] When testing affinity group Should have host affinity group when affinity is soft-anti
 [PASS] When the specified resource does not exist Should fail due to the specified account is not found [TC4a]
 [PASS] When the specified resource does not exist Should fail due to the specified domain is not found [TC4b]
 [PASS] When the specified resource does not exist Should fail due to the specified control plane offering is not found [TC7]
