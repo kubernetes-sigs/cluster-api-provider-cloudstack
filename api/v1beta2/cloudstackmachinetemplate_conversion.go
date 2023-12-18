@@ -17,8 +17,10 @@ limitations under the License.
 package v1beta2
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	machineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -49,13 +51,29 @@ func (dst *CloudStackMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 func Convert_v1beta2_CloudStackMachineTemplateSpec_To_v1beta3_CloudStackMachineTemplateSpec(in *CloudStackMachineTemplateSpec, out *v1beta3.CloudStackMachineTemplateSpec, s machineryconversion.Scope) error { // nolint
-	return autoConvert_v1beta2_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(&in.Spec.Spec, &out.Template.Spec, s)
+	return Convert_v1beta2_CloudStackMachineTemplateResource_To_v1beta3_CloudStackMachineTemplateResource(&in.Spec, &out.Template, s)
 }
 
 func Convert_v1beta3_CloudStackMachineTemplateSpec_To_v1beta2_CloudStackMachineTemplateSpec(in *v1beta3.CloudStackMachineTemplateSpec, out *CloudStackMachineTemplateSpec, s machineryconversion.Scope) error { // nolint
-	return autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(&in.Template.Spec, &out.Spec.Spec, s)
+	return Convert_v1beta3_CloudStackMachineTemplateResource_To_v1beta2_CloudStackMachineTemplateResource(&in.Template, &out.Spec, s)
 }
 
-func Convert_v1beta2_CloudStackMachineTemplateResource_To_v1beta3_CloudStackMachineTemplateResource(in *CloudStackMachineTemplateResource, out *v1beta3.CloudStackMachineTemplateResource, s machineryconversion.Scope) error { //nolint
-	return autoConvert_v1beta2_CloudStackMachineTemplateResource_To_v1beta3_CloudStackMachineTemplateResource(in, out, s)
+func Convert_v1beta1_ObjectMeta_To_v1_ObjectMeta(in *clusterv1.ObjectMeta, out *metav1.ObjectMeta, s machineryconversion.Scope) error { // nolint
+	if in.Annotations != nil {
+		out.Annotations = in.Annotations
+	}
+	if in.Labels != nil {
+		out.Labels = in.Labels
+	}
+	return nil
+}
+
+func Convert_v1_ObjectMeta_To_v1beta1_ObjectMeta(in *metav1.ObjectMeta, out *clusterv1.ObjectMeta, s machineryconversion.Scope) error { // nolint
+	if in.Annotations != nil {
+		out.Annotations = in.Annotations
+	}
+	if in.Labels != nil {
+		out.Labels = in.Labels
+	}
+	return nil
 }
