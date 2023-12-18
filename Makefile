@@ -158,13 +158,14 @@ config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
 	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="{./api/...,./controllers/...}" output:crd:artifacts:config=config/crd/bases
 	@touch config/.flag.mk
 
-CONVERSION_GEN_TARGET=$(shell find api -type d -name "v*1" -exec echo {}\/zz_generated.conversion.go \;)
 .PHONY: generate-conversion
-generate-conversion: $(CONTROLLER_GEN) ## Generate code to convert api/v1beta1 and api/v1beta2 to api/v1beta3
+generate-conversion: $(CONVERSION_GEN) ## Generate code to convert api/v1beta1 and api/v1beta2 to api/v1beta3
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1beta1 \
+		--go-header-file=./hack/boilerplate.go.txt \
+		--output-base=. --output-file-base=zz_generated.conversion
+	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1beta2 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
 		--go-header-file=./hack/boilerplate.go.txt \
 		--output-base=. --output-file-base=zz_generated.conversion
 
