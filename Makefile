@@ -340,13 +340,12 @@ release-manifests-metrics-port:
 	make release-manifests RELEASE_MANIFEST_SOURCE_BASE=config/default-with-metrics-port
 
 .PHONY: release-staging
-release-staging: ## Builds and push container images and manifests to the staging bucket.
-	$(MAKE) docker-build
-	$(MAKE) docker-push
-	$(MAKE) release-alias-tag
+release-staging: ## Builds and uploads manifests to the staging bucket and creates new tag
 	$(MAKE) release-templates
 	$(MAKE) release-manifests TAG=$(RELEASE_ALIAS_TAG)
 	$(MAKE) upload-staging-artifacts
+	git tag $(RELEASE_ALIAS_TAG)
+	git push upstream $(RELEASE_ALIAS_TAG)
 
 .PHONY: release-alias-tag
 release-alias-tag: # Adds the tag to the last build tag.
