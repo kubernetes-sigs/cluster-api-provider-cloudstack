@@ -24,8 +24,8 @@ import (
 const (
 	AntiAffinityGroupType     = "host anti-affinity"
 	AffinityGroupType         = "host affinity"
-	SoftAntiAffinityGroupType = "non-stric anti-affinity"
-	SoftAffinityGroupType     = "non-stric host affinity"
+	SoftAntiAffinityGroupType = "non-strict anti-affinity"
+	SoftAffinityGroupType     = "non-strict host affinity"
 )
 
 type AffinityGroup struct {
