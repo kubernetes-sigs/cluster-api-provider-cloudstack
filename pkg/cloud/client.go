@@ -29,8 +29,8 @@ import (
 	"gopkg.in/yaml.v3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/metrics"
 
-	"github.com/ReneKroon/ttlcache"
 	"github.com/apache/cloudstack-go/v2/cloudstack"
+	ttlcache "github.com/jellydator/ttlcache/v3"
 	"github.com/pkg/errors"
 )
 
@@ -71,7 +71,7 @@ type SecretConfig struct {
 	StringData Config            `yaml:"stringData"`
 }
 
-var clientCache *ttlcache.Cache
+var clientCache *ttlcache.Cache[string, *client]
 var cacheMutex sync.Mutex
 
 var NewAsyncClient = cloudstack.NewAsyncClient
@@ -159,7 +159,8 @@ func NewClientFromConf(conf Config, clientConfig *corev1.ConfigMap) (Client, err
 	}
 
 	clientCacheKey := generateClientCacheKey(conf)
-	if client, exists := clientCache.Get(clientCacheKey); exists {
+	if item := clientCache.Get(clientCacheKey); item != nil {
+		var client interface{} = item.Value()
 		return client.(Client), nil
 	}
 
@@ -197,7 +198,7 @@ func NewClientFromConf(conf Config, clientConfig *corev1.ConfigMap) (Client, err
 			"could not find sufficient user (with API keys) in domain/account %s/%s", userResponse.Users[0].Domain, userResponse.Users[0].Account)
 	}
 	c.user = user
-	clientCache.Set(clientCacheKey, c)
+	clientCache.Set(clientCacheKey, c, ttlcache.DefaultTTL)
 
 	return c, nil
 }
@@ -251,11 +252,15 @@ func generateClientCacheKey(conf Config) string {
 }
 
 // newClientCache returns a new instance of client cache
-func newClientCache(clientConfig *corev1.ConfigMap) *ttlcache.Cache {
-	clientCache := ttlcache.NewCache()
-	clientCache.SetTTL(GetClientCacheTTL(clientConfig))
-	clientCache.SkipTtlExtensionOnHit(false)
-	return clientCache
+func newClientCache(clientConfig *corev1.ConfigMap) *ttlcache.Cache[string, *client] {
+	cache := ttlcache.New[string, *client](
+		ttlcache.WithTTL[string, *client](GetClientCacheTTL(clientConfig)),
+		ttlcache.WithDisableTouchOnHit[string, *client](),
+	)
+
+	go cache.Start() // starts automatic expired item deletion
+
+	return cache
 }
 
 // GetClientCacheTTL returns a client cache TTL duration from the passed config map
