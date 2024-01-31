@@ -20,7 +20,9 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -49,6 +51,43 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 				if len(affinityGroups.Items) == 1 {
 					return affinityGroups.Items[0].Status.Ready
 				}
+			}
+			return false
+		}, timeout).WithPolling(pollInterval).Should(BeTrue())
+	})
+
+	It("Should remove affinity group finalizer if corresponding affinity group is not present on Cloudstack.", func() {
+		// Modify failure domain name the same way the cluster controller would.
+		dummies.CSAffinityGroup.Spec.FailureDomainName = dummies.CSFailureDomain1.Spec.Name
+
+		Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
+		Ω(k8sClient.Create(ctx, dummies.CSAffinityGroup)).Should(Succeed())
+
+		mockCloudClient.EXPECT().GetOrCreateAffinityGroup(gomock.Any()).AnyTimes()
+
+		// Test that the AffinityGroup controller sets Status.Ready to true.
+		Eventually(func() bool {
+			nameSpaceFilter := &client.ListOptions{Namespace: dummies.ClusterNameSpace}
+			affinityGroups := &infrav1.CloudStackAffinityGroupList{}
+			if err := k8sClient.List(ctx, affinityGroups, nameSpaceFilter); err == nil {
+				if len(affinityGroups.Items) == 1 {
+					return affinityGroups.Items[0].Status.Ready
+				}
+			}
+			return false
+		}, timeout).WithPolling(pollInterval).Should(BeTrue())
+
+		Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
+		mockCloudClient.EXPECT().FetchAffinityGroup(gomock.Any()).Do(func(arg1 interface{}) {
+			arg1.(*cloud.AffinityGroup).ID = ""
+		}).AnyTimes().Return(nil)
+
+		// Once the affinity group id was set to "" the controller should remove the finalizer and unblock deleting affinity group resource
+		Eventually(func() bool {
+			retrievedAffinityGroup := &infrav1.CloudStackAffinityGroup{}
+			affinityGroupKey := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.AffinityGroup.Name}
+			if err := k8sClient.Get(ctx, affinityGroupKey, retrievedAffinityGroup); err != nil {
+				return errors.IsNotFound(err)
 			}
 			return false
 		}, timeout).WithPolling(pollInterval).Should(BeTrue())
