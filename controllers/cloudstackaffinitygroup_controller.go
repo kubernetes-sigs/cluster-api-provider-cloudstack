@@ -20,6 +20,7 @@ import (
 	"context"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
@@ -89,8 +90,9 @@ func (r *CloudStackAGReconciliationRunner) ReconcileDelete() (ctrl.Result, error
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (reconciler *CloudStackAffinityGroupReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (reconciler *CloudStackAffinityGroupReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&infrav1.CloudStackAffinityGroup{}).
 		Complete(reconciler)
 }

@@ -23,13 +23,14 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 	BeforeEach(func() {
 		SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
 		dummies.SetDummyVars()
-		Ω(AffinityGReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack AffinityGReconciler.
+		Ω(AffinityGReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(Succeed()) // Register CloudStack AffinityGReconciler.
 	})
 
 	It("Should patch back the affinity group as ready after calling GetOrCreateAffinityGroup.", func() {
