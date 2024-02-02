@@ -27,8 +27,7 @@ GH_REPO ?= kubernetes-sigs/cluster-api-provider-cloudstack
 
 # Binaries
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
-GINKGO_V1 := $(TOOLS_BIN_DIR)/ginkgo_v1
-GINKGO_V2 := $(TOOLS_BIN_DIR)/ginkgo_v2
+GINKGO := $(TOOLS_BIN_DIR)/ginkgo
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
@@ -70,10 +69,6 @@ endif
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 # SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
-# Quiet Ginkgo for now.
-# The warnings are in regards to a future release.
-export ACK_GINKGO_DEPRECATIONS := 1.16.5
-export ACK_GINKGO_RC=true
 
 export PATH := $(TOOLS_BIN_DIR):$(PATH)
 
@@ -85,7 +80,7 @@ all: build
 ## --------------------------------------
 
 .PHONY: binaries
-binaries: $(CONTROLLER_GEN) $(GOLANGCI_LINT) $(STATIC_CHECK) $(GINKGO_V1) $(GINKGO_V2) $(MOCKGEN) $(KUSTOMIZE) managers # Builds and installs all binaries
+binaries: $(CONTROLLER_GEN) $(GOLANGCI_LINT) $(STATIC_CHECK) $(GINKGO) $(MOCKGEN) $(KUSTOMIZE) managers # Builds and installs all binaries
 
 .PHONY: managers
 managers:
@@ -95,7 +90,7 @@ managers:
 manager-cloudstack-infrastructure: ## Build manager binary.
 	CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
 
-export K8S_VERSION=1.25.0
+export K8S_VERSION=1.26.1
 $(KUBECTL) $(API_SERVER) $(ETCD) &:
 	cd $(TOOLS_DIR) && curl --silent -L "https://go.kubebuilder.io/test-tools/${K8S_VERSION}/$(shell go env GOOS)/$(shell go env GOARCH)" --output - | \
 		tar -C ./ --strip-components=1 -zvxf -
@@ -159,7 +154,7 @@ $(shell	grep -qs "$(IMG)" config/default/manager_image_patch_edited.yaml || rm -
 generate-manifests: config/.flag.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
 config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
 	sed -e 's@image: .*@image: '"$(IMG)"'@' config/default/manager_image_patch.yaml > config/default/manager_image_patch_edited.yaml
-	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="{./api/...,./controllers/...}" output:crd:artifacts:config=config/crd/bases
 	@touch config/.flag.mk
 
 CONVERSION_GEN_TARGET=$(shell find api -type d -name "v*1" -exec echo {}\/zz_generated.conversion.go \;)
@@ -245,7 +240,7 @@ delete-kind-cluster:
 	kind delete cluster --name $(KIND_CLUSTER_NAME)
 
 cluster-api: ## Clone cluster-api repository for tilt use.
-	git clone --branch v1.4.4 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
+	git clone --branch v1.4.8 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
 
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
@@ -272,10 +267,10 @@ config/.flag-test.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS_TEST)
 
 .PHONY: test
 test: ## Run tests.
-test: generate-deepcopy-test generate-manifest-test generate-mocks lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD)
+test: generate-deepcopy-test generate-manifest-test generate-mocks lint $(GINKGO) $(KUBECTL) $(API_SERVER) $(ETCD)
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
-	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
+	@$(GINKGO) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
 		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 
 CLUSTER_TEMPLATES_INPUT_FILES=$(shell find test/e2e/data/infrastructure-cloudstack/v1beta*/cluster-template* test/e2e/data/infrastructure-cloudstack/*/bases/* -type f)
@@ -285,15 +280,16 @@ e2e-cluster-templates: $(CLUSTER_TEMPLATES_OUTPUT_FILES) ## Generate cluster tem
 cluster-template%yaml: $(KUSTOMIZE) $(CLUSTER_TEMPLATES_INPUT_FILES)
 	$(KUSTOMIZE) build --load-restrictor LoadRestrictionsNone $(basename $@) > $@
 
-e2e-essentials: $(GINKGO_V1) $(KUBECTL) e2e-cluster-templates create-kind-cluster ## Fulfill essential tasks for e2e testing.
+e2e-essentials: $(GINKGO) $(KUBECTL) e2e-cluster-templates create-kind-cluster ## Fulfill essential tasks for e2e testing.
 	IMG=$(IMG_LOCAL) make generate-manifests docker-build docker-push
 
 JOB ?= .*
 E2E_CONFIG ?= ${REPO_ROOT}/test/e2e/config/cloudstack.yaml
+E2E_TIMEOUT ?= 3h
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
 	$(KUBECTL) apply -f cloud-config.yaml && \
 	cd test/e2e && \
-	$(GINKGO_V1) -v -trace -tags=e2e -focus=$(JOB) -skip=Conformance -skipPackage=kubeconfig_helper -nodes=1 -noColor=false ./... -- \
+	$(GINKGO) -v --trace --tags=e2e --focus=$(JOB) --timeout=$(E2E_TIMEOUT) --skip=Conformance --skip-package=kubeconfig_helper --nodes=1 --no-color=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${E2E_CONFIG} \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
