@@ -204,7 +204,7 @@ func GetOwnerClusterName(obj metav1.ObjectMeta) (string, error) {
 
 // CloudStackClusterToCloudStackMachines is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
 // of CloudStackMachines.
-func CloudStackClusterToCloudStackMachines(ctx context.Context, c client.Client, obj runtime.Object, scheme *runtime.Scheme, log logr.Logger) (handler.MapFunc, error) {
+func CloudStackClusterToCloudStackMachines(c client.Client, obj runtime.Object, scheme *runtime.Scheme, log logr.Logger) (handler.MapFunc, error) {
 	gvk, err := apiutil.GVKForObject(obj, scheme)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find GVK for CloudStackMachine")

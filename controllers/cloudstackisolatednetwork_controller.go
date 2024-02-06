@@ -96,7 +96,7 @@ func (r *CloudStackIsoNetReconciliationRunner) Reconcile() (retRes ctrl.Result, 
 
 func (r *CloudStackIsoNetReconciliationRunner) ReconcileDelete() (retRes ctrl.Result, retErr error) {
 	r.Log.Info("Deleting IsolatedNetwork.")
-	if err := r.CSUser.DisposeIsoNetResources(r.FailureDomain, r.ReconciliationSubject, r.CSCluster); err != nil {
+	if err := r.CSUser.DisposeIsoNetResources(r.ReconciliationSubject, r.CSCluster); err != nil {
 		if !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			return ctrl.Result{}, err
 		}

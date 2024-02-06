@@ -237,7 +237,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	}
 
 	userData := processCustomMetadata(data, r)
-	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
+	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.FailureDomain, r.AffinityGroup, userData)
 	if err != nil {
 		r.Log.Error(err, "GetOrCreateVMInstance returned error")
 		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", "Creating", CSMachineCreationFailed, err.Error())
@@ -355,7 +355,7 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 // SetupWithManager registers the machine reconciler to the CAPI controller manager.
 func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	reconciler.Recorder = mgr.GetEventRecorderFor("capc-machine-controller")
-	CloudStackClusterToCloudStackMachines, err := utils.CloudStackClusterToCloudStackMachines(ctx, reconciler.K8sClient, &infrav1.CloudStackMachineList{}, reconciler.Scheme, ctrl.LoggerFrom(ctx))
+	CloudStackClusterToCloudStackMachines, err := utils.CloudStackClusterToCloudStackMachines(reconciler.K8sClient, &infrav1.CloudStackMachineList{}, reconciler.Scheme, ctrl.LoggerFrom(ctx))
 	if err != nil {
 		return errors.Wrap(err, "failed to create CloudStackClusterToCloudStackMachines mapper")
 	}

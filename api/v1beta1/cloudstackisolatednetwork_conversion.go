@@ -47,10 +47,7 @@ func (dst *CloudStackIsolatedNetwork) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	// Preserve Hub data on down-conversion
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func Convert_v1beta3_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(in *v1beta3.CloudStackIsolatedNetworkSpec, out *CloudStackIsolatedNetworkSpec, s machineryconversion.Scope) error { // nolint
