@@ -32,7 +32,7 @@ var _ = Describe("CloudStackIsolatedNetworkReconciler", func() {
 		BeforeEach(func() {
 			SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
 			dummies.SetDummyVars()
-			Ω(IsoNetReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack IsoNetReconciler.
+			Ω(IsoNetReconciler.SetupWithManager(ctx, k8sManager)).Should(Succeed()) // Register CloudStack IsoNetReconciler.
 		})
 
 		It("Should set itself to ready if there are no errors in calls to CloudStack methods.", func() {

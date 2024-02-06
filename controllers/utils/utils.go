@@ -18,22 +18,31 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/cluster-api/util"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capiControlPlanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util"
-	clientPkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // getMachineSetFromCAPIMachine attempts to fetch a MachineSet from CAPI machine owner reference.
 func getMachineSetFromCAPIMachine(
 	ctx context.Context,
-	client clientPkg.Client,
+	c client.Client,
 	capiMachine *clusterv1.Machine,
 ) (*clusterv1.MachineSet, error) {
 
@@ -46,13 +55,13 @@ func getMachineSetFromCAPIMachine(
 		return nil, errors.WithStack(err)
 	}
 	if gv.Group == clusterv1.GroupVersion.Group {
-		key := clientPkg.ObjectKey{
+		key := client.ObjectKey{
 			Namespace: capiMachine.Namespace,
 			Name:      ref.Name,
 		}
 
 		machineSet := &clusterv1.MachineSet{}
-		if err := client.Get(ctx, key, machineSet); err != nil {
+		if err := c.Get(ctx, key, machineSet); err != nil {
 			return nil, err
 		}
 
@@ -64,7 +73,7 @@ func getMachineSetFromCAPIMachine(
 // getKubeadmControlPlaneFromCAPIMachine attempts to fetch a KubeadmControlPlane from a CAPI machine owner reference.
 func getKubeadmControlPlaneFromCAPIMachine(
 	ctx context.Context,
-	client clientPkg.Client,
+	c client.Client,
 	capiMachine *clusterv1.Machine,
 ) (*capiControlPlanev1.KubeadmControlPlane, error) {
 
@@ -77,13 +86,13 @@ func getKubeadmControlPlaneFromCAPIMachine(
 		return nil, errors.WithStack(err)
 	}
 	if gv.Group == capiControlPlanev1.GroupVersion.Group {
-		key := clientPkg.ObjectKey{
+		key := client.ObjectKey{
 			Namespace: capiMachine.Namespace,
 			Name:      ref.Name,
 		}
 
 		controlPlane := &capiControlPlanev1.KubeadmControlPlane{}
-		if err := client.Get(ctx, key, controlPlane); err != nil {
+		if err := c.Get(ctx, key, controlPlane); err != nil {
 			return nil, err
 		}
 
@@ -93,7 +102,7 @@ func getKubeadmControlPlaneFromCAPIMachine(
 }
 
 // IsOwnerDeleted returns a boolean if the owner of the CAPI machine has been deleted.
-func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *clusterv1.Machine) (bool, error) {
+func IsOwnerDeleted(ctx context.Context, client client.Client, capiMachine *clusterv1.Machine) (bool, error) {
 	if util.IsControlPlaneMachine(capiMachine) {
 		// The controlplane sticks around after deletion pending the deletion of its machines.
 		// As such, need to check the deletion timestamp thereof.
@@ -115,7 +124,7 @@ func IsOwnerDeleted(ctx context.Context, client clientPkg.Client, capiMachine *c
 }
 
 // fetchOwnerRef simply searches a list of OwnerReference objects for a given kind.
-func fetchOwnerRef(refList []meta.OwnerReference, kind string) *meta.OwnerReference {
+func fetchOwnerRef(refList []metav1.OwnerReference, kind string) *metav1.OwnerReference {
 	for _, ref := range refList {
 		if ref.Kind == kind {
 			return &ref
@@ -125,7 +134,7 @@ func fetchOwnerRef(refList []meta.OwnerReference, kind string) *meta.OwnerRefere
 }
 
 // GetManagementOwnerRef returns the reference object pointing to the CAPI machine's manager.
-func GetManagementOwnerRef(capiMachine *clusterv1.Machine) *meta.OwnerReference {
+func GetManagementOwnerRef(capiMachine *clusterv1.Machine) *metav1.OwnerReference {
 	if util.IsControlPlaneMachine(capiMachine) {
 		return fetchOwnerRef(capiMachine.OwnerReferences, "KubeadmControlPlane")
 	} else if ref := fetchOwnerRef(capiMachine.OwnerReferences, "EtcdadmCluster"); ref != nil {
@@ -135,7 +144,7 @@ func GetManagementOwnerRef(capiMachine *clusterv1.Machine) *meta.OwnerReference 
 }
 
 // GetOwnerOfKind returns the Cluster object owning the current resource of passed kind.
-func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned clientPkg.Object, owner clientPkg.Object) error {
+func GetOwnerOfKind(ctx context.Context, c client.Client, owned client.Object, owner client.Object) error {
 	gvks, _, err := c.Scheme().ObjectKinds(owner)
 	if err != nil {
 		return errors.Wrapf(err, "finding owner kind for %s/%s", owned.GetName(), owned.GetNamespace())
@@ -149,7 +158,7 @@ func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned clientPkg.Obj
 		if ref.Kind != gvk.Kind {
 			continue
 		}
-		key := clientPkg.ObjectKey{Name: ref.Name, Namespace: owned.GetNamespace()}
+		key := client.ObjectKey{Name: ref.Name, Namespace: owned.GetNamespace()}
 		if err := c.Get(ctx, key, owner); err != nil {
 			return errors.Wrapf(err, "finding owner of kind %s in namespace %s", gvk.Kind, owned.GetNamespace())
 		}
@@ -174,4 +183,68 @@ func WithClusterSuffix(name string, clusterName string) string {
 		newName = name + "-" + clusterName
 	}
 	return newName
+}
+
+// GetOwnerClusterName returns the Cluster name of the cluster owning the current resource.
+func GetOwnerClusterName(obj metav1.ObjectMeta) (string, error) {
+	for _, ref := range obj.GetOwnerReferences() {
+		if ref.Kind != "Cluster" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return "", errors.WithStack(err)
+		}
+		if gv.Group == clusterv1.GroupVersion.Group {
+			return ref.Name, nil
+		}
+	}
+	return "", errors.New("failed to get owner Cluster name")
+}
+
+// CloudStackClusterToCloudStackMachines is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
+// of CloudStackMachines.
+func CloudStackClusterToCloudStackMachines(ctx context.Context, c client.Client, obj runtime.Object, scheme *runtime.Scheme, log logr.Logger) (handler.MapFunc, error) {
+	gvk, err := apiutil.GVKForObject(obj, scheme)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find GVK for CloudStackMachine")
+	}
+
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
+		csCluster, ok := o.(*infrav1.CloudStackCluster)
+		if !ok {
+			log.Error(fmt.Errorf("expected a CloudStackCluster but got a %T", o), "Error in CloudStackClusterToCloudStackMachines")
+		}
+
+		log = log.WithValues("objectMapper", "cloudstackClusterToCloudStackMachine", "cluster", klog.KRef(csCluster.Namespace, csCluster.Name))
+
+		// Don't handle deleted CloudStackClusters
+		if !csCluster.ObjectMeta.DeletionTimestamp.IsZero() {
+			log.V(4).Info("CloudStackCluster has a deletion timestamp, skipping mapping.")
+			return nil
+		}
+
+		clusterName, err := GetOwnerClusterName(csCluster.ObjectMeta)
+		if err != nil {
+			log.Error(err, "Failed to get owning cluster, skipping mapping.")
+			return nil
+		}
+
+		machineList := &clusterv1.MachineList{}
+		machineList.SetGroupVersionKind(gvk)
+		// list all of the requested objects within the cluster namespace with the cluster name label
+		if err := c.List(ctx, machineList, client.InNamespace(csCluster.Namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName}); err != nil {
+			return nil
+		}
+
+		mapFunc := util.MachineToInfrastructureMapFunc(gvk)
+		var results []ctrl.Request
+		for _, machine := range machineList.Items {
+			m := machine
+			csMachines := mapFunc(ctx, &m)
+			results = append(results, csMachines...)
+		}
+
+		return results
+	}, nil
 }

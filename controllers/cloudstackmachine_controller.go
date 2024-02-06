@@ -22,6 +22,7 @@ import (
 	"math/rand"
 	"reflect"
 	"regexp"
+	"time"
 
 	"k8s.io/utils/pointer"
 
@@ -32,13 +33,13 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
@@ -182,6 +183,7 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 			name = *r.CAPIMachine.Spec.FailureDomain
 			r.ReconciliationSubject.Spec.FailureDomainName = *r.CAPIMachine.Spec.FailureDomain
 		} else { // Not a control plane machine. Place randomly.
+			rand := rand.New(rand.NewSource(time.Now().Unix()))            // #nosec G404 -- weak crypt rand doesn't matter here.
 			randNum := (rand.Int() % len(r.CSCluster.Spec.FailureDomains)) // #nosec G404 -- weak crypt rand doesn't matter here.
 			name = r.CSCluster.Spec.FailureDomains[randNum].Name
 		}
@@ -237,6 +239,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	userData := processCustomMetadata(data, r)
 	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
 	if err != nil {
+		r.Log.Error(err, "GetOrCreateVMInstance returned error")
 		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", "Creating", CSMachineCreationFailed, err.Error())
 	}
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
@@ -259,7 +262,7 @@ func processCustomMetadata(data []byte, r *CloudStackMachineReconciliationRunner
 	return userData
 }
 
-// ConfirmVMStatus checks the Instance's status for running state and requeues otherwise.
+// RequeueIfInstanceNotRunning checks the Instance's status for running state and requeues otherwise.
 func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (retRes ctrl.Result, reterr error) {
 	if r.ReconciliationSubject.Status.InstanceState == "Running" {
 		r.Recorder.Event(r.ReconciliationSubject, "Normal", "Running", MachineInstanceRunning)
@@ -298,6 +301,9 @@ func (r *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.R
 // GetOrCreateMachineStateChecker creates or gets CloudStackMachineStateChecker object.
 func (r *CloudStackMachineReconciliationRunner) GetOrCreateMachineStateChecker() (retRes ctrl.Result, reterr error) {
 	checkerName := r.ReconciliationSubject.Spec.InstanceID
+	if checkerName == nil {
+		return ctrl.Result{}, errors.New(CSMachineStateCheckerCreationFailed)
+	}
 	csMachineStateChecker := &infrav1.CloudStackMachineStateChecker{
 		ObjectMeta: r.NewChildObjectMeta(*checkerName),
 		Spec:       infrav1.CloudStackMachineStateCheckerSpec{InstanceID: *checkerName},
@@ -336,7 +342,7 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 	if err := r.CSClient.DestroyVMInstance(r.ReconciliationSubject); err != nil {
 		if err.Error() == "VM deletion in progress" {
 			r.Log.Info(err.Error())
-			return ctrl.Result{RequeueAfter: utils.DestoryVMRequeueInterval}, nil
+			return ctrl.Result{RequeueAfter: utils.DestroyVMRequeueInterval}, nil
 		}
 		return ctrl.Result{}, err
 	}
@@ -348,14 +354,48 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 
 // SetupWithManager registers the machine reconciler to the CAPI controller manager.
 func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
-	log := ctrl.LoggerFrom(ctx)
+	reconciler.Recorder = mgr.GetEventRecorderFor("capc-machine-controller")
+	CloudStackClusterToCloudStackMachines, err := utils.CloudStackClusterToCloudStackMachines(ctx, reconciler.K8sClient, &infrav1.CloudStackMachineList{}, reconciler.Scheme, ctrl.LoggerFrom(ctx))
+	if err != nil {
+		return errors.Wrap(err, "failed to create CloudStackClusterToCloudStackMachines mapper")
+	}
+	//requeueCloudStackMachinesForUnpausedCluster := reconciler.requeueCloudStackMachinesForUnpausedCluster(ctx)
+	csMachineMapper, err := util.ClusterToTypedObjectsMapper(reconciler.K8sClient, &infrav1.CloudStackMachineList{}, reconciler.Scheme)
+	if err != nil {
+		return errors.Wrap(err, "failed to create mapper for Cluster to CloudStackMachines")
+	}
 
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	err = ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&infrav1.CloudStackMachine{}).
+		Watches(
+			&clusterv1.Machine{},
+			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine"))),
+			builder.WithPredicates(
+				predicate.Funcs{
+					UpdateFunc: func(e event.UpdateEvent) bool {
+						oldMachine := e.ObjectOld.(*clusterv1.Machine)
+						newMachine := e.ObjectNew.(*clusterv1.Machine)
+
+						return (oldMachine.Spec.Bootstrap.DataSecretName == nil && newMachine.Spec.Bootstrap.DataSecretName != nil)
+					},
+				},
+			),
+		).
+		Watches(
+			&infrav1.CloudStackCluster{},
+			handler.EnqueueRequestsFromMapFunc(CloudStackClusterToCloudStackMachines),
+		).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), reconciler.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
 				UpdateFunc: func(e event.UpdateEvent) bool {
+					// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
+					// for CloudStackMachine resources only
+					if _, ok := e.ObjectOld.(*infrav1.CloudStackMachine); !ok {
+						return true
+					}
+
 					oldMachine := e.ObjectOld.(*infrav1.CloudStackMachine).DeepCopy()
 					newMachine := e.ObjectNew.(*infrav1.CloudStackMachine).DeepCopy()
 					// Ignore resource version because they are unique
@@ -373,7 +413,7 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 					// Ignore incremental status updates
 					oldMachine.Status = infrav1.CloudStackMachineStatus{}
 					newMachine.Status = infrav1.CloudStackMachineStatus{}
-					// Ignore provide ID
+					// Ignore provider ID
 					oldMachine.Spec.ProviderID = nil
 					newMachine.Spec.ProviderID = nil
 					// Ignore instance ID
@@ -383,41 +423,18 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 					return !reflect.DeepEqual(oldMachine, newMachine)
 				},
 			},
-		).Build(reconciler)
+		).
+		Watches(
+			&clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(csMachineMapper),
+			builder.WithPredicates(
+				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
+			),
+		).
+		Complete(reconciler)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed setting up CloudStackMachine controller")
 	}
 
-	// Watch CAPI machines for changes.
-	// Queues a reconcile request for owned CloudStackMachine on change.
-	// Used to update when bootstrap data becomes available.
-	if err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Machine{}},
-		handler.EnqueueRequestsFromMapFunc(
-			util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine"))),
-		predicate.Funcs{
-			UpdateFunc: func(e event.UpdateEvent) bool {
-				oldMachine := e.ObjectOld.(*clusterv1.Machine)
-				newMachine := e.ObjectNew.(*clusterv1.Machine)
-
-				return oldMachine.Spec.Bootstrap.DataSecretName == nil && newMachine.Spec.Bootstrap.DataSecretName != nil
-			},
-		},
-	); err != nil {
-		return err
-	}
-
-	// Used below, this maps CAPI clusters to CAPC machines
-	csMachineMapper, err := util.ClusterToObjectsMapper(reconciler.K8sClient, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
-	if err != nil {
-		return err
-	}
-
-	reconciler.Recorder = mgr.GetEventRecorderFor("capc-machine-controller")
-	// Add a watch on CAPI Cluster objects for unpause and ready events.
-	return controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(csMachineMapper),
-		predicates.ClusterUnpausedAndInfrastructureReady(log),
-	)
+	return nil
 }
