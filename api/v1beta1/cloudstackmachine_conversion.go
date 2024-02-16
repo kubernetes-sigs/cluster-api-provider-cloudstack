@@ -56,10 +56,7 @@ func (dst *CloudStackMachine) ConvertFrom(srcRaw conversion.Hub) error { // noli
 	}
 
 	// Preserve Hub data on down-conversion
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func Convert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s machineryconversion.Scope) error { // nolint

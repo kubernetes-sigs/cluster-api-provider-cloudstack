@@ -19,9 +19,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -31,7 +29,9 @@ import (
 
 	goflag "flag"
 
+	corev1 "k8s.io/api/core/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	cgrecord "k8s.io/client-go/tools/record"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
@@ -41,9 +41,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 
@@ -80,9 +83,11 @@ type managerOpts struct {
 	MetricsAddr          string
 	EnableLeaderElection bool
 	ProbeAddr            string
-	WatchingNamespace    string
+	WatchNamespace       string
 	WatchFilterValue     string
-	CertDir              string
+	ProfilerAddr         string
+	WebhookCertDir       string
+	WebhookPort          int
 
 	CloudStackClusterConcurrency int
 	CloudStackMachineConcurrency int
@@ -112,12 +117,12 @@ func setFlags() *managerOpts {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(
-		&opts.WatchingNamespace,
+		&opts.WatchNamespace,
 		"namespace",
 		"",
 		"Namespace that the controller watches to reconcile cluster-api objects. If unspecified, "+
 			"the controller watches for cluster-api objects across all namespaces.")
-	flag.StringVar( // TODO: use filter per CAPI book instructions in upgrade to v1alpha4.
+	flag.StringVar(
 		&opts.WatchFilterValue,
 		"watch-filter",
 		"",
@@ -126,7 +131,17 @@ func setFlags() *managerOpts {
 				"Label key is always %s. If unspecified, the controller watches for all cluster-api objects.",
 			clusterv1.WatchLabel))
 	flag.StringVar(
-		&opts.CertDir,
+		&opts.ProfilerAddr,
+		"profiler-address",
+		"",
+		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
+	flag.IntVar(
+		&opts.WebhookPort,
+		"webhook-port",
+		9443,
+		"The webhook server port the manager will listen on.")
+	flag.StringVar(
+		&opts.WebhookCertDir,
 		"webhook-cert-dir",
 		"/tmp/k8s-webhook-server/serving-certs/",
 		"Specify the directory where webhooks will get tls certificates.")
@@ -167,6 +182,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	var watchNamespaces []string
+	if opts.WatchNamespace != "" {
+		setupLog.Info("Watching cluster-api objects only in namespace for reconciliation", "namespace", opts.WatchNamespace)
+		watchNamespaces = []string{opts.WatchNamespace}
+	}
+
+	// Machine and cluster operations can create enough events to trigger the event recorder spam filter
+	// Setting the burst size higher ensures all events will be recorded and submitted to the API
+	broadcaster := cgrecord.NewBroadcasterWithCorrelatorOptions(cgrecord.CorrelatorOptions{
+		BurstSize: 100,
+	})
+
+	// Define user agent for the controller
+	restConfig := ctrl.GetConfigOrDie()
+	restConfig.UserAgent = "cluster-api-provider-cloudstack-controller"
+
 	// Create the controller manager.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -175,24 +206,36 @@ func main() {
 		HealthProbeBindAddress: opts.ProbeAddr,
 		LeaderElection:         opts.EnableLeaderElection,
 		LeaderElectionID:       "capc-leader-election-controller",
-		Namespace:              opts.WatchingNamespace,
-		CertDir:                opts.CertDir,
-		TLSOpts:                tlsOptionOverrides,
+		PprofBindAddress:       opts.ProfilerAddr,
+		Cache: cache.Options{
+			Namespaces: watchNamespaces,
+		},
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port:    opts.WebhookPort,
+			CertDir: opts.WebhookCertDir,
+			TLSOpts: tlsOptionOverrides,
+		}),
+		EventBroadcaster: broadcaster,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	// Set a random seed for randomly placing CloudStackMachines in Zones.
-	rand.Seed(time.Now().Unix())
-
 	// Register reconcilers with the controller manager.
 	base := utils.ReconcilerBase{
-		K8sClient:  mgr.GetClient(),
-		BaseLogger: ctrl.Log.WithName("controllers"),
-		Recorder:   mgr.GetEventRecorderFor("capc-controller-manager"),
-		Scheme:     mgr.GetScheme(),
+		K8sClient:        mgr.GetClient(),
+		Recorder:         mgr.GetEventRecorderFor("capc-controller-manager"),
+		Scheme:           mgr.GetScheme(),
+		WatchFilterValue: opts.WatchFilterValue,
 	}
 
 	ctx := ctrl.SetupSignalHandler()
@@ -241,15 +284,15 @@ func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, opts manag
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
 		os.Exit(1)
 	}
-	if err := (&controllers.CloudStackIsoNetReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+	if err := (&controllers.CloudStackIsoNetReconciler{ReconcilerBase: base}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsoNetReconciler")
 		os.Exit(1)
 	}
-	if err := (&controllers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+	if err := (&controllers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackAffinityGroup")
 		os.Exit(1)
 	}
-	if err := (&controllers.CloudStackFailureDomainReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+	if err := (&controllers.CloudStackFailureDomainReconciler{ReconcilerBase: base}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackFailureDomain")
 		os.Exit(1)
 	}

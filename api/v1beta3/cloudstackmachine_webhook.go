@@ -27,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -53,7 +54,7 @@ func (r *CloudStackMachine) Default() {
 var _ webhook.Validator = &CloudStackMachine{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackMachine) ValidateCreate() error {
+func (r *CloudStackMachine) ValidateCreate() (admission.Warnings, error) {
 	cloudstackmachinelog.V(1).Info("entered validate create webhook", "api resource name", r.Name)
 
 	var errorList field.ErrorList
@@ -64,18 +65,18 @@ func (r *CloudStackMachine) ValidateCreate() error {
 		errorList = webhookutil.EnsureIntFieldsAreNotNegative(r.Spec.DiskOffering.CustomSize, "customSizeInGB", errorList)
 	}
 
-	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return nil, webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
+func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	cloudstackmachinelog.V(1).Info("entered validate update webhook", "api resource name", r.Name)
 
 	var errorList field.ErrorList
 
 	oldMachine, ok := old.(*CloudStackMachine)
 	if !ok {
-		return errors.NewBadRequest(fmt.Sprintf("expected a CloudStackMachine but got a %T", old))
+		return nil, errors.NewBadRequest(fmt.Sprintf("expected a CloudStackMachine but got a %T", old))
 	}
 	oldSpec := oldMachine.Spec
 
@@ -98,12 +99,12 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 		errorList = append(errorList, field.Forbidden(field.NewPath("spec", "AffinityGroupIDs"), "AffinityGroupIDs"))
 	}
 
-	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return nil, webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackMachine) ValidateDelete() error {
+func (r *CloudStackMachine) ValidateDelete() (admission.Warnings, error) {
 	cloudstackmachinelog.V(1).Info("entered validate delete webhook", "api resource name", r.Name)
 	// No deletion validations.  Deletion webhook not enabled.
-	return nil
+	return nil, nil
 }

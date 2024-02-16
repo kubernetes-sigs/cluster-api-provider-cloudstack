@@ -27,6 +27,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachinestatecheckers,verbs=get;list;watch;create;update;patch;delete
@@ -114,8 +115,9 @@ func (r *CloudStackMachineStateCheckerReconciliationRunner) ReconcileDelete() (c
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CloudStackMachineStateCheckerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *CloudStackMachineStateCheckerReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.CloudStackMachineStateChecker{}).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }
