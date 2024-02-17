@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/webhookutil"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -107,6 +108,13 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 		errorList = webhookutil.EnsureEqualStrings(
 			string(spec.ControlPlaneEndpoint.Port), string(oldSpec.ControlPlaneEndpoint.Port),
 			"controlplaneendpoint.port", errorList)
+	}
+
+	if annotations.IsExternallyManaged(oldCluster) && !annotations.IsExternallyManaged(r) {
+		errorList = append(errorList,
+			field.Forbidden(field.NewPath("metadata", "annotations"),
+				"removal of externally managed (managed-by) annotation is not allowed"),
+		)
 	}
 
 	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
