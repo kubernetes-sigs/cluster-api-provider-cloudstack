@@ -515,7 +515,7 @@ var _ = Describe("Instance", func() {
 				dummies.CSMachine1.Spec.Template.ID = ""
 				dummies.CSMachine1.Spec.Offering.Name = "offering"
 				dummies.CSMachine1.Spec.Template.Name = "template"
-				dummies.CSMachine1.Spec.DiskOffering = infrav1.CloudStackResourceDiskOffering{}
+				dummies.CSMachine1.Spec.DiskOffering = &infrav1.CloudStackResourceDiskOffering{}
 
 				sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).Return(&cloudstack.ServiceOffering{
 					Id:        offeringFakeID,

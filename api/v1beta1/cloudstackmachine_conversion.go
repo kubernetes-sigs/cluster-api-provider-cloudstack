@@ -25,6 +25,7 @@ import (
 
 func (src *CloudStackMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	dst := dstRaw.(*v1beta3.CloudStackMachine)
+
 	if err := Convert_v1beta1_CloudStackMachine_To_v1beta3_CloudStackMachine(src, dst, nil); err != nil {
 		return err
 	}
@@ -34,12 +35,22 @@ func (src *CloudStackMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
-	if restored.Spec.FailureDomainName != "" {
-		dst.Spec.FailureDomainName = restored.Spec.FailureDomainName
+	dst.Spec.FailureDomainName = restored.Spec.FailureDomainName
+	dst.Spec.UncompressedUserData = restored.Spec.UncompressedUserData
+
+	// Don't bother converting empty disk offering objects
+	if restored.Spec.DiskOffering.MountPath != "" {
+		dst.Spec.DiskOffering = &v1beta3.CloudStackResourceDiskOffering{
+			CustomSize: restored.Spec.DiskOffering.CustomSize,
+			MountPath:  restored.Spec.DiskOffering.MountPath,
+			Device:     restored.Spec.DiskOffering.Device,
+			Filesystem: restored.Spec.DiskOffering.Filesystem,
+			Label:      restored.Spec.DiskOffering.Label,
+		}
+		dst.Spec.DiskOffering.ID = restored.Spec.DiskOffering.ID
+		dst.Spec.DiskOffering.Name = restored.Spec.DiskOffering.Name
 	}
-	if restored.Spec.UncompressedUserData != nil {
-		dst.Spec.UncompressedUserData = restored.Spec.UncompressedUserData
-	}
+
 	if restored.Status.Status != nil {
 		dst.Status.Status = restored.Status.Status
 	}
@@ -51,6 +62,7 @@ func (src *CloudStackMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 
 func (dst *CloudStackMachine) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*v1beta3.CloudStackMachine)
+
 	if err := Convert_v1beta3_CloudStackMachine_To_v1beta1_CloudStackMachine(src, dst, nil); err != nil {
 		return err
 	}
@@ -60,6 +72,10 @@ func (dst *CloudStackMachine) ConvertFrom(srcRaw conversion.Hub) error { // noli
 		return err
 	}
 	return nil
+}
+
+func Convert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(in *CloudStackMachineSpec, out *v1beta3.CloudStackMachineSpec, scope machineryconversion.Scope) error { // nolint
+	return autoConvert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(in, out, scope)
 }
 
 func Convert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s machineryconversion.Scope) error { // nolint
