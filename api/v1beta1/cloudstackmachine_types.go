@@ -28,6 +28,8 @@ const (
 	MachineFinalizer = "cloudstackmachine.infrastructure.cluster.x-k8s.io"
 	ProAffinity      = "pro"
 	AntiAffinity     = "anti"
+	SoftProAffinity  = "soft-pro"
+	SoftAntiAffinity = "soft-anti"
 	NoAffinity       = "no"
 )
 

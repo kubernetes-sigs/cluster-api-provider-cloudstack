@@ -27,7 +27,7 @@ const (
 // CloudStackAffinityGroupSpec defines the desired state of CloudStackAffinityGroup
 type CloudStackAffinityGroupSpec struct {
 	// Mutually exclusive parameter with AffinityGroupIDs.
-	// Can be "host affinity" or "host anti-affinity". Will create an affinity group per machine set.
+	// Can be "host affinity", "host anti-affinity", "non-strict host affinity" or "non-strict host anti-affinity". Will create an affinity group per machine set.
 	Type string `json:"type,omitempty"`
 
 	// Name.

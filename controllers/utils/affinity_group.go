@@ -55,6 +55,10 @@ func (r *ReconciliationRunner) GetOrCreateAffinityGroup(
 			ag.Spec.Type = "host affinity"
 		} else if affinityType == infrav1.AntiAffinity {
 			ag.Spec.Type = "host anti-affinity"
+		} else if affinityType == infrav1.SoftProAffinity {
+			ag.Spec.Type = "non-strict host affinity"
+		} else if affinityType == infrav1.SoftAntiAffinity {
+			ag.Spec.Type = "non-strict host anti-affinity"
 		} else {
 			return ctrl.Result{}, errors.Errorf("unrecognized affinity type %s", affinityType)
 		}

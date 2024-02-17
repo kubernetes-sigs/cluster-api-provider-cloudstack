@@ -73,6 +73,14 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		affinityIds = executeTest(ctx, input, namespace, specName, clusterResources, "anti")
 	})
 
+	It("Should have host affinity group when affinity is soft-pro", func() {
+		affinityIds = executeTest(ctx, input, namespace, specName, clusterResources, "soft-pro")
+	})
+
+	It("Should have host affinity group when affinity is soft-anti", func() {
+		affinityIds = executeTest(ctx, input, namespace, specName, clusterResources, "soft-anti")
+	})
+
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
