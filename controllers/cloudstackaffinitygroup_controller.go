@@ -77,9 +77,14 @@ func (r *CloudStackAGReconciliationRunner) Reconcile() (ctrl.Result, error) {
 }
 
 func (r *CloudStackAGReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
-	group := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Name}
+	group := &cloud.AffinityGroup{Name: r.ReconciliationSubject.Spec.Name}
 	_ = r.CSUser.FetchAffinityGroup(group)
-	if group.ID == "" { // Affinity group not found, must have been deleted.
+	// Affinity group not found, must have been deleted.
+	if group.ID == "" {
+		// Deleting affinity groups on Cloudstack can return error but succeed in
+		// deleting the affinity group. Removing finalizer if affinity group is not
+		// present on Cloudstack ensures affinity group object deletion is not blocked.
+		controllerutil.RemoveFinalizer(r.ReconciliationSubject, infrav1.AffinityGroupFinalizer)
 		return ctrl.Result{}, nil
 	}
 	if err := r.CSUser.DeleteAffinityGroup(group); err != nil {
