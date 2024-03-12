@@ -84,7 +84,7 @@ func (reconciler *CloudStackFailureDomainReconciler) Reconcile(ctx context.Conte
 
 // Reconcile on the ReconciliationRunner actually attempts to modify or create the reconciliation subject.
 func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.Result, retErr error) {
-	res, err := r.AsFailureDomainUser(&r.ReconciliationSubject.Spec)()
+	res, err := r.AsFailureDomainUser(r.RequestCtx, &r.ReconciliationSubject.Spec)()
 	if r.ShouldReturn(res, err) {
 		return res, err
 	}

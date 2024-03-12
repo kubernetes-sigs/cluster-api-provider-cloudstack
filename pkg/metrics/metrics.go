@@ -19,14 +19,13 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"regexp"
+	cserrors "sigs.k8s.io/cluster-api-provider-cloudstack/pkg/errors"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 // AcsCustomMetrics encapsulates all CloudStack custom metrics defined for the controller.
 type ACSCustomMetrics struct {
 	acsReconciliationErrorCount *prometheus.CounterVec
-	errorCodeRegexp             *regexp.Regexp
 }
 
 // NewCustomMetrics constructs an ACSCustomMetrics with all desired CloudStack custom metrics and any supporting resources.
@@ -48,22 +47,14 @@ func NewCustomMetrics() ACSCustomMetrics {
 		}
 	}
 
-	// ACS standard error messages of the form "CloudStack API error 431 (CSExceptionErrorCode: 9999):..."
-	//  This regexp is used to extract CSExceptionCodes from the message.
-	customMetrics.errorCodeRegexp, _ = regexp.Compile(".+CSExceptionErrorCode: ([0-9]+).+")
-
 	return customMetrics
 }
 
 // EvaluateErrorAndIncrementAcsReconciliationErrorCounter accepts a CloudStack error message and increments
 // the custom acs_reconciliation_errors counter, labeled with the error code if present in the error message.
-func (m *ACSCustomMetrics) EvaluateErrorAndIncrementAcsReconciliationErrorCounter(acsError error) {
-	if acsError != nil {
-		matches := m.errorCodeRegexp.FindStringSubmatch(acsError.Error())
-		if len(matches) > 1 {
-			m.acsReconciliationErrorCount.WithLabelValues(matches[1]).Inc()
-		} else {
-			m.acsReconciliationErrorCount.WithLabelValues("No error code").Inc()
-		}
-	}
+func (m *ACSCustomMetrics) EvaluateErrorAndIncrementAcsReconciliationErrorCounter(acsError error) string {
+	errorCode := cserrors.GetACSErrorCode(acsError)
+	m.acsReconciliationErrorCount.WithLabelValues(errorCode).Inc()
+
+	return errorCode
 }

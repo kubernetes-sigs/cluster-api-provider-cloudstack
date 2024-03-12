@@ -17,14 +17,14 @@ limitations under the License.
 package utils
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	corev1 "k8s.io/api/core/v1"
+	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-
-	"github.com/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/failuredomains"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -119,48 +119,37 @@ func (r *ReconciliationRunner) GetFailureDomainsAndRequeueIfMissing(fds *infrav1
 }
 
 type CloudClientExtension interface {
+	failuredomains.ClientFactory
 	RegisterExtension(*ReconciliationRunner) CloudClientExtension
-	AsFailureDomainUser(*infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod
+	AsFailureDomainUser(context.Context, *infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod
 }
 
 type CloudClientImplementation struct {
 	CloudClientExtension
 	*ReconciliationRunner
+	fdClientFactory failuredomains.ClientFactory
 }
 
 func (c *CloudClientImplementation) RegisterExtension(r *ReconciliationRunner) CloudClientExtension {
 	c.ReconciliationRunner = r
+	c.fdClientFactory = failuredomains.NewClientFactory(r.K8sClient)
 	return c
 }
 
 // AsFailureDomainUser uses the credentials specified in the failure domain to set the ReconciliationSubject's CSUser client.
-func (c *CloudClientImplementation) AsFailureDomainUser(fdSpec *infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
+func (c *CloudClientImplementation) AsFailureDomainUser(ctx context.Context, fdSpec *infrav1.CloudStackFailureDomainSpec) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
-		endpointCredentials := &corev1.Secret{}
-		key := client.ObjectKey{Name: fdSpec.ACSEndpoint.Name, Namespace: fdSpec.ACSEndpoint.Namespace}
-		if err := c.K8sClient.Get(c.RequestCtx, key, endpointCredentials); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "getting ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
-		}
-
-		clientConfig := &corev1.ConfigMap{}
-		key = client.ObjectKey{Name: cloud.ClientConfigMapName, Namespace: cloud.ClientConfigMapNamespace}
-		_ = c.K8sClient.Get(c.RequestCtx, key, clientConfig)
-
 		var err error
-		if c.CSClient, err = cloud.NewClientFromK8sSecret(endpointCredentials, clientConfig); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "parsing ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
-		}
 
-		if fdSpec.Account != "" { // Set r.CSUser CloudStack Client per Account and Domain.
-			client, err := c.CSClient.NewClientInDomainAndAccount(fdSpec.Domain, fdSpec.Account)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			c.CSUser = client
-		} else { // Set r.CSUser CloudStack Client to r.CSClient since Account & Domain weren't provided.
-			c.CSUser = c.CSClient
+		c.CSClient, c.CSUser, err = c.GetCloudClientAndUser(ctx, fdSpec)
+		if err != nil {
+			return ctrl.Result{}, err
 		}
 
 		return ctrl.Result{}, nil
 	}
+}
+
+func (c *CloudClientImplementation) GetCloudClientAndUser(ctx context.Context, fdSpec *infrav1.CloudStackFailureDomainSpec) (csClient cloud.Client, csUser cloud.Client, err error) {
+	return c.fdClientFactory.GetCloudClientAndUser(ctx, fdSpec)
 }

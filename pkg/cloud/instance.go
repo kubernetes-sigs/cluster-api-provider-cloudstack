@@ -22,16 +22,15 @@ import (
 	"strconv"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	cserrors "sigs.k8s.io/cluster-api-provider-cloudstack/pkg/errors"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 type VMIface interface {
@@ -327,24 +326,26 @@ func (c *client) DeployVM(
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 
+		deployVMError := cserrors.NewDeployVMError(err)
+
 		// CloudStack may have created the VM even though it reported an error. We attempt to
 		// retrieve the VM so we can populate the CloudStackMachine for the user to manually
 		// clean up.
 		vm, findErr := findVirtualMachine(c.cs.VirtualMachine, templateID, fd, csMachine)
 		if findErr != nil {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(findErr)
-			return fmt.Errorf("%v; find virtual machine: %v", err, findErr)
+			return fmt.Errorf("failed to deploy VM, and unable to discover the virtual machine %v caused by :%w", findErr, deployVMError)
 		}
 
 		// We didn't find a VM so return the original error.
 		if vm == nil {
-			return err
+			return deployVMError
 		}
 
 		csMachine.Spec.InstanceID = pointer.String(vm.Id)
 		csMachine.Status.InstanceState = vm.State
 
-		return fmt.Errorf("incomplete vm deployment (vm_id=%v): %w", vm.Id, err)
+		return fmt.Errorf("incomplete vm deployment (vm_id=%v): %w", vm.Id, deployVMError)
 	}
 
 	csMachine.Spec.InstanceID = pointer.String(deployVMResp.Id)

@@ -17,6 +17,9 @@ limitations under the License.
 package cloud
 
 import (
+	"fmt"
+
+	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
@@ -25,6 +28,7 @@ import (
 type NetworkIface interface {
 	ResolveNetwork(*infrav1.Network) error
 	RemoveClusterTagFromNetwork(*infrav1.CloudStackCluster, infrav1.Network) error
+	GetPublicIPs(*infrav1.Network) ([]*cloudstack.PublicIpAddress, error)
 }
 
 const (
@@ -76,6 +80,26 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 	net.ID = netDetails.Id
 	net.Type = netDetails.Type
 	return nil
+}
+
+// GetPublicIPs gets public IP addresses for the associated failure domain network
+func (c *client) GetPublicIPs(net *infrav1.Network) ([]*cloudstack.PublicIpAddress, error) {
+	if net.ID == "" {
+		return nil, fmt.Errorf("provided network %s is missing the network ID", net.Name)
+	}
+
+	p := c.cs.Address.NewListPublicIpAddressesParams()
+	p.SetAllocatedonly(false)
+	p.SetForvirtualnetwork(false)
+	p.SetNetworkid(net.ID)
+
+	publicAddresses, err := c.cs.Address.ListPublicIpAddresses(p)
+	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
+		return nil, err
+	}
+
+	return publicAddresses.PublicIpAddresses, nil
 }
 
 func generateNetworkTagName(csCluster *infrav1.CloudStackCluster) string {

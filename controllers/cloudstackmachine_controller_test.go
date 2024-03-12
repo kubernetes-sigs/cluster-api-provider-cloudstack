@@ -250,7 +250,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			setClusterReady(fakeCtrlClient)
 
 			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
-			MachineReconciler.AsFailureDomainUser(&dummies.CSFailureDomain1.Spec)
+			MachineReconciler.AsFailureDomainUser(ctx, &dummies.CSFailureDomain1.Spec)
 			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(res.RequeueAfter).Should(BeZero())

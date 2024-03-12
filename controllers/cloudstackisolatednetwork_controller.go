@@ -61,7 +61,7 @@ func (reconciler *CloudStackIsoNetReconciler) Reconcile(ctx context.Context, req
 	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
 	r.WithAdditionalCommonStages(
 		r.GetFailureDomainByName(func() string { return r.ReconciliationSubject.Spec.FailureDomainName }, r.FailureDomain),
-		r.AsFailureDomainUser(&r.FailureDomain.Spec),
+		r.AsFailureDomainUser(r.RequestCtx, &r.FailureDomain.Spec),
 	)
 	return r.RunBaseReconciliationStages()
 }

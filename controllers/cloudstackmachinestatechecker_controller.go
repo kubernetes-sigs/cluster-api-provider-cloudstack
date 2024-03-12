@@ -75,7 +75,7 @@ func (r *CloudStackMachineStateCheckerReconciliationRunner) Reconcile() (ctrl.Re
 		r.GetParent(r.CSMachine, r.CAPIMachine),
 		r.CheckPresent(map[string]client.Object{"CloudStackMachine": r.CSMachine, "Machine": r.CAPIMachine}),
 		r.GetFailureDomainByName(func() string { return r.CSMachine.Spec.FailureDomainName }, r.FailureDomain),
-		r.AsFailureDomainUser(&r.FailureDomain.Spec),
+		r.AsFailureDomainUser(r.RequestCtx, &r.FailureDomain.Spec),
 		func() (ctrl.Result, error) {
 			if err := r.CSClient.ResolveVMInstanceDetails(r.CSMachine); err != nil {
 				if !strings.Contains(strings.ToLower(err.Error()), "no match found") {
