@@ -179,7 +179,7 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (c
 		return ctrl.Result{}, nil
 	}
 
-	currentCAPIFailureDomain := r.CAPIMachine.Spec.FailureDomain
+	currentFailureDomain := r.ReconciliationSubject.Spec.FailureDomainName
 
 	fdBalancer := failuredomains.NewFailureDomainBalancer(r.CloudClientExtension)
 	err := fdBalancer.Assign(r.RequestCtx, r.ReconciliationSubject, r.CAPIMachine, r.CSCluster.Spec.FailureDomains)
@@ -187,27 +187,43 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (c
 		return ctrl.Result{}, fmt.Errorf("failed to set a failure domain for machine %s: %w", r.CAPIMachine.Name, err)
 	}
 
-	newFailureDomain := r.CAPIMachine.Spec.FailureDomain
-	if currentCAPIFailureDomain == newFailureDomain {
+	newFailureDomain := r.ReconciliationSubject.Spec.FailureDomainName
+	if currentFailureDomain == newFailureDomain {
 		return ctrl.Result{}, nil
 	}
 
-	r.ReconciliationSubject.Spec.AffinityGroupRef = nil
-	if err := r.K8sClient.Update(r.RequestCtx, r.ReconciliationSubject); err != nil {
-		return ctrl.Result{}, err
+	if result, err := r.updateFailureDomain(newFailureDomain); err != nil {
+		return result, err
 	}
 
-	return r.patchCAPIMachine(newFailureDomain)
+	return r.updateCAPIFailureDomain(newFailureDomain)
+
 }
 
-func (r *CloudStackMachineReconciliationRunner) patchCAPIMachine(newFailureDomain *string) (ctrl.Result, error) {
+func (r *CloudStackMachineReconciliationRunner) updateFailureDomain(newFailureDomain string) (ctrl.Result, error) {
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		err := r.K8sClient.Get(r.RequestCtx, types.NamespacedName{Name: r.ReconciliationSubject.Name, Namespace: r.ReconciliationSubject.Namespace}, r.ReconciliationSubject)
+		if err != nil {
+			return err
+		}
+
+		r.ReconciliationSubject.Spec.AffinityGroupRef = nil
+		r.ReconciliationSubject.Spec.FailureDomainName = newFailureDomain
+		r.ReconciliationSubject.Labels[infrav1.FailureDomainLabelName] = infrav1.FailureDomainHashedMetaName(newFailureDomain, r.CAPIMachine.Spec.ClusterName)
+		return r.K8sClient.Update(r.RequestCtx, r.ReconciliationSubject)
+	})
+
+	return ctrl.Result{}, err
+}
+
+func (r *CloudStackMachineReconciliationRunner) updateCAPIFailureDomain(newFailureDomain string) (ctrl.Result, error) {
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		_, err := r.GetParent(r.ReconciliationSubject, r.CAPIMachine)()
 		if err != nil {
 			return err
 		}
 
-		r.CAPIMachine.Spec.FailureDomain = newFailureDomain
+		r.CAPIMachine.Spec.FailureDomain = &newFailureDomain
 		return r.K8sClient.Update(r.RequestCtx, r.CAPIMachine)
 	})
 
@@ -285,7 +301,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 }
 
 func (r *CloudStackMachineReconciliationRunner) markMachineFailed(ctx context.Context, err error) error {
-	r.Log.Info("Marking machine as failed to launch", "csMachine", r.ReconciliationSubject.GetName())
+	r.Log.Error(err, "Marking machine as failed to launch", "csMachine", r.ReconciliationSubject.GetName())
 	r.ReconciliationSubject.MarkAsFailed()
 
 	if _, err := r.ReconcileDelete(); err != nil {
