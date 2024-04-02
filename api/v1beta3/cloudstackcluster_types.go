@@ -34,6 +34,10 @@ type CloudStackClusterSpec struct {
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+
+	// SyncWithACS determines if an externalManaged CKS cluster should be created on ACS.
+	// +optional
+	SyncWithACS bool `json:"syncWithACS"`
 }
 
 // The status of the CloudStackCluster object.

@@ -51,7 +51,7 @@ func Convert_v1beta1_CloudStackCluster_To_v1beta3_CloudStackCluster(in *CloudSta
 //nolint:golint,revive,stylecheck
 func Convert_v1beta3_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta3.CloudStackCluster, out *CloudStackCluster, scope conv.Scope) error {
 	if len(in.Spec.FailureDomains) < 1 {
-		return fmt.Errorf("v1beta3 to v1beta1 conversion not supported when < 1 failure domain is provided. Input CloudStackCluster spec %s", in.Spec)
+		return fmt.Errorf("v1beta3 to v1beta1 conversion not supported when < 1 failure domain is provided. Input CloudStackCluster spec %s", fmt.Sprintf("%v", in.Spec))
 	}
 	out.ObjectMeta = in.ObjectMeta
 	out.Spec = CloudStackClusterSpec{

@@ -85,7 +85,8 @@ func (c *client) GetOrCreateUnmanagedCluster(cluster *clusterv1.Cluster, csClust
 			}
 			accountName = user.Account
 		}
-		params := c.cs.Kubernetes.NewCreateKubernetesClusterParams(fmt.Sprintf("%s managed by CAPC", clusterName), clusterName, fd.Zone.ID)
+		// NewCreateKubernetesClusterParams(description string, kubernetesversionid string, name string, serviceofferingid string, size int64, zoneid string) *CreateKubernetesClusterParams
+		params := c.cs.Kubernetes.NewCreateKubernetesClusterParams(fmt.Sprintf("%s managed by CAPC", clusterName), "", clusterName, "", 0, fd.Zone.ID)
 
 		setIfNotEmpty(accountName, params.SetAccount)
 		setIfNotEmpty(domain.ID, params.SetDomainid)

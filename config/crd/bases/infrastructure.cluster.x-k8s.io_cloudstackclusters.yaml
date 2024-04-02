@@ -415,6 +415,10 @@ spec:
                   - zone
                   type: object
                 type: array
+              syncWithACS:
+                description: SyncWithACS determines if an externalManaged CKS cluster
+                  should be created on ACS.
+                type: boolean
             required:
             - controlPlaneEndpoint
             - failureDomains

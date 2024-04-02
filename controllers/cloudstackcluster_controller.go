@@ -101,18 +101,21 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 
 // GetOrCreateUnmanagedCluster checks if an unmanaged cluster is present in Cloudstack else creates one.
 func (r *CloudStackClusterReconciliationRunner) GetOrCreateUnmanagedCluster() (ctrl.Result, error) {
-	res, err := r.AsFailureDomainUser(&r.CSCluster.Spec.FailureDomains[0])()
-	if r.ShouldReturn(res, err) {
-		return res, err
-	}
-	err = r.CSUser.GetOrCreateUnmanagedCluster(r.CAPICluster, r.ReconciliationSubject, &r.FailureDomains.Items[0].Spec)
-	if err != nil {
-		if strings.Contains(err.Error(), "Kubernetes Service plugin is disabled") {
-			r.Log.Info("Kubernetes Service plugin is disabled on CloudStack. Skipping ExternalManaged kubernetes cluster creation")
-			return ctrl.Result{}, nil
+	if r.CSCluster.Spec.SyncWithACS {
+		res, err := r.AsFailureDomainUser(&r.CSCluster.Spec.FailureDomains[0])()
+		if r.ShouldReturn(res, err) {
+			return res, err
 		}
-		// Not requeueing the failure to support CloudStack v4.18 and before
-		r.Log.Info(fmt.Sprintf("Failed creating ExternalManaged kubernetes cluster on CloudStack. Error: %s", err.Error()))
+
+		err = r.CSUser.GetOrCreateUnmanagedCluster(r.CAPICluster, r.ReconciliationSubject, &r.FailureDomains.Items[0].Spec)
+		if err != nil {
+			if strings.Contains(err.Error(), "Kubernetes Service plugin is disabled") {
+				r.Log.Info("Kubernetes Service plugin is disabled on CloudStack. Skipping ExternalManaged kubernetes cluster creation")
+				return ctrl.Result{}, nil
+			}
+			// Not requeueing the failure to support CloudStack v4.18 and before
+			r.Log.Info(fmt.Sprintf("Failed creating ExternalManaged kubernetes cluster on CloudStack. Error: %s", err.Error()))
+		}
 	}
 	return ctrl.Result{}, nil
 }
