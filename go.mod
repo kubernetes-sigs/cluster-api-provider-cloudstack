@@ -3,7 +3,7 @@ module sigs.k8s.io/cluster-api-provider-cloudstack
 go 1.21
 
 require (
-	github.com/apache/cloudstack-go/v2 v2.16.0-rc.2
+	github.com/apache/cloudstack-go/v2 v2.16.1
 	github.com/go-logr/logr v1.2.4
 	github.com/golang/mock v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1
@@ -91,5 +91,3 @@ require (
 )
 
 replace github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.0.0 // Indirect upgrade to address https://github.com/advisories/GHSA-w73w-5m7g-f7qc
-
-replace github.com/apache/cloudstack-go/v2 => github.com/shapeblue/cloudstack-go/v2 v2.9.1-0.20230717062313-73e4efc8a510

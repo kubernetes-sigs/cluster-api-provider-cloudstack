@@ -51,7 +51,7 @@ func withExternalManaged() cloudstack.OptionFunc {
 func (c *client) GetOrCreateUnmanagedCluster(cluster *clusterv1.Cluster, csCluster *infrav1.CloudStackCluster, fd *infrav1.CloudStackFailureDomainSpec) error {
 	// Get cluster
 	if csCluster.Status.CloudStackClusterID != "" {
-		externalManagedCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByID(csCluster.Status.CloudStackClusterID, withExternalManaged())
+		externalManagedCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByID(csCluster.Status.CloudStackClusterID, withExternalManaged(), cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
 			return err
 		} else if count > 0 {
@@ -62,7 +62,7 @@ func (c *client) GetOrCreateUnmanagedCluster(cluster *clusterv1.Cluster, csClust
 
 	// Check if a cluster exists with the same name
 	clusterName := fmt.Sprintf("%s - %s - %s", cluster.GetName(), csCluster.GetName(), csCluster.GetUID())
-	externalManagedCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByName(clusterName, withExternalManaged())
+	externalManagedCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByName(clusterName, withExternalManaged(), cloudstack.WithProject(c.user.Project.ID))
 	if err != nil && !strings.Contains(err.Error(), "No match found for ") {
 		return err
 	}
@@ -70,12 +70,6 @@ func (c *client) GetOrCreateUnmanagedCluster(cluster *clusterv1.Cluster, csClust
 		csCluster.Status.CloudStackClusterID = externalManagedCluster.Id
 	} else if err == nil || (err != nil && strings.Contains(err.Error(), "No match found for ")) {
 		// Create cluster
-		domain := Domain{Path: rootDomain}
-		if csCluster.Spec.FailureDomains[0].Domain != "" {
-			domain.Path = fd.Domain
-		}
-		_ = c.ResolveDomain(&domain)
-
 		accountName := csCluster.Spec.FailureDomains[0].Account
 		if accountName == "" {
 			userParams := c.cs.User.NewGetUserParams(c.config.APIKey)
@@ -88,10 +82,13 @@ func (c *client) GetOrCreateUnmanagedCluster(cluster *clusterv1.Cluster, csClust
 		// NewCreateKubernetesClusterParams(description string, kubernetesversionid string, name string, serviceofferingid string, size int64, zoneid string) *CreateKubernetesClusterParams
 		params := c.cs.Kubernetes.NewCreateKubernetesClusterParams(fmt.Sprintf("%s managed by CAPC", clusterName), "", clusterName, "", 0, fd.Zone.ID)
 
+		setIfNotEmpty(c.user.Project.ID, params.SetProjectid)
 		setIfNotEmpty(accountName, params.SetAccount)
-		setIfNotEmpty(domain.ID, params.SetDomainid)
+		setIfNotEmpty(c.user.Domain.ID, params.SetDomainid)
 		setIfNotEmpty(fd.Zone.Network.ID, params.SetNetworkid)
 		setIfNotEmpty(csCluster.Spec.ControlPlaneEndpoint.Host, params.SetExternalloadbalanceripaddress)
+		params.ResetKubernetesversionid()
+		params.ResetServiceofferingid()
 		params.SetClustertype("ExternalManaged")
 
 		cloudStackCKSCluster, err := c.cs.Kubernetes.CreateKubernetesCluster(params)

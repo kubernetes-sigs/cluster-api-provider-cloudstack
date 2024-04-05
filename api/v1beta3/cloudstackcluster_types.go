@@ -37,7 +37,7 @@ type CloudStackClusterSpec struct {
 
 	// SyncWithACS determines if an externalManaged CKS cluster should be created on ACS.
 	// +optional
-	SyncWithACS bool `json:"syncWithACS"`
+	SyncWithACS bool `json:"syncWithACS,omitempty"`
 }
 
 // The status of the CloudStackCluster object.

@@ -95,8 +95,8 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 		r.GetFailureDomains(r.FailureDomains),
 		r.RemoveExtraneousFailureDomains(r.FailureDomains),
 		r.VerifyFailureDomainCRDs,
-		r.GetOrCreateUnmanagedCluster,
-		r.SetReady)
+		r.SetReady,
+		r.GetOrCreateUnmanagedCluster)
 }
 
 // GetOrCreateUnmanagedCluster checks if an unmanaged cluster is present in Cloudstack else creates one.

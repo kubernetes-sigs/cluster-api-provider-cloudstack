@@ -293,7 +293,7 @@ E2E_TIMEOUT ?= 3h
 run-e2e: e2e-essentials ## Run e2e testing. JOB is an optional REGEXP to select certainn test cases to run. e.g. JOB=PR-Blocking, JOB=Conformance
 	$(KUBECTL) apply -f cloud-config.yaml && \
 	cd test/e2e && \
-	$(GINKGO) -v --trace --tags=e2e --focus=$(JOB) --timeout=$(E2E_TIMEOUT) --skip=Conformance --skip-package=kubeconfig_helper --nodes=1 --no-color=false ./... -- \
+	$(GINKGO) -vv --trace --tags=e2e --focus=$(JOB) --timeout=$(E2E_TIMEOUT) --skip=Conformance --skip-package=kubeconfig_helper --nodes=1 --no-color=false ./... -- \
 	    -e2e.artifacts-folder=${REPO_ROOT}/_artifacts \
 	    -e2e.config=${E2E_CONFIG} \
 	    -e2e.skip-resource-cleanup=false -e2e.use-existing-cluster=true
