@@ -51,7 +51,7 @@ func (f *baseClientFactory) GetCloudClientAndUser(ctx context.Context, fdSpec *i
 
 	clientConfig := &corev1.ConfigMap{}
 	key = client.ObjectKey{Name: cloud.ClientConfigMapName, Namespace: cloud.ClientConfigMapNamespace}
-	_ = f.Get(ctx, key, clientConfig)
+	_ = f.Get(ctx, key, clientConfig) // client config is optional, hence we can ignore the error
 
 	csClient, err = cloud.NewClientFromK8sSecret(endpointCredentials, clientConfig)
 	if err != nil {

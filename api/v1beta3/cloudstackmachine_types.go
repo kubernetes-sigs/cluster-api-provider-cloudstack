@@ -26,7 +26,7 @@ import (
 // The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
 const MachineFinalizer = "cloudstackmachine.infrastructure.cluster.x-k8s.io"
 
-const MachineCreateFailAnnotation = "cluster.x-k8s.io/vm-create-failed"
+const MachineCreateFailedAnnotation = "cluster.x-k8s.io/vm-create-failed"
 
 const (
 	ProAffinity  = "pro"
@@ -101,15 +101,15 @@ func (c *CloudStackMachine) MarkAsFailed() {
 	if c.Annotations == nil {
 		c.Annotations = map[string]string{}
 	}
-	c.Annotations[MachineCreateFailAnnotation] = "true"
+	c.Annotations[MachineCreateFailedAnnotation] = "true"
 }
 
 func (c *CloudStackMachine) ClearFailed() {
-	delete(c.Annotations, MachineCreateFailAnnotation)
+	delete(c.Annotations, MachineCreateFailedAnnotation)
 }
 
 func (c *CloudStackMachine) HasFailed() bool {
-	return c.Annotations != nil && c.Annotations[MachineCreateFailAnnotation] == "true"
+	return c.Annotations != nil && c.Annotations[MachineCreateFailedAnnotation] == "true"
 }
 
 type CloudStackResourceIdentifier struct {
