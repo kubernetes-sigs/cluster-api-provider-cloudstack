@@ -28,9 +28,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	cserrors "sigs.k8s.io/cluster-api-provider-cloudstack/pkg/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 type VMIface interface {

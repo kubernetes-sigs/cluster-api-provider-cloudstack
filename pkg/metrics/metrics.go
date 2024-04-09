@@ -19,8 +19,9 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	cserrors "sigs.k8s.io/cluster-api-provider-cloudstack/pkg/errors"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
+
+	cserrors "sigs.k8s.io/cluster-api-provider-cloudstack/pkg/errors"
 )
 
 // AcsCustomMetrics encapsulates all CloudStack custom metrics defined for the controller.
