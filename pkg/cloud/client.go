@@ -53,6 +53,7 @@ type Config struct {
 	APIKey    string `yaml:"api-key"`
 	SecretKey string `yaml:"secret-key"`
 	VerifySSL string `yaml:"verify-ssl"`
+	ProjectID string `yaml:"project-id"`
 }
 
 type client struct {
