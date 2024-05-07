@@ -58,13 +58,13 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 	Context("Fetch or Create Affinity group", func() {
 		It("fetches an affinity group by Name", func() {
 			dummies.AffinityGroup.ID = "" // Force name fetching.
-			ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name).Return(&cloudstack.AffinityGroup{}, 1, nil)
+			ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name, gomock.Any()).Return(&cloudstack.AffinityGroup{}, 1, nil)
 
 			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 		})
 
 		It("fetches an affinity group by ID", func() {
-			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(&cloudstack.AffinityGroup{}, 1, nil)
+			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID, gomock.Any()).Return(&cloudstack.AffinityGroup{}, 1, nil)
 
 			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
 		})
@@ -72,7 +72,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		It("creates an affinity group", func() {
 			// dummies.SetDummyDomainAndAccount()
 			// dummies.SetDummyDomainID()
-			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(nil, -1, fakeError)
+			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID, gomock.Any()).Return(nil, -1, fakeError)
 			ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
 				Return(&cloudstack.CreateAffinityGroupParams{})
 			ags.EXPECT().CreateAffinityGroup(ParamMatch(And(NameEquals(dummies.AffinityGroup.Name)))).
@@ -84,7 +84,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		It("creates an affinity group if Name provided returns more than one affinity group", func() {
 			dummies.AffinityGroup.ID = "" // Force name fetching.
 			agp := &cloudstack.CreateAffinityGroupParams{}
-			ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name).Return(&cloudstack.AffinityGroup{}, 2, nil)
+			ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name, gomock.Any()).Return(&cloudstack.AffinityGroup{}, 2, nil)
 			ags.EXPECT().NewCreateAffinityGroupParams(gomock.Any(), gomock.Any()).Return(agp)
 			ags.EXPECT().CreateAffinityGroup(agp).Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
@@ -94,7 +94,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		It("creates an affinity group if getting affinity group by name fails", func() {
 			dummies.AffinityGroup.ID = "" // Force name fetching.
 			agp := &cloudstack.CreateAffinityGroupParams{}
-			ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name).Return(nil, -1, fakeError)
+			ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name, gomock.Any()).Return(nil, -1, fakeError)
 			ags.EXPECT().NewCreateAffinityGroupParams(gomock.Any(), gomock.Any()).Return(agp)
 			ags.EXPECT().CreateAffinityGroup(agp).Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
@@ -103,7 +103,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 
 		It("creates an affinity group if ID provided returns more than one affinity group", func() {
 			agp := &cloudstack.CreateAffinityGroupParams{}
-			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(&cloudstack.AffinityGroup{}, 2, nil)
+			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID, gomock.Any()).Return(&cloudstack.AffinityGroup{}, 2, nil)
 			ags.EXPECT().NewCreateAffinityGroupParams(gomock.Any(), gomock.Any()).Return(agp)
 			ags.EXPECT().CreateAffinityGroup(agp).Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
@@ -112,7 +112,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 
 		It("creates an affinity group if getting affinity group by ID fails", func() {
 			agp := &cloudstack.CreateAffinityGroupParams{}
-			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID).Return(nil, -1, fakeError)
+			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID, gomock.Any()).Return(nil, -1, fakeError)
 			ags.EXPECT().NewCreateAffinityGroupParams(gomock.Any(), gomock.Any()).Return(agp)
 			ags.EXPECT().CreateAffinityGroup(agp).Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
@@ -164,7 +164,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 	It("Associate affinity group", func() {
 		uagp := &cloudstack.UpdateVMAffinityGroupParams{}
 		vmp := &cloudstack.StartVirtualMachineParams{}
-		vms.EXPECT().GetVirtualMachineByID(*dummies.CSMachine1.Spec.InstanceID).Return(&cloudstack.VirtualMachine{}, 1, nil)
+		vms.EXPECT().GetVirtualMachineByID(*dummies.CSMachine1.Spec.InstanceID, gomock.Any()).Return(&cloudstack.VirtualMachine{}, 1, nil)
 		ags.EXPECT().NewUpdateVMAffinityGroupParams(*dummies.CSMachine1.Spec.InstanceID).Return(uagp)
 		vms.EXPECT().NewStopVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).Return(&cloudstack.StopVirtualMachineParams{})
 		vms.EXPECT().StopVirtualMachine(&cloudstack.StopVirtualMachineParams{}).Return(&cloudstack.StopVirtualMachineResponse{State: "Stopping"}, nil)
@@ -177,7 +177,7 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 	It("Disassociate affinity group", func() {
 		uagp := &cloudstack.UpdateVMAffinityGroupParams{}
 		vmp := &cloudstack.StartVirtualMachineParams{}
-		vms.EXPECT().GetVirtualMachineByID(*dummies.CSMachine1.Spec.InstanceID).Return(&cloudstack.VirtualMachine{}, 1, nil)
+		vms.EXPECT().GetVirtualMachineByID(*dummies.CSMachine1.Spec.InstanceID, gomock.Any()).Return(&cloudstack.VirtualMachine{}, 1, nil)
 		ags.EXPECT().NewUpdateVMAffinityGroupParams(*dummies.CSMachine1.Spec.InstanceID).Return(uagp)
 		vms.EXPECT().NewStopVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).Return(&cloudstack.StopVirtualMachineParams{})
 		vms.EXPECT().StopVirtualMachine(&cloudstack.StopVirtualMachineParams{}).Return(&cloudstack.StopVirtualMachineResponse{State: "Stopping"}, nil)

@@ -74,8 +74,8 @@ var _ = Describe("Network", func() {
 			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&csapi.CreateNetworkParams{})
-			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(nil, 0, nil)
-			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(nil, 0, nil)
+			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(nil, 0, nil)
+			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(nil, 0, nil)
 			ns.EXPECT().CreateNetwork(gomock.Any()).Return(&csapi.CreateNetworkResponse{Id: dummies.ISONet1.ID}, nil)
 			as.EXPECT().NewListPublicIpAddressesParams().Return(&csapi.ListPublicIpAddressesParams{})
 			as.EXPECT().ListPublicIpAddresses(gomock.Any()).
@@ -125,8 +125,8 @@ var _ = Describe("Network", func() {
 		})
 
 		It("fails to get network offering from CloudStack", func() {
-			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(nil, 0, nil)
-			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(nil, 0, nil)
+			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(nil, 0, nil)
+			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(nil, 0, nil)
 			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("", -1, fakeError)
 
 			err := client.GetOrCreateIsolatedNetwork(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)
@@ -430,7 +430,7 @@ var _ = Describe("Network", func() {
 			rtlp := &csapi.ListTagsParams{}
 			rs.EXPECT().NewListTagsParams().Return(rtlp).Times(4)
 			rs.EXPECT().ListTags(rtlp).Return(&csapi.ListTagsResponse{}, nil).Times(4)
-			as.EXPECT().GetPublicIpAddressByID(dummies.CSISONet1.Status.PublicIPID).Return(&csapi.PublicIpAddress{}, 1, nil)
+			as.EXPECT().GetPublicIpAddressByID(dummies.CSISONet1.Status.PublicIPID, gomock.Any()).Return(&csapi.PublicIpAddress{}, 1, nil)
 
 			Ω(client.DisposeIsoNetResources(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 		})
@@ -446,7 +446,7 @@ var _ = Describe("Network", func() {
 			rs.EXPECT().NewListTagsParams().Return(rtlp).Times(4)
 			rs.EXPECT().ListTags(rtlp).Return(createdByCAPCResponse, nil).Times(3)
 			rs.EXPECT().ListTags(rtlp).Return(&csapi.ListTagsResponse{}, nil).Times(1)
-			as.EXPECT().GetPublicIpAddressByID(dummies.CSISONet1.Status.PublicIPID).Return(&csapi.PublicIpAddress{}, 1, nil)
+			as.EXPECT().GetPublicIpAddressByID(dummies.CSISONet1.Status.PublicIPID, gomock.Any()).Return(&csapi.PublicIpAddress{}, 1, nil)
 			as.EXPECT().NewDisassociateIpAddressParams(dummies.CSISONet1.Status.PublicIPID).Return(dap)
 			as.EXPECT().DisassociateIpAddress(dap).Return(&csapi.DisassociateIpAddressResponse{}, nil)
 
@@ -463,7 +463,7 @@ var _ = Describe("Network", func() {
 			rs.EXPECT().DeleteTags(rtdp).Return(&csapi.DeleteTagsResponse{}, nil).Times(2)
 			rs.EXPECT().NewListTagsParams().Return(rtlp).Times(2)
 			rs.EXPECT().ListTags(rtlp).Return(createdByCAPCResponse, nil).Times(2)
-			as.EXPECT().GetPublicIpAddressByID(dummies.CSISONet1.Status.PublicIPID).Return(&csapi.PublicIpAddress{}, 1, nil)
+			as.EXPECT().GetPublicIpAddressByID(dummies.CSISONet1.Status.PublicIPID, gomock.Any()).Return(&csapi.PublicIpAddress{}, 1, nil)
 			as.EXPECT().NewDisassociateIpAddressParams(dummies.CSISONet1.Status.PublicIPID).Return(dap)
 			as.EXPECT().DisassociateIpAddress(dap).Return(nil, fakeError)
 
