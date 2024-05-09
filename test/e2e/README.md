@@ -51,9 +51,10 @@ stringData:
   secret-key: XXXX
   api-url: http://1.2.3.4:8080/client/api
   verify-ssl: "false"
+  project-id: <project id>
 ```
 This will be applied to the kind cluster that hosts CAPI/CAPC for the test, allowing CAPC to access the cluster. 
-The api-key and secret-key can be found or generated at Home > Accounts > admin > Users > admin of the ACS management UI. `verify-ssl` is an optional flag and its default value is true. CAPC skips verifying the host SSL certificates when the flag is set to false.
+The api-key and secret-key can be found or generated at Home > Accounts > admin > Users > admin of the ACS management UI. `verify-ssl` is an optional flag and its default value is true. CAPC skips verifying the host SSL certificates when the flag is set to false. `project-id` is also optional and is used to specify the project id to be used for the k8s cluster.
 
 ### Running the e2e tests
 
