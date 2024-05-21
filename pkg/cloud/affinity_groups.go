@@ -43,7 +43,7 @@ type AffinityGroupIface interface {
 
 func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 	if group.ID != "" {
-		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByID(group.ID, cloudstack.WithProject(c.config.ProjectID))
+		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByID(group.ID, cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
 			// handle via multierr
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
@@ -58,7 +58,7 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 		}
 	}
 	if group.Name != "" {
-		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByName(group.Name, cloudstack.WithProject(c.config.ProjectID))
+		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByName(group.Name, cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
 			// handle via multierr
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
@@ -79,7 +79,7 @@ func (c *client) GetOrCreateAffinityGroup(group *AffinityGroup) (retErr error) {
 	if err := c.FetchAffinityGroup(group); err != nil { // Group not found?
 		p := c.cs.AffinityGroup.NewCreateAffinityGroupParams(group.Name, group.Type)
 		p.SetName(group.Name)
-		setIfNotEmpty(c.config.ProjectID, p.SetProjectid)
+		setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
 		resp, err := c.cs.AffinityGroup.CreateAffinityGroup(p)
 		if err != nil {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
@@ -94,7 +94,7 @@ func (c *client) DeleteAffinityGroup(group *AffinityGroup) (retErr error) {
 	p := c.cs.AffinityGroup.NewDeleteAffinityGroupParams()
 	setIfNotEmpty(group.ID, p.SetId)
 	setIfNotEmpty(group.Name, p.SetName)
-	setIfNotEmpty(c.config.ProjectID, p.SetProjectid)
+	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
 	_, retErr = c.cs.AffinityGroup.DeleteAffinityGroup(p)
 	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 	return retErr
@@ -104,7 +104,7 @@ type affinityGroups []AffinityGroup
 
 func (c *client) getCurrentAffinityGroups(csMachine *infrav1.CloudStackMachine) (affinityGroups, error) {
 	// Start by fetching VM details which includes an array of currently associated affinity groups.
-	if virtM, count, err := c.cs.VirtualMachine.GetVirtualMachineByID(*csMachine.Spec.InstanceID, cloudstack.WithProject(c.config.ProjectID)); err != nil {
+	if virtM, count, err := c.cs.VirtualMachine.GetVirtualMachineByID(*csMachine.Spec.InstanceID, cloudstack.WithProject(c.user.Project.ID)); err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return nil, err
 	} else if count > 1 {

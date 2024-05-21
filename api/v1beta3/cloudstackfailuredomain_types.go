@@ -85,6 +85,10 @@ type CloudStackFailureDomainSpec struct {
 	// +optional
 	Domain string `json:"domain,omitempty"`
 
+	// CloudStack project.
+	// +optional
+	Project string `json:"project,omitempty"`
+
 	// Apache CloudStack Endpoint secret reference.
 	ACSEndpoint corev1.SecretReference `json:"acsEndpoint"`
 }

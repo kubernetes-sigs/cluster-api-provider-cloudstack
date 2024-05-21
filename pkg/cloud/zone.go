@@ -56,7 +56,7 @@ func (c *client) ResolveZone(zSpec *infrav1.CloudStackZoneSpec) (retErr error) {
 // ResolveNetworkForZone fetches details on Zone's specified network.
 func (c *client) ResolveNetworkForZone(zSpec *infrav1.CloudStackZoneSpec) (retErr error) {
 	netName := zSpec.Network.Name
-	netDetails, count, err := c.cs.Network.GetNetworkByName(netName, cloudstack.WithProject(c.config.ProjectID))
+	netDetails, count, err := c.cs.Network.GetNetworkByName(netName, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Network ID from %v", netName))
@@ -70,7 +70,7 @@ func (c *client) ResolveNetworkForZone(zSpec *infrav1.CloudStackZoneSpec) (retEr
 	}
 
 	// Now get network details.
-	netDetails, count, err = c.cs.Network.GetNetworkByID(zSpec.Network.ID, cloudstack.WithProject(c.config.ProjectID))
+	netDetails, count, err = c.cs.Network.GetNetworkByID(zSpec.Network.ID, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
 		return multierror.Append(retErr, errors.Wrapf(err, "could not get Network by ID %s", zSpec.Network.ID))
 	} else if count != 1 {

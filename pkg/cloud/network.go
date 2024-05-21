@@ -52,7 +52,7 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 	// TODO rebuild this to consider cases with networks in many zones.
 	// Use ListNetworks instead.
 	netName := net.Name
-	netDetails, count, err := c.cs.Network.GetNetworkByName(netName, cloudstack.WithProject(c.config.ProjectID))
+	netDetails, count, err := c.cs.Network.GetNetworkByName(netName, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Network ID from %s", netName))
@@ -66,7 +66,7 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 	}
 
 	// Now get network details.
-	netDetails, count, err = c.cs.Network.GetNetworkByID(net.ID, cloudstack.WithProject(c.config.ProjectID))
+	netDetails, count, err = c.cs.Network.GetNetworkByID(net.ID, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
 		return multierror.Append(retErr, errors.Wrapf(err, "could not get Network by ID %s", net.ID))
 	} else if count != 1 {

@@ -154,6 +154,9 @@ spec:
               name:
                 description: The failure domain unique name.
                 type: string
+              project:
+                description: CloudStack project.
+                type: string
               zone:
                 description: The ACS Zone for this failure domain.
                 properties:

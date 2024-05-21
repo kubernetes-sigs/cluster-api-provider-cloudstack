@@ -58,7 +58,7 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) error {
 	// Attempt to fetch by ID.
 	if csMachine.Spec.InstanceID != nil {
-		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID, cloudstack.WithProject(c.config.ProjectID))
+		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByID(*csMachine.Spec.InstanceID, cloudstack.WithProject(c.user.Project.ID))
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return err
@@ -72,7 +72,7 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 
 	// Attempt fetch by name.
 	if csMachine.Name != "" {
-		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name, cloudstack.WithProject(c.config.ProjectID))
+		vmResp, count, err := c.cs.VirtualMachine.GetVirtualMachinesMetricByName(csMachine.Name, cloudstack.WithProject(c.user.Project.ID))
 		if err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match") {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return err
@@ -88,7 +88,7 @@ func (c *client) ResolveVMInstanceDetails(csMachine *infrav1.CloudStackMachine) 
 
 func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine, zoneID string) (offering cloudstack.ServiceOffering, retErr error) {
 	if len(csMachine.Spec.Offering.ID) > 0 {
-		csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering.ID, cloudstack.WithProject(c.config.ProjectID))
+		csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering.ID, cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return cloudstack.ServiceOffering{}, multierror.Append(retErr, errors.Wrapf(
@@ -104,7 +104,7 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine, zo
 		}
 		return *csOffering, nil
 	}
-	csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByName(csMachine.Spec.Offering.Name, cloudstack.WithZone(zoneID), cloudstack.WithProject(c.config.ProjectID))
+	csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByName(csMachine.Spec.Offering.Name, cloudstack.WithZone(zoneID), cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return cloudstack.ServiceOffering{}, multierror.Append(retErr, errors.Wrapf(
@@ -122,7 +122,7 @@ func (c *client) ResolveTemplate(
 	zoneID string,
 ) (templateID string, retErr error) {
 	if len(csMachine.Spec.Template.ID) > 0 {
-		csTemplate, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template.ID, "executable", cloudstack.WithProject(c.config.ProjectID))
+		csTemplate, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template.ID, "executable", cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return "", multierror.Append(retErr, errors.Wrapf(
@@ -138,7 +138,7 @@ func (c *client) ResolveTemplate(
 		}
 		return csMachine.Spec.Template.ID, nil
 	}
-	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template.Name, "executable", zoneID, cloudstack.WithProject(c.config.ProjectID))
+	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template.Name, "executable", zoneID, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return "", multierror.Append(retErr, errors.Wrapf(
@@ -156,7 +156,7 @@ func (c *client) ResolveTemplate(
 func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine, zoneID string) (diskOfferingID string, retErr error) {
 	diskOfferingID = csMachine.Spec.DiskOffering.ID
 	if len(csMachine.Spec.DiskOffering.Name) > 0 {
-		diskID, count, err := c.cs.DiskOffering.GetDiskOfferingID(csMachine.Spec.DiskOffering.Name, cloudstack.WithZone(zoneID), cloudstack.WithProject(c.config.ProjectID))
+		diskID, count, err := c.cs.DiskOffering.GetDiskOfferingID(csMachine.Spec.DiskOffering.Name, cloudstack.WithZone(zoneID), cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return "", multierror.Append(retErr, errors.Wrapf(
@@ -183,7 +183,7 @@ func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine, zoneI
 }
 
 func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOfferingID string, retErr error) (string, error) {
-	csDiskOffering, count, err := c.cs.DiskOffering.GetDiskOfferingByID(diskOfferingID, cloudstack.WithProject(c.config.ProjectID))
+	csDiskOffering, count, err := c.cs.DiskOffering.GetDiskOfferingByID(diskOfferingID, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return "", multierror.Append(retErr, errors.Wrapf(
@@ -300,7 +300,7 @@ func (c *client) DeployVM(
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(capiMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
-	setIfNotEmpty(c.config.ProjectID, p.SetProjectid)
+	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
 	setIntIfPositive(csMachine.Spec.DiskOffering.CustomSize, p.SetSize)
 
 	setIfNotEmpty(csMachine.Spec.SSHKey, p.SetKeypair)
@@ -331,7 +331,7 @@ func (c *client) DeployVM(
 		// CloudStack may have created the VM even though it reported an error. We attempt to
 		// retrieve the VM so we can populate the CloudStackMachine for the user to manually
 		// clean up.
-		vm, findErr := findVirtualMachine(c.cs.VirtualMachine, templateID, fd, csMachine, c.config.ProjectID)
+		vm, findErr := findVirtualMachine(c.cs.VirtualMachine, templateID, fd, csMachine, c.user.Project.ID)
 		if findErr != nil {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(findErr)
 			return fmt.Errorf("%v; find virtual machine: %v", err, findErr)
@@ -455,7 +455,7 @@ func (c *client) listVMInstanceDatadiskVolumeIDs(instanceID string) ([]string, e
 	p.SetVirtualmachineid(instanceID)
 	// VM root volumes are destroyed automatically, no need to explicitly include
 	p.SetType("DATADISK")
-	setIfNotEmpty(c.config.ProjectID, p.SetProjectid)
+	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
 
 	listVOLResp, err := c.csAsync.Volume.ListVolumes(p)
 	if err != nil {
