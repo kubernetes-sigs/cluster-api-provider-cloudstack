@@ -276,6 +276,12 @@ var _ = Describe("Instance", func() {
 						MemoryAvailable: "2048",
 						VMAvailable:     "20",
 					},
+					Project: cloud.Project{
+						ID:              "123",
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
+					},
 				}
 				c := cloud.NewClientFromCSAPIClient(mockClient, user)
 				Ω(c.GetOrCreateVMInstance(
@@ -304,11 +310,51 @@ var _ = Describe("Instance", func() {
 						MemoryAvailable: "2048",
 						VMAvailable:     "20",
 					},
+					Project: cloud.Project{
+						ID:              "123",
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
+					},
 				}
 				c := cloud.NewClientFromCSAPIClient(mockClient, user)
 				Ω(c.GetOrCreateVMInstance(
 					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
 					Should(MatchError(MatchRegexp("CPU available .* in domain can't fulfil the requirement:.*")))
+			})
+
+			It("returns errors when there are not enough available CPU in project", func() {
+				expectVMNotFound()
+				dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
+				sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
+					Return(&cloudstack.ServiceOffering{
+						Id:        dummies.CSMachine1.Spec.Offering.ID,
+						Name:      dummies.CSMachine1.Spec.Offering.Name,
+						Cpunumber: 2,
+						Memory:    1024,
+					}, 1, nil)
+				user := &cloud.User{
+					Account: cloud.Account{
+						Domain: cloud.Domain{
+							CPUAvailable:    "20",
+							MemoryAvailable: "2048",
+							VMAvailable:     "20",
+						},
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
+					},
+					Project: cloud.Project{
+						ID:              "123",
+						CPUAvailable:    "1",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
+					},
+				}
+				c := cloud.NewClientFromCSAPIClient(mockClient, user)
+				Ω(c.GetOrCreateVMInstance(
+					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+					Should(MatchError(MatchRegexp("CPU available .* in project can't fulfil the requirement:.*")))
 			})
 
 			It("returns errors when there is not enough available memory in account", func() {
@@ -330,6 +376,12 @@ var _ = Describe("Instance", func() {
 						},
 						CPUAvailable:    "20",
 						MemoryAvailable: "512",
+						VMAvailable:     "20",
+					},
+					Project: cloud.Project{
+						ID:              "123",
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
 						VMAvailable:     "20",
 					},
 				}
@@ -360,11 +412,51 @@ var _ = Describe("Instance", func() {
 						MemoryAvailable: "2048",
 						VMAvailable:     "20",
 					},
+					Project: cloud.Project{
+						ID:              "123",
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
+					},
 				}
 				c := cloud.NewClientFromCSAPIClient(mockClient, user)
 				Ω(c.GetOrCreateVMInstance(
 					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
 					Should(MatchError(MatchRegexp("memory available .* in domain can't fulfil the requirement:.*")))
+			})
+
+			It("returns errors when there is not enough available memory in project", func() {
+				expectVMNotFound()
+				dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
+				sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
+					Return(&cloudstack.ServiceOffering{
+						Id:        dummies.CSMachine1.Spec.Offering.ID,
+						Name:      dummies.CSMachine1.Spec.Offering.Name,
+						Cpunumber: 2,
+						Memory:    1024,
+					}, 1, nil)
+				user := &cloud.User{
+					Account: cloud.Account{
+						Domain: cloud.Domain{
+							CPUAvailable:    "20",
+							MemoryAvailable: "2048",
+							VMAvailable:     "20",
+						},
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
+					},
+					Project: cloud.Project{
+						ID:              "123",
+						CPUAvailable:    "20",
+						MemoryAvailable: "512",
+						VMAvailable:     "20",
+					},
+				}
+				c := cloud.NewClientFromCSAPIClient(mockClient, user)
+				Ω(c.GetOrCreateVMInstance(
+					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+					Should(MatchError(MatchRegexp("memory available .* in project can't fulfil the requirement:.*")))
 			})
 
 			It("returns errors when there is not enough available VM limit in account", func() {
@@ -387,6 +479,12 @@ var _ = Describe("Instance", func() {
 						CPUAvailable:    "20",
 						MemoryAvailable: "2048",
 						VMAvailable:     "0",
+					},
+					Project: cloud.Project{
+						ID:              "123",
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
 					},
 				}
 				c := cloud.NewClientFromCSAPIClient(mockClient, user)
@@ -416,11 +514,51 @@ var _ = Describe("Instance", func() {
 						MemoryAvailable: "2048",
 						VMAvailable:     "10",
 					},
+					Project: cloud.Project{
+						ID:              "123",
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "20",
+					},
 				}
 				c := cloud.NewClientFromCSAPIClient(mockClient, user)
 				Ω(c.GetOrCreateVMInstance(
 					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
 					Should(MatchError("VM Limit in domain has reached it's maximum value"))
+			})
+
+			It("returns errors when there is not enough available VM limit in project", func() {
+				expectVMNotFound()
+				dummies.CSMachine1.Spec.DiskOffering.CustomSize = 0
+				sos.EXPECT().GetServiceOfferingByName(dummies.CSMachine1.Spec.Offering.Name, gomock.Any()).
+					Return(&cloudstack.ServiceOffering{
+						Id:        dummies.CSMachine1.Spec.Offering.ID,
+						Name:      dummies.CSMachine1.Spec.Offering.Name,
+						Cpunumber: 2,
+						Memory:    1024,
+					}, 1, nil)
+				user := &cloud.User{
+					Account: cloud.Account{
+						Domain: cloud.Domain{
+							CPUAvailable:    "20",
+							MemoryAvailable: "2048",
+							VMAvailable:     "10",
+						},
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "10",
+					},
+					Project: cloud.Project{
+						ID:              "123",
+						CPUAvailable:    "20",
+						MemoryAvailable: "2048",
+						VMAvailable:     "0",
+					},
+				}
+				c := cloud.NewClientFromCSAPIClient(mockClient, user)
+				Ω(c.GetOrCreateVMInstance(
+					dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "")).
+					Should(MatchError("VM Limit in project has reached it's maximum value"))
 			})
 		})
 

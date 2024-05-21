@@ -257,6 +257,35 @@ func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering
 	return nil
 }
 
+// CheckProjectLimits Checks the project's limit of VM, CPU & Memory
+func (c *client) CheckProjectLimits(fd *infrav1.CloudStackFailureDomain, offering *cloudstack.ServiceOffering) error {
+	if c.user.Project.ID == "" {
+		return nil
+	}
+
+	if c.user.Project.CPUAvailable != "Unlimited" {
+		cpuAvailable, err := strconv.ParseInt(c.user.Project.CPUAvailable, 10, 0)
+		if err == nil && int64(offering.Cpunumber) > cpuAvailable {
+			return fmt.Errorf("CPU available (%d) in project can't fulfil the requirement: %d", cpuAvailable, offering.Cpunumber)
+		}
+	}
+
+	if c.user.Project.MemoryAvailable != "Unlimited" {
+		memoryAvailable, err := strconv.ParseInt(c.user.Project.MemoryAvailable, 10, 0)
+		if err == nil && int64(offering.Memory) > memoryAvailable {
+			return fmt.Errorf("memory available (%d) in project can't fulfil the requirement: %d", memoryAvailable, offering.Memory)
+		}
+	}
+
+	if c.user.Project.VMAvailable != "Unlimited" {
+		vmAvailable, err := strconv.ParseInt(c.user.Project.VMAvailable, 10, 0)
+		if err == nil && vmAvailable < 1 {
+			return fmt.Errorf("VM Limit in project has reached it's maximum value")
+		}
+	}
+	return nil
+}
+
 // CheckLimits will check the account & domain limits
 func (c *client) CheckLimits(
 	fd *infrav1.CloudStackFailureDomain,
@@ -268,6 +297,11 @@ func (c *client) CheckLimits(
 	}
 
 	err = c.CheckDomainLimits(fd, offering)
+	if err != nil {
+		return err
+	}
+
+	err = c.CheckProjectLimits(fd, offering)
 	if err != nil {
 		return err
 	}
