@@ -78,10 +78,10 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 			return false
 		}, timeout).WithPolling(pollInterval).Should(BeTrue())
 
-		Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
 		mockCloudClient.EXPECT().FetchAffinityGroup(gomock.Any()).Do(func(arg1 interface{}) {
 			arg1.(*cloud.AffinityGroup).ID = ""
 		}).AnyTimes().Return(nil)
+		Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
 
 		// Once the affinity group id was set to "" the controller should remove the finalizer and unblock deleting affinity group resource
 		Eventually(func() bool {
