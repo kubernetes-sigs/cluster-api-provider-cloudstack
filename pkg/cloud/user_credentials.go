@@ -178,7 +178,7 @@ func (c *client) ResolveAccount(account *Account) error {
 	return nil
 }
 
-// ResolveAccount resolves an account's information.
+// ResolveProject resolves a project's information.
 func (c *client) ResolveProject(user *User) error {
 	if user.Project.Name == "" {
 		return nil
@@ -187,6 +187,7 @@ func (c *client) ResolveProject(user *User) error {
 	p := c.cs.Project.NewListProjectsParams()
 	p.SetListall(true)
 	p.SetDomainid(user.Domain.ID)
+	p.SetAccount(user.Account.Name)
 	p.SetName(user.Project.Name)
 	setIfNotEmpty(user.Project.ID, p.SetId)
 	resp, retErr := c.cs.Project.ListProjects(p)
@@ -194,7 +195,7 @@ func (c *client) ResolveProject(user *User) error {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 		return retErr
 	} else if resp.Count == 0 {
-		return errors.Errorf("could not find account %s", user.Project.Name)
+		return errors.Errorf("could not find project %s", user.Project.Name)
 	} else if resp.Count != 1 {
 		return errors.Errorf("expected 1 Project with name %s in domain ID %s, but got %d",
 			user.Project.Name, user.Domain.ID, resp.Count)
