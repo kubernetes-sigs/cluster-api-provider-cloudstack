@@ -94,6 +94,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-custom-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-subdomain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-project.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-ip.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-kubernetes-version-upgrade-before.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-kubernetes-version-upgrade-after.yaml"
@@ -124,6 +125,7 @@ variables:
   CLOUDSTACK_INVALID_ZONE_NAME: zoneXXXX
   CLOUDSTACK_INVALID_NETWORK_NAME: networkXXXX
   CLOUDSTACK_ACCOUNT_NAME: admin
+  CLOUDSTACK_PROJECT_NAME: capc-e2e-test
   CLOUDSTACK_INVALID_ACCOUNT_NAME: accountXXXX
   CLOUDSTACK_DOMAIN_NAME: ROOT
   CLOUDSTACK_INVALID_DOMAIN_NAME: domainXXXX

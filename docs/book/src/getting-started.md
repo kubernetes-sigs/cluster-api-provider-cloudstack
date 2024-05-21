@@ -35,7 +35,6 @@
          secret-key: <cloudstackSecretKey>
          api-url: <cloudstackApiUrl>
          verify-ssl: "false"
-         project-id: <project id>  # Optional. If provided, the provider will use this project id for all operations
 
        ```
    - Apply this secret to the management cluster:
