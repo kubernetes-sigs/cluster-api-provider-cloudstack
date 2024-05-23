@@ -1,6 +1,6 @@
 # CloudStack Permissions for CAPC
 
-The account that CAPC runs under must minimally be a Domain Admin type account with a role offering the following permissions
+The account that CAPC runs under must minimally be a User type account with a role offering the following permissions
 
 * assignToLoadBalancerRule
 * associateIpAddress
@@ -19,7 +19,6 @@ The account that CAPC runs under must minimally be a Domain Admin type account w
 * listAccounts
 * listAffinityGroups
 * listDiskOfferings
-* listDomains
 * listLoadBalancerRuleInstances
 * listLoadBalancerRules
 * listNetworkOfferings
@@ -38,5 +37,7 @@ The account that CAPC runs under must minimally be a Domain Admin type account w
 * startVirtualMachine
 * stopVirtualMachine
 * updateVMAffinityGroup
+
+> Note: If the user doesn't have permissions to expunge the VM, it will be left in a destroyed state. The user will need to manually expunge the VM.
 
 This permission set has been verified to successfully run the CAPC E2E test suite (Oct 11, 2022).
