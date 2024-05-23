@@ -21,15 +21,16 @@ import (
 	"flag"
 	"fmt"
 	"go/build"
-	"k8s.io/client-go/tools/record"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
 	"strings"
 	"testing"
 	"time"
+
+	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -213,7 +214,6 @@ func SetupTestEnvironment() {
 		K8sClient:            k8sManager.GetClient(),
 		Scheme:               k8sManager.GetScheme(),
 		CSClient:             mockCloudClient,
-		BaseLogger:           logger,
 		CloudClientExtension: &MockCtrlrCloudClientImplementation{},
 	}
 
@@ -256,7 +256,7 @@ func setupFakeTestClient() {
 	dummies.SetDummyVars()
 
 	// Make a fake k8s client with CloudStack and CAPI cluster.
-	fakeCtrlClient = fake.NewClientBuilder().WithObjects(dummies.CSCluster, dummies.CAPICluster).Build()
+	fakeCtrlClient = fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(dummies.CSCluster, dummies.CAPICluster).WithStatusSubresource(dummies.CSCluster, dummies.CSMachine1).Build()
 	fakeRecorder = record.NewFakeRecorder(fakeEventBufferSize)
 	// Setup mock clients.
 	mockCSAPIClient = cloudstack.NewMockClient(mockCtrl)
@@ -267,7 +267,6 @@ func setupFakeTestClient() {
 		K8sClient:            fakeCtrlClient,
 		Scheme:               scheme.Scheme,
 		CSClient:             mockCloudClient,
-		BaseLogger:           logger,
 		Recorder:             fakeRecorder,
 		CloudClientExtension: &MockCtrlrCloudClientImplementation{},
 	}
@@ -317,7 +316,7 @@ var _ = AfterEach(func() {
 
 var _ = AfterSuite(func() {})
 
-// setClusterReady patches the clsuter with ready status true.
+// setClusterReady patches the cluster with ready status true.
 func setClusterReady(client client.Client) {
 	Eventually(func() error {
 		ph, err := patch.NewHelper(dummies.CSCluster, client)

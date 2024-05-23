@@ -403,7 +403,7 @@ var _ = Describe("User Credentials", func() {
 			Ω(result).Should(BeTrue())
 		})
 
-		It("fails to resolve accout", func() {
+		It("fails to resolve account", func() {
 			initialCalls()
 			asp := &csapi.ListAccountsParams{}
 			as.EXPECT().NewListAccountsParams().Return(asp)
@@ -414,7 +414,7 @@ var _ = Describe("User Credentials", func() {
 			Ω(result).Should(BeFalse())
 		})
 
-		It("fails to resolve accout", func() {
+		It("fails to resolve account", func() {
 			initialCalls()
 			asp := &csapi.ListAccountsParams{}
 			usp := &csapi.ListUsersParams{}

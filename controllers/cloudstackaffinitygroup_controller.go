@@ -26,6 +26,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 //+kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackaffinitygroups,verbs=get;list;watch;create;update;patch;delete
@@ -95,9 +96,10 @@ func (r *CloudStackAGReconciliationRunner) ReconcileDelete() (ctrl.Result, error
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (reconciler *CloudStackAffinityGroupReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
+func (reconciler *CloudStackAffinityGroupReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&infrav1.CloudStackAffinityGroup{}).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), reconciler.WatchFilterValue)).
 		Complete(reconciler)
 }

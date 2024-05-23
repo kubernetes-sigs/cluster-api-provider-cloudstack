@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	conv "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
@@ -90,7 +91,7 @@ func GetFailureDomains(csCluster *CloudStackCluster) ([]v1beta3.CloudStackFailur
 	var failureDomains []v1beta3.CloudStackFailureDomainSpec
 	namespace := csCluster.Namespace
 	for _, zone := range csCluster.Spec.Zones {
-		name, err := GetDefaultFailureDomainName(namespace, csCluster.Name, zone.ID, zone.Name)
+		name, err := GetDefaultFailureDomainName(namespace, zone.ID, zone.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +123,7 @@ func GetFailureDomains(csCluster *CloudStackCluster) ([]v1beta3.CloudStackFailur
 // When upgrading cluster using eks-a, a secret named global will be created by eks-a, and it is used by following
 // method to get zoneID by calling cloudstack API.
 // When upgrading cluster using clusterctl directly, zoneID is fetched directly from kubernetes cluster in cloudstackzones.
-func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID string, zoneName string) (string, error) {
+func GetDefaultFailureDomainName(namespace string, zoneID string, zoneName string) (string, error) {
 	if len(zoneID) > 0 {
 		return zoneID, nil
 	}

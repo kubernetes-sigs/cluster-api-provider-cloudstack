@@ -60,8 +60,8 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),
-				gomock.Any(), gomock.Any(), gomock.Any()).Do(
-				func(arg1, _, _, _, _, _ interface{}) {
+				gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _ interface{}) {
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
 				}).AnyTimes()
 
@@ -85,8 +85,8 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),
-				gomock.Any(), gomock.Any(), gomock.Any()).Do(
-				func(arg1, _, _, _, _, _ interface{}) {
+				gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _ interface{}) {
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
 					controllerutil.AddFinalizer(arg1.(*infrav1.CloudStackMachine), infrav1.MachineFinalizer)
 				}).AnyTimes()
@@ -125,8 +125,8 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),
-				gomock.Any(), gomock.Any(), gomock.Any()).Do(
-				func(arg1, _, _, _, _, _ interface{}) {
+				gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _ interface{}) {
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
 					controllerutil.AddFinalizer(arg1.(*infrav1.CloudStackMachine), infrav1.MachineFinalizer)
 				}).AnyTimes()
@@ -174,8 +174,8 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),
-				gomock.Any(), gomock.Any(), gomock.Any()).Do(
-				func(arg1, _, _, _, _, userdata interface{}) {
+				gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, userdata interface{}) {
 					expectedUserdata := fmt.Sprintf("%s{{%s}}", dummies.CAPIMachine.Name, dummies.CSMachine1.Spec.FailureDomainName)
 					Ω(userdata == expectedUserdata).Should(BeTrue())
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
@@ -236,8 +236,8 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			})
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),
-				gomock.Any(), gomock.Any(), gomock.Any()).Do(
-				func(arg1, _, _, _, _, _ interface{}) {
+				gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _ interface{}) {
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
 				}).AnyTimes()
 			Ω(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).Should(Succeed())

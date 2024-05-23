@@ -196,7 +196,7 @@ var _ = Describe("Network", func() {
 					Count:             1,
 					PublicIpAddresses: []*csapi.PublicIpAddress{{Id: "PublicIPID", Ipaddress: ipAddress}},
 				}, nil)
-			publicIPAddress, err := client.GetPublicIP(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)
+			publicIPAddress, err := client.GetPublicIP(dummies.CSFailureDomain1, dummies.CSCluster)
 			Ω(err).Should(Succeed())
 			Ω(publicIPAddress).ShouldNot(BeNil())
 			Ω(publicIPAddress.Ipaddress).Should(Equal(ipAddress))
@@ -211,7 +211,7 @@ var _ = Describe("Network", func() {
 					Count:             0,
 					PublicIpAddresses: []*csapi.PublicIpAddress{},
 				}, nil)
-			publicIPAddress, err := client.GetPublicIP(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)
+			publicIPAddress, err := client.GetPublicIP(dummies.CSFailureDomain1, dummies.CSCluster)
 			Ω(publicIPAddress).Should(BeNil())
 			Ω(err.Error()).Should(ContainSubstring("no public addresses found in available networks"))
 		})
@@ -232,7 +232,7 @@ var _ = Describe("Network", func() {
 							Associatednetworkid: "1",
 						}},
 				}, nil)
-			publicIPAddress, err := client.GetPublicIP(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)
+			publicIPAddress, err := client.GetPublicIP(dummies.CSFailureDomain1, dummies.CSCluster)
 			Ω(publicIPAddress).Should(BeNil())
 			Ω(err.Error()).Should(ContainSubstring("all Public IP Address(es) found were already allocated"))
 		})
@@ -285,7 +285,7 @@ var _ = Describe("Network", func() {
 					{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
 
 			dummies.CSISONet1.Status.LBRuleID = ""
-			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSISONet1)).Should(Succeed())
 			Ω(dummies.CSISONet1.Status.LBRuleID).Should(Equal(dummies.LBRuleID))
 		})
 
@@ -296,7 +296,7 @@ var _ = Describe("Network", func() {
 					{Publicport: "differentPublicPort", Id: dummies.LBRuleID}}}, nil)
 
 			dummies.CSISONet1.Status.LBRuleID = ""
-			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster).Error()).
+			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSISONet1).Error()).
 				Should(Equal("no load balancer rule found"))
 		})
 
@@ -306,7 +306,7 @@ var _ = Describe("Network", func() {
 				nil, fakeError)
 
 			dummies.CSISONet1.Status.LBRuleID = ""
-			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster).Error()).
+			Ω(client.ResolveLoadBalancerRuleDetails(dummies.CSISONet1).Error()).
 				Should(ContainSubstring("listing load balancer rules"))
 		})
 
@@ -317,7 +317,7 @@ var _ = Describe("Network", func() {
 					LoadBalancerRules: []*csapi.LoadBalancerRule{
 						{Publicport: strconv.Itoa(int(dummies.EndPointPort)), Id: dummies.LBRuleID}}}, nil)
 
-			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSISONet1.Status.LBRuleID).Should(Equal(dummies.LBRuleID))
 		})
 	})
@@ -376,7 +376,7 @@ var _ = Describe("Network", func() {
 			lbs.EXPECT().CreateLoadBalancerRule(gomock.Any()).
 				Return(&csapi.CreateLoadBalancerRuleResponse{Id: "2ndLBRuleID"}, nil)
 
-			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.GetOrCreateLoadBalancerRule(dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 			Ω(dummies.CSISONet1.Status.LBRuleID).Should(Equal("2ndLBRuleID"))
 		})
 
@@ -384,7 +384,7 @@ var _ = Describe("Network", func() {
 			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&csapi.ListLoadBalancerRulesParams{})
 			lbs.EXPECT().ListLoadBalancerRules(gomock.Any()).
 				Return(nil, fakeError)
-			err := client.GetOrCreateLoadBalancerRule(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)
+			err := client.GetOrCreateLoadBalancerRule(dummies.CSISONet1, dummies.CSCluster)
 			Ω(err).ShouldNot(Succeed())
 			Ω(err.Error()).Should(ContainSubstring(errorMessage))
 		})
@@ -398,7 +398,7 @@ var _ = Describe("Network", func() {
 				Return(&csapi.CreateLoadBalancerRuleParams{})
 			lbs.EXPECT().CreateLoadBalancerRule(gomock.Any()).
 				Return(nil, fakeError)
-			err := client.GetOrCreateLoadBalancerRule(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)
+			err := client.GetOrCreateLoadBalancerRule(dummies.CSISONet1, dummies.CSCluster)
 			Ω(err).ShouldNot(Succeed())
 			Ω(err.Error()).Should(Equal(errorMessage))
 
@@ -432,7 +432,7 @@ var _ = Describe("Network", func() {
 			rs.EXPECT().ListTags(rtlp).Return(&csapi.ListTagsResponse{}, nil).Times(4)
 			as.EXPECT().GetPublicIpAddressByID(dummies.CSISONet1.Status.PublicIPID).Return(&csapi.PublicIpAddress{}, 1, nil)
 
-			Ω(client.DisposeIsoNetResources(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.DisposeIsoNetResources(dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 		})
 
 		It("delete all isolated network resources when managed by CAPC", func() {
@@ -450,7 +450,7 @@ var _ = Describe("Network", func() {
 			as.EXPECT().NewDisassociateIpAddressParams(dummies.CSISONet1.Status.PublicIPID).Return(dap)
 			as.EXPECT().DisassociateIpAddress(dap).Return(&csapi.DisassociateIpAddressResponse{}, nil)
 
-			Ω(client.DisposeIsoNetResources(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+			Ω(client.DisposeIsoNetResources(dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
 		})
 
 		It("disassociate IP address fails due to failure in deleting a resource i.e., disassociate Public IP", func() {
@@ -467,7 +467,7 @@ var _ = Describe("Network", func() {
 			as.EXPECT().NewDisassociateIpAddressParams(dummies.CSISONet1.Status.PublicIPID).Return(dap)
 			as.EXPECT().DisassociateIpAddress(dap).Return(nil, fakeError)
 
-			Ω(client.DisposeIsoNetResources(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).ShouldNot(Succeed())
+			Ω(client.DisposeIsoNetResources(dummies.CSISONet1, dummies.CSCluster)).ShouldNot(Succeed())
 		})
 
 	})
