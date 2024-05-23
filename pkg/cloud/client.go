@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/metrics"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	ttlcache "github.com/jellydator/ttlcache/v3"
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/pkg/errors"
 )
 
