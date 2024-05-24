@@ -39,10 +39,10 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 		// Modify failure domain name the same way the cluster controller would.
 		dummies.CSAffinityGroup.Spec.FailureDomainName = dummies.CSFailureDomain1.Spec.Name
 
+		mockCloudClient.EXPECT().GetOrCreateAffinityGroup(gomock.Any()).AnyTimes()
+
 		Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
 		Ω(k8sClient.Create(ctx, dummies.CSAffinityGroup)).Should(Succeed())
-
-		mockCloudClient.EXPECT().GetOrCreateAffinityGroup(gomock.Any()).AnyTimes()
 
 		// Test that the AffinityGroup controller sets Status.Ready to true.
 		Eventually(func() bool {
@@ -61,10 +61,10 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 		// Modify failure domain name the same way the cluster controller would.
 		dummies.CSAffinityGroup.Spec.FailureDomainName = dummies.CSFailureDomain1.Spec.Name
 
+		mockCloudClient.EXPECT().GetOrCreateAffinityGroup(gomock.Any()).AnyTimes()
+
 		Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
 		Ω(k8sClient.Create(ctx, dummies.CSAffinityGroup)).Should(Succeed())
-
-		mockCloudClient.EXPECT().GetOrCreateAffinityGroup(gomock.Any()).AnyTimes()
 
 		// Test that the AffinityGroup controller sets Status.Ready to true.
 		Eventually(func() bool {
@@ -78,10 +78,11 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 			return false
 		}, timeout).WithPolling(pollInterval).Should(BeTrue())
 
-		Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
 		mockCloudClient.EXPECT().FetchAffinityGroup(gomock.Any()).Do(func(arg1 interface{}) {
 			arg1.(*cloud.AffinityGroup).ID = ""
 		}).AnyTimes().Return(nil)
+
+		Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
 
 		// Once the affinity group id was set to "" the controller should remove the finalizer and unblock deleting affinity group resource
 		Eventually(func() bool {
