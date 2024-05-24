@@ -26,6 +26,9 @@ import (
 // The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
 const MachineFinalizer = "cloudstackmachine.infrastructure.cluster.x-k8s.io"
 
+const MachineCreateFailedAnnotation = "cluster.x-k8s.io/vm-create-failed"
+const CloudStackJobIDAnnotation = "cluster.x-k8s.io/cs-job-id"
+
 const (
 	ProAffinity  = "pro"
 	AntiAffinity = "anti"
@@ -93,6 +96,40 @@ type CloudStackMachineSpec struct {
 
 func (c *CloudStackMachine) CompressUserdata() bool {
 	return c.Spec.UncompressedUserData == nil || !*c.Spec.UncompressedUserData
+}
+
+func (c *CloudStackMachine) SetJobID(id string) {
+	if c.Annotations == nil {
+		c.Annotations = map[string]string{}
+	}
+	c.Annotations[CloudStackJobIDAnnotation] = id
+}
+
+func (c *CloudStackMachine) GetJobID() string {
+	if c.Annotations == nil {
+		return ""
+	}
+
+	return c.Annotations[CloudStackJobIDAnnotation]
+}
+
+func (c *CloudStackMachine) ClearJobID() {
+	delete(c.Annotations, CloudStackJobIDAnnotation)
+}
+
+func (c *CloudStackMachine) MarkAsFailed() {
+	if c.Annotations == nil {
+		c.Annotations = map[string]string{}
+	}
+	c.Annotations[MachineCreateFailedAnnotation] = "true"
+}
+
+func (c *CloudStackMachine) ClearFailed() {
+	delete(c.Annotations, MachineCreateFailedAnnotation)
+}
+
+func (c *CloudStackMachine) HasFailed() bool {
+	return c.Annotations != nil && c.Annotations[MachineCreateFailedAnnotation] == "true"
 }
 
 type CloudStackResourceIdentifier struct {

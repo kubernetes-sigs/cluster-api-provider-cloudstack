@@ -61,7 +61,7 @@ func (reconciler *CloudStackAffinityGroupReconciler) Reconcile(ctx context.Conte
 	r.UsingBaseReconciler(reconciler.ReconcilerBase).ForRequest(req).WithRequestCtx(ctx)
 	r.WithAdditionalCommonStages(
 		r.GetFailureDomainByName(func() string { return r.ReconciliationSubject.Spec.FailureDomainName }, r.FailureDomain),
-		r.AsFailureDomainUser(&r.FailureDomain.Spec))
+		r.AsFailureDomainUser(ctx, &r.FailureDomain.Spec))
 	return r.RunBaseReconciliationStages()
 }
 

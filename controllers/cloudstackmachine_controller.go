@@ -19,16 +19,16 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"reflect"
 	"regexp"
-
-	"k8s.io/utils/pointer"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
+	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -43,7 +43,8 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	cserrors "sigs.k8s.io/cluster-api-provider-cloudstack/pkg/errors"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/failuredomains"
 )
 
 var (
@@ -67,7 +68,7 @@ const (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/finalizers,verbs=update
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;patch;update
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
@@ -112,7 +113,7 @@ func (reconciler *CloudStackMachineReconciler) Reconcile(ctx context.Context, re
 		r.RequeueIfCloudStackClusterNotReady,
 		r.SetFailureDomainOnCSMachine,
 		r.GetFailureDomainByName(func() string { return r.ReconciliationSubject.Spec.FailureDomainName }, r.FailureDomain),
-		r.AsFailureDomainUser(&r.FailureDomain.Spec))
+		r.AsFailureDomainUser(ctx, &r.FailureDomain.Spec))
 	return r.RunBaseReconciliationStages()
 }
 
@@ -172,23 +173,61 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 }
 
 // SetFailureDomainOnCSMachine sets the failure domain the machine should launch in.
-func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
-	if r.ReconciliationSubject.Spec.FailureDomainName == "" {
-		var name string
-		// CAPIMachine is null if it's been deleted but we're still reconciling the CS machine.
-		if r.CAPIMachine != nil && r.CAPIMachine.Spec.FailureDomain != nil &&
-			(util.IsControlPlaneMachine(r.CAPIMachine) || // Is control plane machine -- CAPI will specify.
-				*r.CAPIMachine.Spec.FailureDomain != "") { // Or potentially another machine controller specified.
-			name = *r.CAPIMachine.Spec.FailureDomain
-			r.ReconciliationSubject.Spec.FailureDomainName = *r.CAPIMachine.Spec.FailureDomain
-		} else { // Not a control plane machine. Place randomly.
-			randNum := (rand.Int() % len(r.CSCluster.Spec.FailureDomains)) // #nosec G404 -- weak crypt rand doesn't matter here.
-			name = r.CSCluster.Spec.FailureDomains[randNum].Name
-		}
-		r.ReconciliationSubject.Spec.FailureDomainName = name
-		r.ReconciliationSubject.Labels[infrav1.FailureDomainLabelName] = infrav1.FailureDomainHashedMetaName(name, r.CAPICluster.Name)
+func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (ctrl.Result, error) {
+	if r.CAPIMachine == nil {
+		// CAPIMachine is null if it's been deleted, but we're still reconciling the CS machine.
+		return ctrl.Result{}, nil
 	}
-	return ctrl.Result{}, nil
+
+	currentFailureDomain := r.ReconciliationSubject.Spec.FailureDomainName
+
+	fdBalancer := failuredomains.NewFailureDomainBalancer(r.CloudClientExtension)
+	err := fdBalancer.Assign(r.RequestCtx, r.ReconciliationSubject, r.CAPIMachine, r.CSCluster.Spec.FailureDomains)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to set a failure domain for machine %s: %w", r.CAPIMachine.Name, err)
+	}
+
+	newFailureDomain := r.ReconciliationSubject.Spec.FailureDomainName
+	if currentFailureDomain == newFailureDomain {
+		return ctrl.Result{}, nil
+	}
+
+	if result, err := r.updateFailureDomain(newFailureDomain); err != nil {
+		return result, err
+	}
+
+	return r.updateCAPIFailureDomain(newFailureDomain)
+
+}
+
+func (r *CloudStackMachineReconciliationRunner) updateFailureDomain(newFailureDomain string) (ctrl.Result, error) {
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		err := r.K8sClient.Get(r.RequestCtx, types.NamespacedName{Name: r.ReconciliationSubject.Name, Namespace: r.ReconciliationSubject.Namespace}, r.ReconciliationSubject)
+		if err != nil {
+			return err
+		}
+
+		r.ReconciliationSubject.Spec.AffinityGroupRef = nil
+		r.ReconciliationSubject.Spec.FailureDomainName = newFailureDomain
+		r.ReconciliationSubject.Labels[infrav1.FailureDomainLabelName] = infrav1.FailureDomainHashedMetaName(newFailureDomain, r.CAPIMachine.Spec.ClusterName)
+		return r.K8sClient.Update(r.RequestCtx, r.ReconciliationSubject)
+	})
+
+	return ctrl.Result{}, err
+}
+
+func (r *CloudStackMachineReconciliationRunner) updateCAPIFailureDomain(newFailureDomain string) (ctrl.Result, error) {
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		_, err := r.GetParent(r.ReconciliationSubject, r.CAPIMachine)()
+		if err != nil {
+			return err
+		}
+
+		r.CAPIMachine.Spec.FailureDomain = &newFailureDomain
+		return r.K8sClient.Update(r.RequestCtx, r.CAPIMachine)
+	})
+
+	return ctrl.Result{}, err
 }
 
 // DeleteMachineIfFailuredomainNotExist delete CAPI machine if machine is deployed in a failuredomain that does not exist anymore.
@@ -226,7 +265,7 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	// Get the kubeadm bootstrap secret for this machine.
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: r.CAPIMachine.Namespace, Name: *r.CAPIMachine.Spec.Bootstrap.DataSecretName}
-	if err := r.K8sClient.Get(context.TODO(), key, secret); err != nil {
+	if err := r.K8sClient.Get(r.RequestCtx, key, secret); err != nil {
 		return ctrl.Result{}, err
 	}
 	data, present := secret.Data["value"]
@@ -238,6 +277,16 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
 	if err != nil {
 		r.Recorder.Eventf(r.ReconciliationSubject, "Warning", "Creating", CSMachineCreationFailed, err.Error())
+
+		if !cserrors.IsTerminalDeployVMError(err) {
+			return ctrl.Result{}, err
+		}
+
+		if err := r.markMachineFailed(r.RequestCtx, err); err != nil {
+			return ctrl.Result{}, err
+		}
+	} else if err := r.clearMachineFailed(r.RequestCtx); err != nil {
+		return ctrl.Result{}, err
 	}
 	if err == nil && !controllerutil.ContainsFinalizer(r.ReconciliationSubject, infrav1.MachineFinalizer) { // Fetched or Created?
 		// Adding a finalizer will make reconcile-delete try to destroy the associated VM through instanceID.
@@ -249,6 +298,29 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	}
 
 	return ctrl.Result{}, err
+}
+
+func (r *CloudStackMachineReconciliationRunner) markMachineFailed(ctx context.Context, err error) error {
+	r.Log.Error(err, "Marking machine as failed to launch", "csMachine", r.ReconciliationSubject.GetName())
+	r.ReconciliationSubject.MarkAsFailed()
+
+	if _, err := r.ReconcileDelete(); err != nil {
+		return fmt.Errorf("failed to delete failed VM: %w", err)
+	}
+
+	r.ReconciliationSubject.Spec.InstanceID = nil
+
+	return r.K8sClient.Update(ctx, r.ReconciliationSubject)
+}
+
+func (r *CloudStackMachineReconciliationRunner) clearMachineFailed(ctx context.Context) error {
+	if !r.ReconciliationSubject.HasFailed() {
+		return nil
+	}
+
+	r.ReconciliationSubject.ClearFailed()
+
+	return r.K8sClient.Update(ctx, r.ReconciliationSubject)
 }
 
 func processCustomMetadata(data []byte, r *CloudStackMachineReconciliationRunner) string {
