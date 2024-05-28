@@ -280,12 +280,16 @@ func DestroyOneMachine(client *cloudstack.CloudStackClient, clusterName string, 
 }
 
 func CheckAffinityGroupsDeleted(client *cloudstack.CloudStackClient, affinityIds []string) error {
+	return CheckAffinityGroupsDeletedInProject(client, affinityIds, "")
+}
+
+func CheckAffinityGroupsDeletedInProject(client *cloudstack.CloudStackClient, affinityIds []string, project string) error {
 	if len(affinityIds) == 0 {
 		return errors.New("affinityIds are empty")
 	}
 
 	for _, affinityId := range affinityIds {
-		affinity, count, _ := client.AffinityGroup.GetAffinityGroupByID(affinityId)
+		affinity, count, _ := client.AffinityGroup.GetAffinityGroupByID(affinityId, cloudstack.WithProject(project))
 		if count > 0 {
 			return errors.New("Affinity group " + affinity.Name + " still exists")
 		}
@@ -312,9 +316,21 @@ func GetHostCount(client *cloudstack.CloudStackClient, zoneName string) int {
 }
 
 func CheckAffinityGroup(client *cloudstack.CloudStackClient, clusterName string, affinityType string) []string {
+	return CheckAffinityGroupInProject(client, clusterName, affinityType, "")
+}
+
+func CheckAffinityGroupInProject(client *cloudstack.CloudStackClient, clusterName string, affinityType string, project string) []string {
 	By("Listing all machines")
 	p := client.VirtualMachine.NewListVirtualMachinesParams()
 	p.SetListall(true)
+
+	if project != "" {
+		projectID, _, err := client.Project.GetProjectID(project)
+		if err != nil {
+			Fail("Failed to get project: " + err.Error())
+		}
+		p.SetProjectid(projectID)
+	}
 	listResp, err := client.VirtualMachine.ListVirtualMachines(p)
 	if err != nil {
 		Fail("Failed to list machines: " + err.Error())
@@ -334,7 +350,7 @@ func CheckAffinityGroup(client *cloudstack.CloudStackClient, clusterName string,
 
 			for _, affinity := range vm.Affinitygroup {
 				affinityIds = append(affinityIds, affinity.Id)
-				affinity, _, _ := client.AffinityGroup.GetAffinityGroupByID(affinity.Id)
+				affinity, _, _ := client.AffinityGroup.GetAffinityGroupByID(affinity.Id, cloudstack.WithProject(project))
 				if err != nil {
 					Fail("Failed to get affinity group for " + affinity.Id + " : " + err.Error())
 				}

@@ -55,6 +55,15 @@ type Account struct {
 	VMAvailable     string
 }
 
+// Project contains specifications that identify a project.
+type Project struct {
+	Name            string
+	ID              string
+	CPUAvailable    string
+	MemoryAvailable string
+	VMAvailable     string
+}
+
 // User contains information uniquely identifying and scoping a user.
 type User struct {
 	ID        string
@@ -62,6 +71,7 @@ type User struct {
 	APIKey    string
 	SecretKey string
 	Account
+	Project
 }
 
 // ResolveDomain resolves a domain's information.
@@ -168,6 +178,36 @@ func (c *client) ResolveAccount(account *Account) error {
 	return nil
 }
 
+// ResolveProject resolves a project's information.
+func (c *client) ResolveProject(user *User) error {
+	if user.Project.Name == "" {
+		return nil
+	}
+
+	p := c.cs.Project.NewListProjectsParams()
+	p.SetListall(true)
+	p.SetDomainid(user.Domain.ID)
+	p.SetAccount(user.Account.Name)
+	p.SetName(user.Project.Name)
+	setIfNotEmpty(user.Project.ID, p.SetId)
+	resp, retErr := c.cs.Project.ListProjects(p)
+	if retErr != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
+		return retErr
+	} else if resp.Count == 0 {
+		return errors.Errorf("could not find project %s", user.Project.Name)
+	} else if resp.Count != 1 {
+		return errors.Errorf("expected 1 Project with name %s in domain ID %s, but got %d",
+			user.Project.Name, user.Domain.ID, resp.Count)
+	}
+	user.Project.ID = resp.Projects[0].Id
+	user.Project.Name = resp.Projects[0].Name
+	user.Project.CPUAvailable = resp.Projects[0].Cpuavailable
+	user.Project.MemoryAvailable = resp.Projects[0].Memoryavailable
+	user.Project.VMAvailable = resp.Projects[0].Vmavailable
+	return nil
+}
+
 // ResolveUser resolves a user's information.
 func (c *client) ResolveUser(user *User) error {
 	// Resolve account prior to any user resolution activity.
@@ -218,6 +258,10 @@ func (c *client) GetUserWithKeys(user *User) (bool, error) {
 	// Resolve account prior to any user resolution activity.
 	if err := c.ResolveAccount(&user.Account); err != nil {
 		return false, errors.Wrapf(err, "resolving account %s details", user.Account.Name)
+	}
+
+	if err := c.ResolveProject(user); err != nil {
+		return false, errors.Wrapf(err, "resolving project %s details", user.Project.Name)
 	}
 
 	// List users and take first user that has already has api keys.

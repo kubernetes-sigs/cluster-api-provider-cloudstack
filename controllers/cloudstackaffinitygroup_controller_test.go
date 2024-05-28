@@ -81,6 +81,7 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 		mockCloudClient.EXPECT().FetchAffinityGroup(gomock.Any()).Do(func(arg1 interface{}) {
 			arg1.(*cloud.AffinityGroup).ID = ""
 		}).AnyTimes().Return(nil)
+		Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
 
 		Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
 

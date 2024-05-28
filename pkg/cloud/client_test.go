@@ -162,7 +162,7 @@ var _ = Describe("Client", func() {
 			config := cloud.Config{
 				APIUrl: "http://1.1.1.1",
 			}
-			result, err := cloud.NewClientFromConf(config, clientConfig)
+			result, err := cloud.NewClientFromConf(config, clientConfig, "")
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(result).ShouldNot(BeNil())
 		})
@@ -174,8 +174,8 @@ var _ = Describe("Client", func() {
 			config2 := cloud.Config{
 				APIUrl: "http://3.3.3.3",
 			}
-			result1, _ := cloud.NewClientFromConf(config1, clientConfig)
-			result2, _ := cloud.NewClientFromConf(config2, clientConfig)
+			result1, _ := cloud.NewClientFromConf(config1, clientConfig, "")
+			result2, _ := cloud.NewClientFromConf(config2, clientConfig, "")
 			Ω(result1).ShouldNot(Equal(result2))
 		})
 
@@ -186,8 +186,8 @@ var _ = Describe("Client", func() {
 			config2 := cloud.Config{
 				APIUrl: "http://4.4.4.4",
 			}
-			result1, _ := cloud.NewClientFromConf(config1, clientConfig)
-			result2, _ := cloud.NewClientFromConf(config2, clientConfig)
+			result1, _ := cloud.NewClientFromConf(config1, clientConfig, "")
+			result2, _ := cloud.NewClientFromConf(config2, clientConfig, "")
 			Ω(result1).Should(Equal(result2))
 		})
 	})

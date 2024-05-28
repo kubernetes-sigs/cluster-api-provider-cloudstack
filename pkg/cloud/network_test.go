@@ -53,21 +53,21 @@ var _ = Describe("Network", func() {
 
 	Context("for an existing network", func() {
 		It("resolves network by ID", func() {
-			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(nil, 0, nil)
-			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
+			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(nil, 0, nil)
+			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
 
 			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 		})
 
 		It("resolves network by Name", func() {
-			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
+			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
 
 			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
 		})
 
 		It("When there exists more than one network with the same name", func() {
-			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 2, nil)
-			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID).Return(nil, 2, errors.New("There is more then one result for Network UUID"))
+			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 2, nil)
+			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(nil, 2, errors.New("There is more then one result for Network UUID"))
 			err := client.ResolveNetwork(&dummies.ISONet1)
 			Ω(err).ShouldNot(Succeed())
 			Ω(err.Error()).Should(ContainSubstring(fmt.Sprintf("expected 1 Network with name %s, but got %d", dummies.ISONet1.Name, 2)))

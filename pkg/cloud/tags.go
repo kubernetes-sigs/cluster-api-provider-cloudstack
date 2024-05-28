@@ -129,6 +129,7 @@ func (c *client) GetTags(resourceType ResourceType, resourceID string) (map[stri
 	p.SetResourceid(resourceID)
 	p.SetResourcetype(string(resourceType))
 	p.SetListall(true)
+	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
 	listTagResponse, err := c.cs.Resourcetags.ListTags(p)
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)

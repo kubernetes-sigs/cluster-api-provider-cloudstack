@@ -147,12 +147,12 @@ func (c *CloudClientImplementation) AsFailureDomainUser(fdSpec *infrav1.CloudSta
 		_ = c.K8sClient.Get(c.RequestCtx, key, clientConfig)
 
 		var err error
-		if c.CSClient, err = cloud.NewClientFromK8sSecret(endpointCredentials, clientConfig); err != nil {
+		if c.CSClient, err = cloud.NewClientFromK8sSecret(endpointCredentials, clientConfig, fdSpec.Project); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "parsing ACSEndpoint secret with ref: %v", fdSpec.ACSEndpoint)
 		}
 
 		if fdSpec.Account != "" { // Set r.CSUser CloudStack Client per Account and Domain.
-			client, err := c.CSClient.NewClientInDomainAndAccount(fdSpec.Domain, fdSpec.Account)
+			client, err := c.CSClient.NewClientInDomainAndAccount(fdSpec.Domain, fdSpec.Account, fdSpec.Project)
 			if err != nil {
 				return ctrl.Result{}, err
 			}

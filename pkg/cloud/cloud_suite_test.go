@@ -70,7 +70,7 @@ func TestCloud(t *testing.T) {
 
 			// Switch to test account user.
 			realCloudClient, connectionErr = realCloudClient.NewClientInDomainAndAccount(
-				newAccount.Domain.Name, newAccount.Name)
+				newAccount.Domain.Name, newAccount.Name, "")
 			Ω(connectionErr).ShouldNot(HaveOccurred())
 		}
 	})

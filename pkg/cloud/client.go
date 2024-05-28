@@ -44,7 +44,7 @@ type Client interface {
 	ZoneIFace
 	IsoNetworkIface
 	UserCredIFace
-	NewClientInDomainAndAccount(string, string) (Client, error)
+	NewClientInDomainAndAccount(string, string, string) (Client, error)
 }
 
 // cloud-config ini structure.
@@ -101,7 +101,7 @@ func UnmarshalAllSecretConfigs(in []byte, out *[]SecretConfig) error {
 }
 
 // NewClientFromK8sSecret returns a client from a k8s secret
-func NewClientFromK8sSecret(endpointSecret *corev1.Secret, clientConfig *corev1.ConfigMap) (Client, error) {
+func NewClientFromK8sSecret(endpointSecret *corev1.Secret, clientConfig *corev1.ConfigMap, project string) (Client, error) {
 	endpointSecretStrings := map[string]string{}
 	for k, v := range endpointSecret.Data {
 		endpointSecretStrings[k] = string(v)
@@ -110,11 +110,11 @@ func NewClientFromK8sSecret(endpointSecret *corev1.Secret, clientConfig *corev1.
 	if err != nil {
 		return nil, err
 	}
-	return NewClientFromBytesConfig(bytes, clientConfig)
+	return NewClientFromBytesConfig(bytes, clientConfig, project)
 }
 
 // NewClientFromBytesConfig returns a client from a bytes array that unmarshals to a yaml config.
-func NewClientFromBytesConfig(conf []byte, clientConfig *corev1.ConfigMap) (Client, error) {
+func NewClientFromBytesConfig(conf []byte, clientConfig *corev1.ConfigMap, project string) (Client, error) {
 	r := bytes.NewReader(conf)
 	dec := yaml.NewDecoder(r)
 	var config Config
@@ -122,7 +122,7 @@ func NewClientFromBytesConfig(conf []byte, clientConfig *corev1.ConfigMap) (Clie
 		return nil, err
 	}
 
-	return NewClientFromConf(config, clientConfig)
+	return NewClientFromConf(config, clientConfig, project)
 }
 
 // NewClientFromYamlPath returns a client from a yaml config at path.
@@ -146,11 +146,11 @@ func NewClientFromYamlPath(confPath string, secretName string) (Client, error) {
 		return nil, errors.Errorf("config with secret name %s not found", secretName)
 	}
 
-	return NewClientFromConf(conf, nil)
+	return NewClientFromConf(conf, nil, "")
 }
 
 // NewClientFromConf creates a new Cloud Client form a map of strings to strings.
-func NewClientFromConf(conf Config, clientConfig *corev1.ConfigMap) (Client, error) {
+func NewClientFromConf(conf Config, clientConfig *corev1.ConfigMap, project string) (Client, error) {
 	cacheMutex.Lock()
 	defer cacheMutex.Unlock()
 
@@ -189,6 +189,9 @@ func NewClientFromConf(conf Config, clientConfig *corev1.ConfigMap) (Client, err
 				ID: userResponse.Users[0].Domainid,
 			},
 		},
+		Project: Project{
+			Name: project,
+		},
 	}
 	if found, err := c.GetUserWithKeys(user); err != nil {
 		return nil, err
@@ -203,10 +206,11 @@ func NewClientFromConf(conf Config, clientConfig *corev1.ConfigMap) (Client, err
 }
 
 // NewClientInDomainAndAccount returns a new client in the specified domain and account.
-func (c *client) NewClientInDomainAndAccount(domain string, account string) (Client, error) {
+func (c *client) NewClientInDomainAndAccount(domain string, account string, project string) (Client, error) {
 	user := &User{}
 	user.Account.Domain.Path = domain
 	user.Account.Name = account
+	user.Project.Name = project
 	if found, err := c.GetUserWithKeys(user); err != nil {
 		return nil, err
 	} else if !found {
@@ -217,7 +221,7 @@ func (c *client) NewClientInDomainAndAccount(domain string, account string) (Cli
 	c.config.SecretKey = user.SecretKey
 	c.user = user
 
-	return NewClientFromConf(c.config, nil)
+	return NewClientFromConf(c.config, nil, project)
 }
 
 // NewClientFromCSAPIClient creates a client from a CloudStack-Go API client. Used only for testing.
