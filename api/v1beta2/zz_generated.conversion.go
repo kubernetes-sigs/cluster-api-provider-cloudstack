@@ -143,11 +143,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackFailureDomainSpec)(nil), (*CloudStackFailureDomainSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackFailureDomainSpec_To_v1beta2_CloudStackFailureDomainSpec(a.(*v1beta3.CloudStackFailureDomainSpec), b.(*CloudStackFailureDomainSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*CloudStackFailureDomainStatus)(nil), (*v1beta3.CloudStackFailureDomainStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_CloudStackFailureDomainStatus_To_v1beta3_CloudStackFailureDomainStatus(a.(*CloudStackFailureDomainStatus), b.(*v1beta3.CloudStackFailureDomainStatus), scope)
 	}); err != nil {
@@ -363,6 +358,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta3.CloudStackFailureDomainSpec)(nil), (*CloudStackFailureDomainSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta3_CloudStackFailureDomainSpec_To_v1beta2_CloudStackFailureDomainSpec(a.(*v1beta3.CloudStackFailureDomainSpec), b.(*CloudStackFailureDomainSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta3.CloudStackMachineTemplateSpec)(nil), (*CloudStackMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta3_CloudStackMachineTemplateSpec_To_v1beta2_CloudStackMachineTemplateSpec(a.(*v1beta3.CloudStackMachineTemplateSpec), b.(*CloudStackMachineTemplateSpec), scope)
 	}); err != nil {
@@ -505,7 +505,17 @@ func Convert_v1beta3_CloudStackCluster_To_v1beta2_CloudStackCluster(in *v1beta3.
 
 func autoConvert_v1beta2_CloudStackClusterList_To_v1beta3_CloudStackClusterList(in *CloudStackClusterList, out *v1beta3.CloudStackClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta3.CloudStackCluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta3.CloudStackCluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_CloudStackCluster_To_v1beta3_CloudStackCluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -516,7 +526,17 @@ func Convert_v1beta2_CloudStackClusterList_To_v1beta3_CloudStackClusterList(in *
 
 func autoConvert_v1beta3_CloudStackClusterList_To_v1beta2_CloudStackClusterList(in *v1beta3.CloudStackClusterList, out *CloudStackClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]CloudStackCluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]CloudStackCluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta3_CloudStackCluster_To_v1beta2_CloudStackCluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -526,7 +546,17 @@ func Convert_v1beta3_CloudStackClusterList_To_v1beta2_CloudStackClusterList(in *
 }
 
 func autoConvert_v1beta2_CloudStackClusterSpec_To_v1beta3_CloudStackClusterSpec(in *CloudStackClusterSpec, out *v1beta3.CloudStackClusterSpec, s conversion.Scope) error {
-	out.FailureDomains = *(*[]v1beta3.CloudStackFailureDomainSpec)(unsafe.Pointer(&in.FailureDomains))
+	if in.FailureDomains != nil {
+		in, out := &in.FailureDomains, &out.FailureDomains
+		*out = make([]v1beta3.CloudStackFailureDomainSpec, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_CloudStackFailureDomainSpec_To_v1beta3_CloudStackFailureDomainSpec(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.FailureDomains = nil
+	}
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	return nil
 }
@@ -537,7 +567,17 @@ func Convert_v1beta2_CloudStackClusterSpec_To_v1beta3_CloudStackClusterSpec(in *
 }
 
 func autoConvert_v1beta3_CloudStackClusterSpec_To_v1beta2_CloudStackClusterSpec(in *v1beta3.CloudStackClusterSpec, out *CloudStackClusterSpec, s conversion.Scope) error {
-	out.FailureDomains = *(*[]CloudStackFailureDomainSpec)(unsafe.Pointer(&in.FailureDomains))
+	if in.FailureDomains != nil {
+		in, out := &in.FailureDomains, &out.FailureDomains
+		*out = make([]CloudStackFailureDomainSpec, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta3_CloudStackFailureDomainSpec_To_v1beta2_CloudStackFailureDomainSpec(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.FailureDomains = nil
+	}
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	return nil
 }
@@ -603,7 +643,17 @@ func Convert_v1beta3_CloudStackFailureDomain_To_v1beta2_CloudStackFailureDomain(
 
 func autoConvert_v1beta2_CloudStackFailureDomainList_To_v1beta3_CloudStackFailureDomainList(in *CloudStackFailureDomainList, out *v1beta3.CloudStackFailureDomainList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta3.CloudStackFailureDomain)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta3.CloudStackFailureDomain, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_CloudStackFailureDomain_To_v1beta3_CloudStackFailureDomain(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -614,7 +664,17 @@ func Convert_v1beta2_CloudStackFailureDomainList_To_v1beta3_CloudStackFailureDom
 
 func autoConvert_v1beta3_CloudStackFailureDomainList_To_v1beta2_CloudStackFailureDomainList(in *v1beta3.CloudStackFailureDomainList, out *CloudStackFailureDomainList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]CloudStackFailureDomain)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]CloudStackFailureDomain, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta3_CloudStackFailureDomain_To_v1beta2_CloudStackFailureDomain(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -646,13 +706,9 @@ func autoConvert_v1beta3_CloudStackFailureDomainSpec_To_v1beta2_CloudStackFailur
 	}
 	out.Account = in.Account
 	out.Domain = in.Domain
+	// WARNING: in.Project requires manual conversion: does not exist in peer-type
 	out.ACSEndpoint = in.ACSEndpoint
 	return nil
-}
-
-// Convert_v1beta3_CloudStackFailureDomainSpec_To_v1beta2_CloudStackFailureDomainSpec is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackFailureDomainSpec_To_v1beta2_CloudStackFailureDomainSpec(in *v1beta3.CloudStackFailureDomainSpec, out *CloudStackFailureDomainSpec, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackFailureDomainSpec_To_v1beta2_CloudStackFailureDomainSpec(in, out, s)
 }
 
 func autoConvert_v1beta2_CloudStackFailureDomainStatus_To_v1beta3_CloudStackFailureDomainStatus(in *CloudStackFailureDomainStatus, out *v1beta3.CloudStackFailureDomainStatus, s conversion.Scope) error {
