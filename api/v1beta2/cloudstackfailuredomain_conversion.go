@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	machineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -29,4 +30,8 @@ func (src *CloudStackFailureDomain) ConvertTo(dstRaw conversion.Hub) error { // 
 func (dst *CloudStackFailureDomain) ConvertFrom(srcRaw conversion.Hub) error { // nolint
 	src := srcRaw.(*v1beta3.CloudStackFailureDomain)
 	return Convert_v1beta3_CloudStackFailureDomain_To_v1beta2_CloudStackFailureDomain(src, dst, nil)
+}
+
+func Convert_v1beta3_CloudStackFailureDomainSpec_To_v1beta2_CloudStackFailureDomainSpec(in *v1beta3.CloudStackFailureDomainSpec, out *CloudStackFailureDomainSpec, s machineryconversion.Scope) error { // nolint
+	return autoConvert_v1beta3_CloudStackFailureDomainSpec_To_v1beta2_CloudStackFailureDomainSpec(in, out, s)
 }
