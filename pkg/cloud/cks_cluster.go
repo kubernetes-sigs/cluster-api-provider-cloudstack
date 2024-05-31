@@ -27,10 +27,10 @@ import (
 )
 
 type ClusterIface interface {
-	GetOrCreateUnmanagedCluster(*clusterv1.Cluster, *infrav1.CloudStackCluster, *infrav1.CloudStackFailureDomainSpec) error
-	DeleteUnmanagedCluster(*infrav1.CloudStackCluster) error
-	AddVMToUnmanagedCluster(*infrav1.CloudStackCluster, *infrav1.CloudStackMachine) error
-	RemoveVMFromUnmanagedCluster(*infrav1.CloudStackCluster, *infrav1.CloudStackMachine) error
+	GetOrCreateCksCluster(*clusterv1.Cluster, *infrav1.CloudStackCluster, *infrav1.CloudStackFailureDomainSpec) error
+	DeleteCksCluster(*infrav1.CloudStackCluster) error
+	AddVMToCksCluster(*infrav1.CloudStackCluster, *infrav1.CloudStackMachine) error
+	RemoveVMFromCksCluster(*infrav1.CloudStackCluster, *infrav1.CloudStackMachine) error
 }
 
 type ClustertypeSetter interface {
@@ -48,7 +48,7 @@ func withExternalManaged() cloudstack.OptionFunc {
 	}
 }
 
-func (c *client) GetOrCreateUnmanagedCluster(cluster *clusterv1.Cluster, csCluster *infrav1.CloudStackCluster, fd *infrav1.CloudStackFailureDomainSpec) error {
+func (c *client) GetOrCreateCksCluster(cluster *clusterv1.Cluster, csCluster *infrav1.CloudStackCluster, fd *infrav1.CloudStackFailureDomainSpec) error {
 	// Get cluster
 	if csCluster.Status.CloudStackClusterID != "" {
 		externalManagedCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByID(csCluster.Status.CloudStackClusterID, withExternalManaged(), cloudstack.WithProject(c.user.Project.ID))
@@ -100,14 +100,14 @@ func (c *client) GetOrCreateUnmanagedCluster(cluster *clusterv1.Cluster, csClust
 	return nil
 }
 
-func (c *client) DeleteUnmanagedCluster(csCluster *infrav1.CloudStackCluster) error {
+func (c *client) DeleteCksCluster(csCluster *infrav1.CloudStackCluster) error {
 	if csCluster.Status.CloudStackClusterID != "" {
-		csUnmanagedCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByID(csCluster.Status.CloudStackClusterID, withExternalManaged())
+		csCksCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByID(csCluster.Status.CloudStackClusterID, withExternalManaged())
 		if err != nil && strings.Contains(err.Error(), " not found") {
 			return nil
 		}
 		if count != 0 {
-			params := c.cs.Kubernetes.NewDeleteKubernetesClusterParams(csUnmanagedCluster.Id)
+			params := c.cs.Kubernetes.NewDeleteKubernetesClusterParams(csCksCluster.Id)
 			_, err = c.cs.Kubernetes.DeleteKubernetesCluster(params)
 			if err != nil {
 				return err
@@ -118,16 +118,21 @@ func (c *client) DeleteUnmanagedCluster(csCluster *infrav1.CloudStackCluster) er
 	return nil
 }
 
-func (c *client) AddVMToUnmanagedCluster(csCluster *infrav1.CloudStackCluster, csMachine *infrav1.CloudStackMachine) error {
+func (c *client) AddVMToCksCluster(csCluster *infrav1.CloudStackCluster, csMachine *infrav1.CloudStackMachine) error {
 	if csCluster.Status.CloudStackClusterID != "" {
 		params := c.cs.Kubernetes.NewAddVirtualMachinesToKubernetesClusterParams(csCluster.Status.CloudStackClusterID, []string{*csMachine.Spec.InstanceID})
+		if csMachine.Labels != nil {
+			_, ok := csMachine.Labels[clusterv1.MachineControlPlaneLabel]
+			params.SetIscontrolnode(ok)
+		}
+
 		_, err := c.cs.Kubernetes.AddVirtualMachinesToKubernetesCluster(params)
 		return err
 	}
 	return nil
 }
 
-func (c *client) RemoveVMFromUnmanagedCluster(csCluster *infrav1.CloudStackCluster, csMachine *infrav1.CloudStackMachine) error {
+func (c *client) RemoveVMFromCksCluster(csCluster *infrav1.CloudStackCluster, csMachine *infrav1.CloudStackMachine) error {
 	if csCluster.Status.CloudStackClusterID != "" {
 		params := c.cs.Kubernetes.NewRemoveVirtualMachinesFromKubernetesClusterParams(csCluster.Status.CloudStackClusterID, []string{*csMachine.Spec.InstanceID})
 		_, err := c.cs.Kubernetes.RemoveVirtualMachinesFromKubernetesCluster(params)

@@ -23,8 +23,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-var _ = Describe("When testing creation of unmanaged CKS cluster in ACS", func() {
-	UnmanagedK8SSpec(ctx, func() CommonSpecInput {
+var _ = Describe("When testing creation of CKS cluster in ACS", func() {
+	CksK8SSpec(ctx, func() CommonSpecInput {
 		return CommonSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,

@@ -86,6 +86,7 @@ type managerOpts struct {
 	CloudStackMachineConcurrency       int
 	CloudStackAffinityGroupConcurrency int
 	CloudStackFailureDomainConcurrency int
+	EnableCloudStackCksSync            bool
 }
 
 func setFlags() *managerOpts {
@@ -153,6 +154,12 @@ func setFlags() *managerOpts {
 		"cloudstackfailuredomain-concurrency",
 		5,
 		"Maximum concurrent reconciles for CloudStackFailureDomain resources",
+	)
+	flag.BoolVar(
+		&opts.EnableCloudStackCksSync,
+		"enable-cloudstack-cks-sync",
+		false,
+		"Enable syncing of CloudStack clusters and machines with CKS clusters and machines",
 	)
 
 	return opts
@@ -261,5 +268,15 @@ func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, opts manag
 	if err := (&controllers.CloudStackFailureDomainReconciler{ReconcilerBase: base}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: opts.CloudStackFailureDomainConcurrency}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackFailureDomain")
 		os.Exit(1)
+	}
+	if opts.EnableCloudStackCksSync {
+		if err := (&controllers.CksClusterReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "CKSClusterController")
+			os.Exit(1)
+		}
+		if err := (&controllers.CksMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "CKSMachineController")
+			os.Exit(1)
+		}
 	}
 }

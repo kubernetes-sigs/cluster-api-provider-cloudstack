@@ -130,6 +130,10 @@ var (
 	FailureDomainReconciler *csReconcilers.CloudStackFailureDomainReconciler
 	IsoNetReconciler        *csReconcilers.CloudStackIsoNetReconciler
 	AffinityGReconciler     *csReconcilers.CloudStackAffinityGroupReconciler
+
+	// CKS Reconcilers
+	CksClusterReconciler *csReconcilers.CksClusterReconciler
+	CksMachineReconciler *csReconcilers.CksMachineReconciler
 )
 
 var _ = BeforeSuite(func() {
@@ -225,6 +229,9 @@ func SetupTestEnvironment() {
 	IsoNetReconciler = &csReconcilers.CloudStackIsoNetReconciler{ReconcilerBase: base}
 	AffinityGReconciler = &csReconcilers.CloudStackAffinityGroupReconciler{ReconcilerBase: base}
 
+	CksClusterReconciler = &csReconcilers.CksClusterReconciler{ReconcilerBase: base}
+	CksMachineReconciler = &csReconcilers.CksMachineReconciler{ReconcilerBase: base}
+
 	ctx, cancel = context.WithCancel(context.TODO())
 
 	// Setup mock clients.
@@ -237,6 +244,9 @@ func SetupTestEnvironment() {
 	MachineReconciler.CSClient = mockCloudClient
 	AffinityGReconciler.CSClient = mockCloudClient
 	FailureDomainReconciler.CSClient = mockCloudClient
+
+	CksClusterReconciler.CSClient = mockCloudClient
+	CksMachineReconciler.CSClient = mockCloudClient
 
 	setupClusterCRDs()
 

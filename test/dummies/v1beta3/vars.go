@@ -80,6 +80,7 @@ var ( // Declare exported dummy vars.
 	LBRuleID                string
 	PublicIPID              string
 	EndPointHost            string
+	SyncWithACS             bool
 	EndPointPort            int32
 	CSConf                  *simpleyaml.Yaml
 	DiskOffering            infrav1.CloudStackResourceDiskOffering
@@ -273,6 +274,7 @@ func SetDummyCAPCClusterVars() {
 	CSClusterKind = "CloudStackCluster"
 	ClusterName = "test-cluster"
 	EndPointHost = "EndpointHost"
+	SyncWithACS = true
 	EndPointPort = int32(5309)
 	PublicIPID = "FakePublicIPID"
 	ClusterNameSpace = "default"
@@ -333,6 +335,7 @@ func SetDummyCAPCClusterVars() {
 		Spec: infrav1.CloudStackClusterSpec{
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
 			FailureDomains:       []infrav1.CloudStackFailureDomainSpec{CSFailureDomain1.Spec, CSFailureDomain2.Spec},
+			SyncWithACS:          SyncWithACS,
 		},
 		Status: infrav1.CloudStackClusterStatus{},
 	}

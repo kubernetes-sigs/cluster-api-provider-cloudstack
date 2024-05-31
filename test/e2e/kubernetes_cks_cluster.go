@@ -34,10 +34,10 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// UnmanagedK8SSpec implements a spec that creates a cluster and checks whether an entry is created in ACS.
-func UnmanagedK8SSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
+// CksK8SSpec implements a spec that creates a cluster and checks whether an entry is created in ACS.
+func CksK8SSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
-		specName         = "k8s-unmanaged"
+		specName         = "k8s-cks"
 		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
@@ -104,7 +104,7 @@ func UnmanagedK8SSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
-		By("checking unmanaged k8s resource is created on ACS")
+		By("checking cks resource is created on ACS")
 		// Get details from ACS
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
 		lkcp := csClient.Kubernetes.NewListKubernetesClustersParams()
