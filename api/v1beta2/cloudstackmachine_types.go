@@ -70,6 +70,8 @@ type CloudStackMachineSpec struct {
 
 	// Mutually exclusive parameter with AffinityGroupIDs.
 	// Defaults to `no`. Can be `pro` or `anti`. Will create an affinity group per machine set.
+	// Note: "soft-pro" and "soft-anti" are supported in CS 4.18.1 or higher.
+	// +kubebuilder:validation:Enum=no;pro;anti;soft-pro;soft-anti
 	// +optional
 	Affinity string `json:"affinity,omitempty"`
 

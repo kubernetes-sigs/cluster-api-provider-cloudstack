@@ -225,12 +225,16 @@ To learn how to configure the required network access in order to SSH into the n
 
 The nodes in the MachineDeployment mapped to a corresponding CloudStackMachine can have a specific host affinity or be assigned to affinity groups.
 The affinity can either be specified `pro` (host affinity) or `anti` (host anti affinity) in the `CloudStackMachine.spec.affinity` field in the yaml specification and the required affinity groups will be created in CloudStack
-If existing affinity groups in CloudStack wish to be used, the group IDs can be passed as a list in the `CloudStackMachine.spec.affinitygroupids` field in the yaml specification
+If existing affinity groups in CloudStack wish to be used, the group IDs can be passed as a list in the `CloudStackMachine.spec.affinitygroupids` field in the yaml specification.
+
+With the release of CloudStack version 4.18, the platform now supports both strict and non-strict affinity groups. Affinity can be designated as `soft-pro` (non-strict host affinity) or `soft-anti` (non-strict host anti-affinity) in the CloudStackMachine.spec.affinity field of the YAML specification. These new categories provide flexibility for deployments that may benefit from less stringent affinity rules.
 
 The list of existing affinity groups can be fetched using the cmk cli as follows :
 ```
 cmk list affinitygroups listall=true | jq '.affinitygroup[] | {name, id}'
 ```
+
+Note: The soft affinity types are only available in CloudStack version **4.18** and later.
 
 ### VM Details
 
