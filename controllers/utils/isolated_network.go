@@ -18,21 +18,25 @@ package utils
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+var metaNameRegex = regexp.MustCompile(`[^a-z0-9-]+`)
+
 func (r *ReconciliationRunner) IsoNetMetaName(name string) string {
-	return fmt.Sprintf("%s-%s", r.CSCluster.Name, strings.ToLower(name))
+	str := metaNameRegex.ReplaceAllString(fmt.Sprintf("%s-%s", r.CSCluster.Name, strings.ToLower(name)), "-")
+	return strings.TrimSuffix(str, "-")
 }
 
 // GenerateIsolatedNetwork of the passed name that's owned by the ReconciliationSubject.
 func (r *ReconciliationRunner) GenerateIsolatedNetwork(name string, fdNameFunc func() string) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		lowerName := strings.ToLower(name)
-		metaName := fmt.Sprintf("%s-%s", r.CSCluster.Name, lowerName)
+		metaName := r.IsoNetMetaName(lowerName)
 		csIsoNet := &infrav1.CloudStackIsolatedNetwork{}
 		csIsoNet.ObjectMeta = r.NewChildObjectMeta(metaName)
 		csIsoNet.Spec.Name = lowerName
