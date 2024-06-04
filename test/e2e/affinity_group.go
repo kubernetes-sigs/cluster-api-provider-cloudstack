@@ -74,10 +74,18 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 	})
 
 	It("Should have host affinity group when affinity is soft-pro", func() {
+		cloudStackVersion := input.E2EConfig.GetVariable("CLOUDSTACK_VERSION")
+		if cloudStackVersion < "4.18" {
+			Skip("Soft affinity groups are only supported in CloudStack version 4.18 or higher.")
+		}
 		affinityIds = executeTest(ctx, input, namespace, specName, clusterResources, "soft-pro")
 	})
 
 	It("Should have host affinity group when affinity is soft-anti", func() {
+		cloudStackVersion := input.E2EConfig.GetVariable("CLOUDSTACK_VERSION")
+		if cloudStackVersion < "4.18" {
+			Skip("Soft affinity groups are only supported in CloudStack version 4.18 or higher.")
+		}
 		affinityIds = executeTest(ctx, input, namespace, specName, clusterResources, "soft-anti")
 	})
 
