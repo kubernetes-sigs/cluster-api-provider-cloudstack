@@ -70,15 +70,11 @@ func (reconciler *CksClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CksClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
-	if !r.CSCluster.Spec.SyncWithACS {
+	if !r.CSCluster.Spec.SyncWithACS || len(r.FailureDomains.Items) == 0 {
 		return ctrl.Result{}, nil
 	}
 	// Prevent premature deletion.
 	controllerutil.AddFinalizer(r.ReconciliationSubject, CksClusterFinalizer)
-
-	if len(r.FailureDomains.Items) == 0 {
-		return r.RequeueWithMessage("No failure domains found")
-	}
 
 	res, err := r.AsFailureDomainUser(&r.FailureDomains.Items[0].Spec)()
 	if r.ShouldReturn(res, err) {

@@ -54,11 +54,6 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			// Setup a failure domain for the machine reconciler to find.
 			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
 			setClusterReady(k8sClient)
-
-			mockCloudClient.EXPECT().GetOrCreateCksCluster(gomock.Any(), gomock.Any(), gomock.Any()).Do(
-				func(arg1, _, _ interface{}) {
-					arg1.(*infrav1.CloudStackCluster).Status.CloudStackClusterID = "cluster-id-123"
-				}).AnyTimes().Return(nil)
 		})
 
 		It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {

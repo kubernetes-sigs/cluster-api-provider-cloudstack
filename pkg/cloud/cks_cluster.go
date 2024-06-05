@@ -102,7 +102,8 @@ func (c *client) GetOrCreateCksCluster(cluster *clusterv1.Cluster, csCluster *in
 
 func (c *client) DeleteCksCluster(csCluster *infrav1.CloudStackCluster) error {
 	if csCluster.Status.CloudStackClusterID != "" {
-		csCksCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByID(csCluster.Status.CloudStackClusterID, withExternalManaged())
+		csCksCluster, count, err := c.cs.Kubernetes.GetKubernetesClusterByID(
+			csCluster.Status.CloudStackClusterID, withExternalManaged(), cloudstack.WithProject(c.user.Project.ID))
 		if err != nil && strings.Contains(err.Error(), " not found") {
 			return nil
 		}
