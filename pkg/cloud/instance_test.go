@@ -46,19 +46,21 @@ var _ = Describe("Instance", func() {
 	unknownError := errors.New(unknownErrorMessage)
 
 	var (
-		mockCtrl   *gomock.Controller
-		mockClient *cloudstack.CloudStackClient
-		vms        *cloudstack.MockVirtualMachineServiceIface
-		sos        *cloudstack.MockServiceOfferingServiceIface
-		dos        *cloudstack.MockDiskOfferingServiceIface
-		ts         *cloudstack.MockTemplateServiceIface
-		vs         *cloudstack.MockVolumeServiceIface
-		client     cloud.Client
+		mockCtrl      *gomock.Controller
+		mockClient    *cloudstack.CloudStackClient
+		configuration *cloudstack.MockConfigurationServiceIface
+		vms           *cloudstack.MockVirtualMachineServiceIface
+		sos           *cloudstack.MockServiceOfferingServiceIface
+		dos           *cloudstack.MockDiskOfferingServiceIface
+		ts            *cloudstack.MockTemplateServiceIface
+		vs            *cloudstack.MockVolumeServiceIface
+		client        cloud.Client
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockClient = cloudstack.NewMockClient(mockCtrl)
+		configuration = mockClient.Configuration.(*cloudstack.MockConfigurationServiceIface)
 		vms = mockClient.VirtualMachine.(*cloudstack.MockVirtualMachineServiceIface)
 		sos = mockClient.ServiceOffering.(*cloudstack.MockServiceOfferingServiceIface)
 		dos = mockClient.DiskOffering.(*cloudstack.MockDiskOfferingServiceIface)
@@ -872,8 +874,12 @@ var _ = Describe("Instance", func() {
 	})
 
 	Context("when destroying a VM instance", func() {
+		listCapabilitiesParams := &cloudstack.ListCapabilitiesParams{}
 		expungeDestroyParams := &cloudstack.DestroyVirtualMachineParams{}
 		expungeDestroyParams.SetExpunge(true)
+		listCapabilitiesResponse := &cloudstack.ListCapabilitiesResponse{
+			Capabilities: &cloudstack.Capability{Allowuserexpungerecovervm: true},
+		}
 		listVolumesParams := &cloudstack.ListVolumesParams{}
 		listVolumesResponse := &cloudstack.ListVolumesResponse{
 			Volumes: []*cloudstack.Volume{
@@ -885,6 +891,11 @@ var _ = Describe("Instance", func() {
 				},
 			},
 		}
+
+		BeforeEach(func() {
+			configuration.EXPECT().NewListCapabilitiesParams().Return(listCapabilitiesParams)
+			configuration.EXPECT().ListCapabilities(listCapabilitiesParams).Return(listCapabilitiesResponse, nil)
+		})
 
 		It("calls destroy and finds VM doesn't exist, then returns nil", func() {
 			listVolumesParams.SetVirtualmachineid(*dummies.CSMachine1.Spec.InstanceID)

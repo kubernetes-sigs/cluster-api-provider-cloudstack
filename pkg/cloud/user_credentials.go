@@ -152,7 +152,8 @@ func (c *client) ResolveDomain(domain *Domain) error {
 // ResolveAccount resolves an account's information.
 func (c *client) ResolveAccount(account *Account) error {
 	// Resolve domain prior to any account resolution activity.
-	if err := c.ResolveDomain(&account.Domain); err != nil {
+	if err := c.ResolveDomain(&account.Domain); err != nil &&
+		!strings.Contains(err.Error(), "The API [listDomains] does not exist or is not available for the account Account") {
 		return errors.Wrapf(err, "resolving domain %s details", account.Domain.Name)
 	}
 
