@@ -1,0 +1,51 @@
+version: 2
+updates:
+# GitHub Actions
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+      interval: "weekly"
+  groups:
+    all-github-actions:
+      patterns: [ "*" ]
+  labels:
+    - "dependabot"
+    - "ok-to-test"
+
+# Go modules
+- package-ecosystem: "gomod"
+  directories:
+  - "/"
+  - "/test/e2e"
+  - "/hack/tools"
+  schedule:
+    interval: "weekly"
+    day: "monday"
+  ## group all dependencies into a single PR.
+  groups:
+    all-go-mod-patch-and-minor:
+      patterns: [ "*" ]
+      update-types: [ "patch", "minor" ]
+  ignore:
+  # Ignore controller-runtime as its upgraded manually.
+  - dependency-name: "sigs.k8s.io/controller-runtime"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  # Ignore capi since it's tied to controller-runtime.
+  - dependency-name: "sigs.k8s.io/cluster-api"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  - dependency-name: "sigs.k8s.io/cluster-api/test"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Ignore k8s and its transitives modules as they are upgraded manually together with controller-runtime.
+  - dependency-name: "k8s.io/*"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  - dependency-name: "github.com/prometheus/*"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor"]
+    # Ignore kind as its upgraded manually.
+  - dependency-name: "sigs.k8s.io/kind"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi as a dependency.
+  - dependency-name: "sigs.k8s.io/kustomize/api"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  labels:
+    - "dependabot"
+    - "ok-to-test"
