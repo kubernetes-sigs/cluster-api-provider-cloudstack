@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/apache/cloudstack-go/v2 v2.15.0
-	github.com/go-logr/logr v1.2.4
+	github.com/go-logr/logr v1.4.2
 	github.com/golang/mock v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jellydator/ttlcache/v3 v3.1.1
