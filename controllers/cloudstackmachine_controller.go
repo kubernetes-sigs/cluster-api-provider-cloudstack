@@ -22,6 +22,7 @@ import (
 	"math/rand"
 	"reflect"
 	"regexp"
+	"time"
 
 	"k8s.io/utils/pointer"
 
@@ -182,7 +183,9 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 			name = *r.CAPIMachine.Spec.FailureDomain
 			r.ReconciliationSubject.Spec.FailureDomainName = *r.CAPIMachine.Spec.FailureDomain
 		} else { // Not a control plane machine. Place randomly.
-			randNum := (rand.Int() % len(r.CSCluster.Spec.FailureDomains)) // #nosec G404 -- weak crypt rand doesn't matter here.
+			// Set a random seed for randomly placing CloudStackMachines in Zones.
+			randSeed := rand.New(rand.NewSource(time.Now().UnixNano())) // #nosec G404 -- weak crypt rand doesn't matter here.
+			randNum := (randSeed.Int() % len(r.CSCluster.Spec.FailureDomains))
 			name = r.CSCluster.Spec.FailureDomains[randNum].Name
 		}
 		r.ReconciliationSubject.Spec.FailureDomainName = name
