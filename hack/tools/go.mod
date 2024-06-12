@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api-provider-cloudstack/hack/tools
 
-go 1.19
+go 1.21
 
 require (
 	github.com/a8m/envsubst v1.4.2

@@ -19,9 +19,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -197,9 +195,6 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-
-	// Set a random seed for randomly placing CloudStackMachines in Zones.
-	rand.Seed(time.Now().Unix())
 
 	// Register reconcilers with the controller manager.
 	base := utils.ReconcilerBase{
