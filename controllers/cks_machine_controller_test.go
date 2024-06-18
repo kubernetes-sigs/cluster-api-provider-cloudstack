@@ -75,7 +75,7 @@ var _ = Describe("CksCloudStackMachineReconciler", func() {
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
 					if tempMachine.Status.Ready == true {
-						return len(tempMachine.ObjectMeta.Finalizers) > 0
+						return len(tempMachine.ObjectMeta.Finalizers) > 1
 					}
 				}
 				return false
@@ -94,7 +94,7 @@ var _ = Describe("CksCloudStackMachineReconciler", func() {
 
 			mockCloudClient.EXPECT().AddVMToCksCluster(gomock.Any(), gomock.Any()).MinTimes(1).Return(nil)
 
-			mockCloudClient.EXPECT().DestroyVMInstance(gomock.Any()).Times(1).Return(nil)
+			mockCloudClient.EXPECT().DestroyVMInstance(gomock.Any()).MinTimes(1).Return(nil)
 			mockCloudClient.EXPECT().RemoveVMFromCksCluster(
 				gomock.Any(), gomock.Any()).MinTimes(1).Return(nil)
 			// Have to do this here or the reconcile call to GetOrCreateVMInstance may happen too early.
@@ -106,7 +106,7 @@ var _ = Describe("CksCloudStackMachineReconciler", func() {
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
 					if tempMachine.Status.Ready == true {
-						return true
+						return len(tempMachine.ObjectMeta.Finalizers) > 1
 					}
 				}
 				return false
@@ -122,7 +122,6 @@ var _ = Describe("CksCloudStackMachineReconciler", func() {
 				}
 				return false
 			}, timeout).WithPolling(pollInterval).Should(BeTrue())
-
 		})
 	})
 

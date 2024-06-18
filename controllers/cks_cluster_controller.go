@@ -44,7 +44,6 @@ type CksClusterReconciliationRunner struct {
 }
 
 // CksClusterReconciler is the k8s controller manager's interface to reconcile a CloudStackCluster.
-// This is primarily to adapt to k8s.
 type CksClusterReconciler struct {
 	csCtrlrUtils.ReconcilerBase
 }

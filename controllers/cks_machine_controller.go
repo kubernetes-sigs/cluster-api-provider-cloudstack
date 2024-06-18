@@ -21,16 +21,20 @@ import (
 	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 )
 
-// RBAC permissions for CloudStackCluster.
+const CksMachineFinalizer = "cksMachine.infrastructure.cluster.x-k8s.io"
+
+// RBAC permissions for CloudStackMachines.
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/status,verbs=get
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines/finalizers,verbs=update
 
-// CksMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackClusters.
+// CksMachineReconciliationRunner is a ReconciliationRunner with extensions specific to CloudStackMachines.
 // The runner does the actual reconciliation.
 type CksMachineReconciliationRunner struct {
 	*csCtrlrUtils.ReconciliationRunner
@@ -38,13 +42,12 @@ type CksMachineReconciliationRunner struct {
 	ReconciliationSubject *infrav1.CloudStackMachine
 }
 
-// CksMachineReconciler is the k8s controller manager's interface to reconcile a CloudStackCluster.
-// This is primarily to adapt to k8s.
+// CksMachineReconciler is the k8s controller manager's interface to reconcile CloudStackMachines with a CKS cluster.
 type CksMachineReconciler struct {
 	csCtrlrUtils.ReconcilerBase
 }
 
-// Initialize a new CloudStackCluster reconciliation runner with concrete types and initialized member fields.
+// Initialize a new CloudStackMachines reconciliation runner with concrete types and initialized member fields.
 func NewCksMachineReconciliationRunner() *CksMachineReconciliationRunner {
 	// Set concrete type and init pointers.
 	runner := &CksMachineReconciliationRunner{ReconciliationSubject: &infrav1.CloudStackMachine{}}
@@ -64,7 +67,7 @@ func (reconciler *CksMachineReconciler) Reconcile(ctx context.Context, req ctrl.
 	return r.RunBaseReconciliationStages()
 }
 
-// Reconcile actually reconciles the CloudStackCluster.
+// Reconcile actually reconciles the CloudStackMachine.
 func (r *CksMachineReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
 	if !r.CSCluster.Spec.SyncWithACS {
 		return ctrl.Result{}, nil
@@ -77,6 +80,9 @@ func (r *CksMachineReconciliationRunner) Reconcile() (res ctrl.Result, reterr er
 		return r.RequeueWithMessage("InstanceID is not set")
 	}
 
+	// Prevent premature deletion.
+	controllerutil.AddFinalizer(r.ReconciliationSubject, CksMachineFinalizer)
+
 	res, err := r.AsFailureDomainUser(&r.FailureDomain.Spec)()
 	if r.ShouldReturn(res, err) {
 		return res, err
@@ -86,18 +92,22 @@ func (r *CksMachineReconciliationRunner) Reconcile() (res ctrl.Result, reterr er
 	if err != nil {
 		return r.RequeueWithMessage(fmt.Sprintf("Adding VM to CloudStack CKS cluster failed. error: %s", err.Error()))
 	}
+	r.Log.Info("Assigned VM to CKS")
 	return ctrl.Result{}, nil
 
 }
 
-// ReconcileDelete cleans up resources used by the cluster and finally removes the CloudStackCluster's finalizers.
+// ReconcileDelete cleans up resources used by the cluster and finally removes the CloudStackMachine's finalizers.
 func (r *CksMachineReconciliationRunner) ReconcileDelete() (ctrl.Result, error) {
+	r.Log.Info("Removing VM from CKS")
 	if r.ReconciliationSubject.Spec.InstanceID != nil && *r.ReconciliationSubject.Spec.InstanceID != "" {
 		err := r.CSUser.RemoveVMFromCksCluster(r.CSCluster, r.ReconciliationSubject)
 		if err != nil {
 			return r.RequeueWithMessage(fmt.Sprintf("Removing VM from CloudStack CKS cluster failed. error: %s", err.Error()))
 		}
 	}
+	r.Log.Info("Removed VM from CKS")
+	controllerutil.RemoveFinalizer(r.ReconciliationSubject, CksMachineFinalizer)
 	return ctrl.Result{}, nil
 }
 
