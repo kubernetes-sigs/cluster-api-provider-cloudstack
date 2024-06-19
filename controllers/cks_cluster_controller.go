@@ -69,7 +69,7 @@ func (reconciler *CksClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 
 // Reconcile actually reconciles the CloudStackCluster.
 func (r *CksClusterReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
-	if !r.CSCluster.Spec.SyncWithACS || len(r.FailureDomains.Items) == 0 {
+	if r.CSCluster.Spec.SyncWithACS == nil || !*r.CSCluster.Spec.SyncWithACS || len(r.FailureDomains.Items) == 0 {
 		return ctrl.Result{}, nil
 	}
 	// Prevent premature deletion.

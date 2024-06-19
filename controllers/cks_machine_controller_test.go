@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
@@ -33,7 +34,7 @@ var _ = Describe("CksCloudStackMachineReconciler", func() {
 	Context("With machine controller running.", func() {
 		BeforeEach(func() {
 			dummies.SetDummyVars()
-			dummies.CSCluster.Spec.SyncWithACS = true
+			dummies.CSCluster.Spec.SyncWithACS = pointer.Bool(true)
 			dummies.CSCluster.Spec.FailureDomains = dummies.CSCluster.Spec.FailureDomains[:1]
 			dummies.CSCluster.Spec.FailureDomains[0].Name = dummies.CSFailureDomain1.Spec.Name
 			dummies.CSCluster.Status.CloudStackClusterID = "cluster-id-123"

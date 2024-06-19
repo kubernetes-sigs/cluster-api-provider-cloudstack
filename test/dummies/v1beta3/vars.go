@@ -80,7 +80,7 @@ var ( // Declare exported dummy vars.
 	LBRuleID                string
 	PublicIPID              string
 	EndPointHost            string
-	SyncWithACS             bool
+	SyncWithACS             *bool
 	EndPointPort            int32
 	CSConf                  *simpleyaml.Yaml
 	DiskOffering            infrav1.CloudStackResourceDiskOffering
@@ -274,7 +274,7 @@ func SetDummyCAPCClusterVars() {
 	CSClusterKind = "CloudStackCluster"
 	ClusterName = "test-cluster"
 	EndPointHost = "EndpointHost"
-	SyncWithACS = true
+	SyncWithACS := pointer.Bool(true)
 	EndPointPort = int32(5309)
 	PublicIPID = "FakePublicIPID"
 	ClusterNameSpace = "default"

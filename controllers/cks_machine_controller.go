@@ -69,7 +69,7 @@ func (reconciler *CksMachineReconciler) Reconcile(ctx context.Context, req ctrl.
 
 // Reconcile actually reconciles the CloudStackMachine.
 func (r *CksMachineReconciliationRunner) Reconcile() (res ctrl.Result, reterr error) {
-	if !r.CSCluster.Spec.SyncWithACS {
+	if r.CSCluster.Spec.SyncWithACS == nil || !*r.CSCluster.Spec.SyncWithACS {
 		return ctrl.Result{}, nil
 	}
 	if r.CSCluster.Status.CloudStackClusterID == "" {
