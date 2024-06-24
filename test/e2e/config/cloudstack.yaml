@@ -98,6 +98,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-ip.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-kubernetes-version-upgrade-before.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-kubernetes-version-upgrade-after.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-k8s-cks.yaml"
       - sourcePath: "../data/shared/v1beta1_provider/metadata.yaml"
     versions:
       - name: v1.0.0
@@ -159,6 +160,7 @@ variables:
   CONFORMANCE_CONFIGURATION: "./data/kubetest/conformance.yaml"
   CONFORMANCE_WORKER_MACHINE_COUNT: "3"
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "1"
+  CAPC_CLOUDSTACKMACHINE_CKS_SYNC: "true"
 
 intervals:
   conformance/wait-control-plane: ["20m", "10s"]

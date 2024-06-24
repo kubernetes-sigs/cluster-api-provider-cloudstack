@@ -35,6 +35,7 @@ spec:
       name :  ${CLOUDSTACK_ZONE_NAME}
       network: 
         name: ${CLOUDSTACK_NETWORK_NAME}
+  syncWithACS: false
 ---
 kind: KubeadmControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1

@@ -34,6 +34,10 @@ type CloudStackClusterSpec struct {
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+
+	// SyncWithACS determines if an externalManaged CKS cluster should be created on ACS.
+	// +optional
+	SyncWithACS *bool `json:"syncWithACS,omitempty"`
 }
 
 // The status of the CloudStackCluster object.
@@ -42,6 +46,10 @@ type CloudStackClusterStatus struct {
 	// CAPC sets failure domains to indicate functioning CloudStackFailureDomains.
 	// +optional
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+
+	// Id of CAPC managed kubernetes cluster created in CloudStack
+	// +optional
+	CloudStackClusterID string `json:"cloudStackClusterId"`
 
 	// Reflects the readiness of the CS cluster.
 	Ready bool `json:"ready"`

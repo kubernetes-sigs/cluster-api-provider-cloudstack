@@ -23,6 +23,7 @@ kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
 spec:
+  syncWithACS: ${CLOUDSTACK_SYNC_WITH_ACS=false}
   controlPlaneEndpoint:
     host: ${CLUSTER_ENDPOINT_IP}
     port: ${CLUSTER_ENDPOINT_PORT=6443}

@@ -33,6 +33,11 @@
 
     # The SSH KeyPair to log into the VM (Optional: you must use clusterctl --flavor *managed-ssh*)
     export CLOUDSTACK_SSH_KEY_NAME=CAPCKeyPair6
+
+    # Sync resources created by CAPC in Apache Cloudstack CKS. Default is false.
+    # Requires setting CAPC_CLOUDSTACKMACHINE_CKS_SYNC=true before initialising the cloudstack provider.
+    # Or set enable-cloudstack-cks-sync to true in the deployment for capc-controller.
+    export CLOUDSTACK_SYNC_WITH_ACS=true
     ```
 
 2. Generate the CAPC cluster spec yaml file
