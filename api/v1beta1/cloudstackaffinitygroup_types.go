@@ -27,7 +27,10 @@ const (
 // CloudStackAffinityGroupSpec defines the desired state of CloudStackAffinityGroup
 type CloudStackAffinityGroupSpec struct {
 	// Mutually exclusive parameter with AffinityGroupIDs.
-	// Can be "host affinity" or "host anti-affinity". Will create an affinity group per machine set.
+	// Can be "host affinity", "host anti-affinity", "non-strict host affinity" or "non-strict host anti-affinity". Will create an affinity group per machine set.
+	// Note: "non-strict host affinity" and "non-strict host anti-affinity" are supported in CS 4.18.x or higher.
+	// +kubebuilder:validation:Enum=host affinity;host anti-affinity;non-strict host affinity;non-strict host anti-affinity
+	// +optional
 	Type string `json:"type,omitempty"`
 
 	// Name.
