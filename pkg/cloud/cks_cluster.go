@@ -74,10 +74,11 @@ func (c *client) GetOrCreateCksCluster(cluster *clusterv1.Cluster, csCluster *in
 		if accountName == "" {
 			userParams := c.cs.User.NewGetUserParams(c.config.APIKey)
 			user, err := c.cs.User.GetUser(userParams)
-			if err != nil {
+			if err != nil && !strings.Contains(err.Error(), "does not exist or is not available for the account") {
 				return err
+			} else if err == nil {
+				accountName = user.Account
 			}
-			accountName = user.Account
 		}
 		// NewCreateKubernetesClusterParams(description string, kubernetesversionid string, name string, serviceofferingid string, size int64, zoneid string) *CreateKubernetesClusterParams
 		params := c.cs.Kubernetes.NewCreateKubernetesClusterParams(fmt.Sprintf("%s managed by CAPC", clusterName), "", clusterName, "", 0, fd.Zone.ID)
