@@ -14,7 +14,8 @@ webhooks:
       namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackcluster
   failurePolicy: Fail
-  name: mcloudstackcluster.kb.io
+  matchPolicy: Equivalent
+  name: default.cloudstackcluster.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -35,7 +36,8 @@ webhooks:
       namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachine
   failurePolicy: Fail
-  name: mcloudstackmachine.kb.io
+  matchPolicy: Equivalent
+  name: default.cloudstackmachine.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -56,7 +58,8 @@ webhooks:
       namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachinetemplate
   failurePolicy: Fail
-  name: mcloudstackmachinetemplate.kb.io
+  matchPolicy: Equivalent
+  name: default.cloudstackmachinetemplate.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -84,7 +87,8 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackcluster
   failurePolicy: Fail
-  name: vcloudstackcluster.kb.io
+  matchPolicy: Equivalent
+  name: validation.cloudstackcluster.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -105,7 +109,8 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachine
   failurePolicy: Fail
-  name: vcloudstackmachine.kb.io
+  matchPolicy: Equivalent
+  name: validation.cloudstackmachine.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -126,7 +131,8 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachinetemplate
   failurePolicy: Fail
-  name: vcloudstackmachinetemplate.kb.io
+  matchPolicy: Equivalent
+  name: validation.cloudstackmachinetemplate.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io

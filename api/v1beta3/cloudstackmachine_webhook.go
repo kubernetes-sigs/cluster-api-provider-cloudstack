@@ -38,19 +38,19 @@ func (r *CloudStackMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachine,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=create;update,versions=v1beta3,name=mcloudstackmachine.kb.io,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachine,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,versions=v1beta3,name=validation.cloudstackmachine.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachine,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,versions=v1beta3,name=default.cloudstackmachine.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &CloudStackMachine{}
+var (
+	_ webhook.Defaulter = &CloudStackMachine{}
+	_ webhook.Validator = &CloudStackMachine{}
+)
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *CloudStackMachine) Default() {
 	cloudstackmachinelog.V(1).Info("entered api default setting webhook, no defaults to set", "api resource name", r.Name)
 	// No defaulted values supported yet.
 }
-
-//+kubebuilder:webhook:path=/validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackmachine,mutating=false,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackmachines,verbs=create;update,versions=v1beta3,name=vcloudstackmachine.kb.io,admissionReviewVersions=v1;v1beta1
-
-var _ webhook.Validator = &CloudStackMachine{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *CloudStackMachine) ValidateCreate() error {
@@ -60,7 +60,7 @@ func (r *CloudStackMachine) ValidateCreate() error {
 
 	errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Offering.ID, r.Spec.Offering.Name, "Offering", errorList)
 	errorList = webhookutil.EnsureAtLeastOneFieldExists(r.Spec.Template.ID, r.Spec.Template.Name, "Template", errorList)
-	if len(r.Spec.DiskOffering.ID) > 0 || len(r.Spec.DiskOffering.Name) > 0 {
+	if r.Spec.DiskOffering != nil && (len(r.Spec.DiskOffering.ID) > 0 || len(r.Spec.DiskOffering.Name) > 0) {
 		errorList = webhookutil.EnsureIntFieldsAreNotNegative(r.Spec.DiskOffering.CustomSize, "customSizeInGB", errorList)
 	}
 
@@ -81,13 +81,15 @@ func (r *CloudStackMachine) ValidateUpdate(old runtime.Object) error {
 
 	errorList = webhookutil.EnsureEqualStrings(r.Spec.Offering.ID, oldSpec.Offering.ID, "offering", errorList)
 	errorList = webhookutil.EnsureEqualStrings(r.Spec.Offering.Name, oldSpec.Offering.Name, "offering", errorList)
-	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.ID, oldSpec.DiskOffering.ID, "diskOffering", errorList)
-	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Name, oldSpec.DiskOffering.Name, "diskOffering", errorList)
-	errorList = webhookutil.EnsureIntFieldsAreNotNegative(r.Spec.DiskOffering.CustomSize, "customSizeInGB", errorList)
-	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.MountPath, oldSpec.DiskOffering.MountPath, "mountPath", errorList)
-	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Device, oldSpec.DiskOffering.Device, "device", errorList)
-	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Filesystem, oldSpec.DiskOffering.Filesystem, "filesystem", errorList)
-	errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Label, oldSpec.DiskOffering.Label, "label", errorList)
+	if r.Spec.DiskOffering != nil {
+		errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.ID, oldSpec.DiskOffering.ID, "diskOffering", errorList)
+		errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Name, oldSpec.DiskOffering.Name, "diskOffering", errorList)
+		errorList = webhookutil.EnsureIntFieldsAreNotNegative(r.Spec.DiskOffering.CustomSize, "customSizeInGB", errorList)
+		errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.MountPath, oldSpec.DiskOffering.MountPath, "mountPath", errorList)
+		errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Device, oldSpec.DiskOffering.Device, "device", errorList)
+		errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Filesystem, oldSpec.DiskOffering.Filesystem, "filesystem", errorList)
+		errorList = webhookutil.EnsureEqualStrings(r.Spec.DiskOffering.Label, oldSpec.DiskOffering.Label, "label", errorList)
+	}
 	errorList = webhookutil.EnsureEqualStrings(r.Spec.SSHKey, oldSpec.SSHKey, "sshkey", errorList)
 	errorList = webhookutil.EnsureEqualStrings(r.Spec.Template.ID, oldSpec.Template.ID, "template", errorList)
 	errorList = webhookutil.EnsureEqualStrings(r.Spec.Template.Name, oldSpec.Template.Name, "template", errorList)
