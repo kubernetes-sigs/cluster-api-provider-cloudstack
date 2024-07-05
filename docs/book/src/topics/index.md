@@ -9,7 +9,6 @@
 
 
 ## TODO :
-- Registering External Clusters in CloudStack
 - Data Disks
 - Diff between CKS and CAPC
 - E2E Tests
