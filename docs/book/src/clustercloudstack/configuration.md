@@ -145,6 +145,21 @@ cmk list templates zoneid=<zone-id> templatefilter=executable | jq '.template[] 
 
 # Optional Configurations
 
+## Integration with CloudStack CKS
+
+CAPC cluster can be integrated with CloudStack CKS to provide a comprehensive view of the cluster resources on CloudStack.
+The integration can be enabled by setting the `CLOUDSTACK_SYNC_WITH_ACS` environment variable to `true` before
+generating the cluster or by setting CloudStackCluster.spec.syncWithACS to `true` in the cluster definition yaml.
+
+## Project
+
+CAPC cluster can be deployed within a specific project in CloudStack.
+The project name can be specified by adding the `CloudStackCluster.spec.project` field in the yaml specification.
+
+The list of projects can be fetched using the cmk cli as follows :
+```
+cmk list projects listall=true | jq '.project[] | {name, id}'
+
 ## Cluster Level Configurations
 
 These configurations are passed while defining the `CloudStackCluster` and apply to the entire cluster.

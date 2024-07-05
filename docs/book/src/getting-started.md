@@ -49,12 +49,12 @@
 
 Run the following command to turn your cluster into a management cluster and load the Apache CloudStack components into it.
 
-    clusterctl init --infrastructure cloudstack
+    CAPC_CLOUDSTACKMACHINE_CKS_SYNC=true clusterctl init --infrastructure cloudstack
 
-> If you wish to enable syncing of CAPC resources with cloudstack, set the environment variable
-> `CAPC_CLOUDSTACKMACHINE_CKS_SYNC=true` before initializing the cloudstack provider. Or set
-> `enable-cloudstack-cks-sync` to true in the deployment for capc-controller.
-> This is only supported for Apache CloudStack version 4.19 and above.
+> Integration of CAPC with CKS is supported for Apache CloudStack version 4.19 and above.
+> If you wish to disable syncing of CAPC resources with cloudstack, set the environment variable
+> `CAPC_CLOUDSTACKMACHINE_CKS_SYNC=false` before initializing the cloudstack provider. Or set
+> `enable-cloudstack-cks-sync` to `false` in the deployment spec for capc-controller-manager.
 
 <!-- References -->
 
