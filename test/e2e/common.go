@@ -374,6 +374,12 @@ func CheckAffinityGroupInProject(client *cloudstack.CloudStackClient, clusterNam
 				if affinityType == "anti" && affinity.Type != "host anti-affinity" {
 					Fail(affinity.Type + " does not match " + affinityType)
 				}
+				if affinityType == "soft-pro" && affinity.Type != "non-strict host affinity" {
+					Fail(affinity.Type + " does not match " + affinityType)
+				}
+				if affinityType == "soft-anti" && affinity.Type != "non-strict host anti-affinity" {
+					Fail(affinity.Type + " does not match " + affinityType)
+				}
 			}
 		}
 	}
