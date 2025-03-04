@@ -403,6 +403,16 @@ spec:
                               description: Cloudstack Network Type the cluster is
                                 built in.
                               type: string
+                            vpc:
+                              description: Cloudstack VPC the network belongs to.
+                              properties:
+                                id:
+                                  description: Cloudstack VPC ID of the network.
+                                  type: string
+                                name:
+                                  description: Cloudstack VPC Name of the network.
+                                  type: string
+                              type: object
                           required:
                           - name
                           type: object

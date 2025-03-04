@@ -62,6 +62,10 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 	} else { // Got netID from the network's name.
 		net.ID = netDetails.Id
 		net.Type = netDetails.Type
+		if netDetails.Vpcid != "" {
+			net.VPC.ID = netDetails.Vpcid
+			net.VPC.Name = netDetails.Vpcname
+		}
 		return nil
 	}
 
@@ -76,6 +80,10 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 	net.Name = netDetails.Name
 	net.ID = netDetails.Id
 	net.Type = netDetails.Type
+	if netDetails.Vpcid != "" {
+		net.VPC.ID = netDetails.Vpcid
+		net.VPC.Name = netDetails.Vpcname
+	}
 	return nil
 }
 
