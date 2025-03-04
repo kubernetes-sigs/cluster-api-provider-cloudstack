@@ -198,6 +198,16 @@ spec:
               name:
                 description: Name.
                 type: string
+              vpc:
+                description: VPC the network belongs to.
+                properties:
+                  id:
+                    description: Cloudstack VPC ID of the network.
+                    type: string
+                  name:
+                    description: Cloudstack VPC Name of the network.
+                    type: string
+                type: object
             required:
             - controlPlaneEndpoint
             - failureDomainName
