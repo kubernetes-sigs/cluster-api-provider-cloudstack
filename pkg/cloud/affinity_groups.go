@@ -51,11 +51,10 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 		} else if count > 1 {
 			// handle via creating a new error.
 			return errors.New("count bad")
-		} else {
-			group.Name = affinityGroup.Name
-			group.Type = affinityGroup.Type
-			return nil
 		}
+		group.Name = affinityGroup.Name
+		group.Type = affinityGroup.Type
+		return nil
 	}
 	if group.Name != "" {
 		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByName(group.Name, cloudstack.WithProject(c.user.Project.ID))
@@ -66,11 +65,10 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 		} else if count > 1 {
 			// handle via creating a new error.
 			return errors.New("count bad")
-		} else {
-			group.ID = affinityGroup.Id
-			group.Type = affinityGroup.Type
-			return nil
 		}
+		group.ID = affinityGroup.Id
+		group.Type = affinityGroup.Type
+		return nil
 	}
 	return errors.Errorf(`could not fetch AffinityGroup by name "%s" or id "%s"`, group.Name, group.ID)
 }
@@ -104,18 +102,18 @@ type affinityGroups []AffinityGroup
 
 func (c *client) getCurrentAffinityGroups(csMachine *infrav1.CloudStackMachine) (affinityGroups, error) {
 	// Start by fetching VM details which includes an array of currently associated affinity groups.
-	if virtM, count, err := c.cs.VirtualMachine.GetVirtualMachineByID(*csMachine.Spec.InstanceID, cloudstack.WithProject(c.user.Project.ID)); err != nil {
+	virtM, count, err := c.cs.VirtualMachine.GetVirtualMachineByID(*csMachine.Spec.InstanceID, cloudstack.WithProject(c.user.Project.ID))
+	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return nil, err
 	} else if count > 1 {
 		return nil, errors.Errorf("found more than one VM for ID: %s", *csMachine.Spec.InstanceID)
-	} else {
-		groups := make([]AffinityGroup, 0, len(virtM.Affinitygroup))
-		for _, v := range virtM.Affinitygroup {
-			groups = append(groups, AffinityGroup{Name: v.Name, Type: v.Type, ID: v.Id})
-		}
-		return groups, nil
 	}
+	groups := make([]AffinityGroup, 0, len(virtM.Affinitygroup))
+	for _, v := range virtM.Affinitygroup {
+		groups = append(groups, AffinityGroup{Name: v.Name, Type: v.Type, ID: v.Id})
+	}
+	return groups, nil
 }
 
 func (ags *affinityGroups) toArrayOfIDs() []string {

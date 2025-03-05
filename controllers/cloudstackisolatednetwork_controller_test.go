@@ -18,8 +18,8 @@ package controllers_test
 
 import (
 	g "github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	ginkgo "github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
@@ -27,24 +27,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("CloudStackIsolatedNetworkReconciler", func() {
-	Context("With k8s like test environment.", func() {
-		BeforeEach(func() {
+var _ = ginkgo.Describe("CloudStackIsolatedNetworkReconciler", func() {
+	ginkgo.Context("With k8s like test environment.", func() {
+		ginkgo.BeforeEach(func() {
 			SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
 			dummies.SetDummyVars()
-			Ω(IsoNetReconciler.SetupWithManager(k8sManager)).Should(Succeed()) // Register CloudStack IsoNetReconciler.
+			gomega.Ω(IsoNetReconciler.SetupWithManager(k8sManager)).Should(gomega.Succeed()) // Register CloudStack IsoNetReconciler.
 		})
 
-		It("Should set itself to ready if there are no errors in calls to CloudStack methods.", func() {
+		ginkgo.It("Should set itself to ready if there are no errors in calls to CloudStack methods.", func() {
 			mockCloudClient.EXPECT().GetOrCreateIsolatedNetwork(g.Any(), g.Any(), g.Any()).AnyTimes()
 			mockCloudClient.EXPECT().AddClusterTag(g.Any(), g.Any(), g.Any()).AnyTimes()
 
 			// We use CSFailureDomain2 here because CSFailureDomain1 has an empty Spec.Zone.ID
 			dummies.CSISONet1.Spec.FailureDomainName = dummies.CSFailureDomain2.Spec.Name
-			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain2)).Should(Succeed())
-			Ω(k8sClient.Create(ctx, dummies.CSISONet1)).Should(Succeed())
+			gomega.Ω(k8sClient.Create(ctx, dummies.CSFailureDomain2)).Should(gomega.Succeed())
+			gomega.Ω(k8sClient.Create(ctx, dummies.CSISONet1)).Should(gomega.Succeed())
 
-			Eventually(func() bool {
+			gomega.Eventually(func() bool {
 				tempIsoNet := &infrav1.CloudStackIsolatedNetwork{}
 				key := client.ObjectKeyFromObject(dummies.CSISONet1)
 				if err := k8sClient.Get(ctx, key, tempIsoNet); err == nil {
@@ -53,25 +53,25 @@ var _ = Describe("CloudStackIsolatedNetworkReconciler", func() {
 					}
 				}
 				return false
-			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 		})
 	})
 
-	Context("With a fake ctrlRuntimeClient and no test Env at all.", func() {
-		BeforeEach(func() {
+	ginkgo.Context("With a fake ctrlRuntimeClient and no test Env at all.", func() {
+		ginkgo.BeforeEach(func() {
 			setupFakeTestClient()
 		})
 
-		It("Should requeue in case the zone ID is not resolved yet.", func() {
+		ginkgo.It("Should requeue in case the zone ID is not resolved yet.", func() {
 			// We use CSFailureDomain1 here because it has an empty Spec.Zone.ID
 			dummies.CSISONet1.Spec.FailureDomainName = dummies.CSFailureDomain1.Spec.Name
-			Ω(fakeCtrlClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
-			Ω(fakeCtrlClient.Create(ctx, dummies.CSISONet1)).Should(Succeed())
+			gomega.Ω(fakeCtrlClient.Create(ctx, dummies.CSFailureDomain1)).Should(gomega.Succeed())
+			gomega.Ω(fakeCtrlClient.Create(ctx, dummies.CSISONet1)).Should(gomega.Succeed())
 
 			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSISONet1.Name}
 			res, err := IsoNetReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(res.RequeueAfter).ShouldNot(BeZero())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Ω(res.RequeueAfter).ShouldNot(gomega.BeZero())
 		})
 	})
 })

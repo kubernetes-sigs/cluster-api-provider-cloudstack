@@ -20,11 +20,11 @@ import (
 	"k8s.io/utils/pointer"
 	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 )
 
-var _ = Describe("CloudStackMachineConfig_CompressUserdata", func() {
+var _ = ginkgo.Describe("CloudStackMachineConfig_CompressUserdata", func() {
 	for _, tc := range []struct {
 		Name    string
 		Machine capcv1.CloudStackMachine
@@ -59,9 +59,9 @@ var _ = Describe("CloudStackMachineConfig_CompressUserdata", func() {
 		},
 	} {
 		tc := tc
-		It(tc.Name, func() {
+		ginkgo.It(tc.Name, func() {
 			result := tc.Machine.CompressUserdata()
-			Expect(result).To(Equal(tc.Expect))
+			gomega.Expect(result).To(gomega.Equal(tc.Expect))
 		})
 	}
 })

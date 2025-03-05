@@ -39,8 +39,8 @@ import (
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	ginkgo "github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -62,8 +62,8 @@ import (
 )
 
 func TestAPIs(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Controller Suite")
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "Controller Suite")
 }
 
 var (
@@ -136,7 +136,7 @@ var (
 	CksMachineReconciler *csReconcilers.CksMachineReconciler
 )
 
-var _ = BeforeSuite(func() {
+var _ = ginkgo.BeforeSuite(func() {
 	repoRoot := os.Getenv("REPO_ROOT")
 
 	// Add ginkgo recover statements to controllers.
@@ -147,15 +147,15 @@ var _ = BeforeSuite(func() {
 		os.Exit(1)
 	}
 
-	By("bootstrapping test environment")
+	ginkgo.By("bootstrapping test environment")
 
-	Ω(infrav1.AddToScheme(scheme.Scheme)).Should(Succeed())
-	Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(Succeed())
-	Ω(fakes.AddToScheme(scheme.Scheme)).Should(Succeed())
+	gomega.Ω(infrav1.AddToScheme(scheme.Scheme)).Should(gomega.Succeed())
+	gomega.Ω(clusterv1.AddToScheme(scheme.Scheme)).Should(gomega.Succeed())
+	gomega.Ω(fakes.AddToScheme(scheme.Scheme)).Should(gomega.Succeed())
 
 	// Increase log verbosity.
 	klog.InitFlags(nil)
-	Ω(flag.Lookup("v").Value.Set("1")).Should(Succeed())
+	gomega.Ω(flag.Lookup("v").Value.Set("1")).Should(gomega.Succeed())
 	flag.Parse()
 
 	logger = klogr.New()
@@ -197,21 +197,21 @@ func SetupTestEnvironment() {
 	var err error
 	done := make(chan interface{})
 	go func() {
-		defer GinkgoRecover()
+		defer ginkgo.GinkgoRecover()
 		cfg, err = testEnv.Start()
 		close(done)
 	}()
-	Eventually(done).WithTimeout(time.Minute).Should(BeClosed())
-	Ω(err).ShouldNot(HaveOccurred())
-	Ω(cfg).ShouldNot(BeNil())
+	gomega.Eventually(done).WithTimeout(time.Minute).Should(gomega.BeClosed())
+	gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Ω(cfg).ShouldNot(gomega.BeNil())
 
 	//+kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Ω(err).ShouldNot(HaveOccurred())
-	Ω(k8sClient).ShouldNot(BeNil())
+	gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Ω(k8sClient).ShouldNot(gomega.BeNil())
 	k8sManager, _ = ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
-	Ω(err).ShouldNot(HaveOccurred())
+	gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 
 	// Base reconciler shared across reconcilers.
 	base := csCtrlrUtils.ReconcilerBase{
@@ -254,10 +254,10 @@ func SetupTestEnvironment() {
 	// TODO: find a way to see controller output without the additional setup output.
 	ctrl.SetLogger(logger)
 
-	DeferCleanup(func() {
+	ginkgo.DeferCleanup(func() {
 		// Cancelling the context shuts down any outstanding requests and the test environment.
 		cancel()
-		Ω(testEnv.Stop()).Should(Succeed())
+		gomega.Ω(testEnv.Stop()).Should(gomega.Succeed())
 		k8sManager = nil
 	})
 }
@@ -299,62 +299,62 @@ func setupFakeTestClient() {
 	FailureDomainReconciler.CSClient = mockCloudClient
 	AffinityGReconciler.CSClient = mockCloudClient
 
-	DeferCleanup(func() {
+	ginkgo.DeferCleanup(func() {
 		cancel()
 	})
 }
 
 // Setup and teardown on a per test basis.
-var _ = BeforeEach(func() {
+var _ = ginkgo.BeforeEach(func() {
 	dummies.SetDummyVars()
-	mockCtrl = gomock.NewController(GinkgoT())
+	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 })
 
-var _ = JustBeforeEach(func() {
+var _ = ginkgo.JustBeforeEach(func() {
 	if k8sManager != nil { // Allow skipping a test environment for tests that don't need it.
 		// Launch the k8s manager.
 		// Needs to be in JustBeforeEach() so individual contexts can register controllers first.
 		go func() {
-			defer GinkgoRecover()
-			Ω(k8sManager.Start(ctx)).Should(Succeed(), "failed to run manager")
+			defer ginkgo.GinkgoRecover()
+			gomega.Ω(k8sManager.Start(ctx)).Should(gomega.Succeed(), "failed to run manager")
 		}()
 	}
 })
 
-var _ = AfterEach(func() {
+var _ = ginkgo.AfterEach(func() {
 	// Finishing mockCtrl checks expected calls on mock objects matched.
 	mockCtrl.Finish()
 })
 
-var _ = AfterSuite(func() {})
+var _ = ginkgo.AfterSuite(func() {})
 
 // setClusterReady patches the clsuter with ready status true.
 func setClusterReady(client client.Client) {
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		ph, err := patch.NewHelper(dummies.CSCluster, client)
-		Ω(err).ShouldNot(HaveOccurred())
+		gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 		dummies.CSCluster.Status.Ready = true
 		return ph.Patch(ctx, dummies.CSCluster, patch.WithStatusObservedGeneration{})
-	}, timeout).Should(Succeed())
+	}, timeout).Should(gomega.Succeed())
 }
 
 // setupClusterCRDs creates a CAPI and CloudStack cluster with an appropriate ownership ref between them.
 func setupClusterCRDs() {
 
 	//  Create them.
-	Ω(k8sClient.Create(ctx, dummies.CAPICluster)).Should(Succeed())
-	Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(Succeed())
+	gomega.Ω(k8sClient.Create(ctx, dummies.CAPICluster)).Should(gomega.Succeed())
+	gomega.Ω(k8sClient.Create(ctx, dummies.CSCluster)).Should(gomega.Succeed())
 
 	// Fetch the CS Cluster that was created.
 	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSCluster.Name}
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		return k8sClient.Get(ctx, key, dummies.CSCluster)
-	}, timeout).Should(BeNil())
+	}, timeout).Should(gomega.BeNil())
 
 	// Set owner ref from CAPI cluster to CS Cluster and patch back the CS Cluster.
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		ph, err := patch.NewHelper(dummies.CSCluster, k8sClient)
-		Ω(err).ShouldNot(HaveOccurred())
+		gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 		dummies.CSCluster.OwnerReferences = append(dummies.CSCluster.OwnerReferences, metav1.OwnerReference{
 			Kind:       "Cluster",
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -362,25 +362,25 @@ func setupClusterCRDs() {
 			UID:        "uniqueness",
 		})
 		return ph.Patch(ctx, dummies.CSCluster, patch.WithStatusObservedGeneration{})
-	}, timeout).Should(Succeed())
+	}, timeout).Should(gomega.Succeed())
 }
 
 // setupMachineCRDs creates a CAPI and CloudStack machine with an appropriate ownership ref between them.
 func setupMachineCRDs() {
 	//  Create them.
-	Ω(k8sClient.Create(ctx, dummies.CAPIMachine)).Should(Succeed())
-	Ω(k8sClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
+	gomega.Ω(k8sClient.Create(ctx, dummies.CAPIMachine)).Should(gomega.Succeed())
+	gomega.Ω(k8sClient.Create(ctx, dummies.CSMachine1)).Should(gomega.Succeed())
 
 	// Fetch the CS Machine that was created.
 	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: dummies.CSMachine1.Name}
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		return k8sClient.Get(ctx, key, dummies.CSMachine1)
-	}, timeout).Should(BeNil())
+	}, timeout).Should(gomega.BeNil())
 
 	// Set owner ref from CAPI machine to CS machine and patch back the CS machine.
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		ph, err := patch.NewHelper(dummies.CSMachine1, k8sClient)
-		Ω(err).ShouldNot(HaveOccurred())
+		gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 		dummies.CSMachine1.OwnerReferences = append(dummies.CSMachine1.OwnerReferences, metav1.OwnerReference{
 			Kind:       "Machine",
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -388,47 +388,47 @@ func setupMachineCRDs() {
 			UID:        "uniqueness",
 		})
 		return ph.Patch(ctx, dummies.CSMachine1, patch.WithStatusObservedGeneration{})
-	}, timeout).Should(Succeed())
+	}, timeout).Should(gomega.Succeed())
 }
 
 func setCSMachineOwnerCRD(owner *fakes.CloudStackMachineOwner, specReplicas, statusReplicas, statusReadyReplicas *int32, statusReady *bool) {
 	owner.Spec.Replicas = specReplicas
-	Ω(k8sClient.Create(ctx, owner)).Should(Succeed())
+	gomega.Ω(k8sClient.Create(ctx, owner)).Should(gomega.Succeed())
 	key := client.ObjectKey{Namespace: owner.Namespace, Name: owner.Name}
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		return k8sClient.Get(ctx, key, owner)
-	}, timeout).Should(BeNil())
+	}, timeout).Should(gomega.BeNil())
 
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		owner.Status.Ready = statusReady
 		owner.Status.Replicas = statusReplicas
 		owner.Status.ReadyReplicas = statusReadyReplicas
 		return k8sClient.Status().Update(ctx, owner)
-	}, timeout).Should(BeNil())
+	}, timeout).Should(gomega.BeNil())
 }
 
 // setCAPIMachineAndCSMachineCRDs creates a CAPI and CloudStack machine with an appropriate ownership ref between them.
 func setCAPIMachineAndCSMachineCRDs(CSMachine *infrav1.CloudStackMachine, CAPIMachine *clusterv1.Machine) {
 	//  Create them.
-	Ω(k8sClient.Create(ctx, CAPIMachine)).Should(Succeed())
-	Ω(k8sClient.Create(ctx, CSMachine)).Should(Succeed())
+	gomega.Ω(k8sClient.Create(ctx, CAPIMachine)).Should(gomega.Succeed())
+	gomega.Ω(k8sClient.Create(ctx, CSMachine)).Should(gomega.Succeed())
 
 	// Fetch the CS Machine that was created.
 	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		return k8sClient.Get(ctx, key, CSMachine)
-	}, timeout).Should(BeNil())
+	}, timeout).Should(gomega.BeNil())
 
 	// Fetch the CAPI Machine that was created.
 	key = client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: CAPIMachine.Name}
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		return k8sClient.Get(ctx, key, CAPIMachine)
-	}, timeout).Should(BeNil())
+	}, timeout).Should(gomega.BeNil())
 
 	// Set ownerReference to CAPI machine in CS machine and patch back the CS machine.
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		ph, err := patch.NewHelper(dummies.CSMachine1, k8sClient)
-		Ω(err).ShouldNot(HaveOccurred())
+		gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 		dummies.CSMachine1.OwnerReferences = append(dummies.CSMachine1.OwnerReferences, metav1.OwnerReference{
 			Kind:       "Machine",
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -436,36 +436,36 @@ func setCAPIMachineAndCSMachineCRDs(CSMachine *infrav1.CloudStackMachine, CAPIMa
 			UID:        "uniqueness",
 		})
 		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
-	}, timeout).Should(Succeed())
+	}, timeout).Should(gomega.Succeed())
 }
 
 func setMachineOwnerReference(CSMachine *infrav1.CloudStackMachine, ownerRef metav1.OwnerReference) {
 	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		return k8sClient.Get(ctx, key, CSMachine)
-	}, timeout).Should(BeNil())
+	}, timeout).Should(gomega.BeNil())
 
 	// Set ownerReference to CAPI machine in CS machine and patch back the CS machine.
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		ph, err := patch.NewHelper(CSMachine, k8sClient)
-		Ω(err).ShouldNot(HaveOccurred())
+		gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 		CSMachine.OwnerReferences = append(CSMachine.OwnerReferences, ownerRef)
 		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
-	}, timeout).Should(Succeed())
+	}, timeout).Should(gomega.Succeed())
 }
 
 // labelMachineFailuredomain add cloudstackfailuredomain info in the labels.
 func labelMachineFailuredomain(CSMachine *infrav1.CloudStackMachine, CSFailureDomain1 *infrav1.CloudStackFailureDomain) {
 	key := client.ObjectKey{Namespace: dummies.CSCluster.Namespace, Name: CSMachine.Name}
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		return k8sClient.Get(ctx, key, CSMachine)
-	}, timeout).Should(BeNil())
+	}, timeout).Should(gomega.BeNil())
 
 	// set cloudstack failuredomain in machine labels.
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		ph, err := patch.NewHelper(CSMachine, k8sClient)
-		Ω(err).ShouldNot(HaveOccurred())
+		gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 		CSMachine.Labels["cloudstackfailuredomain.infrastructure.cluster.x-k8s.io/name"] = CSFailureDomain1.Name
 		return ph.Patch(ctx, CSMachine, patch.WithStatusObservedGeneration{})
-	}, timeout).Should(Succeed())
+	}, timeout).Should(gomega.Succeed())
 }

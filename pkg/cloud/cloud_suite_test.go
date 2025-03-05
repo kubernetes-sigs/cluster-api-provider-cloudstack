@@ -22,8 +22,8 @@ import (
 	"testing"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
@@ -39,23 +39,23 @@ var (
 )
 
 func TestCloud(t *testing.T) {
-	RegisterFailHandler(Fail)
-	BeforeSuite(func() {
-		suiteConfig, _ := GinkgoConfiguration()
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.BeforeSuite(func() {
+		suiteConfig, _ := ginkgo.GinkgoConfiguration()
 		if !strings.Contains(suiteConfig.LabelFilter, "!integ") { // Skip if integ tests are filtered out.
 			// Create a real cloud client.
 			var connectionErr error
 			realCSClient, connectionErr = helpers.NewCSClient()
-			Ω(connectionErr).ShouldNot(HaveOccurred())
+			gomega.Ω(connectionErr).ShouldNot(gomega.HaveOccurred())
 
 			repoRoot := os.Getenv("REPO_ROOT")
 			realCloudClient, connectionErr = cloud.NewClientFromYamlPath(
 				repoRoot+"/cloud-config.yaml", "myendpoint")
-			Ω(connectionErr).ShouldNot(HaveOccurred())
+			gomega.Ω(connectionErr).ShouldNot(gomega.HaveOccurred())
 
 			// Create a real CloudStack client.
 			realCSClient, connectionErr = helpers.NewCSClient()
-			Ω(connectionErr).ShouldNot(HaveOccurred())
+			gomega.Ω(connectionErr).ShouldNot(gomega.HaveOccurred())
 
 			// Create a new account and user to run tests that use a real ACS instance.
 			uid := string(uuid.NewUUID())
@@ -63,35 +63,35 @@ func TestCloud(t *testing.T) {
 				Name:   "TestAccount-" + uid,
 				Domain: cloud.Domain{Name: "TestDomain-" + uid, Path: "ROOT/TestDomain-" + uid}}
 			newUser := cloud.User{Account: newAccount}
-			Ω(helpers.GetOrCreateUserWithKey(realCSClient, &newUser)).Should(Succeed())
+			gomega.Ω(helpers.GetOrCreateUserWithKey(realCSClient, &newUser)).Should(gomega.Succeed())
 			testDomainPath = newAccount.Domain.Path
 
-			Ω(newUser.APIKey).ShouldNot(BeEmpty())
+			gomega.Ω(newUser.APIKey).ShouldNot(gomega.BeEmpty())
 
 			// Switch to test account user.
 			realCloudClient, connectionErr = realCloudClient.NewClientInDomainAndAccount(
 				newAccount.Domain.Name, newAccount.Name, "")
-			Ω(connectionErr).ShouldNot(HaveOccurred())
+			gomega.Ω(connectionErr).ShouldNot(gomega.HaveOccurred())
 		}
 	})
-	AfterSuite(func() {
+	ginkgo.AfterSuite(func() {
 		if realCSClient != nil { // Check for nil in case the before suite setup failed.
 			// Delete created domain.
 			id, err, found := helpers.GetDomainByPath(realCSClient, testDomainPath)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
-			Ω(helpers.DeleteDomain(realCSClient, id)).Should(Succeed())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Ω(found).Should(gomega.BeTrue())
+			gomega.Ω(helpers.DeleteDomain(realCSClient, id)).Should(gomega.Succeed())
 		}
 	})
-	RunSpecs(t, "Cloud Suite")
+	ginkgo.RunSpecs(t, "Cloud Suite")
 }
 
 // FetchIntegTestResources runs through basic CloudStack Client setup methods needed to test others.
 func FetchIntegTestResources() {
-	Ω(realCloudClient.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(Succeed())
-	Ω(dummies.CSFailureDomain1.Spec.Zone.ID).ShouldNot(BeEmpty())
+	gomega.Ω(realCloudClient.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(gomega.Succeed())
+	gomega.Ω(dummies.CSFailureDomain1.Spec.Zone.ID).ShouldNot(gomega.BeEmpty())
 	dummies.CSMachine1.Spec.DiskOffering.Name = ""
 	dummies.CSCluster.Spec.ControlPlaneEndpoint.Host = ""
-	Ω(realCloudClient.GetOrCreateIsolatedNetwork(
-		dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(Succeed())
+	gomega.Ω(realCloudClient.GetOrCreateIsolatedNetwork(
+		dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(gomega.Succeed())
 }

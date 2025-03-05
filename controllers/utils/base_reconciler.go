@@ -231,7 +231,8 @@ func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness(gvks ...schema.GroupVe
 				if ready, found, err := unstructured.NestedBool(owned.Object, "status", "ready"); err != nil {
 					return ctrl.Result{}, errors.Wrapf(err, "parsing ready for object %s", owned)
 				} else if !found || !ready {
-					if name, found, err := unstructured.NestedString(owned.Object, "metadata", "name"); err != nil {
+					name, found, err := unstructured.NestedString(owned.Object, "metadata", "name")
+					if err != nil {
 						return ctrl.Result{}, errors.Wrapf(err, "parsing name for object %s", owned)
 					} else if !found {
 						return r.RequeueWithMessage(
@@ -239,10 +240,9 @@ func (r *ReconciliationRunner) CheckOwnedCRDsForReadiness(gvks ...schema.GroupVe
 								"Owned object of kind %s with name %s not found, requeuing.",
 								gvk.Kind,
 								owned.GetName()))
-					} else {
-						r.Log.Info(fmt.Sprintf("Owned object %s of kind %s not ready, requeuing", name, gvk.Kind))
-						return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 					}
+					r.Log.Info(fmt.Sprintf("Owned object %s of kind %s not ready, requeuing", name, gvk.Kind))
+					return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 				}
 			}
 		}

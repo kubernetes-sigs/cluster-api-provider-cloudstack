@@ -117,7 +117,6 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine, zo
 }
 
 func (c *client) ResolveTemplate(
-	csCluster *infrav1.CloudStackCluster,
 	csMachine *infrav1.CloudStackMachine,
 	zoneID string,
 ) (templateID string, retErr error) {
@@ -208,7 +207,7 @@ func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOff
 }
 
 // CheckAccountLimits Checks the account's limit of VM, CPU & Memory
-func (c *client) CheckAccountLimits(fd *infrav1.CloudStackFailureDomain, offering *cloudstack.ServiceOffering) error {
+func (c *client) CheckAccountLimits(offering *cloudstack.ServiceOffering) error {
 	if c.user.Account.CPUAvailable != "Unlimited" {
 		cpuAvailable, err := strconv.ParseInt(c.user.Account.CPUAvailable, 10, 0)
 		if err == nil && int64(offering.Cpunumber) > cpuAvailable {
@@ -233,7 +232,7 @@ func (c *client) CheckAccountLimits(fd *infrav1.CloudStackFailureDomain, offerin
 }
 
 // CheckDomainLimits Checks the domain's limit of VM, CPU & Memory
-func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering *cloudstack.ServiceOffering) error {
+func (c *client) CheckDomainLimits(offering *cloudstack.ServiceOffering) error {
 	if c.user.Account.Domain.CPUAvailable != "Unlimited" {
 		cpuAvailable, err := strconv.ParseInt(c.user.Account.Domain.CPUAvailable, 10, 0)
 		if err == nil && int64(offering.Cpunumber) > cpuAvailable {
@@ -258,7 +257,7 @@ func (c *client) CheckDomainLimits(fd *infrav1.CloudStackFailureDomain, offering
 }
 
 // CheckProjectLimits Checks the project's limit of VM, CPU & Memory
-func (c *client) CheckProjectLimits(fd *infrav1.CloudStackFailureDomain, offering *cloudstack.ServiceOffering) error {
+func (c *client) CheckProjectLimits(offering *cloudstack.ServiceOffering) error {
 	if c.user.Project.ID == "" {
 		return nil
 	}
@@ -288,20 +287,19 @@ func (c *client) CheckProjectLimits(fd *infrav1.CloudStackFailureDomain, offerin
 
 // CheckLimits will check the account & domain limits
 func (c *client) CheckLimits(
-	fd *infrav1.CloudStackFailureDomain,
 	offering *cloudstack.ServiceOffering,
 ) error {
-	err := c.CheckAccountLimits(fd, offering)
+	err := c.CheckAccountLimits(offering)
 	if err != nil {
 		return err
 	}
 
-	err = c.CheckDomainLimits(fd, offering)
+	err = c.CheckDomainLimits(offering)
 	if err != nil {
 		return err
 	}
 
-	err = c.CheckProjectLimits(fd, offering)
+	err = c.CheckProjectLimits(offering)
 	if err != nil {
 		return err
 	}
@@ -314,13 +312,12 @@ func (c *client) CheckLimits(
 func (c *client) DeployVM(
 	csMachine *infrav1.CloudStackMachine,
 	capiMachine *clusterv1.Machine,
-	csCluster *infrav1.CloudStackCluster,
 	fd *infrav1.CloudStackFailureDomain,
 	affinity *infrav1.CloudStackAffinityGroup,
 	offering *cloudstack.ServiceOffering,
 	userData string,
 ) error {
-	templateID, err := c.ResolveTemplate(csCluster, csMachine, fd.Spec.Zone.ID)
+	templateID, err := c.ResolveTemplate(csMachine, fd.Spec.Zone.ID)
 	if err != nil {
 		return err
 	}
@@ -393,7 +390,7 @@ func (c *client) DeployVM(
 func (c *client) GetOrCreateVMInstance(
 	csMachine *infrav1.CloudStackMachine,
 	capiMachine *clusterv1.Machine,
-	csCluster *infrav1.CloudStackCluster,
+	_ *infrav1.CloudStackCluster,
 	fd *infrav1.CloudStackFailureDomain,
 	affinity *infrav1.CloudStackAffinityGroup,
 	userData string,
@@ -409,12 +406,12 @@ func (c *client) GetOrCreateVMInstance(
 		return err
 	}
 
-	err = c.CheckLimits(fd, &offering)
+	err = c.CheckLimits(&offering)
 	if err != nil {
 		return err
 	}
 
-	if err := c.DeployVM(csMachine, capiMachine, csCluster, fd, affinity, &offering, userData); err != nil {
+	if err := c.DeployVM(csMachine, capiMachine, fd, affinity, &offering, userData); err != nil {
 		return err
 	}
 

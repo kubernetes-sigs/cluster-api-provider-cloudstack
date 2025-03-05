@@ -18,8 +18,8 @@ package controllers_test
 
 import (
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	ginkgo "github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
@@ -27,32 +27,32 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
-var _ = Describe("CloudStackClusterReconciler", func() {
-	Context("With k8s like test environment.", func() {
-		BeforeEach(func() {
-			SetupTestEnvironment()                                                                          // Must happen before setting up managers/reconcilers.
-			Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager, controller.Options{})).Should(Succeed())  // Register CloudStack ClusterReconciler.
-			Ω(FailureDomainReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(Succeed()) // Register CloudStack FailureDomainReconciler.
+var _ = ginkgo.Describe("CloudStackClusterReconciler", func() {
+	ginkgo.Context("With k8s like test environment.", func() {
+		ginkgo.BeforeEach(func() {
+			SetupTestEnvironment()                                                                                        // Must happen before setting up managers/reconcilers.
+			gomega.Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager, controller.Options{})).Should(gomega.Succeed())  // Register CloudStack ClusterReconciler.
+			gomega.Ω(FailureDomainReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(gomega.Succeed()) // Register CloudStack FailureDomainReconciler.
 		})
 
-		It("Should create a CloudStackFailureDomain.", func() {
+		ginkgo.It("Should create a CloudStackFailureDomain.", func() {
 			tempfd := &infrav1.CloudStackFailureDomain{}
 			mockCloudClient.EXPECT().ResolveZone(gomock.Any()).AnyTimes()
-			Eventually(func() bool {
+			gomega.Eventually(func() bool {
 				key := client.ObjectKeyFromObject(dummies.CSFailureDomain1)
 				key.Name = key.Name + "-" + dummies.CSCluster.Name
 				if err := k8sClient.Get(ctx, key, tempfd); err != nil {
 					return true
 				}
 				return false
-			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 		})
 	})
 
-	Context("Without a k8s test environment.", func() {
-		It("Should create a reconciliation runner with a Cloudstack Cluster as the reconciliation subject.", func() {
+	ginkgo.Context("Without a k8s test environment.", func() {
+		ginkgo.It("Should create a reconciliation runner with a Cloudstack Cluster as the reconciliation subject.", func() {
 			reconRunenr := controllers.NewCSClusterReconciliationRunner()
-			Ω(reconRunenr.ReconciliationSubject).ShouldNot(BeNil())
+			gomega.Ω(reconRunenr.ReconciliationSubject).ShouldNot(gomega.BeNil())
 		})
 	})
 })

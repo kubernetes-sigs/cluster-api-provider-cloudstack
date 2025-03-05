@@ -22,13 +22,13 @@ import (
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 )
 
-var _ = Describe("Network", func() {
+var _ = ginkgo.Describe("Network", func() {
 	var ( // Declare shared vars.
 		mockCtrl   *gomock.Controller
 		mockClient *csapi.CloudStackClient
@@ -37,9 +37,9 @@ var _ = Describe("Network", func() {
 		client     cloud.Client
 	)
 
-	BeforeEach(func() {
+	ginkgo.BeforeEach(func() {
 		// Setup new mock services.
-		mockCtrl = gomock.NewController(GinkgoT())
+		mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 		mockClient = csapi.NewMockClient(mockCtrl)
 		ns = mockClient.Network.(*csapi.MockNetworkServiceIface)
 		rs = mockClient.Resourcetags.(*csapi.MockResourcetagsServiceIface)
@@ -47,35 +47,35 @@ var _ = Describe("Network", func() {
 		dummies.SetDummyVars()
 	})
 
-	AfterEach(func() {
+	ginkgo.AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
-	Context("for an existing network", func() {
-		It("resolves network by ID", func() {
+	ginkgo.Context("for an existing network", func() {
+		ginkgo.It("resolves network by ID", func() {
 			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(nil, 0, nil)
 			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
 
-			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
+			gomega.Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(gomega.Succeed())
 		})
 
-		It("resolves network by Name", func() {
+		ginkgo.It("resolves network by Name", func() {
 			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 1, nil)
 
-			Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(Succeed())
+			gomega.Ω(client.ResolveNetwork(&dummies.ISONet1)).Should(gomega.Succeed())
 		})
 
-		It("When there exists more than one network with the same name", func() {
+		ginkgo.It("When there exists more than one network with the same name", func() {
 			ns.EXPECT().GetNetworkByName(dummies.ISONet1.Name, gomock.Any()).Return(dummies.CAPCNetToCSAPINet(&dummies.ISONet1), 2, nil)
 			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(nil, 2, errors.New("There is more then one result for Network UUID"))
 			err := client.ResolveNetwork(&dummies.ISONet1)
-			Ω(err).ShouldNot(Succeed())
-			Ω(err.Error()).Should(ContainSubstring(fmt.Sprintf("expected 1 Network with name %s, but got %d", dummies.ISONet1.Name, 2)))
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(err.Error()).Should(gomega.ContainSubstring(fmt.Sprintf("expected 1 Network with name %s, but got %d", dummies.ISONet1.Name, 2)))
 		})
 	})
 
-	Context("Remove cluster tag from network", func() {
-		It("Remove tag from network", func() {
+	ginkgo.Context("Remove cluster tag from network", func() {
+		ginkgo.It("Remove tag from network", func() {
 			rtdp := &csapi.DeleteTagsParams{}
 			createdByCAPCResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: dummies.CSClusterTagKey, Value: "1"}}}
 			rtlp := &csapi.ListTagsParams{}
@@ -83,7 +83,7 @@ var _ = Describe("Network", func() {
 			rs.EXPECT().DeleteTags(rtdp).Return(&csapi.DeleteTagsResponse{}, nil)
 			rs.EXPECT().NewListTagsParams().Return(rtlp)
 			rs.EXPECT().ListTags(rtlp).Return(createdByCAPCResponse, nil)
-			Ω(client.RemoveClusterTagFromNetwork(dummies.CSCluster, dummies.ISONet1)).Should(Succeed())
+			gomega.Ω(client.RemoveClusterTagFromNetwork(dummies.CSCluster, dummies.ISONet1)).Should(gomega.Succeed())
 		})
 	})
 })

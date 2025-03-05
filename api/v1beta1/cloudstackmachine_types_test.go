@@ -17,30 +17,31 @@ limitations under the License.
 package v1beta1_test
 
 import (
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"time"
+
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
-	"time"
 )
 
-var _ = Describe("CloudStackMachine types", func() {
+var _ = ginkgo.Describe("CloudStackMachine types", func() {
 	var cloudStackMachine infrav1.CloudStackMachine
 
-	BeforeEach(func() { // Reset test vars to initial state.
+	ginkgo.BeforeEach(func() { // Reset test vars to initial state.
 		cloudStackMachine = infrav1.CloudStackMachine{}
 	})
 
-	Context("When calculating time since state change", func() {
-		It("Return the correct value when the last state update time is known", func() {
+	ginkgo.Context("When calculating time since state change", func() {
+		ginkgo.It("Return the correct value when the last state update time is known", func() {
 			delta := time.Duration(10 * time.Minute)
 			lastUpdated := time.Now().Add(-delta)
 			cloudStackMachine.Status.InstanceStateLastUpdated = metav1.NewTime(lastUpdated)
-			Ω(cloudStackMachine.Status.TimeSinceLastStateChange()).Should(BeNumerically("~", delta, time.Second))
+			gomega.Expect(cloudStackMachine.Status.TimeSinceLastStateChange()).Should(gomega.BeNumerically("~", delta, time.Second))
 		})
 
-		It("Return a negative value when the last state update time is unknown", func() {
-			Ω(cloudStackMachine.Status.TimeSinceLastStateChange()).Should(BeNumerically("<", 0))
+		ginkgo.It("Return a negative value when the last state update time is unknown", func() {
+			gomega.Expect(cloudStackMachine.Status.TimeSinceLastStateChange()).Should(gomega.BeNumerically("<", 0))
 		})
 	})
 })

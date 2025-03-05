@@ -19,82 +19,81 @@ package v1beta3_test
 import (
 	"context"
 
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("CloudStackMachineTemplate webhook", func() {
+var _ = ginkgo.Describe("CloudStackMachineTemplate webhook", func() {
 	var ctx context.Context
 	forbiddenRegex := "admission webhook.*denied the request.*Forbidden\\: %s"
 	requiredRegex := "admission webhook.*denied the request.*Required value\\: %s"
 
-	BeforeEach(func() { // Reset test vars to initial state.
+	ginkgo.BeforeEach(func() { // Reset test vars to initial state.
 		dummies.SetDummyVars()
 		ctx = context.Background()
 		_ = k8sClient.Delete(ctx, dummies.CSMachineTemplate1) // Delete any remnants.
 	})
 
-	Context("When creating a CloudStackMachineTemplate", func() {
-		It("Should accept a CloudStackMachineTemplate with all attributes present", func() {
-			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).Should(Succeed())
+	ginkgo.Context("When creating a CloudStackMachineTemplate", func() {
+		ginkgo.It("Should accept a CloudStackMachineTemplate with all attributes present", func() {
+			gomega.Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).Should(gomega.Succeed())
 		})
 
-		It("Should accept a CloudStackMachineTemplate when missing the VM Disk Offering attribute", func() {
+		ginkgo.It("Should accept a CloudStackMachineTemplate when missing the VM Disk Offering attribute", func() {
 			dummies.CSMachineTemplate1.Spec.Template.Spec.DiskOffering = infrav1.CloudStackResourceDiskOffering{
 				CloudStackResourceIdentifier: infrav1.CloudStackResourceIdentifier{Name: "", ID: ""},
 			}
-			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).Should(Succeed())
+			gomega.Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).Should(gomega.Succeed())
 		})
 
-		It("Should reject a CloudStackMachineTemplate when missing the VM Offering attribute", func() {
+		ginkgo.It("Should reject a CloudStackMachineTemplate when missing the VM Offering attribute", func() {
 			dummies.CSMachineTemplate1.Spec.Template.Spec.Offering = infrav1.CloudStackResourceIdentifier{Name: "", ID: ""}
-			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).
-				Should(MatchError(MatchRegexp(requiredRegex, "Offering")))
+			gomega.Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).
+				Should(gomega.MatchError(gomega.MatchRegexp(requiredRegex, "Offering")))
 		})
 
-		It("Should reject a CloudStackMachineTemplate when missing the VM Template attribute", func() {
+		ginkgo.It("Should reject a CloudStackMachineTemplate when missing the VM Template attribute", func() {
 			dummies.CSMachineTemplate1.Spec.Template.Spec.Template = infrav1.CloudStackResourceIdentifier{Name: "", ID: ""}
-			Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).
-				Should(MatchError(MatchRegexp(requiredRegex, "Template")))
+			gomega.Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).
+				Should(gomega.MatchError(gomega.MatchRegexp(requiredRegex, "Template")))
 		})
 	})
 
-	Context("When updating a CloudStackMachineTemplate", func() {
-		BeforeEach(func() { // Reset test vars to initial state.
-			Ω(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).Should(Succeed())
+	ginkgo.Context("When updating a CloudStackMachineTemplate", func() {
+		ginkgo.BeforeEach(func() { // Reset test vars to initial state.
+			gomega.Expect(k8sClient.Create(ctx, dummies.CSMachineTemplate1)).Should(gomega.Succeed())
 		})
 
-		It("should reject VM template updates to the CloudStackMachineTemplate", func() {
+		ginkgo.It("should reject VM template updates to the CloudStackMachineTemplate", func() {
 			dummies.CSMachineTemplate1.Spec.Template.Spec.Template = infrav1.CloudStackResourceIdentifier{Name: "ArbitraryUpdateTemplate"}
-			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "template")))
+			gomega.Expect(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
+				Should(gomega.MatchError(gomega.MatchRegexp(forbiddenRegex, "template")))
 		})
 
-		It("should reject VM disk offering updates to the CloudStackMachineTemplate", func() {
+		ginkgo.It("should reject VM disk offering updates to the CloudStackMachineTemplate", func() {
 			dummies.CSMachineTemplate1.Spec.Template.Spec.DiskOffering = infrav1.CloudStackResourceDiskOffering{
 				CloudStackResourceIdentifier: infrav1.CloudStackResourceIdentifier{Name: "DiskOffering2"}}
-			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "diskOffering")))
+			gomega.Expect(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
+				Should(gomega.MatchError(gomega.MatchRegexp(forbiddenRegex, "diskOffering")))
 		})
 
-		It("should reject VM offering updates to the CloudStackMachineTemplate", func() {
+		ginkgo.It("should reject VM offering updates to the CloudStackMachineTemplate", func() {
 			dummies.CSMachineTemplate1.Spec.Template.Spec.Offering = infrav1.CloudStackResourceIdentifier{Name: "Offering2"}
-			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "offering")))
+			gomega.Expect(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
+				Should(gomega.MatchError(gomega.MatchRegexp(forbiddenRegex, "offering")))
 		})
 
-		It("should reject updates to VM details of the CloudStackMachineTemplate", func() {
+		ginkgo.It("should reject updates to VM details of the CloudStackMachineTemplate", func() {
 			dummies.CSMachineTemplate1.Spec.Template.Spec.Details = map[string]string{"memoryOvercommitRatio": "1.5"}
-			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
-				Should(MatchError(MatchRegexp(forbiddenRegex, "details")))
+			gomega.Expect(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).
+				Should(gomega.MatchError(gomega.MatchRegexp(forbiddenRegex, "details")))
 		})
 
-		It("should reject updates to the list of AffinityGroupIDs of the CloudStackMachineTemplate", func() {
+		ginkgo.It("should reject updates to the list of AffinityGroupIDs of the CloudStackMachineTemplate", func() {
 			dummies.CSMachineTemplate1.Spec.Template.Spec.AffinityGroupIDs = []string{"28b907b8-75a7-4214-bd3d-6c61961fc2ag"}
-			Ω(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).ShouldNot(Succeed())
+			gomega.Expect(k8sClient.Update(ctx, dummies.CSMachineTemplate1)).ShouldNot(gomega.Succeed())
 		})
 	})
 })

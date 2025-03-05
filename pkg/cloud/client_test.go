@@ -24,8 +24,8 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
@@ -37,7 +37,7 @@ type Global struct {
 	VerifySSL bool   `ini:"verify-ssl"`
 }
 
-var _ = Describe("Client", func() {
+var _ = ginkgo.Describe("Client", func() {
 
 	var (
 		mockCtrl   *gomock.Controller
@@ -47,81 +47,81 @@ var _ = Describe("Client", func() {
 		as         *cloudstack.MockAccountServiceIface
 	)
 
-	BeforeEach(func() {
-		mockCtrl = gomock.NewController(GinkgoT())
+	ginkgo.BeforeEach(func() {
+		mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 		mockClient = cloudstack.NewMockClient(mockCtrl)
 		us = mockClient.User.(*cloudstack.MockUserServiceIface)
 		ds = mockClient.Domain.(*cloudstack.MockDomainServiceIface)
 		as = mockClient.Account.(*cloudstack.MockAccountServiceIface)
 	})
 
-	AfterEach(func() {
+	ginkgo.AfterEach(func() {
 	})
 
-	Context("When fetching a YAML config.", func() {
-		It("Handles the positive case.", func() {
+	ginkgo.Context("When fetching a YAML config.", func() {
+		ginkgo.It("Handles the positive case.", func() {
 			// This test fixture is useful for development, but the actual method of parsing is confinded to the client's
 			// new client method. The parsing used here is more of a schema, and we don't need to test another library's
 			// abilities to parse said schema.
-			Skip("Dev test suite.")
+			ginkgo.Skip("Dev test suite.")
 			// Create a real cloud client.
 			var connectionErr error
 			_, connectionErr = helpers.NewCSClient()
-			Ω(connectionErr).ShouldNot(HaveOccurred())
+			gomega.Ω(connectionErr).ShouldNot(gomega.HaveOccurred())
 
 			_, connectionErr = cloud.NewClientFromYamlPath(os.Getenv("REPO_ROOT")+"/cloud-config.yaml", "myendpoint")
-			Ω(connectionErr).ShouldNot(HaveOccurred())
+			gomega.Ω(connectionErr).ShouldNot(gomega.HaveOccurred())
 		})
 	})
 
-	Context("GetClientCacheTTL", func() {
-		It("Returns the default TTL when a nil is passed", func() {
+	ginkgo.Context("GetClientCacheTTL", func() {
+		ginkgo.It("Returns the default TTL when a nil is passed", func() {
 			result := cloud.GetClientCacheTTL(nil)
-			Ω(result).Should(Equal(cloud.DefaultClientCacheTTL))
+			gomega.Ω(result).Should(gomega.Equal(cloud.DefaultClientCacheTTL))
 		})
 
-		It("Returns the default TTL when an empty config map is passed", func() {
+		ginkgo.It("Returns the default TTL when an empty config map is passed", func() {
 			clientConfig := &corev1.ConfigMap{}
 			result := cloud.GetClientCacheTTL(clientConfig)
-			Ω(result).Should(Equal(cloud.DefaultClientCacheTTL))
+			gomega.Ω(result).Should(gomega.Equal(cloud.DefaultClientCacheTTL))
 		})
 
-		It("Returns the default TTL when the TTL key does not exist", func() {
+		ginkgo.It("Returns the default TTL when the TTL key does not exist", func() {
 			clientConfig := &corev1.ConfigMap{}
 			clientConfig.Data = map[string]string{}
 			clientConfig.Data[cloud.ClientCacheTTLKey+"XXXX"] = "1m5s"
 			result := cloud.GetClientCacheTTL(clientConfig)
-			Ω(result).Should(Equal(cloud.DefaultClientCacheTTL))
+			gomega.Ω(result).Should(gomega.Equal(cloud.DefaultClientCacheTTL))
 		})
 
-		It("Returns the default TTL when the TTL value is invalid", func() {
+		ginkgo.It("Returns the default TTL when the TTL value is invalid", func() {
 			clientConfig := &corev1.ConfigMap{}
 			clientConfig.Data = map[string]string{}
 			clientConfig.Data[cloud.ClientCacheTTLKey] = "5mXXX"
 			result := cloud.GetClientCacheTTL(clientConfig)
-			Ω(result).Should(Equal(cloud.DefaultClientCacheTTL))
+			gomega.Ω(result).Should(gomega.Equal(cloud.DefaultClientCacheTTL))
 		})
 
-		It("Returns the TTL from the input clientConfig map", func() {
+		ginkgo.It("Returns the TTL from the input clientConfig map", func() {
 			clientConfig := &corev1.ConfigMap{}
 			clientConfig.Data = map[string]string{}
 			clientConfig.Data[cloud.ClientCacheTTLKey] = "5m10s"
 			expected, _ := time.ParseDuration("5m10s")
 			result := cloud.GetClientCacheTTL(clientConfig)
-			Ω(result).Should(Equal(expected))
+			gomega.Ω(result).Should(gomega.Equal(expected))
 		})
 	})
 
-	Context("NewClientFromConf", func() {
+	ginkgo.Context("NewClientFromConf", func() {
 		clientConfig := &corev1.ConfigMap{}
-		cloud.NewAsyncClient = func(apiurl, apikey, secret string, verifyssl bool, options ...cloudstack.ClientOption) *cloudstack.CloudStackClient {
+		cloud.NewAsyncClient = func(_, _, _ string, _ bool, _ ...cloudstack.ClientOption) *cloudstack.CloudStackClient {
 			return mockClient
 		}
-		cloud.NewClient = func(apiurl, apikey, secret string, verifyssl bool, options ...cloudstack.ClientOption) *cloudstack.CloudStackClient {
+		cloud.NewClient = func(_, _, _ string, _ bool, _ ...cloudstack.ClientOption) *cloudstack.CloudStackClient {
 			return mockClient
 		}
 
-		BeforeEach(func() {
+		ginkgo.BeforeEach(func() {
 			clientConfig.Data = map[string]string{}
 			clientConfig.Data[cloud.ClientCacheTTLKey] = "100ms"
 			fakeListParams := &cloudstack.ListUsersParams{}
@@ -158,16 +158,16 @@ var _ = Describe("Client", func() {
 
 		})
 
-		It("Returns a new client", func() {
+		ginkgo.It("Returns a new client", func() {
 			config := cloud.Config{
 				APIUrl: "http://1.1.1.1",
 			}
 			result, err := cloud.NewClientFromConf(config, clientConfig, "")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(result).ShouldNot(BeNil())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Ω(result).ShouldNot(gomega.BeNil())
 		})
 
-		It("Returns a new client for a different config", func() {
+		ginkgo.It("Returns a new client for a different config", func() {
 			config1 := cloud.Config{
 				APIUrl: "http://2.2.2.2",
 			}
@@ -176,10 +176,10 @@ var _ = Describe("Client", func() {
 			}
 			result1, _ := cloud.NewClientFromConf(config1, clientConfig, "")
 			result2, _ := cloud.NewClientFromConf(config2, clientConfig, "")
-			Ω(result1).ShouldNot(Equal(result2))
+			gomega.Ω(result1).ShouldNot(gomega.Equal(result2))
 		})
 
-		It("Returns a cached client for the same config", func() {
+		ginkgo.It("Returns a cached client for the same config", func() {
 			config1 := cloud.Config{
 				APIUrl: "http://4.4.4.4",
 			}
@@ -188,7 +188,7 @@ var _ = Describe("Client", func() {
 			}
 			result1, _ := cloud.NewClientFromConf(config1, clientConfig, "")
 			result2, _ := cloud.NewClientFromConf(config2, clientConfig, "")
-			Ω(result1).Should(Equal(result2))
+			gomega.Ω(result1).Should(gomega.Equal(result2))
 		})
 	})
 })

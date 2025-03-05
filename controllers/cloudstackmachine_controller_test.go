@@ -21,8 +21,8 @@ import (
 	"strings"
 
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	ginkgo "github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,26 +37,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-var _ = Describe("CloudStackMachineReconciler", func() {
-	Context("With machine controller running.", func() {
-		BeforeEach(func() {
+var _ = ginkgo.Describe("CloudStackMachineReconciler", func() {
+	ginkgo.Context("With machine controller running.", func() {
+		ginkgo.BeforeEach(func() {
 			dummies.SetDummyVars()
 			dummies.CSCluster.Spec.FailureDomains = dummies.CSCluster.Spec.FailureDomains[:1]
 			dummies.CSCluster.Spec.FailureDomains[0].Name = dummies.CSFailureDomain1.Spec.Name
 
-			SetupTestEnvironment()                                                                         // Must happen before setting up managers/reconcilers.
-			Ω(MachineReconciler.SetupWithManager(ctx, k8sManager, controller.Options{})).Should(Succeed()) // Register the CloudStack MachineReconciler.
+			SetupTestEnvironment()                                                                                        // Must happen before setting up managers/reconcilers.
+			gomega.Expect(MachineReconciler.SetupWithManager(ctx, k8sManager, controller.Options{})).To(gomega.Succeed()) // Register the CloudStack MachineReconciler.
 
 			// Point CAPI machine Bootstrap secret ref to dummy bootstrap secret.
 			dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = &dummies.BootstrapSecret.Name
-			Ω(k8sClient.Create(ctx, dummies.BootstrapSecret)).Should(Succeed())
+			gomega.Expect(k8sClient.Create(ctx, dummies.BootstrapSecret)).To(gomega.Succeed())
 
 			// Setup a failure domain for the machine reconciler to find.
-			Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
+			gomega.Expect(k8sClient.Create(ctx, dummies.CSFailureDomain1)).To(gomega.Succeed())
 			setClusterReady(k8sClient)
 		})
 
-		It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
+		ginkgo.It("Should call GetOrCreateVMInstance and set Status.Ready to true", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),
@@ -69,7 +69,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			setupMachineCRDs()
 
 			// Eventually the machine should set ready to true.
-			Eventually(func() bool {
+			gomega.Eventually(func() bool {
 				tempMachine := &infrav1.CloudStackMachine{}
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
@@ -78,10 +78,10 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 					}
 				}
 				return false
-			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 		})
 
-		It("Should call DestroyVMInstance when CS machine deleted", func() {
+		ginkgo.It("Should call DestroyVMInstance when CS machine deleted", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),
@@ -96,7 +96,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			setupMachineCRDs()
 
 			// Eventually the machine should set ready to true.
-			Eventually(func() bool {
+			gomega.Eventually(func() bool {
 				tempMachine := &infrav1.CloudStackMachine{}
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
@@ -105,22 +105,22 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 					}
 				}
 				return false
-			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 
-			Ω(k8sClient.Delete(ctx, dummies.CSMachine1)).Should(Succeed())
+			gomega.Expect(k8sClient.Delete(ctx, dummies.CSMachine1)).To(gomega.Succeed())
 
-			Eventually(func() bool {
+			gomega.Eventually(func() bool {
 				tempMachine := &infrav1.CloudStackMachine{}
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 				if err := k8sClient.Get(ctx, key, tempMachine); err != nil {
 					return errors.IsNotFound(err)
 				}
 				return false
-			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 
 		})
 
-		It("Should call ResolveVMInstanceDetails when CS machine without instanceID deleted", func() {
+		ginkgo.It("Should call ResolveVMInstanceDetails when CS machine without instanceID deleted", func() {
 			instanceID := pointer.String("instance-id-123")
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
@@ -141,7 +141,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			setupMachineCRDs()
 
 			// Eventually the machine should set ready to true.
-			Eventually(func() bool {
+			gomega.Eventually(func() bool {
 				tempMachine := &infrav1.CloudStackMachine{}
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
@@ -150,34 +150,34 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 					}
 				}
 				return false
-			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 
 			// remove instanceID from CS machine
 			ph, err := patch.NewHelper(dummies.CSMachine1, k8sClient)
-			Ω(err).ShouldNot(HaveOccurred())
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			dummies.CSMachine1.Spec.InstanceID = nil
-			Ω(ph.Patch(ctx, dummies.CSMachine1)).Should(Succeed())
-			Ω(k8sClient.Delete(ctx, dummies.CSMachine1)).Should(Succeed())
+			gomega.Expect(ph.Patch(ctx, dummies.CSMachine1)).To(gomega.Succeed())
+			gomega.Expect(k8sClient.Delete(ctx, dummies.CSMachine1)).To(gomega.Succeed())
 
-			Eventually(func() bool {
+			gomega.Eventually(func() bool {
 				tempMachine := &infrav1.CloudStackMachine{}
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 				if err := k8sClient.Get(ctx, key, tempMachine); err != nil {
 					return errors.IsNotFound(err)
 				}
 				return false
-			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 
 		})
 
-		It("Should replace ds.meta_data.xxx with proper values.", func() {
+		ginkgo.It("Should replace ds.meta_data.xxx with proper values.", func() {
 			// Mock a call to GetOrCreateVMInstance and set the machine to running.
 			mockCloudClient.EXPECT().GetOrCreateVMInstance(
 				gomock.Any(), gomock.Any(), gomock.Any(),
 				gomock.Any(), gomock.Any(), gomock.Any()).Do(
 				func(arg1, _, _, _, _, userdata interface{}) {
 					expectedUserdata := fmt.Sprintf("%s{{%s}}", dummies.CAPIMachine.Name, dummies.CSMachine1.Spec.FailureDomainName)
-					Ω(userdata == expectedUserdata).Should(BeTrue())
+					gomega.Expect(userdata == expectedUserdata).To(gomega.BeTrue())
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
 				}).AnyTimes()
 
@@ -185,7 +185,7 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 			setupMachineCRDs()
 
 			// Eventually the machine should set ready to true.
-			Eventually(func() bool {
+			gomega.Eventually(func() bool {
 				tempMachine := &infrav1.CloudStackMachine{}
 				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
@@ -194,18 +194,18 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 					}
 				}
 				return false
-			}, timeout).WithPolling(pollInterval).Should(BeTrue())
+			}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 		})
 	})
 
-	Context("With a fake ctrlRuntimeClient and no test Env at all.", func() {
-		BeforeEach(func() {
+	ginkgo.Context("With a fake ctrlRuntimeClient and no test Env at all.", func() {
+		ginkgo.BeforeEach(func() {
 			setupFakeTestClient()
 			dummies.CSCluster.Spec.FailureDomains = dummies.CSCluster.Spec.FailureDomains[:1]
 			dummies.CSCluster.Spec.FailureDomains[0].Name = dummies.CSFailureDomain1.Spec.Name
 		})
 
-		It("Should exit having not found a failure domain to place the machine in.", func() {
+		ginkgo.It("Should exit having not found a failure domain to place the machine in.", func() {
 			key := client.ObjectKeyFromObject(dummies.CSCluster)
 			dummies.CAPIMachine.Name = "someMachine"
 			dummies.CSMachine1.OwnerReferences = append(dummies.CSMachine1.OwnerReferences, metav1.OwnerReference{
@@ -214,17 +214,17 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 				Name:       dummies.CAPIMachine.Name,
 				UID:        "uniqueness",
 			})
-			Ω(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).Should(Succeed())
-			Ω(fakeCtrlClient.Create(ctx, dummies.CAPIMachine)).Should(Succeed())
-			Ω(fakeCtrlClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
+			gomega.Expect(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).To(gomega.Succeed())
+			gomega.Expect(fakeCtrlClient.Create(ctx, dummies.CAPIMachine)).To(gomega.Succeed())
+			gomega.Expect(fakeCtrlClient.Create(ctx, dummies.CSMachine1)).To(gomega.Succeed())
 
 			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(res.RequeueAfter).ShouldNot(BeZero())
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Expect(res.RequeueAfter).ShouldNot(gomega.BeZero())
 		})
 
-		It("Should create event Machine instance is Running", func() {
+		ginkgo.It("Should create event Machine instance is Running", func() {
 			key := client.ObjectKeyFromObject(dummies.CSCluster)
 			dummies.CAPIMachine.Name = "someMachine"
 			dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = &dummies.BootstrapSecret.Name
@@ -240,29 +240,29 @@ var _ = Describe("CloudStackMachineReconciler", func() {
 				func(arg1, _, _, _, _, _ interface{}) {
 					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
 				}).AnyTimes()
-			Ω(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).Should(Succeed())
-			Ω(fakeCtrlClient.Create(ctx, dummies.CAPIMachine)).Should(Succeed())
-			Ω(fakeCtrlClient.Create(ctx, dummies.CSMachine1)).Should(Succeed())
-			Ω(fakeCtrlClient.Create(ctx, dummies.CSFailureDomain1)).Should(Succeed())
-			Ω(fakeCtrlClient.Create(ctx, dummies.ACSEndpointSecret1)).Should(Succeed())
-			Ω(fakeCtrlClient.Create(ctx, dummies.BootstrapSecret)).Should(Succeed())
+			gomega.Expect(fakeCtrlClient.Get(ctx, key, dummies.CSCluster)).To(gomega.Succeed())
+			gomega.Expect(fakeCtrlClient.Create(ctx, dummies.CAPIMachine)).To(gomega.Succeed())
+			gomega.Expect(fakeCtrlClient.Create(ctx, dummies.CSMachine1)).To(gomega.Succeed())
+			gomega.Expect(fakeCtrlClient.Create(ctx, dummies.CSFailureDomain1)).To(gomega.Succeed())
+			gomega.Expect(fakeCtrlClient.Create(ctx, dummies.ACSEndpointSecret1)).To(gomega.Succeed())
+			gomega.Expect(fakeCtrlClient.Create(ctx, dummies.BootstrapSecret)).To(gomega.Succeed())
 
 			setClusterReady(fakeCtrlClient)
 
 			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
 			MachineReconciler.AsFailureDomainUser(&dummies.CSFailureDomain1.Spec)
 			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(res.RequeueAfter).Should(BeZero())
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Expect(res.RequeueAfter).Should(gomega.BeZero())
 
-			Eventually(func() bool {
+			gomega.Eventually(func() bool {
 				for event := range fakeRecorder.Events {
 					return strings.Contains(event, "Normal Created CloudStack instance Created") ||
 						strings.Contains(event, "Normal Running Machine instance is Running...") ||
 						strings.Contains(event, "Normal Machine State Checker CloudStackMachineStateChecker created")
 				}
 				return false
-			}, timeout).Should(BeTrue())
+			}, timeout).Should(gomega.BeTrue())
 		})
 	})
 })
