@@ -40,9 +40,17 @@ type CloudStackIsolatedNetworkSpec struct {
 	// FailureDomainName -- the FailureDomain the network is placed in.
 	FailureDomainName string `json:"failureDomainName"`
 
+	// Gateway for the network.
+	// +optional
+	Gateway string `json:"gateway,omitempty"`
+
+	// Netmask for the network.
+	// +optional
+	Netmask string `json:"netmask,omitempty"`
+
 	// VPC the network belongs to.
 	// +optional
-	VPC VPC `json:"vpc,omitempty"`
+	VPC *VPC `json:"vpc,omitempty"`
 }
 
 // CloudStackIsolatedNetworkStatus defines the observed state of CloudStackIsolatedNetwork
@@ -59,10 +67,13 @@ type CloudStackIsolatedNetworkStatus struct {
 
 func (n *CloudStackIsolatedNetwork) Network() *Network {
 	return &Network{
-		Name: n.Spec.Name,
-		Type: "IsolatedNetwork",
-		ID:   n.Spec.ID,
-		VPC:  n.Spec.VPC}
+		Name:    n.Spec.Name,
+		Type:    "IsolatedNetwork",
+		ID:      n.Spec.ID,
+		Gateway: n.Spec.Gateway,
+		Netmask: n.Spec.Netmask,
+		VPC:     n.Spec.VPC,
+	}
 }
 
 //+kubebuilder:object:root=true

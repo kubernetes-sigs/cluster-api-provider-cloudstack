@@ -169,11 +169,19 @@ spec:
                   network:
                     description: The network within the Zone to use.
                     properties:
+                      gateway:
+                        description: Cloudstack Network Gateway the cluster is built
+                          in.
+                        type: string
                       id:
                         description: Cloudstack Network ID the cluster is built in.
                         type: string
                       name:
                         description: Cloudstack Network Name the cluster is built
+                          in.
+                        type: string
+                      netmask:
+                        description: Cloudstack Network Netmask the cluster is built
                           in.
                         type: string
                       type:
@@ -183,6 +191,9 @@ spec:
                       vpc:
                         description: Cloudstack VPC the network belongs to.
                         properties:
+                          cidr:
+                            description: CIDR for the VPC.
+                            type: string
                           id:
                             description: Cloudstack VPC ID of the network.
                             type: string

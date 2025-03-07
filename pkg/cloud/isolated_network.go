@@ -41,8 +41,8 @@ type IsoNetworkIface interface {
 }
 
 // getOfferingID fetches an offering id.
-func (c *client) getOfferingID() (string, error) {
-	offeringID, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(NetOffering)
+func (c *client) getOfferingID(offeringName string) (string, error) {
+	offeringID, count, retErr := c.cs.NetworkOffering.GetNetworkOfferingID(offeringName)
 	if retErr != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 		return "", retErr
@@ -68,7 +68,7 @@ func (c *client) AssociatePublicIPAddress(
 	isoNet.Status.PublicIPID = publicAddress.Id
 
 	// Check if the address is already associated with the network or VPC.
-	if publicAddress.Associatednetworkid == isoNet.Spec.ID || publicAddress.Vpcid == isoNet.Spec.VPC.ID {
+	if publicAddress.Associatednetworkid == isoNet.Spec.ID || (isoNet.Spec.VPC != nil && publicAddress.Vpcid == isoNet.Spec.VPC.ID) {
 		return nil
 	}
 
@@ -76,7 +76,7 @@ func (c *client) AssociatePublicIPAddress(
 	p := c.cs.Address.NewAssociateIpAddressParams()
 	p.SetIpaddress(isoNet.Spec.ControlPlaneEndpoint.Host)
 	p.SetNetworkid(isoNet.Spec.ID)
-	if isoNet.Spec.VPC.ID != "" {
+	if isoNet.Spec.VPC != nil && isoNet.Spec.VPC.ID != "" {
 		p.SetVpcid(isoNet.Spec.VPC.ID)
 	}
 	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
@@ -98,63 +98,42 @@ func (c *client) AssociatePublicIPAddress(
 // CreateIsolatedNetwork creates an isolated network in the relevant FailureDomain per passed network specification.
 func (c *client) CreateIsolatedNetwork(fd *infrav1.CloudStackFailureDomain, isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
 	// Get network offering ID.
-	offeringID, err := c.getOfferingID()
-	if err != nil {
-		return err
+	offeringName := NetOffering
+	// First, check if VPC is specified and handle it
+	if isoNet.Spec.VPC != nil && (isoNet.Spec.VPC.Name != "" || isoNet.Spec.VPC.ID != "") {
+		// Try to resolve or create the VPC
+		err := c.ResolveVPC(isoNet.Spec.VPC)
+		if err != nil { // No VPC found, create it
+			err = c.CreateVPC(fd, isoNet.Spec.VPC)
+			if err != nil {
+				return errors.Wrap(err, "creating VPC with name "+isoNet.Spec.VPC.Name)
+			}
+		}
+		offeringName = NetVPCOffering
 	}
 
-	// First, check if VPC is specified and handle it
-	if isoNet.Spec.VPC.Name != "" || isoNet.Spec.VPC.ID != "" {
-		// Try to resolve or create the VPC
-		err := c.ResolveVPC(&isoNet.Spec.VPC)
-		if err != nil {
-			return errors.Wrap(err, "resolving VPC for isolated network")
-			// }
-
-			// TODO: Handle VPC creation
-
-			// // VPC not found, need to create it
-			// // First, get a VPC offering ID
-			// vpcOfferingParams := c.cs.VPC.NewListVPCOfferingsParams()
-			// vpcOfferingResp, err := c.cs.VPC.ListVPCOfferings(vpcOfferingParams)
-			// if err != nil {
-			// 	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-			// 	return errors.Wrap(err, "listing VPC offerings")
-			// }
-			// if vpcOfferingResp.Count == 0 {
-			// 	return errors.New("no VPC offerings available")
-			// }
-
-			// // Use the first VPC offering
-			// vpcOfferingID := vpcOfferingResp.VPCOfferings[0].Id
-
-			// // Create the VPC
-			// vpcParams := c.cs.VPC.NewCreateVPCParams(isoNet.Spec.VPC.Name, vpcOfferingID, fd.Spec.Zone.ID)
-			// vpcParams.SetDisplaytext(isoNet.Spec.VPC.Name)
-			// setIfNotEmpty(c.user.Project.ID, vpcParams.SetProjectid)
-
-			// vpcResp, err := c.cs.VPC.CreateVPC(vpcParams)
-			// if err != nil {
-			// 	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-			// 	return errors.Wrapf(err, "creating VPC with name %s", isoNet.Spec.VPC.Name)
-			// }
-
-			// isoNet.Spec.VPC.ID = vpcResp.Id
-
-			// // Tag the VPC
-			// if err := c.AddCreatedByCAPCTag(ResourceTypeVPC, isoNet.Spec.VPC.ID); err != nil {
-			// 	return errors.Wrapf(err, "tagging VPC with ID %s", isoNet.Spec.VPC.ID)
-			// }
-		}
+	// Get network offering ID.
+	offeringID, err := c.getOfferingID(offeringName)
+	if err != nil {
+		return err
 	}
 
 	// Do isolated network creation.
 	p := c.cs.Network.NewCreateNetworkParams(isoNet.Spec.Name, offeringID, fd.Spec.Zone.ID)
 	p.SetDisplaytext(isoNet.Spec.Name)
+
+	if isoNet.Spec.Gateway != "" {
+		p.SetGateway(isoNet.Spec.Gateway)
+	}
+
+	if isoNet.Spec.Netmask != "" {
+		p.SetNetmask(isoNet.Spec.Netmask)
+	}
+
 	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
 
 	// If VPC is specified, set the VPC ID for the network
-	if isoNet.Spec.VPC.ID != "" {
+	if isoNet.Spec.VPC != nil && isoNet.Spec.VPC.ID != "" {
 		p.SetVpcid(isoNet.Spec.VPC.ID)
 	}
 
@@ -169,6 +148,9 @@ func (c *client) CreateIsolatedNetwork(fd *infrav1.CloudStackFailureDomain, isoN
 
 // OpenFirewallRules opens a CloudStack egress firewall for an isolated network.
 func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
+	if isoNet.Spec.VPC != nil && isoNet.Spec.VPC.ID != "" {
+		return nil
+	}
 	protocols := []string{NetworkProtocolTCP, NetworkProtocolUDP, NetworkProtocolICMP}
 	for _, proto := range protocols {
 		p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, proto)
