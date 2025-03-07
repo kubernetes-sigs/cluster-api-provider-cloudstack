@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,17 +31,15 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// ProjectSpec implements a test that verifies that an app deployed to the workload cluster works.
-func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
+// VPCNetworkSpec implements a test that verifies cluster creation in a VPC network.
+func VPCNetworkSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	var (
-		specName         = "project"
-		projectName      string
+		specName         = "vpc-network"
 		input            CommonSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
-		affinityIds      []string
-		vpcName          string
+		vpcName          = "vpc-for-e2e-1"
 	)
 
 	BeforeEach(func() {
@@ -51,29 +49,17 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
-
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
+		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.GetVariable(KubernetesVersion)))
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
-
-		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
-		input = inputGetter()
-
-		projectName = os.Getenv("CLOUDSTACK_PROJECT_NAME")
-		vpcName = fmt.Sprintf("%s-%s", os.Getenv("CLOUDSTACK_PROJECT_NAME"), input.E2EConfig.GetVariable("CLOUDSTACK_VPC_NAME"))
-		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
-		project, _, err := csClient.Project.GetProjectByName(projectName)
-		if (err != nil) || (project == nil) {
-			Skip("Failed to fetch project")
-		}
-
-		// Initialize affinityIds to an empty slice to avoid nil checks
-		affinityIds = make([]string, 0)
 	})
 
-	It("Should create a cluster in a project", func() {
+	It("Should successfully create a cluster in a VPC network", func() {
+		By("Creating a workload cluster in a VPC network")
+
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:    input.BootstrapClusterProxy,
 			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
@@ -87,48 +73,24 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64(1),
-				WorkerMachineCount:       pointer.Int64(2),
+				WorkerMachineCount:       pointer.Int64(1),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
-		// Ensure the cluster was created successfully before proceeding with checks
-		Expect(clusterResources.Cluster).ToNot(BeNil(), "Cluster was not created successfully")
-
-		By("Checking affinity groups and VPC in project")
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
 
-		// Check affinity groups
-		By(fmt.Sprintf("Checking affinity groups for cluster %s in project %s", clusterResources.Cluster.Name, projectName))
-		tempAffinityIds := CheckAffinityGroupInProject(csClient, clusterResources.Cluster.Name, "anti", projectName)
-		Expect(tempAffinityIds).ToNot(BeEmpty(), "No affinity groups found for cluster")
-		affinityIds = tempAffinityIds
+		exists, err := CheckVPCExists(csClient, vpcName)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
 
-		// Check VPC
-		By(fmt.Sprintf("Checking if VPC %s exists in project %s", vpcName, projectName))
-		exists, err := CheckVPCExistsInProject(csClient, vpcName, projectName)
-		Expect(err).To(BeNil(), "Error checking VPC existence")
-		Expect(exists).To(BeTrue(), fmt.Sprintf("VPC %s does not exist in project %s", vpcName, projectName))
+		By("PASSED!")
 	})
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
-
-		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
-
-		// Only check for affinity group deletion if affinity groups were created
-		if len(affinityIds) > 0 {
-			err := CheckAffinityGroupsDeletedInProject(csClient, affinityIds, projectName)
-			if err != nil {
-				Fail(err.Error())
-			}
-		} else {
-			By("Skipping affinity group deletion check as no affinity groups were created")
-		}
-
-		By("PASSED!")
 	})
 }

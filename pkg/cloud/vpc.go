@@ -17,6 +17,8 @@ limitations under the License.
 package cloud
 
 import (
+	"strings"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
@@ -25,7 +27,7 @@ import (
 
 // ResourceTypeVPC is the type identifier for VPC resources.
 const (
-	ResourceTypeVPC = "VPC"
+	ResourceTypeVPC = "Vpc"
 	VPCOffering     = "Default VPC offering"
 )
 
@@ -33,6 +35,8 @@ const (
 type VPCIface interface {
 	ResolveVPC(*infrav1.VPC) error
 	CreateVPC(*infrav1.CloudStackFailureDomain, *infrav1.VPC) error
+	RemoveClusterTagFromVPC(*infrav1.CloudStackCluster, infrav1.VPC) error
+	DeleteVPCIfNotInUse(infrav1.VPC) (retError error)
 }
 
 // getVPCOfferingID fetches a vpc offering id.
@@ -65,6 +69,7 @@ func (c *client) ResolveVPC(vpc *infrav1.VPC) error {
 			return errors.Errorf("no VPC found with ID %s", vpc.ID)
 		}
 		vpc.Name = resp.Name
+		vpc.CIDR = resp.Cidr
 		return nil
 	}
 
@@ -78,6 +83,7 @@ func (c *client) ResolveVPC(vpc *infrav1.VPC) error {
 		return errors.Errorf("no VPC found with name %s", vpc.Name)
 	}
 	vpc.ID = resp.Id
+	vpc.CIDR = resp.Cidr
 	return nil
 }
 
@@ -93,12 +99,62 @@ func (c *client) CreateVPC(fd *infrav1.CloudStackFailureDomain, vpc *infrav1.VPC
 	}
 
 	p := c.cs.VPC.NewCreateVPCParams(vpc.CIDR, vpc.Name, vpc.Name, offeringID, fd.Spec.Zone.ID)
-
+	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
+	p.SetStart(true)
 	resp, err := c.cs.VPC.CreateVPC(p)
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return errors.Wrapf(err, "creating VPC with name %s", vpc.Name)
 	}
 	vpc.ID = resp.Id
+	return c.AddCreatedByCAPCTag(ResourceTypeVPC, vpc.ID)
+}
+
+// DeleteVPC deletes a VPC.
+func (c *client) DeleteVPC(vpc infrav1.VPC) error {
+	_, err := c.cs.VPC.DeleteVPC(c.cs.VPC.NewDeleteVPCParams(vpc.ID))
+	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
+	return errors.Wrapf(err, "deleting vpc with id %s", vpc.ID)
+}
+
+// DeleteVPCIfNotInUse deletes a VPC if the VPC is no longer in use (indicated by in use tags).
+func (c *client) DeleteVPCIfNotInUse(vpc infrav1.VPC) (retError error) {
+	tags, err := c.GetTags(ResourceTypeVPC, vpc.ID)
+	if err != nil {
+		return err
+	}
+
+	var clusterTagCount int
+	for tagName := range tags {
+		if strings.HasPrefix(tagName, ClusterTagNamePrefix) {
+			clusterTagCount++
+		}
+	}
+
+	if clusterTagCount == 0 && tags[CreatedByCAPCTagName] != "" {
+		return c.DeleteVPC(vpc)
+	}
+
+	return nil
+}
+
+func generateVPCTagName(csCluster *infrav1.CloudStackCluster) string {
+	return ClusterTagNamePrefix + string(csCluster.UID)
+}
+
+// RemoveClusterTagFromVPC removes the cluster in use tag from a VPC.
+func (c *client) RemoveClusterTagFromVPC(csCluster *infrav1.CloudStackCluster, vpc infrav1.VPC) (retError error) {
+	tags, err := c.GetTags(ResourceTypeVPC, vpc.ID)
+	if err != nil {
+		return err
+	}
+
+	ClusterTagName := generateVPCTagName(csCluster)
+	if tagValue := tags[ClusterTagName]; tagValue != "" {
+		if err = c.DeleteTags(ResourceTypeVPC, vpc.ID, map[string]string{ClusterTagName: tagValue}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

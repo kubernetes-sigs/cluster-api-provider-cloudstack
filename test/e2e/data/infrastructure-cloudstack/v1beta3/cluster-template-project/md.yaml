@@ -11,7 +11,7 @@ spec:
       template:
         name: ${CLOUDSTACK_TEMPLATE_NAME}
       sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
-      affinity: pro
+      affinity: anti
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
 kind: CloudStackMachineTemplate
@@ -25,4 +25,4 @@ spec:
       template:
         name: ${CLOUDSTACK_TEMPLATE_NAME}
       sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
-      affinity: pro
+      affinity: anti
