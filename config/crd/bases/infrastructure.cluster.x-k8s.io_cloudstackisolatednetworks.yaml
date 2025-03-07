@@ -192,15 +192,24 @@ spec:
                 description: FailureDomainName -- the FailureDomain the network is
                   placed in.
                 type: string
+              gateway:
+                description: Gateway for the network.
+                type: string
               id:
                 description: ID.
                 type: string
               name:
                 description: Name.
                 type: string
+              netmask:
+                description: Netmask for the network.
+                type: string
               vpc:
                 description: VPC the network belongs to.
                 properties:
+                  cidr:
+                    description: CIDR for the VPC.
+                    type: string
                   id:
                     description: Cloudstack VPC ID of the network.
                     type: string

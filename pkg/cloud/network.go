@@ -30,6 +30,7 @@ type NetworkIface interface {
 
 const (
 	NetOffering         = "DefaultIsolatedNetworkOfferingWithSourceNatService"
+	NetVPCOffering      = "DefaultIsolatedNetworkOfferingForVpcNetworks"
 	K8sDefaultAPIPort   = 6443
 	NetworkTypeIsolated = "Isolated"
 	NetworkTypeShared   = "Shared"
@@ -62,7 +63,12 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 	} else { // Got netID from the network's name.
 		net.ID = netDetails.Id
 		net.Type = netDetails.Type
+		net.Gateway = netDetails.Gateway
+		net.Netmask = netDetails.Netmask
 		if netDetails.Vpcid != "" {
+			if net.VPC == nil {
+				net.VPC = &infrav1.VPC{}
+			}
 			net.VPC.ID = netDetails.Vpcid
 			net.VPC.Name = netDetails.Vpcname
 		}
@@ -80,7 +86,12 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 	net.Name = netDetails.Name
 	net.ID = netDetails.Id
 	net.Type = netDetails.Type
+	net.Gateway = netDetails.Gateway
+	net.Netmask = netDetails.Netmask
 	if netDetails.Vpcid != "" {
+		if net.VPC == nil {
+			net.VPC = &infrav1.VPC{}
+		}
 		net.VPC.ID = netDetails.Vpcid
 		net.VPC.Name = netDetails.Vpcname
 	}

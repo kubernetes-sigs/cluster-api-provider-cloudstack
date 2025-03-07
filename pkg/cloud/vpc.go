@@ -17,8 +17,6 @@ limitations under the License.
 package cloud
 
 import (
-	"strings"
-
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
@@ -26,13 +24,27 @@ import (
 )
 
 // ResourceTypeVPC is the type identifier for VPC resources.
-const ResourceTypeVPC = "VPC"
+const (
+	ResourceTypeVPC = "VPC"
+	VPCOffering     = "Default VPC offering"
+)
 
 // VPCIface defines the interface for VPC operations.
 type VPCIface interface {
 	ResolveVPC(*infrav1.VPC) error
-	CreateVPC(*infrav1.VPC) error
-	GetOrCreateVPC(*infrav1.VPC) error
+	CreateVPC(*infrav1.CloudStackFailureDomain, *infrav1.VPC) error
+}
+
+// getVPCOfferingID fetches a vpc offering id.
+func (c *client) getVPCOfferingID() (string, error) {
+	offeringID, count, retErr := c.cs.VPC.GetVPCOfferingID(VPCOffering)
+	if retErr != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
+		return "", retErr
+	} else if count != 1 {
+		return "", errors.New("found more than one vpc offering")
+	}
+	return offeringID, nil
 }
 
 // ResolveVPC checks if the specified VPC exists by ID or name.
@@ -69,45 +81,24 @@ func (c *client) ResolveVPC(vpc *infrav1.VPC) error {
 	return nil
 }
 
-// GetOrCreateVPC ensures a VPC exists for the given specification.
-// If the VPC doesn't exist, it creates a new one.
-func (c *client) GetOrCreateVPC(vpc *infrav1.VPC) error {
-	if vpc == nil || (vpc.ID == "" && vpc.Name == "") {
-		return nil
-	}
-
-	// Try to resolve the VPC
-	err := c.ResolveVPC(vpc)
-	if err != nil {
-		// If it's a "not found" error and we have a name, create the VPC
-		if strings.Contains(err.Error(), "no VPC found") && vpc.Name != "" {
-			return c.CreateVPC(vpc)
-		}
-		return err
-	}
-
-	return nil
-}
-
 // CreateVPC creates a new VPC in CloudStack.
-func (c *client) CreateVPC(vpc *infrav1.VPC) error {
+func (c *client) CreateVPC(fd *infrav1.CloudStackFailureDomain, vpc *infrav1.VPC) error {
 	if vpc == nil || vpc.Name == "" {
 		return errors.New("VPC name must be specified")
 	}
 
-	// Get VPC offering ID
-	p := c.cs.VPC.NewListVPCOfferingsParams()
-	resp, err := c.cs.VPC.ListVPCOfferings(p)
+	offeringID, err := c.getVPCOfferingID()
 	if err != nil {
-		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-		return errors.Wrap(err, "failed to list VPC offerings")
-	}
-	if resp.Count == 0 {
-		return errors.New("no VPC offerings available")
+		return err
 	}
 
-	// Since the SDK's VPC creation API might have compatibility issues with different CloudStack versions,
-	// we'll need to handle this in the implementation of the network creation rather than here.
-	// For now, we'll just return a "not implemented" error, and handle VPC creation in the isolated network creation.
-	return errors.New("creating VPC not directly implemented; handled in isolated network creation")
+	p := c.cs.VPC.NewCreateVPCParams(vpc.CIDR, vpc.Name, vpc.Name, offeringID, fd.Spec.Zone.ID)
+
+	resp, err := c.cs.VPC.CreateVPC(p)
+	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
+		return errors.Wrapf(err, "creating VPC with name %s", vpc.Name)
+	}
+	vpc.ID = resp.Id
+	return nil
 }

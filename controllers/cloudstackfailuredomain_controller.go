@@ -107,7 +107,7 @@ func (r *CloudStackFailureDomainReconciliationRunner) Reconcile() (retRes ctrl.R
 		r.ReconciliationSubject.Spec.Zone.Network.Type == infrav1.NetworkTypeIsolated {
 		netName := r.ReconciliationSubject.Spec.Zone.Network.Name
 		if res, err := r.GenerateIsolatedNetwork(
-			netName, func() string { return r.ReconciliationSubject.Spec.Name })(); r.ShouldReturn(res, err) {
+			netName, func() string { return r.ReconciliationSubject.Spec.Name }, r.ReconciliationSubject.Spec.Zone.Network)(); r.ShouldReturn(res, err) {
 			return res, err
 		} else if res, err := r.GetObjectByName(r.IsoNetMetaName(netName), r.IsoNet)(); r.ShouldReturn(res, err) {
 			return res, err
