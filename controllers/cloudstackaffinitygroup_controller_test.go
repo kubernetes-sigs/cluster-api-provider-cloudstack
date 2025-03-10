@@ -18,8 +18,8 @@ package controllers_test
 
 import (
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	ginkgo "github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
@@ -28,24 +28,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
-var _ = Describe("CloudStackAffinityGroupReconciler", func() {
-	BeforeEach(func() {
+var _ = ginkgo.Describe("CloudStackAffinityGroupReconciler", func() {
+	ginkgo.BeforeEach(func() {
 		SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
 		dummies.SetDummyVars()
-		Ω(AffinityGReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(Succeed()) // Register CloudStack AffinityGReconciler.
+		gomega.Ω(AffinityGReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(gomega.Succeed()) // Register CloudStack AffinityGReconciler.
 	})
 
-	It("Should patch back the affinity group as ready after calling GetOrCreateAffinityGroup.", func() {
+	ginkgo.It("Should patch back the affinity group as ready after calling GetOrCreateAffinityGroup.", func() {
 		// Modify failure domain name the same way the cluster controller would.
 		dummies.CSAffinityGroup.Spec.FailureDomainName = dummies.CSFailureDomain1.Spec.Name
 
 		mockCloudClient.EXPECT().GetOrCreateAffinityGroup(gomock.Any()).AnyTimes()
 
-		Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
-		Ω(k8sClient.Create(ctx, dummies.CSAffinityGroup)).Should(Succeed())
+		gomega.Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
+		gomega.Ω(k8sClient.Create(ctx, dummies.CSAffinityGroup)).Should(gomega.Succeed())
 
 		// Test that the AffinityGroup controller sets Status.Ready to true.
-		Eventually(func() bool {
+		gomega.Eventually(func() bool {
 			nameSpaceFilter := &client.ListOptions{Namespace: dummies.ClusterNameSpace}
 			affinityGroups := &infrav1.CloudStackAffinityGroupList{}
 			if err := k8sClient.List(ctx, affinityGroups, nameSpaceFilter); err == nil {
@@ -54,20 +54,20 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 				}
 			}
 			return false
-		}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 	})
 
-	It("Should remove affinity group finalizer if corresponding affinity group is not present on Cloudstack.", func() {
+	ginkgo.It("Should remove affinity group finalizer if corresponding affinity group is not present on Cloudstack.", func() {
 		// Modify failure domain name the same way the cluster controller would.
 		dummies.CSAffinityGroup.Spec.FailureDomainName = dummies.CSFailureDomain1.Spec.Name
 
 		mockCloudClient.EXPECT().GetOrCreateAffinityGroup(gomock.Any()).AnyTimes()
 
-		Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
-		Ω(k8sClient.Create(ctx, dummies.CSAffinityGroup)).Should(Succeed())
+		gomega.Ω(k8sClient.Create(ctx, dummies.CSFailureDomain1))
+		gomega.Ω(k8sClient.Create(ctx, dummies.CSAffinityGroup)).Should(gomega.Succeed())
 
 		// Test that the AffinityGroup controller sets Status.Ready to true.
-		Eventually(func() bool {
+		gomega.Eventually(func() bool {
 			nameSpaceFilter := &client.ListOptions{Namespace: dummies.ClusterNameSpace}
 			affinityGroups := &infrav1.CloudStackAffinityGroupList{}
 			if err := k8sClient.List(ctx, affinityGroups, nameSpaceFilter); err == nil {
@@ -76,23 +76,23 @@ var _ = Describe("CloudStackAffinityGroupReconciler", func() {
 				}
 			}
 			return false
-		}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 
 		mockCloudClient.EXPECT().FetchAffinityGroup(gomock.Any()).Do(func(arg1 interface{}) {
 			arg1.(*cloud.AffinityGroup).ID = ""
 		}).AnyTimes().Return(nil)
-		Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
+		gomega.Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
 
-		Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
+		gomega.Ω(k8sClient.Delete(ctx, dummies.CSAffinityGroup))
 
 		// Once the affinity group id was set to "" the controller should remove the finalizer and unblock deleting affinity group resource
-		Eventually(func() bool {
+		gomega.Eventually(func() bool {
 			retrievedAffinityGroup := &infrav1.CloudStackAffinityGroup{}
 			affinityGroupKey := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.AffinityGroup.Name}
 			if err := k8sClient.Get(ctx, affinityGroupKey, retrievedAffinityGroup); err != nil {
 				return errors.IsNotFound(err)
 			}
 			return false
-		}, timeout).WithPolling(pollInterval).Should(BeTrue())
+		}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 	})
 })

@@ -38,7 +38,7 @@ type ClustertypeSetter interface {
 }
 
 func withExternalManaged() cloudstack.OptionFunc {
-	return func(cs *cloudstack.CloudStackClient, p interface{}) error {
+	return func(_ *cloudstack.CloudStackClient, p interface{}) error {
 		ps, ok := p.(ClustertypeSetter)
 		if !ok {
 			return errors.New("invalid params type")

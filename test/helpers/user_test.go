@@ -17,110 +17,110 @@ limitations under the License.
 package helpers_test
 
 import (
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
 )
 
-var _ = Describe("Test helper methods", func() {
+var _ = ginkgo.Describe("Test helper methods", func() {
 	csClient, err := helpers.NewCSClient()
-	Ω(err).ShouldNot(HaveOccurred())
+	gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 
 	// Get the root domain's ID.
 	rootDomainID, err, found := helpers.GetDomainByPath(csClient, "ROOT/")
-	Ω(err).ShouldNot(HaveOccurred())
-	Ω(rootDomainID).ShouldNot(BeEmpty())
-	Ω(found).Should(BeTrue())
+	gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+	gomega.Ω(rootDomainID).ShouldNot(gomega.BeEmpty())
+	gomega.Ω(found).Should(gomega.BeTrue())
 
-	AfterEach(func() {
+	ginkgo.AfterEach(func() {
 		for _, path := range []string{"ROOT/someNewDomain", "ROOT/blah"} {
 			// Delete any created domains.
 			id, err, found := helpers.GetDomainByPath(csClient, path)
-			Ω(err).ShouldNot(HaveOccurred())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 			if found {
-				Ω(helpers.DeleteDomain(csClient, id)).Should(Succeed())
+				gomega.Ω(helpers.DeleteDomain(csClient, id)).Should(gomega.Succeed())
 			}
 		}
 	})
 
-	Context("Domain Creation and Deletion.", func() {
-		It("Can get the ROOT domain's ID.", func() {
+	ginkgo.Context("Domain Creation and Deletion.", func() {
+		ginkgo.It("Can get the ROOT domain's ID.", func() {
 			id, err, found := helpers.GetDomainByPath(csClient, "ROOT/")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(id).ShouldNot(BeEmpty())
-			Ω(found).Should(BeTrue())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Ω(id).ShouldNot(gomega.BeEmpty())
+			gomega.Ω(found).Should(gomega.BeTrue())
 		})
 
-		It("Doesn't error when unable to get a domain's ID.", func() {
+		ginkgo.It("Doesn't error when unable to get a domain's ID.", func() {
 			id, err, found := helpers.GetDomainByPath(csClient, "ROOT/blahnotpresent")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeFalse())
-			Ω(id).Should(BeEmpty())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Ω(found).Should(gomega.BeFalse())
+			gomega.Ω(id).Should(gomega.BeEmpty())
 		})
 
-		It("Can create a domain under a parent domain.", func() {
+		ginkgo.It("Can create a domain under a parent domain.", func() {
 			id, err := helpers.CreateDomainUnderParent(csClient, rootDomainID, "someNewDomain")
-			Ω(id).ShouldNot(BeEmpty())
-			Ω(err).ShouldNot(HaveOccurred())
+			gomega.Ω(id).ShouldNot(gomega.BeEmpty())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 		})
 
-		It("Returns an appropriate error when the domain already exists.", func() {
+		ginkgo.It("Returns an appropriate error when the domain already exists.", func() {
 			someDomain := &cloud.Domain{Name: "blah", Path: "blah"}
-			Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(Succeed())
-			Ω(someDomain.Name).Should(Equal("blah"))
-			Ω(someDomain.Path).Should(Equal("ROOT/blah"))
-			Ω(someDomain.ID).ShouldNot(BeEmpty())
+			gomega.Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(gomega.Succeed())
+			gomega.Ω(someDomain.Name).Should(gomega.Equal("blah"))
+			gomega.Ω(someDomain.Path).Should(gomega.Equal("ROOT/blah"))
+			gomega.Ω(someDomain.ID).ShouldNot(gomega.BeEmpty())
 			_, err = helpers.CreateDomainUnderParent(csClient, rootDomainID, "blah")
-			Ω(err).Should(HaveOccurred())
-			Ω(err.Error()).Should(ContainSubstring("already exists"))
+			gomega.Ω(err).Should(gomega.HaveOccurred())
+			gomega.Ω(err.Error()).Should(gomega.ContainSubstring("already exists"))
 		})
 
-		It("Doesn't error if the domain already exists.", func() {
+		ginkgo.It("Doesn't error if the domain already exists.", func() {
 			someDomain := &cloud.Domain{Name: "blah", Path: "blah"}
-			Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(Succeed())
-			Ω(someDomain.Name).Should(Equal("blah"))
-			Ω(someDomain.Path).Should(Equal("ROOT/blah"))
-			Ω(someDomain.ID).ShouldNot(BeEmpty())
+			gomega.Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(gomega.Succeed())
+			gomega.Ω(someDomain.Name).Should(gomega.Equal("blah"))
+			gomega.Ω(someDomain.Path).Should(gomega.Equal("ROOT/blah"))
+			gomega.Ω(someDomain.ID).ShouldNot(gomega.BeEmpty())
 
-			Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(Succeed())
-			Ω(someDomain.Name).Should(Equal("blah"))
-			Ω(someDomain.Path).Should(Equal("ROOT/blah"))
-			Ω(someDomain.ID).ShouldNot(BeEmpty())
+			gomega.Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(gomega.Succeed())
+			gomega.Ω(someDomain.Name).Should(gomega.Equal("blah"))
+			gomega.Ω(someDomain.Path).Should(gomega.Equal("ROOT/blah"))
+			gomega.Ω(someDomain.ID).ShouldNot(gomega.BeEmpty())
 		})
 
-		It("Can create a wholly new multi-level sub-domain path.", func() {
+		ginkgo.It("Can create a wholly new multi-level sub-domain path.", func() {
 			someDomain := &cloud.Domain{Name: "tooBlah", Path: "ROOT/someNewDomain/tooBlah"}
-			Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(Succeed())
-			Ω(someDomain.Name).Should(Equal("tooBlah"))
-			Ω(someDomain.Path).Should(Equal("ROOT/someNewDomain/tooBlah"))
-			Ω(someDomain.ID).ShouldNot(BeEmpty())
+			gomega.Ω(helpers.GetOrCreateDomain(csClient, someDomain)).Should(gomega.Succeed())
+			gomega.Ω(someDomain.Name).Should(gomega.Equal("tooBlah"))
+			gomega.Ω(someDomain.Path).Should(gomega.Equal("ROOT/someNewDomain/tooBlah"))
+			gomega.Ω(someDomain.ID).ShouldNot(gomega.BeEmpty())
 		})
 	})
 
-	Context("Account Creation.", func() {
-		It("Can create a new account in a new domain.", func() {
+	ginkgo.Context("Account Creation.", func() {
+		ginkgo.It("Can create a new account in a new domain.", func() {
 			domain := cloud.Domain{Path: "ROOT/someNewDomain/tooBlah"}
 			account := cloud.Account{Name: "TempTestAccount", Domain: domain}
-			Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(Succeed())
+			gomega.Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(gomega.Succeed())
 		})
 		// already exists
-		It("Doesn't fail if the account already exists.", func() {
+		ginkgo.It("Doesn't fail if the account already exists.", func() {
 			domain := cloud.Domain{Path: "ROOT/someNewDomain/tooBlah"}
 			account := cloud.Account{Name: "TempTestAccount", Domain: domain}
-			Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(Succeed())
-			Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(Succeed())
+			gomega.Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(gomega.Succeed())
+			gomega.Ω(helpers.GetOrCreateAccount(csClient, &account)).Should(gomega.Succeed())
 		})
 	})
 
-	Context("User Creation w/Keys.", func() {
-		It("Can create a new user with keys.", func() {
+	ginkgo.Context("User Creation w/Keys.", func() {
+		ginkgo.It("Can create a new user with keys.", func() {
 			domain := cloud.Domain{Path: "ROOT/someNewDomain/tooBlah"}
 			account := cloud.Account{Name: "TempTestAccount", Domain: domain}
 			user := cloud.User{Account: account}
-			Ω(helpers.GetOrCreateUserWithKey(csClient, &user)).Should(Succeed())
-			Ω(user.ID).ShouldNot(BeEmpty())
-			Ω(user.APIKey).ShouldNot(BeEmpty())
+			gomega.Ω(helpers.GetOrCreateUserWithKey(csClient, &user)).Should(gomega.Succeed())
+			gomega.Ω(user.ID).ShouldNot(gomega.BeEmpty())
+			gomega.Ω(user.APIKey).ShouldNot(gomega.BeEmpty())
 		})
 	})
 })

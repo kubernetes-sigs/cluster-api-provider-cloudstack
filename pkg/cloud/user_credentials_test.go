@@ -22,15 +22,15 @@ import (
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
 
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 )
 
-var _ = Describe("User Credentials", func() {
+var _ = ginkgo.Describe("User Credentials", func() {
 	const (
 		errorMessage = "Error"
 	)
@@ -44,8 +44,8 @@ var _ = Describe("User Credentials", func() {
 		us         *csapi.MockUserServiceIface
 	)
 
-	BeforeEach(func() {
-		mockCtrl = gomock.NewController(GinkgoT())
+	ginkgo.BeforeEach(func() {
+		mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 		mockClient = csapi.NewMockClient(mockCtrl)
 		ds = mockClient.Domain.(*csapi.MockDomainServiceIface)
 		as = mockClient.Account.(*csapi.MockAccountServiceIface)
@@ -57,12 +57,12 @@ var _ = Describe("User Credentials", func() {
 		dummies.SetDummyCAPCClusterVars()
 	})
 
-	AfterEach(func() {
+	ginkgo.AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
-	Context("Get domain in CloudStack", func() {
-		It("search for CloudStack domain", func() {
+	ginkgo.Context("Get domain in CloudStack", func() {
+		ginkgo.It("search for CloudStack domain", func() {
 			dummies.Domain.Path = "domainPath1"
 			dsp := &csapi.ListDomainsParams{}
 			ds.EXPECT().NewListDomainsParams().Return(dsp)
@@ -71,10 +71,10 @@ var _ = Describe("User Credentials", func() {
 				Path: "ROOT/domainPath1",
 			}}}, nil)
 
-			Ω(client.ResolveDomain(&dummies.Domain)).Should(Succeed())
+			gomega.Ω(client.ResolveDomain(&dummies.Domain)).Should(gomega.Succeed())
 		})
 
-		It("search for CloudStack domain with incorrect domain path", func() {
+		ginkgo.It("search for CloudStack domain with incorrect domain path", func() {
 			dummies.Domain.Path = "/domainPath1"
 			dsp := &csapi.ListDomainsParams{}
 			ds.EXPECT().NewListDomainsParams().Return(dsp)
@@ -84,11 +84,11 @@ var _ = Describe("User Credentials", func() {
 			}}}, nil)
 
 			err := client.ResolveDomain(&dummies.Domain)
-			Ω(err).ShouldNot(Succeed())
-			Ω(err.Error()).Should(Equal(fmt.Sprintf("domain Path %s did not match domain ID %s", dummies.Domain.Path, dummies.Domain.ID)))
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(err.Error()).Should(gomega.Equal(fmt.Sprintf("domain Path %s did not match domain ID %s", dummies.Domain.Path, dummies.Domain.ID)))
 		})
 
-		It("search for CloudStack domain returns more than one domain", func() {
+		ginkgo.It("search for CloudStack domain returns more than one domain", func() {
 			dummies.Domain.Path = "domainPath1"
 			dsp := &csapi.ListDomainsParams{}
 			ds.EXPECT().NewListDomainsParams().Return(dsp)
@@ -98,11 +98,11 @@ var _ = Describe("User Credentials", func() {
 			}}}, nil)
 
 			err := client.ResolveDomain(&dummies.Domain)
-			Ω(err).ShouldNot(Succeed())
-			Ω(err.Error()).Should(Equal(fmt.Sprintf("domain ID %s provided, expected exactly one domain, got %d", dummies.Domain.ID, 2)))
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(err.Error()).Should(gomega.Equal(fmt.Sprintf("domain ID %s provided, expected exactly one domain, got %d", dummies.Domain.ID, 2)))
 		})
 
-		It("search for CloudStack domain when only domain Name is provided", func() {
+		ginkgo.It("search for CloudStack domain when only domain Name is provided", func() {
 			dummies.Domain.ID = ""
 			dsp := &csapi.ListDomainsParams{}
 			ds.EXPECT().NewListDomainsParams().Return(dsp)
@@ -110,10 +110,10 @@ var _ = Describe("User Credentials", func() {
 				Name: "domainName",
 			}}}, nil)
 
-			Ω(client.ResolveDomain(&dummies.Domain)).Should(Succeed())
+			gomega.Ω(client.ResolveDomain(&dummies.Domain)).Should(gomega.Succeed())
 		})
 
-		It("search for CloudStack domain when only domain Name is provided, but returns > 1 domain", func() {
+		ginkgo.It("search for CloudStack domain when only domain Name is provided, but returns > 1 domain", func() {
 			dummies.Domain.ID = ""
 			dsp := &csapi.ListDomainsParams{}
 			ds.EXPECT().NewListDomainsParams().Return(dsp)
@@ -122,13 +122,13 @@ var _ = Describe("User Credentials", func() {
 			}}}, nil)
 
 			err := client.ResolveDomain(&dummies.Domain)
-			Ω(err).ShouldNot(Succeed())
-			Ω(err.Error()).Should(Equal(fmt.Sprintf("only domain name: %s provided, expected exactly one domain, got %d", dummies.Domain.Name, 2)))
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(err.Error()).Should(gomega.Equal(fmt.Sprintf("only domain name: %s provided, expected exactly one domain, got %d", dummies.Domain.Name, 2)))
 		})
 	})
 
-	Context("Get Account in CloudStack", func() {
-		It("search for account in CloudStack", func() {
+	ginkgo.Context("Get Account in CloudStack", func() {
+		ginkgo.It("search for account in CloudStack", func() {
 			dsp := &csapi.ListDomainsParams{}
 			asp := &csapi.ListAccountsParams{}
 			ds.EXPECT().NewListDomainsParams().Return(dsp)
@@ -142,11 +142,11 @@ var _ = Describe("User Credentials", func() {
 				Name: dummies.AccountName,
 			}}}, nil)
 
-			Ω(client.ResolveAccount(&dummies.Account)).Should(Succeed())
+			gomega.Ω(client.ResolveAccount(&dummies.Account)).Should(gomega.Succeed())
 
 		})
 
-		It("no account found in CloudStack for the provided Account name", func() {
+		ginkgo.It("no account found in CloudStack for the provided Account name", func() {
 			dsp := &csapi.ListDomainsParams{}
 			asp := &csapi.ListAccountsParams{}
 			ds.EXPECT().NewListDomainsParams().Return(dsp)
@@ -158,11 +158,11 @@ var _ = Describe("User Credentials", func() {
 			as.EXPECT().ListAccounts(asp).Return(&csapi.ListAccountsResponse{Count: 0, Accounts: []*csapi.Account{}}, nil)
 
 			err := client.ResolveAccount(&dummies.Account)
-			Ω(err).ShouldNot(Succeed())
-			Ω(err.Error()).Should(ContainSubstring("could not find account"))
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(err.Error()).Should(gomega.ContainSubstring("could not find account"))
 		})
 
-		It("More than one account found in the provided domain and account name", func() {
+		ginkgo.It("More than one account found in the provided domain and account name", func() {
 			dsp := &csapi.ListDomainsParams{}
 			asp := &csapi.ListAccountsParams{}
 			ds.EXPECT().NewListDomainsParams().Return(dsp)
@@ -174,11 +174,11 @@ var _ = Describe("User Credentials", func() {
 			as.EXPECT().ListAccounts(asp).Return(&csapi.ListAccountsResponse{Count: 2, Accounts: []*csapi.Account{}}, nil)
 
 			err := client.ResolveAccount(&dummies.Account)
-			Ω(err).ShouldNot(Succeed())
-			Ω(err.Error()).Should(ContainSubstring("expected 1 Account with account name"))
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(err.Error()).Should(gomega.ContainSubstring("expected 1 Account with account name"))
 		})
 
-		It("fails to list accounts", func() {
+		ginkgo.It("fails to list accounts", func() {
 			dsp := &csapi.ListDomainsParams{}
 			asp := &csapi.ListAccountsParams{}
 			ds.EXPECT().NewListDomainsParams().Return(dsp)
@@ -189,16 +189,16 @@ var _ = Describe("User Credentials", func() {
 			as.EXPECT().NewListAccountsParams().Return(asp)
 			as.EXPECT().ListAccounts(asp).Return(nil, fakeError)
 
-			Ω(client.ResolveAccount(&dummies.Account)).ShouldNot(Succeed())
+			gomega.Ω(client.ResolveAccount(&dummies.Account)).ShouldNot(gomega.Succeed())
 		})
 	})
 
-	Context("Get User from CloudStack", func() {
-		BeforeEach(func() {
+	ginkgo.Context("Get User from CloudStack", func() {
+		ginkgo.BeforeEach(func() {
 			dummies.SetDummyUserVars()
 		})
 
-		It("search for user in CloudStack", func() {
+		ginkgo.It("search for user in CloudStack", func() {
 			dsp := &csapi.ListDomainsParams{}
 			asp := &csapi.ListAccountsParams{}
 			usp := &csapi.ListUsersParams{}
@@ -221,10 +221,10 @@ var _ = Describe("User Credentials", func() {
 				}},
 			}, nil)
 
-			Ω(client.ResolveUser(&dummies.User)).Should(Succeed())
+			gomega.Ω(client.ResolveUser(&dummies.User)).Should(gomega.Succeed())
 		})
 
-		It("search for user fails while resolving account in CloudStack", func() {
+		ginkgo.It("search for user fails while resolving account in CloudStack", func() {
 			dsp := &csapi.ListDomainsParams{}
 			asp := &csapi.ListAccountsParams{}
 			ds.EXPECT().NewListDomainsParams().Return(dsp)
@@ -236,11 +236,11 @@ var _ = Describe("User Credentials", func() {
 			as.EXPECT().ListAccounts(asp).Return(nil, fakeError)
 
 			err := client.ResolveUser(&dummies.User)
-			Ω(err).ShouldNot(Succeed())
-			Ω(err.Error()).Should(ContainSubstring("resolving account"))
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(err.Error()).Should(gomega.ContainSubstring("resolving account"))
 		})
 
-		It("search for user in CloudStack fails", func() {
+		ginkgo.It("search for user in CloudStack fails", func() {
 			dsp := &csapi.ListDomainsParams{}
 			asp := &csapi.ListAccountsParams{}
 			usp := &csapi.ListUsersParams{}
@@ -257,10 +257,10 @@ var _ = Describe("User Credentials", func() {
 			us.EXPECT().NewListUsersParams().Return(usp)
 			us.EXPECT().ListUsers(usp).Return(nil, fakeError)
 
-			Ω(client.ResolveUser(&dummies.User)).ShouldNot(Succeed())
+			gomega.Ω(client.ResolveUser(&dummies.User)).ShouldNot(gomega.Succeed())
 		})
 
-		It("search for user in CloudStack results in more than one user", func() {
+		ginkgo.It("search for user in CloudStack results in more than one user", func() {
 			dsp := &csapi.ListDomainsParams{}
 			asp := &csapi.ListAccountsParams{}
 			usp := &csapi.ListUsersParams{}
@@ -281,12 +281,12 @@ var _ = Describe("User Credentials", func() {
 			}, nil)
 
 			err := client.ResolveUser(&dummies.User)
-			Ω(err).ShouldNot(Succeed())
-			Ω(err.Error()).Should(ContainSubstring("expected 1 User with username"))
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(err.Error()).Should(gomega.ContainSubstring("expected 1 User with username"))
 		})
 	})
 
-	Context("Get user keys in CloudStack", func() {
+	ginkgo.Context("Get user keys in CloudStack", func() {
 		initialCalls := func() {
 			dsp := &csapi.ListDomainsParams{}
 			asp := &csapi.ListAccountsParams{}
@@ -303,7 +303,7 @@ var _ = Describe("User Credentials", func() {
 			}}}, nil)
 		}
 
-		It("get user keys", func() {
+		ginkgo.It("get user keys", func() {
 			initialCalls()
 			usp := &csapi.ListUsersParams{}
 			ukp := &csapi.GetUserKeysParams{}
@@ -321,10 +321,10 @@ var _ = Describe("User Credentials", func() {
 				Secretkey: dummies.SecretKey,
 			}, nil)
 
-			Ω(client.ResolveUserKeys(&dummies.User)).Should(Succeed())
+			gomega.Ω(client.ResolveUserKeys(&dummies.User)).Should(gomega.Succeed())
 		})
 
-		It("get user keys fils when resolving user", func() {
+		ginkgo.It("get user keys fils when resolving user", func() {
 			initialCalls()
 			usp := &csapi.ListUsersParams{}
 
@@ -332,12 +332,12 @@ var _ = Describe("User Credentials", func() {
 			us.EXPECT().ListUsers(usp).Return(nil, fakeError)
 
 			err := client.ResolveUserKeys(&dummies.User)
-			Ω(err).ShouldNot(Succeed())
-			Ω(err.Error()).Should(ContainSubstring("error encountered when resolving user details"))
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(err.Error()).Should(gomega.ContainSubstring("error encountered when resolving user details"))
 
 		})
 
-		It("get user keys fils when resolving user keys", func() {
+		ginkgo.It("get user keys fils when resolving user keys", func() {
 			initialCalls()
 			usp := &csapi.ListUsersParams{}
 			ukp := &csapi.GetUserKeysParams{}
@@ -354,13 +354,13 @@ var _ = Describe("User Credentials", func() {
 			us.EXPECT().GetUserKeys(ukp).Return(nil, fakeError)
 
 			err := client.ResolveUserKeys(&dummies.User)
-			Ω(err).ShouldNot(Succeed())
-			Ω(err.Error()).Should(ContainSubstring("error encountered when resolving user api keys"))
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(err.Error()).Should(gomega.ContainSubstring("error encountered when resolving user api keys"))
 		})
 	})
 
-	Context("Get user with keys", func() {
-		BeforeEach(func() {
+	ginkgo.Context("Get user with keys", func() {
+		ginkgo.BeforeEach(func() {
 			dummies.SetDummyUserVars()
 		})
 
@@ -372,7 +372,7 @@ var _ = Describe("User Credentials", func() {
 				Path: "ROOT",
 			}}}, nil)
 		}
-		It("get first user for given account and domain", func() {
+		ginkgo.It("get first user for given account and domain", func() {
 			initialCalls()
 			initialCalls()
 			asp := &csapi.ListAccountsParams{}
@@ -399,22 +399,22 @@ var _ = Describe("User Credentials", func() {
 			}, nil)
 
 			result, err := client.GetUserWithKeys(&dummies.User)
-			Ω(err).Should(Succeed())
-			Ω(result).Should(BeTrue())
+			gomega.Ω(err).Should(gomega.Succeed())
+			gomega.Ω(result).Should(gomega.BeTrue())
 		})
 
-		It("fails to resolve accout", func() {
+		ginkgo.It("fails to resolve accout", func() {
 			initialCalls()
 			asp := &csapi.ListAccountsParams{}
 			as.EXPECT().NewListAccountsParams().Return(asp)
 			as.EXPECT().ListAccounts(asp).Return(nil, fakeError)
 
 			result, err := client.GetUserWithKeys(&dummies.User)
-			Ω(err.Error()).Should(ContainSubstring(fmt.Sprintf("resolving account %s details", dummies.User.Account.Name)))
-			Ω(result).Should(BeFalse())
+			gomega.Ω(err.Error()).Should(gomega.ContainSubstring(fmt.Sprintf("resolving account %s details", dummies.User.Account.Name)))
+			gomega.Ω(result).Should(gomega.BeFalse())
 		})
 
-		It("fails to resolve accout", func() {
+		ginkgo.It("fails to resolve accout", func() {
 			initialCalls()
 			asp := &csapi.ListAccountsParams{}
 			usp := &csapi.ListUsersParams{}
@@ -428,17 +428,17 @@ var _ = Describe("User Credentials", func() {
 			us.EXPECT().ListUsers(usp).Return(nil, fakeError)
 
 			result, err := client.GetUserWithKeys(&dummies.User)
-			Ω(err).ShouldNot(Succeed())
-			Ω(result).Should(BeFalse())
+			gomega.Ω(err).ShouldNot(gomega.Succeed())
+			gomega.Ω(result).Should(gomega.BeFalse())
 		})
 	})
 
-	Context("UserCred Integ Tests", Label("integ"), func() {
+	ginkgo.Context("UserCred Integ Tests", ginkgo.Label("integ"), func() {
 		var domain cloud.Domain
 		var account cloud.Account
 		var user cloud.User
 
-		BeforeEach(func() {
+		ginkgo.BeforeEach(func() {
 			client = realCloudClient
 
 			domain = cloud.Domain{Path: testDomainPath}
@@ -446,43 +446,43 @@ var _ = Describe("User Credentials", func() {
 			user = cloud.User{Name: helpers.TempUserName, Account: account}
 		})
 
-		It("can resolve a domain from the path", func() {
-			Ω(client.ResolveDomain(&domain)).Should(Succeed())
-			Ω(domain.ID).ShouldNot(BeEmpty())
+		ginkgo.It("can resolve a domain from the path", func() {
+			gomega.Ω(client.ResolveDomain(&domain)).Should(gomega.Succeed())
+			gomega.Ω(domain.ID).ShouldNot(gomega.BeEmpty())
 		})
 
-		It("can resolve an account from the domain path and account name", func() {
-			Ω(client.ResolveAccount(&account)).Should(Succeed())
-			Ω(account.ID).ShouldNot(BeEmpty())
+		ginkgo.It("can resolve an account from the domain path and account name", func() {
+			gomega.Ω(client.ResolveAccount(&account)).Should(gomega.Succeed())
+			gomega.Ω(account.ID).ShouldNot(gomega.BeEmpty())
 		})
 
-		It("can resolve a user from the domain path, account name, and user name", func() {
-			Ω(client.ResolveUser(&user)).Should(Succeed())
-			Ω(user.ID).ShouldNot(BeEmpty())
+		ginkgo.It("can resolve a user from the domain path, account name, and user name", func() {
+			gomega.Ω(client.ResolveUser(&user)).Should(gomega.Succeed())
+			gomega.Ω(user.ID).ShouldNot(gomega.BeEmpty())
 		})
 
-		It("can get sub-domain user's credentials", func() {
-			Ω(client.ResolveUserKeys(&user)).Should(Succeed())
+		ginkgo.It("can get sub-domain user's credentials", func() {
+			gomega.Ω(client.ResolveUserKeys(&user)).Should(gomega.Succeed())
 
-			Ω(user.APIKey).ShouldNot(BeEmpty())
-			Ω(user.SecretKey).ShouldNot(BeEmpty())
+			gomega.Ω(user.APIKey).ShouldNot(gomega.BeEmpty())
+			gomega.Ω(user.SecretKey).ShouldNot(gomega.BeEmpty())
 		})
 
-		It("can get an arbitrary user with keys from domain and account specifications alone", func() {
+		ginkgo.It("can get an arbitrary user with keys from domain and account specifications alone", func() {
 			found, err := client.GetUserWithKeys(&user)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
-			Ω(user.APIKey).ShouldNot(BeEmpty())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Ω(found).Should(gomega.BeTrue())
+			gomega.Ω(user.APIKey).ShouldNot(gomega.BeEmpty())
 		})
 
-		It("can get create a new client as another user", func() {
+		ginkgo.It("can get create a new client as another user", func() {
 			found, err := client.GetUserWithKeys(&user)
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(found).Should(BeTrue())
-			Ω(user.APIKey).ShouldNot(BeEmpty())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Ω(found).Should(gomega.BeTrue())
+			gomega.Ω(user.APIKey).ShouldNot(gomega.BeEmpty())
 			newClient, err := client.NewClientInDomainAndAccount(user.Account.Domain.Name, user.Account.Name, "")
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(newClient).ShouldNot(BeNil())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Ω(newClient).ShouldNot(gomega.BeNil())
 		})
 	})
 })

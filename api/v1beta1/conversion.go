@@ -123,7 +123,7 @@ func GetFailureDomains(csCluster *CloudStackCluster) ([]v1beta3.CloudStackFailur
 // When upgrading cluster using eks-a, a secret named global will be created by eks-a, and it is used by following
 // method to get zoneID by calling cloudstack API.
 // When upgrading cluster using clusterctl directly, zoneID is fetched directly from kubernetes cluster in cloudstackzones.
-func GetDefaultFailureDomainName(namespace string, clusterName string, zoneID string, zoneName string) (string, error) {
+func GetDefaultFailureDomainName(namespace string, _ string, zoneID string, zoneName string) (string, error) {
 	if len(zoneID) > 0 {
 		return zoneID, nil
 	}

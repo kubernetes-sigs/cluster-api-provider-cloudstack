@@ -53,10 +53,8 @@ func (dst *CloudStackMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	// Preserve Hub data on down-conversion
-	if err := utilconversion.MarshalData(src, dst); err != nil {
-		return err
-	}
-	return nil
+	err := utilconversion.MarshalData(src, dst)
+	return err
 }
 
 func Convert_v1beta1_CloudStackMachineTemplateSpec_To_v1beta3_CloudStackMachineTemplateSpec(in *CloudStackMachineTemplateSpec, out *v1beta3.CloudStackMachineTemplateSpec, s machineryconversion.Scope) error { // nolint

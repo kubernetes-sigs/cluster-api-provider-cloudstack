@@ -21,13 +21,13 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 )
 
-var _ = Describe("AffinityGroup Unit Tests", func() {
+var _ = ginkgo.Describe("AffinityGroup Unit Tests", func() {
 	const (
 		errorMessage = "Fake Error"
 	)
@@ -41,9 +41,9 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		client     cloud.Client
 	)
 
-	BeforeEach(func() {
+	ginkgo.BeforeEach(func() {
 		// Setup new mock services.
-		mockCtrl = gomock.NewController(GinkgoT())
+		mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 		mockClient = cloudstack.NewMockClient(mockCtrl)
 		ags = mockClient.AffinityGroup.(*cloudstack.MockAffinityGroupServiceIface)
 		vms = mockClient.VirtualMachine.(*cloudstack.MockVirtualMachineServiceIface)
@@ -51,117 +51,117 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		dummies.SetDummyVars()
 	})
 
-	AfterEach(func() {
+	ginkgo.AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
-	Context("Fetch or Create Affinity group", func() {
-		It("fetches an affinity group by Name", func() {
+	ginkgo.Context("Fetch or Create Affinity group", func() {
+		ginkgo.It("fetches an affinity group by Name", func() {
 			dummies.AffinityGroup.ID = "" // Force name fetching.
 			ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name, gomock.Any()).Return(&cloudstack.AffinityGroup{}, 1, nil)
 
-			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+			gomega.Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(gomega.Succeed())
 		})
 
-		It("fetches an affinity group by ID", func() {
+		ginkgo.It("fetches an affinity group by ID", func() {
 			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID, gomock.Any()).Return(&cloudstack.AffinityGroup{}, 1, nil)
 
-			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+			gomega.Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(gomega.Succeed())
 		})
 
-		It("creates an affinity group", func() {
+		ginkgo.It("creates an affinity group", func() {
 			// dummies.SetDummyDomainAndAccount()
 			// dummies.SetDummyDomainID()
 			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID, gomock.Any()).Return(nil, -1, fakeError)
 			ags.EXPECT().NewCreateAffinityGroupParams(dummies.AffinityGroup.Name, dummies.AffinityGroup.Type).
 				Return(&cloudstack.CreateAffinityGroupParams{})
-			ags.EXPECT().CreateAffinityGroup(ParamMatch(And(NameEquals(dummies.AffinityGroup.Name)))).
+			ags.EXPECT().CreateAffinityGroup(ParamMatch(gomega.And(NameEquals(dummies.AffinityGroup.Name)))).
 				Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
-			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+			gomega.Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(gomega.Succeed())
 		})
 
-		It("creates an affinity group if Name provided returns more than one affinity group", func() {
+		ginkgo.It("creates an affinity group if Name provided returns more than one affinity group", func() {
 			dummies.AffinityGroup.ID = "" // Force name fetching.
 			agp := &cloudstack.CreateAffinityGroupParams{}
 			ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name, gomock.Any()).Return(&cloudstack.AffinityGroup{}, 2, nil)
 			ags.EXPECT().NewCreateAffinityGroupParams(gomock.Any(), gomock.Any()).Return(agp)
 			ags.EXPECT().CreateAffinityGroup(agp).Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
-			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+			gomega.Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(gomega.Succeed())
 		})
 
-		It("creates an affinity group if getting affinity group by name fails", func() {
+		ginkgo.It("creates an affinity group if getting affinity group by name fails", func() {
 			dummies.AffinityGroup.ID = "" // Force name fetching.
 			agp := &cloudstack.CreateAffinityGroupParams{}
 			ags.EXPECT().GetAffinityGroupByName(dummies.AffinityGroup.Name, gomock.Any()).Return(nil, -1, fakeError)
 			ags.EXPECT().NewCreateAffinityGroupParams(gomock.Any(), gomock.Any()).Return(agp)
 			ags.EXPECT().CreateAffinityGroup(agp).Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
-			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+			gomega.Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(gomega.Succeed())
 		})
 
-		It("creates an affinity group if ID provided returns more than one affinity group", func() {
+		ginkgo.It("creates an affinity group if ID provided returns more than one affinity group", func() {
 			agp := &cloudstack.CreateAffinityGroupParams{}
 			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID, gomock.Any()).Return(&cloudstack.AffinityGroup{}, 2, nil)
 			ags.EXPECT().NewCreateAffinityGroupParams(gomock.Any(), gomock.Any()).Return(agp)
 			ags.EXPECT().CreateAffinityGroup(agp).Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
-			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+			gomega.Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(gomega.Succeed())
 		})
 
-		It("creates an affinity group if getting affinity group by ID fails", func() {
+		ginkgo.It("creates an affinity group if getting affinity group by ID fails", func() {
 			agp := &cloudstack.CreateAffinityGroupParams{}
 			ags.EXPECT().GetAffinityGroupByID(dummies.AffinityGroup.ID, gomock.Any()).Return(nil, -1, fakeError)
 			ags.EXPECT().NewCreateAffinityGroupParams(gomock.Any(), gomock.Any()).Return(agp)
 			ags.EXPECT().CreateAffinityGroup(agp).Return(&cloudstack.CreateAffinityGroupResponse{}, nil)
 
-			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+			gomega.Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(gomega.Succeed())
 		})
 	})
 
-	Context("Delete Affinity group in CloudStack", func() {
-		It("delete affinity group", func() {
+	ginkgo.Context("Delete Affinity group in CloudStack", func() {
+		ginkgo.It("delete affinity group", func() {
 			agp := &cloudstack.DeleteAffinityGroupParams{}
 			ags.EXPECT().NewDeleteAffinityGroupParams().Return(agp)
 			ags.EXPECT().DeleteAffinityGroup(agp).Return(&cloudstack.DeleteAffinityGroupResponse{}, nil)
 
-			Ω(client.DeleteAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
+			gomega.Ω(client.DeleteAffinityGroup(dummies.AffinityGroup)).Should(gomega.Succeed())
 		})
 	})
 
-	Context("AffinityGroup Integ Tests", Label("integ"), func() {
+	ginkgo.Context("AffinityGroup Integ Tests", ginkgo.Label("integ"), func() {
 
-		BeforeEach(func() {
+		ginkgo.BeforeEach(func() {
 			client = realCloudClient
 			dummies.AffinityGroup.ID = "" // Force name fetching.
 		})
 
-		It("Associates an affinity group.", func() {
-			Ω(client.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(Succeed())
+		ginkgo.It("Associates an affinity group.", func() {
+			gomega.Ω(client.ResolveZone(&dummies.CSFailureDomain1.Spec.Zone)).Should(gomega.Succeed())
 			dummies.CSMachine1.Spec.DiskOffering.Name = ""
 
-			Ω(client.GetOrCreateVMInstance(
+			gomega.Ω(client.GetOrCreateVMInstance(
 				dummies.CSMachine1, dummies.CAPIMachine, dummies.CSCluster, dummies.CSFailureDomain1, dummies.CSAffinityGroup, "",
-			)).Should(Succeed())
+			)).Should(gomega.Succeed())
 
-			Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
-			Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
+			gomega.Ω(client.GetOrCreateAffinityGroup(dummies.AffinityGroup)).Should(gomega.Succeed())
+			gomega.Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(gomega.Succeed())
 
 			// Make the created VM go away quickly by force stopping it.
 			p := realCSClient.VirtualMachine.NewStopVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID)
 			p.SetForced(true)
 			_, err := realCSClient.VirtualMachine.StopVirtualMachine(p)
-			Ω(err).ShouldNot(HaveOccurred())
+			gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 		})
 
-		It("Creates and deletes an affinity group.", func() {
-			Ω(client.DeleteAffinityGroup(dummies.AffinityGroup)).Should(Succeed())
-			Ω(client.FetchAffinityGroup(dummies.AffinityGroup)).ShouldNot(Succeed())
+		ginkgo.It("Creates and deletes an affinity group.", func() {
+			gomega.Ω(client.DeleteAffinityGroup(dummies.AffinityGroup)).Should(gomega.Succeed())
+			gomega.Ω(client.FetchAffinityGroup(dummies.AffinityGroup)).ShouldNot(gomega.Succeed())
 		})
 	})
 
-	It("Associate affinity group", func() {
+	ginkgo.It("Associate affinity group", func() {
 		uagp := &cloudstack.UpdateVMAffinityGroupParams{}
 		vmp := &cloudstack.StartVirtualMachineParams{}
 		vms.EXPECT().GetVirtualMachineByID(*dummies.CSMachine1.Spec.InstanceID, gomock.Any()).Return(&cloudstack.VirtualMachine{}, 1, nil)
@@ -171,10 +171,10 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		ags.EXPECT().UpdateVMAffinityGroup(uagp).Return(&cloudstack.UpdateVMAffinityGroupResponse{}, nil)
 		vms.EXPECT().NewStartVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).Return(vmp)
 		vms.EXPECT().StartVirtualMachine(vmp).Return(&cloudstack.StartVirtualMachineResponse{}, nil)
-		Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
+		gomega.Ω(client.AssociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(gomega.Succeed())
 	})
 
-	It("Disassociate affinity group", func() {
+	ginkgo.It("Disassociate affinity group", func() {
 		uagp := &cloudstack.UpdateVMAffinityGroupParams{}
 		vmp := &cloudstack.StartVirtualMachineParams{}
 		vms.EXPECT().GetVirtualMachineByID(*dummies.CSMachine1.Spec.InstanceID, gomock.Any()).Return(&cloudstack.VirtualMachine{}, 1, nil)
@@ -184,6 +184,6 @@ var _ = Describe("AffinityGroup Unit Tests", func() {
 		ags.EXPECT().UpdateVMAffinityGroup(uagp).Return(&cloudstack.UpdateVMAffinityGroupResponse{}, nil)
 		vms.EXPECT().NewStartVirtualMachineParams(*dummies.CSMachine1.Spec.InstanceID).Return(vmp)
 		vms.EXPECT().StartVirtualMachine(vmp).Return(&cloudstack.StartVirtualMachineResponse{}, nil)
-		Ω(client.DisassociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(Succeed())
+		gomega.Ω(client.DisassociateAffinityGroup(dummies.CSMachine1, *dummies.AffinityGroup)).Should(gomega.Succeed())
 	})
 })

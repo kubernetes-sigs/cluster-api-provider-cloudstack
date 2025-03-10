@@ -17,8 +17,8 @@ limitations under the License.
 package v1beta1_test
 
 import (
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1beta1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
@@ -26,12 +26,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-var _ = Describe("Conversion", func() {
-	BeforeEach(func() { // Reset test vars to initial state.
+var _ = ginkgo.Describe("Conversion", func() {
+	ginkgo.BeforeEach(func() { // Reset test vars to initial state.
 	})
 
-	Context("GetFailureDomains function", func() {
-		It("Converts v1beta1 cluster spec to v1beta3 failure domains", func() {
+	ginkgo.Context("GetFailureDomains function", func() {
+		ginkgo.It("Converts v1beta1 cluster spec to v1beta3 failure domains", func() {
 			csCluster := &v1beta1.CloudStackCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
@@ -71,13 +71,13 @@ var _ = Describe("Conversion", func() {
 					},
 				},
 			}
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(failureDomains).Should(Equal(expectedResult))
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Expect(failureDomains).Should(gomega.Equal(expectedResult))
 		})
 	})
 
-	Context("v1beta3 to v1beta1 function", func() {
-		It("Converts v1beta3 cluster spec to v1beta1 zone based cluster spec", func() {
+	ginkgo.Context("v1beta3 to v1beta1 function", func() {
+		ginkgo.It("Converts v1beta3 cluster spec to v1beta1 zone based cluster spec", func() {
 			csCluster := &v1beta3.CloudStackCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
@@ -132,11 +132,11 @@ var _ = Describe("Conversion", func() {
 				Status: v1beta1.CloudStackClusterStatus{},
 			}
 
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(converted).Should(Equal(expectedResult))
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Expect(converted).Should(gomega.Equal(expectedResult))
 		})
 
-		It("Returns error when len(failureDomains) < 1", func() {
+		ginkgo.It("Returns error when len(failureDomains) < 1", func() {
 			csCluster := &v1beta3.CloudStackCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
@@ -151,7 +151,7 @@ var _ = Describe("Conversion", func() {
 				Status: v1beta3.CloudStackClusterStatus{},
 			}
 			err := v1beta1.Convert_v1beta3_CloudStackCluster_To_v1beta1_CloudStackCluster(csCluster, nil, nil)
-			Ω(err).Should(HaveOccurred())
+			gomega.Expect(err).Should(gomega.HaveOccurred())
 		})
 	})
 })

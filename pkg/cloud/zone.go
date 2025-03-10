@@ -40,15 +40,15 @@ func (c *client) ResolveZone(zSpec *infrav1.CloudStackZoneSpec) (retErr error) {
 		zSpec.ID = zoneID
 	}
 
-	if resp, count, err := c.cs.Zone.GetZoneByID(zSpec.ID); err != nil {
+	resp, count, err := c.cs.Zone.GetZoneByID(zSpec.ID)
+	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		return multierror.Append(retErr, errors.Wrapf(err, "could not get Zone by ID %v", zSpec.ID))
 	} else if count != 1 {
 		return multierror.Append(retErr, errors.Errorf(
 			"expected 1 Zone with UUID %s, but got %d", zSpec.ID, count))
-	} else {
-		zSpec.Name = resp.Name
 	}
+	zSpec.Name = resp.Name
 
 	return nil
 }

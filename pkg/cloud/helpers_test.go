@@ -24,7 +24,7 @@ import (
 	"reflect"
 
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/gomega"
+	gomega "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 )
 
@@ -48,7 +48,7 @@ func (p paramMatcher) String() string {
 }
 
 func (p paramMatcher) Matches(x interface{}) (retVal bool) {
-	return Ω(x).Should(p.matcher)
+	return gomega.Ω(x).Should(p.matcher)
 }
 
 // This generates translating matchers.
@@ -61,16 +61,16 @@ func (p paramMatcher) Matches(x interface{}) (retVal bool) {
 //
 //			DomainIDEquals = FieldMatcherGenerator("GetDomainid")
 //	     p := &CreateNewSomethingParams{Domainid: "FakeDomainID"}
-//	     Ω(p).DomainIDEquals("FakeDomainID")
+//	     gomega.Ω(p).DomainIDEquals("FakeDomainID")
 func FieldMatcherGenerator(fetchFunc string) func(string) types.GomegaMatcher {
 	return func(expected string) types.GomegaMatcher {
-		return WithTransform(
+		return gomega.WithTransform(
 			func(x interface{}) string {
 				meth := reflect.ValueOf(x).MethodByName(fetchFunc)
 				fmt.Println(meth.Call(nil)[0])
 
 				return meth.Call(nil)[0].String()
-			}, Equal(expected))
+			}, gomega.Equal(expected))
 	}
 }
 

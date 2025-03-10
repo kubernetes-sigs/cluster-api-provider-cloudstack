@@ -3,11 +3,11 @@ package helpers_test
 import (
 	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
 )
 
 func TestCloud(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Cloud Suite")
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "Cloud Suite")
 }
