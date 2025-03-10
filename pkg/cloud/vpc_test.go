@@ -34,6 +34,7 @@ var _ = ginkgo.Describe("VPC", func() {
 		mockCtrl   *gomock.Controller
 		mockClient *csapi.CloudStackClient
 		vs         *csapi.MockVPCServiceIface
+		rs         *csapi.MockResourcetagsServiceIface
 		client     cloud.Client
 	)
 
@@ -42,6 +43,7 @@ var _ = ginkgo.Describe("VPC", func() {
 		mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 		mockClient = csapi.NewMockClient(mockCtrl)
 		vs = mockClient.VPC.(*csapi.MockVPCServiceIface)
+		rs = mockClient.Resourcetags.(*csapi.MockResourcetagsServiceIface)
 		client = cloud.NewClientFromCSAPIClient(mockClient, nil)
 		dummies.SetDummyVars()
 	})
@@ -166,6 +168,8 @@ var _ = ginkgo.Describe("VPC", func() {
 			vs.EXPECT().GetVPCOfferingID(cloud.VPCOffering).Return(offeringID, 1, nil)
 			vs.EXPECT().NewCreateVPCParams(dummyVPC.CIDR, dummyVPC.Name, dummyVPC.Name, offeringID, dummyFD.Spec.Zone.ID).Return(createVPCParams)
 			vs.EXPECT().CreateVPC(createVPCParams).Return(createVPCResponse, nil)
+			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).Return(&csapi.CreateTagsParams{})
+			rs.EXPECT().CreateTags(gomock.Any()).Return(&csapi.CreateTagsResponse{}, nil)
 
 			gomega.Ω(client.CreateVPC(&dummyFD, &dummyVPC)).Should(gomega.Succeed())
 			gomega.Ω(dummyVPC.ID).Should(gomega.Equal("vpc-123"))

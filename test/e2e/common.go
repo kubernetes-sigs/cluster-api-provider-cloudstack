@@ -393,6 +393,19 @@ func CheckNetworkExists(client *cloudstack.CloudStackClient, networkName string)
 	return count == 1, nil
 }
 
+func CheckVPCExists(client *cloudstack.CloudStackClient, vpcName string) (bool, error) {
+	_, count, err := client.VPC.GetVPCByName(vpcName)
+	if err != nil {
+		if strings.Contains(err.Error(), "No match found for") {
+			return false, nil
+		}
+		return false, err
+	} else if count > 1 {
+		return false, fmt.Errorf("Expected 0-1 VPC with name %s, but got %d.", vpcName, count)
+	}
+	return count == 1, nil
+}
+
 func CreateCloudStackClient(ctx context.Context, kubeConfigPath string) *cloudstack.CloudStackClient {
 	By("Getting a CloudStack client secret")
 	secret := &corev1.Secret{}
