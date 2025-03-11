@@ -464,6 +464,9 @@ func (r *ReconcilerBase) InitFromMgr(mgr ctrl.Manager, client cloud.Client) {
 func (r *ReconciliationRunner) GetParent(child client.Object, parent client.Object) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		err := GetOwnerOfKind(r.RequestCtx, r.K8sClient, child, parent)
+		if err != nil && strings.Contains(err.Error(), "couldn't find owner of kind") {
+			return r.RequeueWithMessage(err.Error())
+		}
 		return ctrl.Result{}, err
 	}
 }

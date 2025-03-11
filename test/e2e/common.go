@@ -361,7 +361,7 @@ func CheckAffinityGroupInProject(client *cloudstack.CloudStackClient, clusterNam
 
 			for _, affinity := range vm.Affinitygroup {
 				affinityIds = append(affinityIds, affinity.Id)
-				affinity, _, _ := client.AffinityGroup.GetAffinityGroupByID(affinity.Id, cloudstack.WithProject(project))
+				affinity, _, err := client.AffinityGroup.GetAffinityGroupByID(affinity.Id, cloudstack.WithProject(project))
 				if err != nil {
 					Fail("Failed to get affinity group for " + affinity.Id + " : " + err.Error())
 				}
