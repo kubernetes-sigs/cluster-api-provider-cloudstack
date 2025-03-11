@@ -361,14 +361,18 @@ func (c *client) DisposeIsoNetResources(
 	if err := c.RemoveClusterTagFromNetwork(csCluster, *isoNet.Network()); err != nil {
 		return err
 	}
-	if err := c.RemoveClusterTagFromVPC(csCluster, isoNet.Spec.VPC); err != nil {
+	if err := c.DeleteNetworkIfNotInUse(*isoNet.Network()); err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
 		return err
 	}
-	if err := c.DeleteNetworkIfNotInUse(*isoNet.Network()); err != nil {
-		return err
+	if isoNet.Spec.VPC != nil && isoNet.Spec.VPC.ID != "" {
+		if err := c.RemoveClusterTagFromVPC(csCluster, *isoNet.Spec.VPC); err != nil {
+			return err
+		}
+		if err := c.DeleteVPCIfNotInUse(*isoNet.Spec.VPC); err != nil && !strings.Contains(strings.ToLower(err.Error()), "no match found") {
+			return err
+		}
 	}
-	err := c.DeleteVPCIfNotInUse(isoNet.Spec.VPC)
-	return err
+	return nil
 }
 
 // DeleteNetworkIfNotInUse deletes an isolated network if the network is no longer in use (indicated by in use tags).

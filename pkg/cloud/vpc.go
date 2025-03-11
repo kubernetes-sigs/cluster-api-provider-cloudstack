@@ -35,7 +35,8 @@ const (
 type VPCIface interface {
 	ResolveVPC(*infrav1.VPC) error
 	CreateVPC(*infrav1.CloudStackFailureDomain, *infrav1.VPC) error
-	RemoveClusterTagFromVPC(*infrav1.CloudStackCluster, *infrav1.VPC) error
+	RemoveClusterTagFromVPC(*infrav1.CloudStackCluster, infrav1.VPC) error
+	DeleteVPCIfNotInUse(infrav1.VPC) (retError error)
 }
 
 // getVPCOfferingID fetches a vpc offering id.
@@ -99,6 +100,7 @@ func (c *client) CreateVPC(fd *infrav1.CloudStackFailureDomain, vpc *infrav1.VPC
 
 	p := c.cs.VPC.NewCreateVPCParams(vpc.CIDR, vpc.Name, vpc.Name, offeringID, fd.Spec.Zone.ID)
 	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
+	p.SetStart(true)
 	resp, err := c.cs.VPC.CreateVPC(p)
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
@@ -109,17 +111,14 @@ func (c *client) CreateVPC(fd *infrav1.CloudStackFailureDomain, vpc *infrav1.VPC
 }
 
 // DeleteVPC deletes a VPC.
-func (c *client) DeleteVPC(vpc *infrav1.VPC) error {
+func (c *client) DeleteVPC(vpc infrav1.VPC) error {
 	_, err := c.cs.VPC.DeleteVPC(c.cs.VPC.NewDeleteVPCParams(vpc.ID))
 	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 	return errors.Wrapf(err, "deleting vpc with id %s", vpc.ID)
 }
 
 // DeleteVPCIfNotInUse deletes a VPC if the VPC is no longer in use (indicated by in use tags).
-func (c *client) DeleteVPCIfNotInUse(vpc *infrav1.VPC) (retError error) {
-	if vpc == nil || vpc.ID == "" {
-		return nil
-	}
+func (c *client) DeleteVPCIfNotInUse(vpc infrav1.VPC) (retError error) {
 	tags, err := c.GetTags(ResourceTypeVPC, vpc.ID)
 	if err != nil {
 		return err
@@ -144,10 +143,7 @@ func generateVPCTagName(csCluster *infrav1.CloudStackCluster) string {
 }
 
 // RemoveClusterTagFromVPC removes the cluster in use tag from a VPC.
-func (c *client) RemoveClusterTagFromVPC(csCluster *infrav1.CloudStackCluster, vpc *infrav1.VPC) (retError error) {
-	if vpc == nil || vpc.ID == "" {
-		return nil
-	}
+func (c *client) RemoveClusterTagFromVPC(csCluster *infrav1.CloudStackCluster, vpc infrav1.VPC) (retError error) {
 	tags, err := c.GetTags(ResourceTypeVPC, vpc.ID)
 	if err != nil {
 		return err
