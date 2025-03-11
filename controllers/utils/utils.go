@@ -135,7 +135,7 @@ func GetManagementOwnerRef(capiMachine *clusterv1.Machine) *meta.OwnerReference 
 }
 
 // GetOwnerOfKind returns the Cluster object owning the current resource of passed kind.
-func GetOwnerOfKind(ctx context.Context, c clientPkg.Client, owned clientPkg.Object, owner clientPkg.Object) error {
+var GetOwnerOfKind = func(ctx context.Context, c clientPkg.Client, owned clientPkg.Object, owner clientPkg.Object) error {
 	gvks, _, err := c.Scheme().ObjectKinds(owner)
 	if err != nil {
 		return errors.Wrapf(err, "finding owner kind for %s/%s", owned.GetName(), owned.GetNamespace())
