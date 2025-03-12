@@ -361,18 +361,21 @@ func CheckAffinityGroupInProject(client *cloudstack.CloudStackClient, clusterNam
 
 			for _, affinity := range vm.Affinitygroup {
 				affinityIds = append(affinityIds, affinity.Id)
-				affinity, _, _ := client.AffinityGroup.GetAffinityGroupByID(affinity.Id, cloudstack.WithProject(project))
+				// Store the ID before potential nil issues
+				affinityID := affinity.Id
+				// Rename the variable to avoid shadowing
+				affinityGroup, _, err := client.AffinityGroup.GetAffinityGroupByID(affinityID, cloudstack.WithProject(project))
 				if err != nil {
-					Fail("Failed to get affinity group for " + affinity.Id + " : " + err.Error())
+					Fail("Failed to get affinity group for " + affinityID + " : " + err.Error())
 				}
-				if !strings.Contains(affinity.Name, affinityTypeString) {
-					Fail(affinity.Name + " does not contain " + affinityTypeString)
+				if !strings.Contains(affinityGroup.Name, affinityTypeString) {
+					Fail(affinityGroup.Name + " does not contain " + affinityTypeString)
 				}
-				if affinityType == "pro" && affinity.Type != "host affinity" {
-					Fail(affinity.Type + " does not match " + affinityType)
+				if affinityType == "pro" && affinityGroup.Type != "host affinity" {
+					Fail(affinityGroup.Type + " does not match " + affinityType)
 				}
-				if affinityType == "anti" && affinity.Type != "host anti-affinity" {
-					Fail(affinity.Type + " does not match " + affinityType)
+				if affinityType == "anti" && affinityGroup.Type != "host anti-affinity" {
+					Fail(affinityGroup.Type + " does not match " + affinityType)
 				}
 			}
 		}
