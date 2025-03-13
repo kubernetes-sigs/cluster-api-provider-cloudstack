@@ -41,6 +41,7 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
 		affinityIds      []string
+		vpcName          = "vpc-for-e2e-1"
 	)
 
 	BeforeEach(func() {
@@ -81,8 +82,8 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64Ptr(1),
-				WorkerMachineCount:       pointer.Int64Ptr(1),
+				ControlPlaneMachineCount: pointer.Int64(1),
+				WorkerMachineCount:       pointer.Int64(2),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -91,6 +92,9 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
 		affinityIds = CheckAffinityGroupInProject(csClient, clusterResources.Cluster.Name, "pro", projectName)
+		exists, err := CheckVPCExistsInProject(csClient, vpcName, projectName)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
 	})
 
 	AfterEach(func() {
