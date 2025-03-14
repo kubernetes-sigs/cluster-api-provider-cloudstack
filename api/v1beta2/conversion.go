@@ -15,3 +15,31 @@ limitations under the License.
 */
 
 package v1beta2
+
+import (
+	conv "k8s.io/apimachinery/pkg/conversion"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+)
+
+// Convert_v1beta3_Network_To_v1beta2_Network converts from v1beta3.Network to v1beta2.Network
+//
+//nolint:golint,revive,stylecheck
+func Convert_v1beta3_Network_To_v1beta2_Network(in *v1beta3.Network, out *Network, _ conv.Scope) error {
+	out.ID = in.ID
+	out.Type = in.Type
+	out.Name = in.Name
+	// Skip Gateway, Netmask, and VPC fields as they do not exist in v1beta2.Network
+	return nil
+}
+
+// Convert_v1beta3_CloudStackIsolatedNetworkSpec_To_v1beta2_CloudStackIsolatedNetworkSpec converts from v1beta3.CloudStackIsolatedNetworkSpec to v1beta2.CloudStackIsolatedNetworkSpec
+//
+//nolint:golint,revive,stylecheck
+func Convert_v1beta3_CloudStackIsolatedNetworkSpec_To_v1beta2_CloudStackIsolatedNetworkSpec(in *v1beta3.CloudStackIsolatedNetworkSpec, out *CloudStackIsolatedNetworkSpec, _ conv.Scope) error {
+	out.Name = in.Name
+	out.ID = in.ID
+	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
+	out.FailureDomainName = in.FailureDomainName
+	// Skip Gateway, Netmask, and VPC fields as they do not exist in v1beta2.CloudStackIsolatedNetworkSpec
+	return nil
+}

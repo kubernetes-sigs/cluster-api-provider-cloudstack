@@ -45,6 +45,7 @@ type Client interface {
 	ZoneIFace
 	IsoNetworkIface
 	UserCredIFace
+	VPCIface
 	NewClientInDomainAndAccount(string, string, string) (Client, error)
 }
 

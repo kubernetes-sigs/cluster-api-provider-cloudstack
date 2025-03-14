@@ -53,6 +53,32 @@ type Network struct {
 
 	// Cloudstack Network Name the cluster is built in.
 	Name string `json:"name"`
+
+	// Cloudstack Network Gateway the cluster is built in.
+	// +optional
+	Gateway string `json:"gateway,omitempty"`
+
+	// Cloudstack Network Netmask the cluster is built in.
+	// +optional
+	Netmask string `json:"netmask,omitempty"`
+
+	// Cloudstack VPC the network belongs to.
+	// +optional
+	VPC *VPC `json:"vpc,omitempty"`
+}
+
+type VPC struct {
+	// Cloudstack VPC ID of the network.
+	// +optional
+	ID string `json:"id,omitempty"`
+
+	// Cloudstack VPC Name of the network.
+	// +optional
+	Name string `json:"name"`
+
+	// CIDR for the VPC.
+	// +optional
+	CIDR string `json:"cidr,omitempty"`
 }
 
 // CloudStackZoneSpec specifies a Zone's details.
