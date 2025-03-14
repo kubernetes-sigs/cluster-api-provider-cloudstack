@@ -67,6 +67,9 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		if (err != nil) || (project == nil) {
 			Skip("Failed to fetch project")
 		}
+
+		// Initialize affinityIds to an empty slice to avoid nil checks
+		affinityIds = make([]string, 0)
 	})
 
 	It("Should create a cluster in a project", func() {
@@ -90,11 +93,23 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
+		// Ensure the cluster was created successfully before proceeding with checks
+		Expect(clusterResources.Cluster).ToNot(BeNil(), "Cluster was not created successfully")
+
+		By("Checking affinity groups and VPC in project")
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
-		affinityIds = CheckAffinityGroupInProject(csClient, clusterResources.Cluster.Name, "pro", projectName)
+
+		// Check affinity groups
+		By(fmt.Sprintf("Checking affinity groups for cluster %s in project %s", clusterResources.Cluster.Name, projectName))
+		tempAffinityIds := CheckAffinityGroupInProject(csClient, clusterResources.Cluster.Name, "pro", projectName)
+		Expect(tempAffinityIds).ToNot(BeEmpty(), "No affinity groups found for cluster")
+		affinityIds = tempAffinityIds
+
+		// Check VPC
+		By(fmt.Sprintf("Checking if VPC %s exists in project %s", vpcName, projectName))
 		exists, err := CheckVPCExistsInProject(csClient, vpcName, projectName)
-		Expect(err).To(BeNil())
-		Expect(exists).To(BeTrue())
+		Expect(err).To(BeNil(), "Error checking VPC existence")
+		Expect(exists).To(BeTrue(), fmt.Sprintf("VPC %s does not exist in project %s", vpcName, projectName))
 	})
 
 	AfterEach(func() {
@@ -102,10 +117,17 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
-		err := CheckAffinityGroupsDeletedInProject(csClient, affinityIds, projectName)
-		if err != nil {
-			Fail(err.Error())
+
+		// Only check for affinity group deletion if affinity groups were created
+		if len(affinityIds) > 0 {
+			err := CheckAffinityGroupsDeletedInProject(csClient, affinityIds, projectName)
+			if err != nil {
+				Fail(err.Error())
+			}
+		} else {
+			By("Skipping affinity group deletion check as no affinity groups were created")
 		}
+
 		By("PASSED!")
 	})
 }
