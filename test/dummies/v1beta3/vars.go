@@ -274,7 +274,7 @@ func SetDummyCAPCClusterVars() {
 	CSClusterKind = "CloudStackCluster"
 	ClusterName = "test-cluster"
 	EndPointHost = "EndpointHost"
-	SyncWithACS := ptr.To(true)
+	SyncWithACS = ptr.To(true)
 	EndPointPort = int32(5309)
 	PublicIPID = "FakePublicIPID"
 	ClusterNameSpace = "default"

@@ -39,6 +39,7 @@ spec:
           privileged: false
           runAsUser: 65532
           runAsGroup: 65532
+        terminationMessagePolicy: FallbackToLogsOnError
         livenessProbe:
           httpGet:
             path: /healthz

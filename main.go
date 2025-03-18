@@ -61,9 +61,8 @@ var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
-	tlsOptions         = flags.TLSOptions{}
-	diagnosticsOptions = flags.DiagnosticsOptions{}
-	logOptions         = logs.NewOptions()
+	managerOptions = flags.ManagerOptions{}
+	logOptions     = logs.NewOptions()
 )
 
 func init() {
@@ -187,7 +186,8 @@ func setFlags() *managerOpts {
 		false,
 		"Enable syncing of CloudStack clusters and machines with CKS clusters and machines",
 	)
-	flags.AddDiagnosticsOptions(flag.CommandLine, &diagnosticsOptions)
+
+	flags.AddManagerOptions(flag.CommandLine, &managerOptions)
 
 	return opts
 }
@@ -195,7 +195,6 @@ func setFlags() *managerOpts {
 func main() {
 	opts := setFlags() // Add our options to flag set.
 	logsv1.AddFlags(logOptions, flag.CommandLine)
-	flags.AddTLSOptions(flag.CommandLine, &tlsOptions)
 	flag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	flag.CommandLine.AddGoFlagSet(goflag.CommandLine) // Merge klog's goflag flags into the pflags.
 	flag.Parse()
@@ -207,13 +206,11 @@ func main() {
 
 	ctrl.SetLogger(klog.Background())
 
-	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to start manager: invalid flags")
 		os.Exit(1)
 	}
-
-	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
 
 	var watchingNamespaces map[string]cache.Config
 	if opts.WatchingNamespace != "" {
@@ -229,7 +226,7 @@ func main() {
 		LeaderElection:         opts.EnableLeaderElection,
 		LeaderElectionID:       "capc-leader-election-controller",
 		PprofBindAddress:       opts.ProfilerAddr,
-		Metrics:                diagnosticsOpts,
+		Metrics:                *metricsOptions,
 		Cache: cache.Options{
 			DefaultNamespaces: watchingNamespaces,
 			SyncPeriod:        &opts.SyncPeriod,
@@ -239,7 +236,7 @@ func main() {
 			CertDir:  opts.CertDir,
 			CertName: opts.CertName,
 			KeyName:  opts.KeyName,
-			TLSOpts:  tlsOptionOverrides,
+			TLSOpts:  tlsOptions,
 		}),
 		Client: client.Options{
 			Cache: &client.CacheOptions{
