@@ -24,12 +24,11 @@ import (
 	"regexp"
 	"time"
 
-	"k8s.io/utils/pointer"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -331,8 +330,8 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 		// ResolveVMInstanceDetails can get InstanceID by CS machine name
 		err := r.CSClient.ResolveVMInstanceDetails(r.ReconciliationSubject)
 		if err != nil {
-			r.ReconciliationSubject.Status.Status = pointer.String(metav1.StatusFailure)
-			r.ReconciliationSubject.Status.Reason = pointer.String(err.Error() +
+			r.ReconciliationSubject.Status.Status = ptr.To(metav1.StatusFailure)
+			r.ReconciliationSubject.Status.Reason = ptr.To(err.Error() +
 				fmt.Sprintf(" If this VM has already been deleted, please remove the finalizer named %s from object %s",
 					"cloudstackmachine.infrastructure.cluster.x-k8s.io", r.ReconciliationSubject.Name))
 			// Cloudstack VM may be not found or more than one found by name

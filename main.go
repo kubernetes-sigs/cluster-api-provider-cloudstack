@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 
 	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -206,7 +205,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctrl.SetLogger(klogr.New())
+	ctrl.SetLogger(klog.Background())
 
 	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
 	if err != nil {

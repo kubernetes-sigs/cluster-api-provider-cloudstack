@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
@@ -30,7 +31,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 )
 
@@ -42,9 +42,9 @@ type VMIface interface {
 
 // Set infrastructure spec and status from the CloudStack API's virtual machine metrics type.
 func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, csMachine *infrav1.CloudStackMachine) {
-	csMachine.Spec.ProviderID = pointer.String(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
+	csMachine.Spec.ProviderID = ptr.To(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
 	// InstanceID is later used as required parameter to destroy VM.
-	csMachine.Spec.InstanceID = pointer.String(vmResponse.Id)
+	csMachine.Spec.InstanceID = ptr.To(vmResponse.Id)
 	csMachine.Status.Addresses = []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vmResponse.Ipaddress}}
 	newInstanceState := vmResponse.State
 	if newInstanceState != csMachine.Status.InstanceState || (newInstanceState != "" && csMachine.Status.InstanceStateLastUpdated.IsZero()) {
@@ -373,14 +373,14 @@ func (c *client) DeployVM(
 			return err
 		}
 
-		csMachine.Spec.InstanceID = pointer.String(vm.Id)
+		csMachine.Spec.InstanceID = ptr.To(vm.Id)
 		csMachine.Status.InstanceState = vm.State
 
 		return fmt.Errorf("incomplete vm deployment (vm_id=%v): %w", vm.Id, err)
 	}
 
-	csMachine.Spec.InstanceID = pointer.String(deployVMResp.Id)
-	csMachine.Status.Status = pointer.String(metav1.StatusSuccess)
+	csMachine.Spec.InstanceID = ptr.To(deployVMResp.Id)
+	csMachine.Status.Status = ptr.To(metav1.StatusSuccess)
 
 	return nil
 }

@@ -22,6 +22,7 @@ import (
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/golang/mock/gomock"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
@@ -30,7 +31,6 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"k8s.io/utils/pointer"
 )
 
 var _ = ginkgo.Describe("Instance", func() {
@@ -91,8 +91,8 @@ var _ = ginkgo.Describe("Instance", func() {
 			vmsResp := &cloudstack.VirtualMachinesMetric{Id: *dummies.CSMachine1.Spec.InstanceID}
 			vms.EXPECT().GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID, gomock.Any()).Return(vmsResp, 1, nil)
 			gomega.Ω(client.ResolveVMInstanceDetails(dummies.CSMachine1)).Should(gomega.Succeed())
-			gomega.Ω(dummies.CSMachine1.Spec.ProviderID).Should(gomega.Equal(pointer.String("cloudstack:///" + vmsResp.Id)))
-			gomega.Ω(dummies.CSMachine1.Spec.InstanceID).Should(gomega.Equal(pointer.String(vmsResp.Id)))
+			gomega.Ω(dummies.CSMachine1.Spec.ProviderID).Should(gomega.Equal(ptr.To("cloudstack:///" + vmsResp.Id)))
+			gomega.Ω(dummies.CSMachine1.Spec.InstanceID).Should(gomega.Equal(ptr.To(vmsResp.Id)))
 		})
 
 		ginkgo.It("handles an unknown error when fetching by name", func() {
@@ -117,8 +117,8 @@ var _ = ginkgo.Describe("Instance", func() {
 
 			gomega.Ω(client.ResolveVMInstanceDetails(dummies.CSMachine1)).Should(gomega.Succeed())
 			gomega.Ω(dummies.CSMachine1.Spec.ProviderID).Should(gomega.Equal(
-				pointer.String(fmt.Sprintf("cloudstack:///%s", *dummies.CSMachine1.Spec.InstanceID))))
-			gomega.Ω(dummies.CSMachine1.Spec.InstanceID).Should(gomega.Equal(pointer.String(*dummies.CSMachine1.Spec.InstanceID)))
+				ptr.To(fmt.Sprintf("cloudstack:///%s", *dummies.CSMachine1.Spec.InstanceID))))
+			gomega.Ω(dummies.CSMachine1.Spec.InstanceID).Should(gomega.Equal(ptr.To(*dummies.CSMachine1.Spec.InstanceID)))
 		})
 	})
 
@@ -810,7 +810,7 @@ var _ = ginkgo.Describe("Instance", func() {
 			dummies.CSMachine1.Spec.Template.ID = ""
 			dummies.CSMachine1.Spec.Offering.Name = "offering"
 			dummies.CSMachine1.Spec.Template.Name = "template"
-			dummies.CSMachine1.Spec.UncompressedUserData = pointer.Bool(true)
+			dummies.CSMachine1.Spec.UncompressedUserData = ptr.To(true)
 
 			vms.EXPECT().
 				GetVirtualMachinesMetricByID(*dummies.CSMachine1.Spec.InstanceID, gomock.Any()).

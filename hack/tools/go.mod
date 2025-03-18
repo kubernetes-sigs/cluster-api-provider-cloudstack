@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api-provider-cloudstack/hack/tools
 
-go 1.21
+go 1.22
 
 require (
 	github.com/a8m/envsubst v1.4.2
@@ -10,7 +10,7 @@ require (
 	k8s.io/code-generator v0.27.1
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20220329062511-822f046dac13
 	sigs.k8s.io/controller-tools v0.12.1
-	sigs.k8s.io/kind v0.20.0
+	sigs.k8s.io/kind v0.22.0
 	sigs.k8s.io/kustomize/kustomize/v4 v4.5.7
 )
 

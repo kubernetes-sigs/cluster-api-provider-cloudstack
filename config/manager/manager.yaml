@@ -24,7 +24,8 @@ spec:
         - /manager
         args:
         - "--leader-elect"
-        - "--metrics-bind-addr=localhost:8080"
+        - "--diagnostics-address=${CAPI_DIAGNOSTICS_ADDRESS:=:8443}"
+        - "--insecure-diagnostics=${CAPI_INSECURE_DIAGNOSTICS:=false}"
         - "--cloudstackcluster-concurrency=${CAPC_CLOUDSTACKCLUSTER_CONCURRENCY:=10}"
         - "--cloudstackmachine-concurrency=${CAPC_CLOUDSTACKMACHINE_CONCURRENCY:=10}"
         - "--enable-cloudstack-cks-sync=${CAPC_CLOUDSTACKMACHINE_CKS_SYNC:=false}"
