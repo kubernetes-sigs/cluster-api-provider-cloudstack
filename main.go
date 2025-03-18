@@ -80,6 +80,7 @@ type managerOpts struct {
 	ProbeAddr            string
 	WatchingNamespace    string
 	WatchFilterValue     string
+	ProfilerAddr         string
 	CertDir              string
 
 	CloudStackClusterConcurrency       int
@@ -126,6 +127,11 @@ func setFlags() *managerOpts {
 			"Label value that the controller watches to reconcile cluster-api objects. "+
 				"Label key is always %s. If unspecified, the controller watches for all cluster-api objects.",
 			clusterv1.WatchLabel))
+	flag.StringVar(
+		&opts.ProfilerAddr,
+		"profiler-addr",
+		"",
+		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 	flag.StringVar(
 		&opts.CertDir,
 		"webhook-cert-dir",
@@ -194,6 +200,7 @@ func main() {
 		HealthProbeBindAddress: opts.ProbeAddr,
 		LeaderElection:         opts.EnableLeaderElection,
 		LeaderElectionID:       "capc-leader-election-controller",
+		PprofBindAddress:       opts.ProfilerAddr,
 		Namespace:              opts.WatchingNamespace,
 		CertDir:                opts.CertDir,
 		TLSOpts:                tlsOptionOverrides,

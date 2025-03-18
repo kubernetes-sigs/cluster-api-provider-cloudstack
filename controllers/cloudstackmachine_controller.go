@@ -395,7 +395,7 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 	// Queues a reconcile request for owned CloudStackMachine on change.
 	// Used to update when bootstrap data becomes available.
 	if err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Machine{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Machine{}),
 		handler.EnqueueRequestsFromMapFunc(
 			util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine"))),
 		predicate.Funcs{
@@ -411,7 +411,7 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 	}
 
 	// Used below, this maps CAPI clusters to CAPC machines
-	csMachineMapper, err := util.ClusterToObjectsMapper(reconciler.K8sClient, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
+	csMachineMapper, err := util.ClusterToTypedObjectsMapper(reconciler.K8sClient, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
 	}
@@ -419,7 +419,7 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 	reconciler.Recorder = mgr.GetEventRecorderFor("capc-machine-controller")
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
 	return controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(csMachineMapper),
 		predicates.ClusterUnpausedAndInfrastructureReady(log),
 	)

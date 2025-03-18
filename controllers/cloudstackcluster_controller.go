@@ -190,7 +190,7 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Cont
 
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
 	if err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(
 			util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("CloudStackCluster"), mgr.GetClient(), &infrav1.CloudStackCluster{})),
 		predicates.ClusterUnpaused(log),
