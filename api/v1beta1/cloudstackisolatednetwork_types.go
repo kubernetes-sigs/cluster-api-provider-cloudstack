@@ -81,5 +81,5 @@ type CloudStackIsolatedNetworkList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&CloudStackIsolatedNetwork{}, &CloudStackIsolatedNetworkList{})
+	objectTypes = append(objectTypes, &CloudStackIsolatedNetwork{}, &CloudStackIsolatedNetworkList{})
 }

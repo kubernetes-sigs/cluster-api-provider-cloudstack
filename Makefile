@@ -91,7 +91,7 @@ managers:
 manager-cloudstack-infrastructure: ## Build manager binary.
 	CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
 
-export K8S_VERSION=1.28.15
+export K8S_VERSION=1.28.3
 $(KUBECTL) $(API_SERVER) $(ETCD) &:
 	cd $(TOOLS_DIR) && curl --silent -L "https://go.kubebuilder.io/test-tools/${K8S_VERSION}/$(shell go env GOOS)/$(shell go env GOARCH)" --output - | \
 		tar -C ./ --strip-components=1 -zvxf -
@@ -244,7 +244,7 @@ delete-kind-cluster:
 	kind delete cluster --name $(KIND_CLUSTER_NAME)
 
 cluster-api: ## Clone cluster-api repository for tilt use.
-	git clone --branch v1.5.8 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
+	git clone --branch v1.6.8 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
 
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api

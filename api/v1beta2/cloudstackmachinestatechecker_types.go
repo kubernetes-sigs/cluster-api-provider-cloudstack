@@ -52,5 +52,5 @@ type CloudStackMachineStateCheckerList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&CloudStackMachineStateChecker{}, &CloudStackMachineStateCheckerList{})
+	objectTypes = append(objectTypes, &CloudStackMachineStateChecker{}, &CloudStackMachineStateCheckerList{})
 }

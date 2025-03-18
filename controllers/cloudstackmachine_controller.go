@@ -236,6 +236,16 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	if !present {
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
+	// Check if the configmap has the clusterv1.ClusterNameLabel label
+	if _, ok := secret.Labels[clusterv1.ClusterNameLabel]; !ok {
+		if secret.Labels == nil {
+			secret.Labels = make(map[string]string)
+		}
+		secret.Labels[clusterv1.ClusterNameLabel] = r.CAPICluster.Name
+		if err := r.K8sClient.Update(context.TODO(), secret); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	userData := processCustomMetadata(data, r)
 	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
