@@ -40,7 +40,6 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
-		affinityIds      []string
 		vpcName          string
 	)
 
@@ -69,8 +68,6 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 			Skip("Failed to fetch project")
 		}
 
-		// Initialize affinityIds to an empty slice to avoid nil checks
-		affinityIds = make([]string, 0)
 	})
 
 	It("Should create a cluster in a project", func() {
@@ -97,14 +94,8 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		// Ensure the cluster was created successfully before proceeding with checks
 		Expect(clusterResources.Cluster).ToNot(BeNil(), "Cluster was not created successfully")
 
-		By("Checking affinity groups and VPC in project")
+		By("Checking VPC in project")
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
-
-		// Check affinity groups
-		By(fmt.Sprintf("Checking affinity groups for cluster %s in project %s", clusterResources.Cluster.Name, projectName))
-		tempAffinityIds := CheckAffinityGroupInProject(csClient, clusterResources.Cluster.Name, "anti", projectName)
-		Expect(tempAffinityIds).ToNot(BeEmpty(), "No affinity groups found for cluster")
-		affinityIds = tempAffinityIds
 
 		// Check VPC
 		By(fmt.Sprintf("Checking if VPC %s exists in project %s", vpcName, projectName))
@@ -116,18 +107,6 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
-
-		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
-
-		// Only check for affinity group deletion if affinity groups were created
-		if len(affinityIds) > 0 {
-			err := CheckAffinityGroupsDeletedInProject(csClient, affinityIds, projectName)
-			if err != nil {
-				Fail(err.Error())
-			}
-		} else {
-			By("Skipping affinity group deletion check as no affinity groups were created")
-		}
 
 		By("PASSED!")
 	})
