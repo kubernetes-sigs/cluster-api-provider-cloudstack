@@ -160,7 +160,7 @@ func NewClientFromConf(conf Config, clientConfig *corev1.ConfigMap, project stri
 		clientCache = newClientCache(clientConfig)
 	}
 
-	clientCacheKey := generateClientCacheKey(conf)
+	clientCacheKey := generateClientCacheKey(conf, project)
 	if item := clientCache.Get(clientCacheKey); item != nil {
 		return item.Value(), nil
 	}
@@ -252,8 +252,8 @@ func NewClientFromCSAPIClient(cs *cloudstack.CloudStackClient, user *User) Clien
 }
 
 // generateClientCacheKey generates a cache key from a Config
-func generateClientCacheKey(conf Config) string {
-	return fmt.Sprintf("%+v", conf)
+func generateClientCacheKey(conf Config, project string) string {
+	return fmt.Sprintf("%s-%+v", project, conf)
 }
 
 // newClientCache returns a new instance of client cache
