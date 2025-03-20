@@ -62,12 +62,25 @@ const (
 	InvalidDomainName            = "CLOUDSTACK_INVALID_DOMAIN_NAME"
 	InvalidTemplateName          = "CLOUDSTACK_INVALID_TEMPLATE_NAME"
 	InvalidCPOfferingName        = "CLOUDSTACK_INVALID_CONTROL_PLANE_MACHINE_OFFERING"
+
+	CustomNetworkOfferingWithEgressPolicyName = "CLOUDSTACK_NETWORK_CUSTOM_OFFERING_EGRESS_POLICY_TRUE_NAME"
+	NetworkNameWithCustomOffering             = "CLOUDSTACK_NETWORK_NAME_WITH_CUSTOM_OFFERING"
+
+	VPCName                          = "CLOUDSTACK_VPC_NAME"
+	VPCNetworkName                   = "CLOUDSTACK_VPC_NETWORK_NAME"
+	CustomVPCOfferingName            = "CLOUDSTACK_CUSTOM_VPC_OFFERING_NAME"
+	CustomVPCNetworkOfferingName     = "CLOUDSTACK_CUSTOM_VPC_NETWORK_OFFERING_NAME"
+	VPCWithCustomOfferingName        = "CLOUDSTACK_VPC_NAME_WITH_CUSTOM_OFFERING"
+	VPCNetworkWithCustomOfferingName = "CLOUDSTACK_VPC_NETWORK_NAME_WITH_CUSTOM_OFFERING"
 )
 
 const (
 	ControlPlaneIndicator      = "-control-plane-"
 	MachineDeploymentIndicator = "-md-"
 	DataVolumePrefix           = "DATA-"
+	DefaultVPCOffering         = "Default VPC offering"
+	DefaultVPCNetworkOffering  = "DefaultIsolatedNetworkOfferingForVpcNetworks"
+	DefaultNetworkOffering     = "DefaultIsolatedNetworkOfferingWithSourceNatService"
 )
 
 type CommonSpecInput struct {
@@ -391,13 +404,9 @@ func CheckNetworkExists(client *cloudstack.CloudStackClient, networkName string)
 		}
 		return false, err
 	} else if count > 1 {
-		return false, fmt.Errorf("Expected 0-1 Network with name %s, but got %d.", networkName, count)
+		return false, fmt.Errorf("expected 0-1 network with name %s, but got %d", networkName, count)
 	}
 	return count == 1, nil
-}
-
-func CheckVPCExists(client *cloudstack.CloudStackClient, vpcName string) (bool, error) {
-	return CheckVPCExistsInProject(client, vpcName, "")
 }
 
 func CheckVPCExistsInProject(client *cloudstack.CloudStackClient, vpcName string, project string) (bool, error) {
@@ -419,7 +428,7 @@ func CheckVPCExistsInProject(client *cloudstack.CloudStackClient, vpcName string
 		}
 		return false, err
 	} else if listResp.Count > 1 {
-		return false, fmt.Errorf("Expected 0-1 VPC with name %s, but got %d.", vpcName, listResp.Count)
+		return false, fmt.Errorf("expected 0-1 vpc with name %s, but got %d", vpcName, listResp.Count)
 	}
 	return listResp.Count == 1, nil
 }
