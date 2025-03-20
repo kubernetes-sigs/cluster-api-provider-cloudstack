@@ -112,6 +112,10 @@ func (c *client) CreateIsolatedNetwork(fd *infrav1.CloudStackFailureDomain, isoN
 		offeringName = NetVPCOffering
 	}
 
+	if isoNet.Spec.Offering != "" {
+		offeringName = isoNet.Spec.Offering
+	}
+
 	// Get network offering ID.
 	offeringID, err := c.getOfferingID(offeringName)
 	if err != nil {

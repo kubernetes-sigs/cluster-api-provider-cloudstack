@@ -204,6 +204,11 @@ spec:
               netmask:
                 description: Netmask for the network.
                 type: string
+              offering:
+                description: Offering for the network. Default is "DefaultIsolatedNetworkOfferingWithSourceNatService"
+                  for isolated networks and "DefaultIsolatedNetworkOfferingForVpcNetworks"
+                  for VPC networks.
+                type: string
               vpc:
                 description: VPC the network belongs to.
                 properties:
@@ -215,6 +220,10 @@ spec:
                     type: string
                   name:
                     description: Cloudstack VPC Name of the network.
+                    type: string
+                  offering:
+                    description: Cloudstack VPC Offering for the network. Default
+                      is "Default VPC offering"
                     type: string
                 type: object
             required:

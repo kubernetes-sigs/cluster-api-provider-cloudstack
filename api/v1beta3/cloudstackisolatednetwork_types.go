@@ -48,6 +48,13 @@ type CloudStackIsolatedNetworkSpec struct {
 	// +optional
 	Netmask string `json:"netmask,omitempty"`
 
+	// Offering for the network.
+	// Default is "DefaultIsolatedNetworkOfferingWithSourceNatService" for
+	// isolated networks and "DefaultIsolatedNetworkOfferingForVpcNetworks"
+	// for VPC networks.
+	// +optional
+	Offering string `json:"offering,omitempty"`
+
 	// VPC the network belongs to.
 	// +optional
 	VPC *VPC `json:"vpc,omitempty"`
@@ -67,12 +74,13 @@ type CloudStackIsolatedNetworkStatus struct {
 
 func (n *CloudStackIsolatedNetwork) Network() *Network {
 	return &Network{
-		Name:    n.Spec.Name,
-		Type:    "IsolatedNetwork",
-		ID:      n.Spec.ID,
-		Gateway: n.Spec.Gateway,
-		Netmask: n.Spec.Netmask,
-		VPC:     n.Spec.VPC,
+		Name:     n.Spec.Name,
+		Type:     "IsolatedNetwork",
+		ID:       n.Spec.ID,
+		Gateway:  n.Spec.Gateway,
+		Netmask:  n.Spec.Netmask,
+		VPC:      n.Spec.VPC,
+		Offering: n.Spec.Offering,
 	}
 }
 
