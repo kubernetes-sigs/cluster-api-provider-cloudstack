@@ -157,6 +157,19 @@ func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (r
 	if isoNet.Spec.VPC != nil && isoNet.Spec.VPC.ID != "" {
 		return nil
 	}
+
+	// If network's egress policy is true, then we don't need to open the firewall rules for all protocols
+	network, count, err := c.cs.Network.GetNetworkByID(isoNet.Spec.ID, cloudstack.WithProject(c.user.Project.ID))
+	if err != nil {
+		return errors.Wrapf(err, "failed to get network by ID %s", isoNet.Spec.ID)
+	}
+	if count == 0 {
+		return errors.Errorf("no network found with ID %s", isoNet.Spec.ID)
+	}
+	if network.Egressdefaultpolicy {
+		return nil
+	}
+
 	protocols := []string{NetworkProtocolTCP, NetworkProtocolUDP, NetworkProtocolICMP}
 	for _, proto := range protocols {
 		p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, proto)
