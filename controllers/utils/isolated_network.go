@@ -33,7 +33,7 @@ func (r *ReconciliationRunner) IsoNetMetaName(name string) string {
 }
 
 // GenerateIsolatedNetwork of the passed name that's owned by the ReconciliationSubject.
-func (r *ReconciliationRunner) GenerateIsolatedNetwork(name string, fdNameFunc func() string) CloudStackReconcilerMethod {
+func (r *ReconciliationRunner) GenerateIsolatedNetwork(name string, fdNameFunc func() string, network infrav1.Network) CloudStackReconcilerMethod {
 	return func() (ctrl.Result, error) {
 		lowerName := strings.ToLower(name)
 		metaName := r.IsoNetMetaName(lowerName)
@@ -43,6 +43,12 @@ func (r *ReconciliationRunner) GenerateIsolatedNetwork(name string, fdNameFunc f
 		csIsoNet.Spec.FailureDomainName = fdNameFunc()
 		csIsoNet.Spec.ControlPlaneEndpoint.Host = r.CSCluster.Spec.ControlPlaneEndpoint.Host
 		csIsoNet.Spec.ControlPlaneEndpoint.Port = r.CSCluster.Spec.ControlPlaneEndpoint.Port
+		csIsoNet.Spec.Gateway = network.Gateway
+		csIsoNet.Spec.Netmask = network.Netmask
+
+		if network.VPC != nil {
+			csIsoNet.Spec.VPC = network.VPC
+		}
 
 		if err := r.K8sClient.Create(r.RequestCtx, csIsoNet); err != nil && !ContainsAlreadyExistsSubstring(err) {
 			return r.ReturnWrappedError(err, "creating isolated network CRD")

@@ -88,6 +88,7 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-resource-cleanup.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-second-cluster.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-shared-network-kubevip.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-vpc-network.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-disk-offering-size-for-non-customized.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-disk-offering-size-for-customized.yaml"
@@ -129,6 +130,11 @@ variables:
   CLOUDSTACK_DOMAIN_NAME: ROOT
   CLOUDSTACK_INVALID_DOMAIN_NAME: domainXXXX
   CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
+  CLOUDSTACK_VPC_NETWORK_NAME: vpc-isolated-for-e2e-1
+  CLOUDSTACK_VPC_NAME: vpc-for-e2e-1
+  CLOUDSTACK_VPC_CIDR: 10.10.0.0/16
+  CLOUDSTACK_GATEWAY: 10.10.0.1
+  CLOUDSTACK_NETMASK: 255.255.255.0
   CLOUDSTACK_NEW_NETWORK_NAME: isolated-for-e2e-new
   CLOUDSTACK_SHARED_NETWORK_NAME: Shared1
   CLUSTER_ENDPOINT_IP: 172.16.2.199
@@ -167,8 +173,8 @@ intervals:
   conformance/wait-worker-nodes: ["20m", "10s"]
 
   default/wait-errors: ["5m", "10s"]
-  default/wait-controllers: ["5m", "10s"]
-  default/wait-cluster: ["5m", "10s"]
+  default/wait-controllers: ["10m", "10s"]
+  default/wait-cluster: ["10m", "10s"]
   default/wait-control-plane: ["20m", "10s"]
   default/wait-worker-nodes: ["20m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]

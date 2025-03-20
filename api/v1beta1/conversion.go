@@ -174,3 +174,14 @@ func GetK8sSecret(name, namespace string) (*corev1.Secret, error) {
 	}
 	return endpointCredentials, nil
 }
+
+// Convert_v1beta3_Network_To_v1beta1_Network converts from v1beta3.Network to v1beta1.Network
+//
+//nolint:golint,revive,stylecheck
+func Convert_v1beta3_Network_To_v1beta1_Network(in *v1beta3.Network, out *Network, _ conv.Scope) error {
+	out.ID = in.ID
+	out.Type = in.Type
+	out.Name = in.Name
+	// Skip Gateway, Netmask, and VPC fields as they do not exist in v1beta1.Network
+	return nil
+}
