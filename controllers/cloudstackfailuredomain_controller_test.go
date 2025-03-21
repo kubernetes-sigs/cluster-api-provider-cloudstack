@@ -35,8 +35,8 @@ var _ = ginkgo.Describe("CloudStackFailureDomainReconciler", func() {
 	ginkgo.Context("With k8s like test environment.", func() {
 		ginkgo.BeforeEach(func() {
 			dummies.SetDummyVars()
-			SetupTestEnvironment()                                                                                        // Must happen before setting up managers/reconcilers.
-			gomega.Ω(FailureDomainReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(gomega.Succeed()) // Register CloudStack FailureDomainReconciler.
+			SetupTestEnvironment()                                                                                                                        // Must happen before setting up managers/reconcilers.
+			gomega.Ω(FailureDomainReconciler.SetupWithManager(k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed()) // Register CloudStack FailureDomainReconciler.
 			// Modify failure domain name the same way the cluster controller would.
 			dummies.CSFailureDomain1.Name = dummies.CSFailureDomain1.Name + "-" + dummies.CSCluster.Name
 

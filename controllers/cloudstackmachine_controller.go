@@ -428,7 +428,8 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 		&clusterv1.Cluster{},
 		handler.EnqueueRequestsFromMapFunc(csMachineMapper),
 		builder.WithPredicates(
-			predicates.ClusterUnpausedAndInfrastructureReady(log)),
+			predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), log),
+		),
 	)
 
 	if err := b.Complete(reconciler); err != nil {

@@ -306,7 +306,7 @@ func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, opts manag
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
 		os.Exit(1)
 	}
-	if err := (&controllers.CloudStackIsoNetReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+	if err := (&controllers.CloudStackIsoNetReconciler{ReconcilerBase: base}).SetupWithManager(mgr, controller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsoNetReconciler")
 		os.Exit(1)
 	}
@@ -319,11 +319,11 @@ func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, opts manag
 		os.Exit(1)
 	}
 	if opts.EnableCloudStackCksSync {
-		if err := (&controllers.CksClusterReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		if err := (&controllers.CksClusterReconciler{ReconcilerBase: base}).SetupWithManager(mgr, controller.Options{}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "CKSClusterController")
 			os.Exit(1)
 		}
-		if err := (&controllers.CksMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		if err := (&controllers.CksMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr, controller.Options{}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "CKSMachineController")
 			os.Exit(1)
 		}

@@ -21,6 +21,7 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
@@ -34,9 +35,9 @@ var _ = ginkgo.Describe("CksCloudStackClusterReconciler", func() {
 		ginkgo.BeforeEach(func() {
 			dummies.SetDummyVars()
 			SetupTestEnvironment()
-			gomega.Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager, controller.Options{})).Should(gomega.Succeed())  // Register CloudStack ClusterReconciler.
-			gomega.Ω(FailureDomainReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(gomega.Succeed()) // Register CloudStack FailureDomainReconciler.
-			gomega.Ω(CksClusterReconciler.SetupWithManager(k8sManager)).Should(gomega.Succeed())                          // Register CloudStack Cks ClusterReconciler.
+			gomega.Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed())  // Register CloudStack ClusterReconciler.
+			gomega.Ω(FailureDomainReconciler.SetupWithManager(k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed()) // Register CloudStack FailureDomainReconciler.
+			gomega.Ω(CksClusterReconciler.SetupWithManager(k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed())    // Register CloudStack Cks ClusterReconciler.
 		})
 
 		ginkgo.It("Should create a cluster in CKS.", func() {
@@ -66,9 +67,9 @@ var _ = ginkgo.Describe("CksCloudStackClusterReconciler", func() {
 			dummies.SetDummyVars()
 			dummies.CSCluster.Status.CloudStackClusterID = "cluster-id-123"
 			SetupTestEnvironment()
-			gomega.Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager, controller.Options{})).Should(gomega.Succeed())  // Register CloudStack ClusterReconciler.
-			gomega.Ω(FailureDomainReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(gomega.Succeed()) // Register CloudStack FailureDomainReconciler.
-			gomega.Ω(CksClusterReconciler.SetupWithManager(k8sManager)).Should(gomega.Succeed())                          // Register CloudStack Cks ClusterReconciler.
+			gomega.Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed())  // Register CloudStack ClusterReconciler.
+			gomega.Ω(FailureDomainReconciler.SetupWithManager(k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed()) // Register CloudStack FailureDomainReconciler.
+			gomega.Ω(CksClusterReconciler.SetupWithManager(k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed())    // Register CloudStack Cks ClusterReconciler.
 		})
 
 		ginkgo.It("Should delete the cluster in CKS.", func() {

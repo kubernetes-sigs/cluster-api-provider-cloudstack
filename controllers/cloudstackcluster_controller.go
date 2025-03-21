@@ -191,7 +191,7 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Cont
 		handler.EnqueueRequestsFromMapFunc(
 			util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("CloudStackCluster"), mgr.GetClient(), &infrav1.CloudStackCluster{})),
 		builder.WithPredicates(
-			predicates.ClusterUnpaused(log),
+			predicates.ClusterUnpaused(mgr.GetScheme(), log),
 		),
 	)
 
