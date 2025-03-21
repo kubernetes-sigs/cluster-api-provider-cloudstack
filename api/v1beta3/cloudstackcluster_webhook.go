@@ -27,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -53,7 +54,7 @@ func (r *CloudStackCluster) Default() {
 var _ webhook.Validator = &CloudStackCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackCluster) ValidateCreate() error {
+func (r *CloudStackCluster) ValidateCreate() (admission.Warnings, error) {
 	cloudstackclusterlog.V(1).Info("entered validate create webhook", "api resource name", r.Name)
 
 	var errorList field.ErrorList
@@ -80,18 +81,18 @@ func (r *CloudStackCluster) ValidateCreate() error {
 		}
 	}
 
-	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return nil, webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
+func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	cloudstackclusterlog.V(1).Info("entered validate update webhook", "api resource name", r.Name)
 
 	spec := r.Spec
 
 	oldCluster, ok := old.(*CloudStackCluster)
 	if !ok {
-		return errors.NewBadRequest(fmt.Sprintf("expected a CloudStackCluster but got a %T", old))
+		return nil, errors.NewBadRequest(fmt.Sprintf("expected a CloudStackCluster but got a %T", old))
 	}
 	oldSpec := oldCluster.Spec
 
@@ -109,7 +110,7 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) error {
 			"controlplaneendpoint.port", errorList)
 	}
 
-	return webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return nil, webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
 }
 
 // ValidateFailureDomainUpdates verifies that at least one failure domain has not been deleted, and
@@ -150,8 +151,8 @@ func FailureDomainsEqual(fd1, fd2 CloudStackFailureDomainSpec) bool {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackCluster) ValidateDelete() error {
+func (r *CloudStackCluster) ValidateDelete() (admission.Warnings, error) {
 	cloudstackclusterlog.V(1).Info("entered validate delete webhook", "api resource name", r.Name)
 	// No deletion validations.  Deletion webhook not enabled.
-	return nil
+	return nil, nil
 }

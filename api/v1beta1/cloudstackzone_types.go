@@ -66,5 +66,5 @@ type CloudStackZoneList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&CloudStackZone{}, &CloudStackZoneList{})
+	objectTypes = append(objectTypes, &CloudStackZone{}, &CloudStackZoneList{})
 }

@@ -60,8 +60,8 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
 		input = inputGetter()
 
-		projectName = os.Getenv("CLOUDSTACK_PROJECT_NAME")
-		vpcName = fmt.Sprintf("%s-%s", os.Getenv("CLOUDSTACK_PROJECT_NAME"), input.E2EConfig.GetVariable("CLOUDSTACK_VPC_NAME"))
+		projectName = input.E2EConfig.GetVariable("CLOUDSTACK_PROJECT_NAME")
+		vpcName = fmt.Sprintf("%s-%s", projectName, input.E2EConfig.GetVariable("CLOUDSTACK_VPC_NAME"))
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
 		project, _, err := csClient.Project.GetProjectByName(projectName)
 		if (err != nil) || (project == nil) {

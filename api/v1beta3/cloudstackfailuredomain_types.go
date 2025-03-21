@@ -148,5 +148,5 @@ type CloudStackFailureDomainList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&CloudStackFailureDomain{}, &CloudStackFailureDomainList{})
+	objectTypes = append(objectTypes, &CloudStackFailureDomain{}, &CloudStackFailureDomainList{})
 }

@@ -267,7 +267,9 @@ func setupFakeTestClient() {
 	dummies.SetDummyVars()
 
 	// Make a fake k8s client with CloudStack and CAPI cluster.
-	fakeCtrlClient = fake.NewClientBuilder().WithObjects(dummies.CSCluster, dummies.CAPICluster).Build()
+	fakeCtrlClient = fake.NewClientBuilder().WithScheme(scheme.Scheme).
+		WithObjects(dummies.CSCluster, dummies.CAPICluster).
+		WithStatusSubresource(dummies.CSCluster, dummies.CSMachine1).Build()
 	fakeRecorder = record.NewFakeRecorder(fakeEventBufferSize)
 	// Setup mock clients.
 	mockCSAPIClient = cloudstack.NewMockClient(mockCtrl)
@@ -328,7 +330,7 @@ var _ = ginkgo.AfterEach(func() {
 
 var _ = ginkgo.AfterSuite(func() {})
 
-// setClusterReady patches the clsuter with ready status true.
+// setClusterReady patches the cluster with ready status true.
 func setClusterReady(client client.Client) {
 	gomega.Eventually(func() error {
 		ph, err := patch.NewHelper(dummies.CSCluster, client)

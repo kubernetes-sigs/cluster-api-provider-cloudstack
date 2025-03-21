@@ -66,5 +66,5 @@ type CloudStackAffinityGroupList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&CloudStackAffinityGroup{}, &CloudStackAffinityGroupList{})
+	objectTypes = append(objectTypes, &CloudStackAffinityGroup{}, &CloudStackAffinityGroupList{})
 }

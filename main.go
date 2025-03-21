@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
@@ -35,13 +36,17 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	"sigs.k8s.io/cluster-api/util/flags"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 
@@ -57,8 +62,9 @@ var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
-	tlsOptions = flags.TLSOptions{}
-	logOptions = logs.NewOptions()
+	tlsOptions         = flags.TLSOptions{}
+	diagnosticsOptions = flags.DiagnosticsOptions{}
+	logOptions         = logs.NewOptions()
 )
 
 func init() {
@@ -75,18 +81,21 @@ func init() {
 
 type managerOpts struct {
 	CloudConfigFile      string
-	MetricsAddr          string
 	EnableLeaderElection bool
 	ProbeAddr            string
 	WatchingNamespace    string
 	WatchFilterValue     string
+	ProfilerAddr         string
 	CertDir              string
+	CertName             string
+	KeyName              string
 
 	CloudStackClusterConcurrency       int
 	CloudStackMachineConcurrency       int
 	CloudStackAffinityGroupConcurrency int
 	CloudStackFailureDomainConcurrency int
 	EnableCloudStackCksSync            bool
+	SyncPeriod                         time.Duration
 }
 
 func setFlags() *managerOpts {
@@ -96,11 +105,6 @@ func setFlags() *managerOpts {
 		"cloud-config-file",
 		"/config/cloud-config",
 		"Overrides the default path to the cloud-config file that contains the CloudStack credentials.")
-	flag.StringVar(
-		&opts.MetricsAddr,
-		"metrics-bind-addr",
-		"localhost:8080",
-		"The address the metric endpoint binds to.")
 	flag.StringVar(
 		&opts.ProbeAddr,
 		"health-probe-bind-address",
@@ -127,10 +131,27 @@ func setFlags() *managerOpts {
 				"Label key is always %s. If unspecified, the controller watches for all cluster-api objects.",
 			clusterv1.WatchLabel))
 	flag.StringVar(
+		&opts.ProfilerAddr,
+		"profiler-addr",
+		"",
+		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
+	flag.StringVar(
 		&opts.CertDir,
 		"webhook-cert-dir",
 		"/tmp/k8s-webhook-server/serving-certs/",
 		"Specify the directory where webhooks will get tls certificates.")
+	flag.StringVar(
+		&opts.CertName,
+		"webhook-cert-name",
+		"tls.crt",
+		"The name of the webhook certificate file.",
+	)
+	flag.StringVar(
+		&opts.KeyName,
+		"webhook-key-name",
+		"tls.key",
+		"The name of the webhook key file.",
+	)
 	flag.IntVar(
 		&opts.CloudStackClusterConcurrency,
 		"cloudstackcluster-concurrency",
@@ -155,12 +176,19 @@ func setFlags() *managerOpts {
 		5,
 		"Maximum concurrent reconciles for CloudStackFailureDomain resources",
 	)
+	flag.DurationVar(
+		&opts.SyncPeriod,
+		"sync-period",
+		1*time.Minute,
+		"The minimum interval at which watched resources are reconciled (e.g. 15m)",
+	)
 	flag.BoolVar(
 		&opts.EnableCloudStackCksSync,
 		"enable-cloudstack-cks-sync",
 		false,
 		"Enable syncing of CloudStack clusters and machines with CKS clusters and machines",
 	)
+	flags.AddDiagnosticsOptions(flag.CommandLine, &diagnosticsOptions)
 
 	return opts
 }
@@ -186,17 +214,42 @@ func main() {
 		os.Exit(1)
 	}
 
+	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
+
+	var watchingNamespaces map[string]cache.Config
+	if opts.WatchingNamespace != "" {
+		watchingNamespaces = map[string]cache.Config{
+			opts.WatchingNamespace: {},
+		}
+	}
+
 	// Create the controller manager.
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     opts.MetricsAddr,
-		Port:                   9443,
 		HealthProbeBindAddress: opts.ProbeAddr,
 		LeaderElection:         opts.EnableLeaderElection,
 		LeaderElectionID:       "capc-leader-election-controller",
-		Namespace:              opts.WatchingNamespace,
-		CertDir:                opts.CertDir,
-		TLSOpts:                tlsOptionOverrides,
+		PprofBindAddress:       opts.ProfilerAddr,
+		Metrics:                diagnosticsOpts,
+		Cache: cache.Options{
+			DefaultNamespaces: watchingNamespaces,
+			SyncPeriod:        &opts.SyncPeriod,
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port:     9443,
+			CertDir:  opts.CertDir,
+			CertName: opts.CertName,
+			KeyName:  opts.KeyName,
+			TLSOpts:  tlsOptionOverrides,
+		}),
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

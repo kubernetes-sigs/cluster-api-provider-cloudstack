@@ -236,6 +236,16 @@ func (r *CloudStackMachineReconciliationRunner) GetOrCreateVMInstance() (retRes 
 	if !present {
 		return ctrl.Result{}, errors.New("bootstrap secret data not yet set")
 	}
+	// Check if the configmap has the clusterv1.ClusterNameLabel label
+	if _, ok := secret.Labels[clusterv1.ClusterNameLabel]; !ok {
+		if secret.Labels == nil {
+			secret.Labels = make(map[string]string)
+		}
+		secret.Labels[clusterv1.ClusterNameLabel] = r.CAPICluster.Name
+		if err := r.K8sClient.Update(context.TODO(), secret); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	userData := processCustomMetadata(data, r)
 	err := r.CSUser.GetOrCreateVMInstance(r.ReconciliationSubject, r.CAPIMachine, r.CSCluster, r.FailureDomain, r.AffinityGroup, userData)
@@ -395,7 +405,7 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 	// Queues a reconcile request for owned CloudStackMachine on change.
 	// Used to update when bootstrap data becomes available.
 	if err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Machine{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Machine{}),
 		handler.EnqueueRequestsFromMapFunc(
 			util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("CloudStackMachine"))),
 		predicate.Funcs{
@@ -411,7 +421,7 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 	}
 
 	// Used below, this maps CAPI clusters to CAPC machines
-	csMachineMapper, err := util.ClusterToObjectsMapper(reconciler.K8sClient, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
+	csMachineMapper, err := util.ClusterToTypedObjectsMapper(reconciler.K8sClient, &infrav1.CloudStackMachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
 	}
@@ -419,7 +429,7 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 	reconciler.Recorder = mgr.GetEventRecorderFor("capc-machine-controller")
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
 	return controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
 		handler.EnqueueRequestsFromMapFunc(csMachineMapper),
 		predicates.ClusterUnpausedAndInfrastructureReady(log),
 	)
