@@ -65,6 +65,7 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 		net.Type = netDetails.Type
 		net.Gateway = netDetails.Gateway
 		net.Netmask = netDetails.Netmask
+		net.Offering = netDetails.Networkofferingname
 		if netDetails.Vpcid != "" {
 			if net.VPC == nil {
 				net.VPC = &infrav1.VPC{}
@@ -88,6 +89,7 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 	net.Type = netDetails.Type
 	net.Gateway = netDetails.Gateway
 	net.Netmask = netDetails.Netmask
+	net.Offering = netDetails.Networkofferingname
 	if netDetails.Vpcid != "" {
 		if net.VPC == nil {
 			net.VPC = &infrav1.VPC{}

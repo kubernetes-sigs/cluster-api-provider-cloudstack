@@ -89,6 +89,8 @@ providers:
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-second-cluster.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-shared-network-kubevip.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-vpc-network.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-custom-vpc-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-network-with-custom-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-disk-offering.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-disk-offering-size-for-non-customized.yaml"
       - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-disk-offering-size-for-customized.yaml"
@@ -129,10 +131,20 @@ variables:
   CLOUDSTACK_INVALID_ACCOUNT_NAME: accountXXXX
   CLOUDSTACK_DOMAIN_NAME: ROOT
   CLOUDSTACK_INVALID_DOMAIN_NAME: domainXXXX
+
   CLOUDSTACK_NETWORK_NAME: isolated-for-e2e-1
+  CLOUDSTACK_NETWORK_NAME_WITH_CUSTOM_OFFERING: isolated-for-e2e-1-with-custom-offering
+  CLOUDSTACK_NETWORK_CUSTOM_OFFERING_EGRESS_POLICY_TRUE_NAME: CustomNetworkOfferingWithEgressPolicyTrue
+
   CLOUDSTACK_VPC_NETWORK_NAME: vpc-isolated-for-e2e-1
   CLOUDSTACK_VPC_NAME: vpc-for-e2e-1
   CLOUDSTACK_VPC_CIDR: 10.10.0.0/16
+
+  CLOUDSTACK_VPC_NAME_WITH_CUSTOM_OFFERING: vpc-for-e2e-1-with-custom-offering
+  CLOUDSTACK_VPC_NETWORK_NAME_WITH_CUSTOM_OFFERING: vpc-isolated-for-e2e-1-with-custom-offering
+  CLOUDSTACK_CUSTOM_VPC_OFFERING_NAME: "CustomVPCOffering"
+  CLOUDSTACK_CUSTOM_VPC_NETWORK_OFFERING_NAME: "CustomVPCNetworkOffering"
+
   CLOUDSTACK_GATEWAY: 10.10.0.1
   CLOUDSTACK_NETMASK: 255.255.255.0
   CLOUDSTACK_NEW_NETWORK_NAME: isolated-for-e2e-new

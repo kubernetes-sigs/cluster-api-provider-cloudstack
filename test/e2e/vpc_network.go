@@ -39,7 +39,6 @@ func VPCNetworkSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
-		vpcName          = "vpc-for-e2e-1"
 	)
 
 	BeforeEach(func() {
@@ -57,35 +56,21 @@ func VPCNetworkSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should successfully create a cluster in a VPC network", func() {
-		By("Creating a workload cluster in a VPC network")
+	It("Should successfully create a cluster in a VPC network with default offering", func() {
+		By("Creating a workload cluster in a VPC network with default offering")
+		vpcName := input.E2EConfig.GetVariable(VPCName)
+		networkName := input.E2EConfig.GetVariable(VPCNetworkName)
+		setupClusterWithVpcAndVerifyOfferingName(ctx, input, namespace, clusterResources, specName, "vpc-network", vpcName, DefaultVPCOffering, networkName, DefaultVPCNetworkOffering)
+		By("PASSED!")
+	})
 
-		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy:    input.BootstrapClusterProxy,
-			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
-			ConfigCluster: clusterctl.ConfigClusterInput{
-				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
-				ClusterctlConfigPath:     input.ClusterctlConfigPath,
-				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
-				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   specName,
-				Namespace:                namespace.Name,
-				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64(1),
-				WorkerMachineCount:       pointer.Int64(1),
-			},
-			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
-			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-		}, clusterResources)
-
-		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
-
-		exists, err := CheckVPCExists(csClient, vpcName)
-		Expect(err).To(BeNil())
-		Expect(exists).To(BeTrue())
-
+	It("Should successfully create a cluster in a VPC network with a custom offering", func() {
+		By("Creating a workload cluster in a VPC network with a custom offering")
+		vpcWithCustomOfferingName := input.E2EConfig.GetVariable(VPCWithCustomOfferingName)
+		networkName := input.E2EConfig.GetVariable(VPCNetworkWithCustomOfferingName)
+		customVpcOfferingName := input.E2EConfig.GetVariable(CustomVPCOfferingName)
+		customVpcNetworkOfferingName := input.E2EConfig.GetVariable(CustomVPCNetworkOfferingName)
+		setupClusterWithVpcAndVerifyOfferingName(ctx, input, namespace, clusterResources, specName, "custom-vpc-offering", vpcWithCustomOfferingName, customVpcOfferingName, networkName, customVpcNetworkOfferingName)
 		By("PASSED!")
 	})
 
@@ -93,4 +78,43 @@ func VPCNetworkSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
+}
+
+func setupClusterWithVpcAndVerifyOfferingName(ctx context.Context, input CommonSpecInput, namespace *corev1.Namespace,
+	clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult, specName string, flavor string, vpcName string,
+	vpcOfferingName string, networkName string, networkOfferingName string,
+) {
+	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+		ClusterProxy:    input.BootstrapClusterProxy,
+		CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
+		ConfigCluster: clusterctl.ConfigClusterInput{
+			LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+			ClusterctlConfigPath:     input.ClusterctlConfigPath,
+			KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+			InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+			Flavor:                   flavor,
+			Namespace:                namespace.Name,
+			ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+			ControlPlaneMachineCount: pointer.Int64(1),
+			WorkerMachineCount:       pointer.Int64(1),
+		},
+		WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+		WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+		WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+	}, clusterResources)
+
+	csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
+
+	Byf("Checking if VPC %s exists with offering %s", vpcName, vpcOfferingName)
+	vpc, count, err := csClient.VPC.GetVPCByName(vpcName)
+	Expect(err).To(BeNil())
+	Expect(count).To(BeEquivalentTo(1))
+	Expect(vpc.Vpcofferingname).To(BeEquivalentTo(vpcOfferingName))
+
+	Byf("Checking if network %s exists with offering %s", networkName, networkOfferingName)
+	network, count, err := csClient.Network.GetNetworkByName(networkName)
+	Expect(err).To(BeNil())
+	Expect(count).To(BeEquivalentTo(1))
+	Expect(network.Networkofferingname).To(BeEquivalentTo(networkOfferingName))
 }

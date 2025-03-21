@@ -45,6 +45,7 @@ func (r *ReconciliationRunner) GenerateIsolatedNetwork(name string, fdNameFunc f
 		csIsoNet.Spec.ControlPlaneEndpoint.Port = r.CSCluster.Spec.ControlPlaneEndpoint.Port
 		csIsoNet.Spec.Gateway = network.Gateway
 		csIsoNet.Spec.Netmask = network.Netmask
+		csIsoNet.Spec.Offering = network.Offering
 
 		if network.VPC != nil {
 			csIsoNet.Spec.VPC = network.VPC

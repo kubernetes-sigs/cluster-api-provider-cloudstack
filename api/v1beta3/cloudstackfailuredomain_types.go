@@ -62,6 +62,13 @@ type Network struct {
 	// +optional
 	Netmask string `json:"netmask,omitempty"`
 
+	// Cloudstack Network Offering the cluster is built in.
+	// Default is "DefaultIsolatedNetworkOfferingWithSourceNatService" for
+	// isolated networks and "DefaultIsolatedNetworkOfferingForVpcNetworks"
+	// for VPC networks.
+	// +optional
+	Offering string `json:"offering,omitempty"`
+
 	// Cloudstack VPC the network belongs to.
 	// +optional
 	VPC *VPC `json:"vpc,omitempty"`
@@ -79,6 +86,11 @@ type VPC struct {
 	// CIDR for the VPC.
 	// +optional
 	CIDR string `json:"cidr,omitempty"`
+
+	// Cloudstack VPC Offering for the network.
+	// Default is "Default VPC offering"
+	// +optional
+	Offering string `json:"offering,omitempty"`
 }
 
 // CloudStackZoneSpec specifies a Zone's details.

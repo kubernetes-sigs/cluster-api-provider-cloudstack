@@ -40,8 +40,8 @@ type VPCIface interface {
 }
 
 // getVPCOfferingID fetches a vpc offering id.
-func (c *client) getVPCOfferingID() (string, error) {
-	offeringID, count, retErr := c.cs.VPC.GetVPCOfferingID(VPCOffering)
+func (c *client) getVPCOfferingID(offeringName string) (string, error) {
+	offeringID, count, retErr := c.cs.VPC.GetVPCOfferingID(offeringName)
 	if retErr != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 		return "", retErr
@@ -70,6 +70,7 @@ func (c *client) ResolveVPC(vpc *infrav1.VPC) error {
 		}
 		vpc.Name = resp.Name
 		vpc.CIDR = resp.Cidr
+		vpc.Offering = resp.Vpcofferingname
 		return nil
 	}
 
@@ -84,6 +85,7 @@ func (c *client) ResolveVPC(vpc *infrav1.VPC) error {
 	}
 	vpc.ID = resp.Id
 	vpc.CIDR = resp.Cidr
+	vpc.Offering = resp.Vpcofferingname
 	return nil
 }
 
@@ -93,7 +95,12 @@ func (c *client) CreateVPC(fd *infrav1.CloudStackFailureDomain, vpc *infrav1.VPC
 		return errors.New("VPC name must be specified")
 	}
 
-	offeringID, err := c.getVPCOfferingID()
+	offeringName := VPCOffering
+	if vpc.Offering != "" {
+		offeringName = vpc.Offering
+	}
+
+	offeringID, err := c.getVPCOfferingID(offeringName)
 	if err != nil {
 		return err
 	}
