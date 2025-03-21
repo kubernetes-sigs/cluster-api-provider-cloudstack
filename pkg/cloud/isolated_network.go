@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 )
@@ -168,8 +167,8 @@ func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (r
 			!strings.Contains(strings.ToLower(err.Error()), "there is already") &&
 			// Ignore errors regarding already existing fw rule for ICMP
 			!strings.Contains(strings.ToLower(err.Error()), "new rule conflicts with existing rule") {
-			retErr = multierror.Append(retErr, errors.Wrapf(
-				err, "failed creating egress firewall rule for network ID %s protocol %s", isoNet.Spec.ID, proto))
+			retErr = errors.Wrapf(
+				err, "failed creating egress firewall rule for network ID %s protocol %s", isoNet.Spec.ID, proto)
 		}
 	}
 	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)

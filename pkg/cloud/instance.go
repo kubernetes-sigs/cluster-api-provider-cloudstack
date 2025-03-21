@@ -28,7 +28,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
@@ -91,27 +90,27 @@ func (c *client) ResolveServiceOffering(csMachine *infrav1.CloudStackMachine, zo
 		csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByID(csMachine.Spec.Offering.ID, cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-			return cloudstack.ServiceOffering{}, multierror.Append(retErr, errors.Wrapf(
-				err, "could not get Service Offering by ID %s", csMachine.Spec.Offering.ID))
+			return cloudstack.ServiceOffering{}, errors.Wrapf(
+				err, "could not get Service Offering by ID %s", csMachine.Spec.Offering.ID)
 		} else if count != 1 {
-			return *csOffering, multierror.Append(retErr, errors.Errorf(
-				"expected 1 Service Offering with UUID %s, but got %d", csMachine.Spec.Offering.ID, count))
+			return *csOffering, errors.Errorf(
+				"expected 1 Service Offering with UUID %s, but got %d", csMachine.Spec.Offering.ID, count)
 		}
 
 		if len(csMachine.Spec.Offering.Name) > 0 && csMachine.Spec.Offering.Name != csOffering.Name {
-			return *csOffering, multierror.Append(retErr, errors.Errorf(
-				"offering name %s does not match name %s returned using UUID %s", csMachine.Spec.Offering.Name, csOffering.Name, csMachine.Spec.Offering.ID))
+			return *csOffering, errors.Errorf(
+				"offering name %s does not match name %s returned using UUID %s", csMachine.Spec.Offering.Name, csOffering.Name, csMachine.Spec.Offering.ID)
 		}
 		return *csOffering, nil
 	}
 	csOffering, count, err := c.cs.ServiceOffering.GetServiceOfferingByName(csMachine.Spec.Offering.Name, cloudstack.WithZone(zoneID), cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-		return cloudstack.ServiceOffering{}, multierror.Append(retErr, errors.Wrapf(
-			err, "could not get Service Offering ID from %s in zone %s", csMachine.Spec.Offering.Name, zoneID))
+		return cloudstack.ServiceOffering{}, errors.Wrapf(
+			err, "could not get Service Offering ID from %s in zone %s", csMachine.Spec.Offering.Name, zoneID)
 	} else if count != 1 {
-		return *csOffering, multierror.Append(retErr, errors.Errorf(
-			"expected 1 Service Offering with name %s in zone %s, but got %d", csMachine.Spec.Offering.Name, zoneID, count))
+		return *csOffering, errors.Errorf(
+			"expected 1 Service Offering with name %s in zone %s, but got %d", csMachine.Spec.Offering.Name, zoneID, count)
 	}
 	return *csOffering, nil
 }
@@ -124,27 +123,25 @@ func (c *client) ResolveTemplate(
 		csTemplate, count, err := c.cs.Template.GetTemplateByID(csMachine.Spec.Template.ID, "executable", cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-			return "", multierror.Append(retErr, errors.Wrapf(
-				err, "could not get Template by ID %s", csMachine.Spec.Template.ID))
+			return "", errors.Wrapf(err, "could not get Template by ID %s", csMachine.Spec.Template.ID)
 		} else if count != 1 {
-			return "", multierror.Append(retErr, errors.Errorf(
-				"expected 1 Template with UUID %s, but got %d", csMachine.Spec.Template.ID, count))
+			return "", errors.Errorf(
+				"expected 1 Template with UUID %s, but got %d", csMachine.Spec.Template.ID, count)
 		}
 
 		if len(csMachine.Spec.Template.Name) > 0 && csMachine.Spec.Template.Name != csTemplate.Name {
-			return "", multierror.Append(retErr, errors.Errorf(
-				"template name %s does not match name %s returned using UUID %s", csMachine.Spec.Template.Name, csTemplate.Name, csMachine.Spec.Template.ID))
+			return "", errors.Errorf(
+				"template name %s does not match name %s returned using UUID %s", csMachine.Spec.Template.Name, csTemplate.Name, csMachine.Spec.Template.ID)
 		}
 		return csMachine.Spec.Template.ID, nil
 	}
 	templateID, count, err := c.cs.Template.GetTemplateID(csMachine.Spec.Template.Name, "executable", zoneID, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-		return "", multierror.Append(retErr, errors.Wrapf(
-			err, "could not get Template ID from %s", csMachine.Spec.Template.Name))
+		return "", errors.Wrapf(err, "could not get Template ID from %s", csMachine.Spec.Template.Name)
 	} else if count != 1 {
-		return "", multierror.Append(retErr, errors.Errorf(
-			"expected 1 Template with name %s, but got %d", csMachine.Spec.Template.Name, count))
+		return "", errors.Errorf(
+			"expected 1 Template with name %s, but got %d", csMachine.Spec.Template.Name, count)
 	}
 	return templateID, nil
 }
@@ -158,19 +155,18 @@ func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine, zoneI
 		diskID, count, err := c.cs.DiskOffering.GetDiskOfferingID(csMachine.Spec.DiskOffering.Name, cloudstack.WithZone(zoneID), cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-			return "", multierror.Append(retErr, errors.Wrapf(
-				err, "could not get DiskOffering ID from %s", csMachine.Spec.DiskOffering.Name))
+			return "", errors.Wrapf(err, "could not get DiskOffering ID from %s", csMachine.Spec.DiskOffering.Name)
 		} else if count != 1 {
-			return "", multierror.Append(retErr, errors.Errorf(
-				"expected 1 DiskOffering with name %s in zone %s, but got %d", csMachine.Spec.DiskOffering.Name, zoneID, count))
+			return "", errors.Errorf(
+				"expected 1 DiskOffering with name %s in zone %s, but got %d", csMachine.Spec.DiskOffering.Name, zoneID, count)
 		} else if len(csMachine.Spec.DiskOffering.ID) > 0 && diskID != csMachine.Spec.DiskOffering.ID {
-			return "", multierror.Append(retErr, errors.Errorf(
+			return "", errors.Errorf(
 				"diskOffering ID %s does not match ID %s returned using name %s in zone %s",
-				csMachine.Spec.DiskOffering.ID, diskID, csMachine.Spec.DiskOffering.Name, zoneID))
+				csMachine.Spec.DiskOffering.ID, diskID, csMachine.Spec.DiskOffering.Name, zoneID)
 		} else if len(diskID) == 0 {
-			return "", multierror.Append(retErr, errors.Errorf(
+			return "", errors.Errorf(
 				"empty diskOffering ID %s returned using name %s in zone %s",
-				diskID, csMachine.Spec.DiskOffering.Name, zoneID))
+				diskID, csMachine.Spec.DiskOffering.Name, zoneID)
 		}
 		diskOfferingID = diskID
 	}
@@ -178,30 +174,29 @@ func (c *client) ResolveDiskOffering(csMachine *infrav1.CloudStackMachine, zoneI
 		return "", nil
 	}
 
-	return verifyDiskoffering(csMachine, c, diskOfferingID, retErr)
+	return verifyDiskoffering(csMachine, c, diskOfferingID)
 }
 
-func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOfferingID string, retErr error) (string, error) {
+func verifyDiskoffering(csMachine *infrav1.CloudStackMachine, c *client, diskOfferingID string) (string, error) {
 	csDiskOffering, count, err := c.cs.DiskOffering.GetDiskOfferingByID(diskOfferingID, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-		return "", multierror.Append(retErr, errors.Wrapf(
-			err, "could not get DiskOffering by ID %s", diskOfferingID))
+		return "", errors.Wrapf(err, "could not get DiskOffering by ID %s", diskOfferingID)
 	} else if count != 1 {
-		return "", multierror.Append(retErr, errors.Errorf(
-			"expected 1 DiskOffering with UUID %s, but got %d", diskOfferingID, count))
+		return "", errors.Errorf(
+			"expected 1 DiskOffering with UUID %s, but got %d", diskOfferingID, count)
 	}
 
 	if csDiskOffering.Iscustomized && csMachine.Spec.DiskOffering.CustomSize == 0 {
-		return "", multierror.Append(retErr, errors.Errorf(
+		return "", errors.Errorf(
 			"diskOffering with UUID %s is customized, disk size can not be 0 GB",
-			diskOfferingID))
+			diskOfferingID)
 	}
 
 	if !csDiskOffering.Iscustomized && csMachine.Spec.DiskOffering.CustomSize > 0 {
-		return "", multierror.Append(retErr, errors.Errorf(
+		return "", errors.Errorf(
 			"diskOffering with UUID %s is not customized, disk size can not be specified",
-			diskOfferingID))
+			diskOfferingID)
 	}
 	return diskOfferingID, nil
 }
