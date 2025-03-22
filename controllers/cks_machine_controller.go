@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
@@ -112,8 +113,10 @@ func (r *CksMachineReconciliationRunner) ReconcileDelete() (ctrl.Result, error) 
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (reconciler *CksMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (reconciler *CksMachineReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
+		Named("cks-machine-controller").
 		For(&infrav1.CloudStackMachine{}).
 		Complete(reconciler)
 }

@@ -8,6 +8,7 @@ rules:
   - ""
   resources:
   - configmaps
+  - secrets
   verbs:
   - get
   - list
@@ -24,18 +25,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusters
   - clusters/status
+  - machines/status
+  - machinesets
+  - machinesets/status
   verbs:
   - get
   - list
@@ -50,41 +46,9 @@ rules:
   - list
   - watch
 - apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - machines
-  - machines/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - machinesets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - machinesets/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
   - kubeadmcontrolplanes
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - controlplane.cluster.x-k8s.io
-  resources:
   - kubeadmcontrolplanes/status
   verbs:
   - get
@@ -94,13 +58,6 @@ rules:
   - etcdcluster.cluster.x-k8s.io
   resources:
   - etcdadmclusters
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - etcdcluster.cluster.x-k8s.io
-  resources:
   - etcdadmclusters/status
   verbs:
   - get
@@ -110,136 +67,10 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - cloudstackaffinitygroups
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackaffinitygroups/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackaffinitygroups/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - cloudstackclusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackclusters/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackclusters/status
-  verbs:
-  - create
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - cloudstackfailuredomains
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackfailuredomains/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackfailuredomains/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - cloudstackisolatednetworks
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackisolatednetworks/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackisolatednetworks/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - cloudstackmachines
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackmachines/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - cloudstackmachines/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - cloudstackmachinestatecheckers
   verbs:
   - create
@@ -252,14 +83,32 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - cloudstackaffinitygroups/finalizers
+  - cloudstackclusters/finalizers
+  - cloudstackfailuredomains/finalizers
+  - cloudstackisolatednetworks/finalizers
+  - cloudstackmachines/finalizers
   - cloudstackmachinestatecheckers/finalizers
   verbs:
   - update
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - cloudstackaffinitygroups/status
+  - cloudstackfailuredomains/status
+  - cloudstackisolatednetworks/status
+  - cloudstackmachines/status
   - cloudstackmachinestatecheckers/status
   verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - cloudstackclusters/status
+  verbs:
+  - create
   - get
   - patch
   - update

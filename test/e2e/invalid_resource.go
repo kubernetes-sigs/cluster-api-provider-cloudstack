@@ -188,7 +188,7 @@ func testInvalidResource(ctx context.Context, input CommonSpecInput, flavor stri
 	})
 
 	By("Applying...")
-	Expect(input.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate)).ShouldNot(HaveOccurred())
+	Expect(input.BootstrapClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)).ShouldNot(HaveOccurred())
 
 	clusterResources.Cluster = framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 		Getter:    input.BootstrapClusterProxy.GetClient(),

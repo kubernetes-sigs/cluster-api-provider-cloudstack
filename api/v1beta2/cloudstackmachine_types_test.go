@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta2_test
 
 import (
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 
 	"github.com/onsi/ginkgo/v2"
@@ -43,7 +43,7 @@ var _ = ginkgo.Describe("CloudStackMachineConfig_CompressUserdata", func() {
 			Name: "is false when uncompressed user data is true",
 			Machine: capcv1.CloudStackMachine{
 				Spec: capcv1.CloudStackMachineSpec{
-					UncompressedUserData: pointer.Bool(true),
+					UncompressedUserData: ptr.To(true),
 				},
 			},
 			Expect: false,
@@ -52,7 +52,7 @@ var _ = ginkgo.Describe("CloudStackMachineConfig_CompressUserdata", func() {
 			Name: "Is false when uncompressed user data is false",
 			Machine: capcv1.CloudStackMachine{
 				Spec: capcv1.CloudStackMachineSpec{
-					UncompressedUserData: pointer.Bool(false),
+					UncompressedUserData: ptr.To(false),
 				},
 			},
 			Expect: true,

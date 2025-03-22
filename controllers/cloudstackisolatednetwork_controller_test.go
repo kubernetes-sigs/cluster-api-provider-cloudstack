@@ -21,10 +21,12 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 var _ = ginkgo.Describe("CloudStackIsolatedNetworkReconciler", func() {
@@ -32,7 +34,7 @@ var _ = ginkgo.Describe("CloudStackIsolatedNetworkReconciler", func() {
 		ginkgo.BeforeEach(func() {
 			SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
 			dummies.SetDummyVars()
-			gomega.Ω(IsoNetReconciler.SetupWithManager(k8sManager)).Should(gomega.Succeed()) // Register CloudStack IsoNetReconciler.
+			gomega.Ω(IsoNetReconciler.SetupWithManager(k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed()) // Register CloudStack IsoNetReconciler.
 		})
 
 		ginkgo.It("Should set itself to ready if there are no errors in calls to CloudStack methods.", func() {

@@ -22,12 +22,12 @@ import (
 	"reflect"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
@@ -159,10 +159,9 @@ func (r *CloudStackClusterReconciliationRunner) ReconcileDelete() (ctrl.Result, 
 func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	b := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
-		For(&infrav1.CloudStackCluster{}).
-		WithEventFilter(
+		For(&infrav1.CloudStackCluster{}, builder.WithPredicates(
 			predicate.Funcs{
 				UpdateFunc: func(e event.UpdateEvent) bool {
 					oldCluster := e.ObjectOld.(*infrav1.CloudStackCluster).DeepCopy()
@@ -183,18 +182,20 @@ func (reconciler *CloudStackClusterReconciler) SetupWithManager(ctx context.Cont
 					return !reflect.DeepEqual(oldCluster, newCluster)
 				},
 			},
-		).Build(reconciler)
-	if err != nil {
-		return errors.Wrap(err, "building CloudStackCluster controller")
-	}
+		),
+		)
 
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
-	if err = controller.Watch(
-		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
+	b = b.Watches(
+		&clusterv1.Cluster{},
 		handler.EnqueueRequestsFromMapFunc(
 			util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("CloudStackCluster"), mgr.GetClient(), &infrav1.CloudStackCluster{})),
-		predicates.ClusterUnpaused(log),
-	); err != nil {
+		builder.WithPredicates(
+			predicates.ClusterUnpaused(mgr.GetScheme(), log),
+		),
+	)
+
+	if err := b.Complete(reconciler); err != nil {
 		return errors.Wrap(err, "building CloudStackCluster controller")
 	}
 

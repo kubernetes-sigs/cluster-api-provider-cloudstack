@@ -20,6 +20,7 @@ import (
 	"github.com/golang/mock/gomock"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
+	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
@@ -30,9 +31,9 @@ import (
 var _ = ginkgo.Describe("CloudStackClusterReconciler", func() {
 	ginkgo.Context("With k8s like test environment.", func() {
 		ginkgo.BeforeEach(func() {
-			SetupTestEnvironment()                                                                                        // Must happen before setting up managers/reconcilers.
-			gomega.Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager, controller.Options{})).Should(gomega.Succeed())  // Register CloudStack ClusterReconciler.
-			gomega.Ω(FailureDomainReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(gomega.Succeed()) // Register CloudStack FailureDomainReconciler.
+			SetupTestEnvironment()                                                                                                                        // Must happen before setting up managers/reconcilers.
+			gomega.Ω(ClusterReconciler.SetupWithManager(ctx, k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed())  // Register CloudStack ClusterReconciler.
+			gomega.Ω(FailureDomainReconciler.SetupWithManager(k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed()) // Register CloudStack FailureDomainReconciler.
 		})
 
 		ginkgo.It("Should create a CloudStackFailureDomain.", func() {

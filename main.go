@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 
 	flag "github.com/spf13/pflag"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -62,9 +61,8 @@ var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
-	tlsOptions         = flags.TLSOptions{}
-	diagnosticsOptions = flags.DiagnosticsOptions{}
-	logOptions         = logs.NewOptions()
+	managerOptions = flags.ManagerOptions{}
+	logOptions     = logs.NewOptions()
 )
 
 func init() {
@@ -188,7 +186,8 @@ func setFlags() *managerOpts {
 		false,
 		"Enable syncing of CloudStack clusters and machines with CKS clusters and machines",
 	)
-	flags.AddDiagnosticsOptions(flag.CommandLine, &diagnosticsOptions)
+
+	flags.AddManagerOptions(flag.CommandLine, &managerOptions)
 
 	return opts
 }
@@ -196,7 +195,6 @@ func setFlags() *managerOpts {
 func main() {
 	opts := setFlags() // Add our options to flag set.
 	logsv1.AddFlags(logOptions, flag.CommandLine)
-	flags.AddTLSOptions(flag.CommandLine, &tlsOptions)
 	flag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	flag.CommandLine.AddGoFlagSet(goflag.CommandLine) // Merge klog's goflag flags into the pflags.
 	flag.Parse()
@@ -206,15 +204,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctrl.SetLogger(klogr.New())
+	ctrl.SetLogger(klog.Background())
 
-	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to start manager: invalid flags")
 		os.Exit(1)
 	}
-
-	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
 
 	var watchingNamespaces map[string]cache.Config
 	if opts.WatchingNamespace != "" {
@@ -230,7 +226,7 @@ func main() {
 		LeaderElection:         opts.EnableLeaderElection,
 		LeaderElectionID:       "capc-leader-election-controller",
 		PprofBindAddress:       opts.ProfilerAddr,
-		Metrics:                diagnosticsOpts,
+		Metrics:                *metricsOptions,
 		Cache: cache.Options{
 			DefaultNamespaces: watchingNamespaces,
 			SyncPeriod:        &opts.SyncPeriod,
@@ -240,7 +236,7 @@ func main() {
 			CertDir:  opts.CertDir,
 			CertName: opts.CertName,
 			KeyName:  opts.KeyName,
-			TLSOpts:  tlsOptionOverrides,
+			TLSOpts:  tlsOptions,
 		}),
 		Client: client.Options{
 			Cache: &client.CacheOptions{
@@ -310,7 +306,7 @@ func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, opts manag
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackMachine")
 		os.Exit(1)
 	}
-	if err := (&controllers.CloudStackIsoNetReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+	if err := (&controllers.CloudStackIsoNetReconciler{ReconcilerBase: base}).SetupWithManager(mgr, controller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CloudStackIsoNetReconciler")
 		os.Exit(1)
 	}
@@ -323,11 +319,11 @@ func setupReconcilers(ctx context.Context, base utils.ReconcilerBase, opts manag
 		os.Exit(1)
 	}
 	if opts.EnableCloudStackCksSync {
-		if err := (&controllers.CksClusterReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		if err := (&controllers.CksClusterReconciler{ReconcilerBase: base}).SetupWithManager(mgr, controller.Options{}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "CKSClusterController")
 			os.Exit(1)
 		}
-		if err := (&controllers.CksMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr); err != nil {
+		if err := (&controllers.CksMachineReconciler{ReconcilerBase: base}).SetupWithManager(mgr, controller.Options{}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "CKSMachineController")
 			os.Exit(1)
 		}

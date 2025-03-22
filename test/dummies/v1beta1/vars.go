@@ -8,7 +8,7 @@ import (
 	"github.com/smallfish/simpleyaml"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -199,7 +199,7 @@ func SetDummyCSMachineVars() {
 				Kind: "Secret",
 				Name: "IdentitySecret",
 			},
-			InstanceID: pointer.String("Instance1"),
+			InstanceID: ptr.To("Instance1"),
 			Template: capcv1.CloudStackResourceIdentifier{
 				Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
 			},
@@ -344,7 +344,7 @@ func SetClusterSpecToNet(net *capcv1.Network) {
 
 func SetDummyCAPIMachineVars() {
 	CAPIMachine = &capiv1.Machine{
-		Spec: capiv1.MachineSpec{FailureDomain: pointer.String(Zone1.ID)},
+		Spec: capiv1.MachineSpec{FailureDomain: ptr.To(Zone1.ID)},
 	}
 }
 

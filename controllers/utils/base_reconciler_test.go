@@ -21,8 +21,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -46,7 +46,7 @@ func (m *mockConcreteRunner) Reconcile() (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-var _ = Describe("ReconciliationRunner", func() {
+var _ = ginkgo.Describe("ReconciliationRunner", func() {
 	var (
 		mockCtrl   *gomock.Controller
 		k8sClient  client.Client
@@ -56,11 +56,11 @@ var _ = Describe("ReconciliationRunner", func() {
 		mockRunner *mockConcreteRunner
 	)
 
-	BeforeEach(func() {
-		mockCtrl = gomock.NewController(GinkgoT())
+	ginkgo.BeforeEach(func() {
+		mockCtrl = gomock.NewController(ginkgo.GinkgoT())
 		scheme = runtime.NewScheme()
-		Expect(infrav1.AddToScheme(scheme)).To(Succeed())
-		Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+		gomega.Expect(infrav1.AddToScheme(scheme)).To(gomega.Succeed())
+		gomega.Expect(clusterv1.AddToScheme(scheme)).To(gomega.Succeed())
 
 		k8sClient = fake.NewClientBuilder().WithScheme(scheme).Build()
 		ctx = context.Background()
@@ -88,16 +88,16 @@ var _ = Describe("ReconciliationRunner", func() {
 		})
 	})
 
-	AfterEach(func() {
+	ginkgo.AfterEach(func() {
 		mockCtrl.Finish()
 	})
 
-	Describe("GetParent", func() {
+	ginkgo.Describe("GetParent", func() {
 		var (
 			child *infrav1.CloudStackMachine
 		)
 
-		BeforeEach(func() {
+		ginkgo.BeforeEach(func() {
 			dummies.SetDummyVars()
 
 			// Set up child object
@@ -109,9 +109,9 @@ var _ = Describe("ReconciliationRunner", func() {
 			}
 		})
 
-		Context("when parent exists and is correctly referenced", func() {
+		ginkgo.Context("when parent exists and is correctly referenced", func() {
 			var parent *clusterv1.Machine
-			BeforeEach(func() {
+			ginkgo.BeforeEach(func() {
 				parent = &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-parent",
@@ -129,11 +129,11 @@ var _ = Describe("ReconciliationRunner", func() {
 				}
 
 				// Create the objects in the fake client
-				Expect(k8sClient.Create(ctx, parent)).To(Succeed())
-				Expect(k8sClient.Create(ctx, child)).To(Succeed())
+				gomega.Expect(k8sClient.Create(ctx, parent)).To(gomega.Succeed())
+				gomega.Expect(k8sClient.Create(ctx, child)).To(gomega.Succeed())
 			})
 
-			It("should find the parent successfully", func() {
+			ginkgo.It("should find the parent successfully", func() {
 				// Create an empty parent object to be filled
 				parentToFind := &clusterv1.Machine{}
 
@@ -141,15 +141,15 @@ var _ = Describe("ReconciliationRunner", func() {
 				result, err := baseRunner.GetParent(child, parentToFind)()
 
 				// Check results
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-				Expect(parentToFind.Name).To(Equal(parent.Name))
-				Expect(parentToFind.Namespace).To(Equal(parent.Namespace))
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				gomega.Expect(result).To(gomega.Equal(ctrl.Result{}))
+				gomega.Expect(parentToFind.Name).To(gomega.Equal(parent.Name))
+				gomega.Expect(parentToFind.Namespace).To(gomega.Equal(parent.Namespace))
 			})
 		})
 
-		Context("when parent doesn't exist", func() {
-			BeforeEach(func() {
+		ginkgo.Context("when parent doesn't exist", func() {
+			ginkgo.BeforeEach(func() {
 				// Set up owner reference to non-existent parent
 				child.OwnerReferences = []metav1.OwnerReference{
 					{
@@ -161,10 +161,10 @@ var _ = Describe("ReconciliationRunner", func() {
 				}
 
 				// Create only the child in the fake client
-				Expect(k8sClient.Create(ctx, child)).To(Succeed())
+				gomega.Expect(k8sClient.Create(ctx, child)).To(gomega.Succeed())
 			})
 
-			It("should return an error", func() {
+			ginkgo.It("should return an error", func() {
 				// Create an empty parent object to be filled
 				parentToFind := &clusterv1.Machine{}
 
@@ -172,13 +172,13 @@ var _ = Describe("ReconciliationRunner", func() {
 				_, err := baseRunner.GetParent(child, parentToFind)()
 
 				// Check results
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("not found"))
+				gomega.Expect(err).To(gomega.HaveOccurred())
+				gomega.Expect(err.Error()).To(gomega.ContainSubstring("not found"))
 			})
 		})
 
-		Context("when no owner reference of requested kind exists", func() {
-			BeforeEach(func() {
+		ginkgo.Context("when no owner reference of requested kind exists", func() {
+			ginkgo.BeforeEach(func() {
 				// Set up owner reference to different kind
 				child.OwnerReferences = []metav1.OwnerReference{
 					{
@@ -190,10 +190,10 @@ var _ = Describe("ReconciliationRunner", func() {
 				}
 
 				// Create only the child in the fake client
-				Expect(k8sClient.Create(ctx, child)).To(Succeed())
+				gomega.Expect(k8sClient.Create(ctx, child)).To(gomega.Succeed())
 			})
 
-			It("should requeue with error message", func() {
+			ginkgo.It("should requeue with error message", func() {
 				// Create an empty parent object to be filled
 				parentToFind := &clusterv1.Machine{}
 
@@ -201,8 +201,8 @@ var _ = Describe("ReconciliationRunner", func() {
 				result, err := baseRunner.GetParent(child, parentToFind)()
 
 				// Check results
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RequeueAfter).To(Equal(utils.RequeueTimeout))
+				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				gomega.Expect(result.RequeueAfter).To(gomega.Equal(utils.RequeueTimeout))
 			})
 		})
 	})
