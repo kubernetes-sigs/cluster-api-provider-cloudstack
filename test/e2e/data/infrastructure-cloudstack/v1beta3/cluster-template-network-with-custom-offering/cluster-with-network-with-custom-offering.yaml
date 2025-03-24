@@ -12,12 +12,10 @@ spec:
     zone:
       name: ${CLOUDSTACK_ZONE_NAME}
       network:
-        name: ${CLOUDSTACK_VPC_NETWORK_NAME}
+        name: ${CLOUDSTACK_NETWORK_NAME_WITH_CUSTOM_OFFERING}
         gateway: ${CLOUDSTACK_GATEWAY}
         netmask: ${CLOUDSTACK_NETMASK}
-        vpc:
-          name: ${CLOUDSTACK_VPC_NAME}
-          cidr: ${CLOUDSTACK_VPC_CIDR}
+        offering: ${CLOUDSTACK_NETWORK_CUSTOM_OFFERING_EGRESS_POLICY_TRUE_NAME}
   controlPlaneEndpoint:
     host: ""
     port: 6443

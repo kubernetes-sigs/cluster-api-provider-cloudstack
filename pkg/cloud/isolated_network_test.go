@@ -84,6 +84,7 @@ var _ = ginkgo.Describe("Network", func() {
 					PublicIpAddresses: []*csapi.PublicIpAddress{{Id: dummies.PublicIPID, Ipaddress: "fakeIP"}}}, nil)
 			as.EXPECT().NewAssociateIpAddressParams().Return(&csapi.AssociateIpAddressParams{})
 			as.EXPECT().AssociateIpAddress(gomock.Any())
+			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(&csapi.Network{Egressdefaultpolicy: false}, 1, nil)
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, gomock.Any()).
 				DoAndReturn(func(_ string, protocol string) *csapi.CreateEgressFirewallRuleParams {
 					p := &csapi.CreateEgressFirewallRuleParams{}
@@ -138,6 +139,7 @@ var _ = ginkgo.Describe("Network", func() {
 	ginkgo.Context("for a closed firewall", func() {
 		ginkgo.It("OpenFirewallRule asks CloudStack to open the firewall", func() {
 			dummies.Zone1.Network = dummies.ISONet1
+			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(&csapi.Network{Egressdefaultpolicy: false}, 1, nil)
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, gomock.Any()).
 				DoAndReturn(func(_ string, protocol string) *csapi.CreateEgressFirewallRuleParams {
 					p := &csapi.CreateEgressFirewallRuleParams{}
@@ -165,6 +167,7 @@ var _ = ginkgo.Describe("Network", func() {
 		ginkgo.It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
 			dummies.Zone1.Network = dummies.ISONet1
 
+			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(&csapi.Network{Egressdefaultpolicy: false}, 1, nil)
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, gomock.Any()).
 				DoAndReturn(func(_ string, protocol string) *csapi.CreateEgressFirewallRuleParams {
 					p := &csapi.CreateEgressFirewallRuleParams{}
