@@ -95,7 +95,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() CommonSpecInpu
 		workloadKubeconfigPath := workloadClusterProxy.GetKubeconfigPath()
 		Byf("workload cluster kubeconfig path %s", workloadKubeconfigPath)
 
-		framework.DeployUnevictablePod(ctx, framework.DeployUnevictablePodInput{
+		framework.DeployUnevictablePod(ctx, framework.DeployPodAndWaitInput{
 			WorkloadClusterProxy:               workloadClusterProxy,
 			DeploymentName:                     fmt.Sprintf("%s-%s", "unevictable-pod", util.RandomString(3)),
 			Namespace:                          namespace.Name + "-unevictable-workload",
@@ -116,7 +116,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() CommonSpecInpu
 		}
 
 		By("Deploy deployment with unevictable pods on control plane nodes.")
-		framework.DeployUnevictablePod(ctx, framework.DeployUnevictablePodInput{
+		framework.DeployUnevictablePod(ctx, framework.DeployPodAndWaitInput{
 			WorkloadClusterProxy:               workloadClusterProxy,
 			ControlPlane:                       controlplane,
 			DeploymentName:                     fmt.Sprintf("%s-%s", "unevictable-pod", util.RandomString(3)),

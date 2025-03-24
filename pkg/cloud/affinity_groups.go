@@ -45,7 +45,6 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 	if group.ID != "" {
 		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByID(group.ID, cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
-			// handle via multierr
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return err
 		} else if count > 1 {
@@ -59,7 +58,6 @@ func (c *client) FetchAffinityGroup(group *AffinityGroup) (reterr error) {
 	if group.Name != "" {
 		affinityGroup, count, err := c.cs.AffinityGroup.GetAffinityGroupByName(group.Name, cloudstack.WithProject(c.user.Project.ID))
 		if err != nil {
-			// handle via multierr
 			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 			return err
 		} else if count > 1 {

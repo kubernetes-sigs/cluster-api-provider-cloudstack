@@ -21,6 +21,7 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
@@ -32,7 +33,7 @@ var _ = ginkgo.Describe("CloudStackAffinityGroupReconciler", func() {
 	ginkgo.BeforeEach(func() {
 		SetupTestEnvironment() // Must happen before setting up managers/reconcilers.
 		dummies.SetDummyVars()
-		gomega.Ω(AffinityGReconciler.SetupWithManager(k8sManager, controller.Options{})).Should(gomega.Succeed()) // Register CloudStack AffinityGReconciler.
+		gomega.Ω(AffinityGReconciler.SetupWithManager(k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed()) // Register CloudStack AffinityGReconciler.
 	})
 
 	ginkgo.It("Should patch back the affinity group as ready after calling GetOrCreateAffinityGroup.", func() {

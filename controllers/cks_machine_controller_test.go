@@ -21,7 +21,8 @@ import (
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
@@ -34,15 +35,15 @@ var _ = ginkgo.Describe("CksCloudStackMachineReconciler", func() {
 	ginkgo.Context("With machine controller running.", func() {
 		ginkgo.BeforeEach(func() {
 			dummies.SetDummyVars()
-			dummies.CSCluster.Spec.SyncWithACS = pointer.Bool(true)
+			dummies.CSCluster.Spec.SyncWithACS = ptr.To(true)
 			dummies.CSCluster.Spec.FailureDomains = dummies.CSCluster.Spec.FailureDomains[:1]
 			dummies.CSCluster.Spec.FailureDomains[0].Name = dummies.CSFailureDomain1.Spec.Name
 			dummies.CSCluster.Status.CloudStackClusterID = "cluster-id-123"
 
-			SetupTestEnvironment()                                                                                       // Must happen before setting up managers/reconcilers.
-			gomega.Ω(MachineReconciler.SetupWithManager(ctx, k8sManager, controller.Options{})).Should(gomega.Succeed()) // Register the CloudStack MachineReconciler.
-			gomega.Ω(CksClusterReconciler.SetupWithManager(k8sManager)).Should(gomega.Succeed())                         // Register the CloudStack MachineReconciler.
-			gomega.Ω(CksMachineReconciler.SetupWithManager(k8sManager)).Should(gomega.Succeed())                         // Register the CloudStack MachineReconciler.
+			SetupTestEnvironment()                                                                                                                       // Must happen before setting up managers/reconcilers.
+			gomega.Ω(MachineReconciler.SetupWithManager(ctx, k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed()) // Register the CloudStack MachineReconciler.
+			gomega.Ω(CksClusterReconciler.SetupWithManager(k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed())   // Register the CloudStack MachineReconciler.
+			gomega.Ω(CksMachineReconciler.SetupWithManager(k8sManager, controller.Options{SkipNameValidation: ptr.To(true)})).Should(gomega.Succeed())   // Register the CloudStack MachineReconciler.
 
 			mockCloudClient.EXPECT().GetOrCreateCksCluster(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, arg1, _ interface{}) {
 				arg1.(*infrav1.CloudStackCluster).Status.CloudStackClusterID = "cluster-id-123"

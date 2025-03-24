@@ -34,7 +34,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/go-logr/logr"
@@ -158,7 +157,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Ω(flag.Lookup("v").Value.Set("1")).Should(gomega.Succeed())
 	flag.Parse()
 
-	logger = klogr.New()
+	logger = klog.Background()
 })
 
 // A mock fo the CloudClient interface used in controller utils.

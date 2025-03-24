@@ -129,8 +129,8 @@ lint: $(GOLANGCI_LINT) $(STATIC_CHECK) generate-mocks ## Run linting for the pro
 
 .PHONY: modules
 modules: ## Runs go mod to ensure proper vendoring.
-	go mod tidy -compat=1.21
-	cd $(TOOLS_DIR); go mod tidy -compat=1.21
+	go mod tidy -compat=1.22
+	cd $(TOOLS_DIR); go mod tidy -compat=1.22
 
 .PHONY: generate-all
 generate-all: generate-mocks generate-deepcopy generate-manifests
@@ -161,13 +161,13 @@ config/.flag.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS)
 .PHONY: generate-conversion
 generate-conversion: $(CONVERSION_GEN) ## Generate code to convert api/v1beta1 and api/v1beta2 to api/v1beta3
 	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1beta1 \
 		--go-header-file=./hack/boilerplate.go.txt \
-		--output-base=. --output-file-base=zz_generated.conversion
+		--output-file=zz_generated.conversion.go \
+		./api/v1beta1
 	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1beta2 \
 		--go-header-file=./hack/boilerplate.go.txt \
-		--output-base=. --output-file-base=zz_generated.conversion
+		--output-file=zz_generated.conversion.go \
+		./api/v1beta2
 
 ##@ Build
 ## --------------------------------------
@@ -244,7 +244,7 @@ delete-kind-cluster:
 	kind delete cluster --name $(KIND_CLUSTER_NAME)
 
 cluster-api: ## Clone cluster-api repository for tilt use.
-	git clone --branch v1.6.8 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
+	git clone --branch  v1.9.6 --depth 1 https://github.com/kubernetes-sigs/cluster-api.git
 
 cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 	cp ./hack/tilt-settings.json cluster-api
