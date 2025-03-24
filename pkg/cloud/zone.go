@@ -30,7 +30,6 @@ type ZoneIFace interface {
 
 func (c *client) ResolveZone(zSpec *infrav1.CloudStackZoneSpec) (retErr error) {
 	if zoneID, count, err := c.cs.Zone.GetZoneID(zSpec.Name); err != nil {
-		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %v", zSpec.Name))
 		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
 		retErr = multierror.Append(retErr, errors.Wrapf(err, "could not get Zone ID from %v", zSpec.Name))
 	} else if count != 1 {
