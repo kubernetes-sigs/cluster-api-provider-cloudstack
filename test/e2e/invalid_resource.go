@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -46,6 +47,8 @@ var (
 	cancelWatches         context.CancelFunc
 	clusterResources      *clusterctl.ApplyClusterTemplateAndWaitResult
 	MachineInErrorMessage = "CloudStackMachine VM in error state. Deleting associated Machine"
+	// Pattern that matches start of Kubernetes log entries
+	logEntryPattern = `[IWEF]\d{4} \d{2}:\d{2}:\d{2}\.\d{6}`
 )
 
 // InvalidResourceSpec implements a test that verifies that creating a new cluster fails when the specified resource does not exist
@@ -224,17 +227,21 @@ func errorExistsInLog(logFolder string, expectedError string) (bool, error) {
 		}
 
 		if strings.Contains(path, "manager.log") {
-			log, _ := os.ReadFile(path)
-			logLines := strings.Split(string(log), "\n")
-			for _, line := range logLines {
-				if strings.Contains(line, expectedError) &&
-					strings.Contains(line, clusterResources.Cluster.Namespace) {
+			logContent, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			// Split log content by the log entry pattern
+			entries := regexp.MustCompile(logEntryPattern).Split(string(logContent), -1)
+			for _, entry := range entries {
+				if strings.Contains(entry, expectedError) &&
+					strings.Contains(entry, clusterResources.Cluster.Namespace) {
 					Byf("Found %q error", expectedError)
 					return expectedErrorFound
 				}
 			}
 		}
-
 		return nil
 	})
 
