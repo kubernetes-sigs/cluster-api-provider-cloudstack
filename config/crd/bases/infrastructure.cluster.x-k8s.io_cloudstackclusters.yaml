@@ -426,9 +426,10 @@ spec:
                                 is built in.
                               type: string
                             offering:
-                              description: Cloudstack Network Offering the cluster
-                                is built in. Default is "DefaultIsolatedNetworkOfferingWithSourceNatService"
-                                for isolated networks and "DefaultIsolatedNetworkOfferingForVpcNetworks"
+                              description: |-
+                                Cloudstack Network Offering the cluster is built in.
+                                Default is "DefaultIsolatedNetworkOfferingWithSourceNatService" for
+                                isolated networks and "DefaultIsolatedNetworkOfferingForVpcNetworks"
                                 for VPC networks.
                               type: string
                             type:
@@ -448,7 +449,8 @@ spec:
                                   description: Cloudstack VPC Name of the network.
                                   type: string
                                 offering:
-                                  description: Cloudstack VPC Offering for the network.
+                                  description: |-
+                                    Cloudstack VPC Offering for the network.
                                     Default is "Default VPC offering"
                                   type: string
                               type: object

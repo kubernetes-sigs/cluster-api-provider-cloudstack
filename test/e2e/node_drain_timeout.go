@@ -25,6 +25,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -97,9 +98,11 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() CommonSpecInpu
 
 		framework.DeployUnevictablePod(ctx, framework.DeployPodAndWaitInput{
 			WorkloadClusterProxy:               workloadClusterProxy,
+			MachineDeployment:                  machineDeployments[0],
 			DeploymentName:                     fmt.Sprintf("%s-%s", "unevictable-pod", util.RandomString(3)),
 			Namespace:                          namespace.Name + "-unevictable-workload",
 			WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
+			ModifyDeployment:                   func(deployment *appsv1.Deployment) {},
 		})
 
 		By("Scale the machinedeployment down to zero. If we didn't have the NodeDrainTimeout duration, the node drain process would block this operator.")
@@ -122,6 +125,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() CommonSpecInpu
 			DeploymentName:                     fmt.Sprintf("%s-%s", "unevictable-pod", util.RandomString(3)),
 			Namespace:                          namespace.Name + "-unevictable-workload",
 			WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
+			ModifyDeployment:                   func(deployment *appsv1.Deployment) {},
 		})
 
 		By("Scale down the controlplane of the workload cluster and make sure that nodes running workload can be deleted even the draining process is blocked.")
