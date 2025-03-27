@@ -60,14 +60,54 @@ cmk list zones listall=true | jq '.zone[] | {name, id}'
 #### Network
 
 The network must be declared as an environment variable `CLOUDSTACK_NETWORK_NAME` and is a mandatory parameter.
-As of now, only isolated and shared networks are supported.
+As of now, only isolated and shared networks are supported. The isolated network can also be part of a VPC.
 
-If the specified network does not exist, a new isolated network will be created. The newly created network will have a default egress firewall policy that allows all TCP, UDP and ICMP traffic from the cluster to the outside world.
+If the specified network does not exist, a new isolated network will be created. The newly created network will have a default egress firewall policy that allows all TCP, UDP and ICMP traffic from the cluster to the outside world. If the network is part of a VPC, the VPC will also be created if it does not exist.
+
+If the offerings are not specified, the default offerings will be used.
 
 The list of networks for the specific zone can be fetched using the cmk cli as follows :
 ```
 cmk list networks listall=true zoneid=<zoneid> | jq '.network[] | {name, id, type}'
 ```
+
+The list of VPCs for the specific zone can be fetched using the cmk cli as follows :
+```
+cmk list vpcs listall=true zoneid=<zoneid> | jq '.vpc[] | {name, id}'
+```
+
+The user can configure the network offering and VPC offering for the isolated network as follows:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
+kind: CloudStackCluster
+metadata:
+  name: capc-cluster
+  namespace: default
+spec:
+  controlPlaneEndpoint:
+    host: 10.0.58.19
+    port: 6443
+  failureDomains:
+  - acsEndpoint:
+      name: secret1
+      namespace: default
+    name: fd1
+    zone:
+      name: cloudstack-zone
+      network:
+        name: cloudstack-network
+        offering: custom-network-offering
+        gateway: 10.0.0.1
+        netmask: 255.255.255.0
+        vpc:
+          name: cloudstack-vpc
+          offering: custom-vpc-offering
+          cidr: 10.0.0.0/16
+```
+
+If the network already exists, offering, gateway and netmask will be ignored.
+Similarly, if the VPC already exists, offering and cidr will be ignored.
 
 #### CloudStack Endpoint Credentials Secret (*optional for provided templates when used with provided getting-started process*)
 
@@ -159,6 +199,7 @@ The project name can be specified by adding the `CloudStackCluster.spec.project`
 The list of projects can be fetched using the cmk cli as follows :
 ```
 cmk list projects listall=true | jq '.project[] | {name, id}'
+```
 
 ## Cluster Level Configurations
 
