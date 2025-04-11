@@ -193,6 +193,9 @@ spec:
                         description: Cloudstack Network Netmask the cluster is built
                           in.
                         type: string
+                      networkMode:
+                        description: Cloudstack Network's routing mode.
+                        type: string
                       offering:
                         description: |-
                           Cloudstack Network Offering the cluster is built in.

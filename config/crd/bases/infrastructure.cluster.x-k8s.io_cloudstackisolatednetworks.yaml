@@ -254,6 +254,9 @@ spec:
               loadBalancerRuleID:
                 description: The ID of the lb rule used to assign VMs to the lb.
                 type: string
+              networkMode:
+                description: Network mode of the network.
+                type: string
               publicIPID:
                 description: The CS public IP ID to use for the k8s endpoint.
                 type: string

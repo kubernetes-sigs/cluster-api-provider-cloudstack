@@ -148,6 +148,7 @@ func (c *client) CreateIsolatedNetwork(fd *infrav1.CloudStackFailureDomain, isoN
 	isoNet.Spec.ID = resp.Id
 	isoNet.Spec.Gateway = resp.Gateway
 	isoNet.Spec.Netmask = resp.Netmask
+	isoNet.Status.NetworkMode = resp.Ip4routing
 	return c.AddCreatedByCAPCTag(ResourceTypeNetwork, isoNet.Spec.ID)
 }
 
@@ -171,17 +172,28 @@ func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (r
 
 	protocols := []string{NetworkProtocolTCP, NetworkProtocolUDP, NetworkProtocolICMP}
 	for _, proto := range protocols {
-		p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, proto)
+		var err error
+		if isoNet.Status.NetworkMode != "" {
+			p := c.cs.Firewall.NewCreateRoutingFirewallRuleParams(isoNet.Spec.ID, proto)
+			if proto == "icmp" {
+				p.SetIcmptype(-1)
+				p.SetIcmpcode(-1)
+			}
+			_, err = c.cs.Firewall.CreateRoutingFirewallRule(p)
+		} else {
+			p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, proto)
 
-		if proto == "icmp" {
-			p.SetIcmptype(-1)
-			p.SetIcmpcode(-1)
+			if proto == "icmp" {
+				p.SetIcmptype(-1)
+				p.SetIcmpcode(-1)
+			}
+
+			_, err = c.cs.Firewall.CreateEgressFirewallRule(p)
 		}
-
-		_, err := c.cs.Firewall.CreateEgressFirewallRule(p)
 		if err != nil &&
-			// Ignore errors regarding already existing fw rules for TCP/UDP
+			// Ignore errors regarding already existing fw rules for TCP/UDP for non-dynamic routing mode
 			!strings.Contains(strings.ToLower(err.Error()), "there is already") &&
+			!strings.Contains(strings.ToLower(err.Error()), "conflicts with rule") &&
 			// Ignore errors regarding already existing fw rule for ICMP
 			!strings.Contains(strings.ToLower(err.Error()), "new rule conflicts with existing rule") {
 			retErr = errors.Wrapf(
@@ -298,6 +310,7 @@ func (c *client) GetOrCreateIsolatedNetwork(
 		isoNet.Spec.ID = net.ID
 		isoNet.Spec.Gateway = net.Gateway
 		isoNet.Spec.Netmask = net.Netmask
+		isoNet.Status.NetworkMode = net.NetworkMode
 		if net.VPC != nil && net.VPC.ID != "" {
 			isoNet.Spec.VPC = net.VPC
 		}
@@ -316,14 +329,17 @@ func (c *client) GetOrCreateIsolatedNetwork(
 		}
 	}
 
-	// Associate Public IP with CloudStackIsolatedNetwork
-	if err := c.AssociatePublicIPAddress(fd, isoNet, csCluster); err != nil {
-		return errors.Wrapf(err, "associating public IP address to csCluster")
-	}
+	// Handle control plane endpoint based on network type
+	if isoNet.Status.NetworkMode == "" {
+		// For non-routed networks, use public IP and load balancer
+		if err := c.AssociatePublicIPAddress(fd, isoNet, csCluster); err != nil {
+			return errors.Wrapf(err, "associating public IP address to csCluster")
+		}
 
-	// Setup a load balancing rule to map VMs to Public IP.
-	if err := c.GetOrCreateLoadBalancerRule(isoNet, csCluster); err != nil {
-		return errors.Wrap(err, "getting or creating load balancing rule")
+		// Setup a load balancing rule to map VMs to Public IP.
+		if err := c.GetOrCreateLoadBalancerRule(isoNet, csCluster); err != nil {
+			return errors.Wrap(err, "getting or creating load balancing rule")
+		}
 	}
 
 	//  Open the Isolated Network on endopint port.

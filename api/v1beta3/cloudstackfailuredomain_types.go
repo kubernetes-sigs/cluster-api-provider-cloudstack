@@ -72,6 +72,10 @@ type Network struct {
 	// Cloudstack VPC the network belongs to.
 	// +optional
 	VPC *VPC `json:"vpc,omitempty"`
+
+	// Cloudstack Network's routing mode.
+	// +optional
+	NetworkMode string `json:"networkMode,omitempty"`
 }
 
 type VPC struct {

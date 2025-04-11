@@ -68,19 +68,23 @@ type CloudStackIsolatedNetworkStatus struct {
 	// The ID of the lb rule used to assign VMs to the lb.
 	LBRuleID string `json:"loadBalancerRuleID,omitempty"`
 
+	// Network mode of the network.
+	NetworkMode string `json:"networkMode,omitempty"`
+
 	// Ready indicates the readiness of this provider resource.
 	Ready bool `json:"ready"`
 }
 
 func (n *CloudStackIsolatedNetwork) Network() *Network {
 	return &Network{
-		Name:     n.Spec.Name,
-		Type:     "IsolatedNetwork",
-		ID:       n.Spec.ID,
-		Gateway:  n.Spec.Gateway,
-		Netmask:  n.Spec.Netmask,
-		VPC:      n.Spec.VPC,
-		Offering: n.Spec.Offering,
+		Name:        n.Spec.Name,
+		Type:        "IsolatedNetwork",
+		ID:          n.Spec.ID,
+		Gateway:     n.Spec.Gateway,
+		Netmask:     n.Spec.Netmask,
+		VPC:         n.Spec.VPC,
+		Offering:    n.Spec.Offering,
+		NetworkMode: n.Status.NetworkMode,
 	}
 }
 
