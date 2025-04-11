@@ -20,8 +20,8 @@ package tools
 
 import (
 	_ "github.com/a8m/envsubst"
-	_ "github.com/golang/mock/mockgen"
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
+	_ "go.uber.org/mock/mockgen"
 	_ "honnef.co/go/tools/cmd/staticcheck"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
 	_ "sigs.k8s.io/cluster-api/hack/tools/mdbook/embed"

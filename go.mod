@@ -1,13 +1,12 @@
 module sigs.k8s.io/cluster-api-provider-cloudstack
 
-go 1.22.0
+go 1.23
 
-toolchain go1.22.12
+toolchain go1.23.2
 
 require (
-	github.com/apache/cloudstack-go/v2 v2.16.1
+	github.com/apache/cloudstack-go/v2 v2.17.0
 	github.com/go-logr/logr v1.4.2
-	github.com/golang/mock v1.6.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jellydator/ttlcache/v3 v3.2.0
 	github.com/onsi/ginkgo/v2 v2.22.2
@@ -16,6 +15,7 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/smallfish/simpleyaml v0.1.0
 	github.com/spf13/pflag v1.0.5
+	go.uber.org/mock v0.5.1
 	golang.org/x/text v0.21.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.31.3

@@ -17,9 +17,9 @@ limitations under the License.
 package controllers_test
 
 import (
-	"github.com/golang/mock/gomock"
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
 
