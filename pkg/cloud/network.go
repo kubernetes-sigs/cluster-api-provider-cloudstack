@@ -66,7 +66,7 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 		net.Gateway = netDetails.Gateway
 		net.Netmask = netDetails.Netmask
 		net.Offering = netDetails.Networkofferingname
-		net.NetworkMode = netDetails.Ip4routing
+		net.RoutingMode = netDetails.Ip4routing
 		if netDetails.Vpcid != "" {
 			if net.VPC == nil {
 				net.VPC = &infrav1.VPC{}
@@ -91,7 +91,7 @@ func (c *client) ResolveNetwork(net *infrav1.Network) (retErr error) {
 	net.Gateway = netDetails.Gateway
 	net.Netmask = netDetails.Netmask
 	net.Offering = netDetails.Networkofferingname
-	net.NetworkMode = netDetails.Ip4routing
+	net.RoutingMode = netDetails.Ip4routing
 	if netDetails.Vpcid != "" {
 		if net.VPC == nil {
 			net.VPC = &infrav1.VPC{}

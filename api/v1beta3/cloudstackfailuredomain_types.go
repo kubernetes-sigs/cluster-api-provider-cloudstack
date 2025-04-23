@@ -74,8 +74,10 @@ type Network struct {
 	VPC *VPC `json:"vpc,omitempty"`
 
 	// Cloudstack Network's routing mode.
+	// Routing mode can be Dynamic, or Static.
+	// Empty value means the network mode is NATTED, not ROUTED.
 	// +optional
-	NetworkMode string `json:"networkMode,omitempty"`
+	RoutingMode string `json:"routingMode,omitempty"`
 }
 
 type VPC struct {

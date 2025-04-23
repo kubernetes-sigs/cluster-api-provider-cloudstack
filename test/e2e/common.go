@@ -265,7 +265,7 @@ func DownloadMetricsFromCAPCManager(ctx context.Context, bootstrapKubeconfigPath
 }
 
 func GetACSVersion(client *cloudstack.CloudStackClient) (string, error) {
-	msServersResp, err := client.InfrastructureUsage.ListManagementServersMetrics(client.InfrastructureUsage.NewListManagementServersMetricsParams())
+	msServersResp, err := client.Management.ListManagementServersMetrics(client.Management.NewListManagementServersMetricsParams())
 	if err != nil {
 		return "", err
 	}

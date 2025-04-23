@@ -148,7 +148,7 @@ func (c *client) CreateIsolatedNetwork(fd *infrav1.CloudStackFailureDomain, isoN
 	isoNet.Spec.ID = resp.Id
 	isoNet.Spec.Gateway = resp.Gateway
 	isoNet.Spec.Netmask = resp.Netmask
-	isoNet.Status.NetworkMode = resp.Ip4routing
+	isoNet.Status.RoutingMode = resp.Ip4routing
 	return c.AddCreatedByCAPCTag(ResourceTypeNetwork, isoNet.Spec.ID)
 }
 
@@ -173,7 +173,7 @@ func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (r
 	protocols := []string{NetworkProtocolTCP, NetworkProtocolUDP, NetworkProtocolICMP}
 	for _, proto := range protocols {
 		var err error
-		if isoNet.Status.NetworkMode != "" {
+		if isoNet.Status.RoutingMode != "" {
 			p := c.cs.Firewall.NewCreateRoutingFirewallRuleParams(isoNet.Spec.ID, proto)
 			if proto == "icmp" {
 				p.SetIcmptype(-1)
@@ -310,7 +310,7 @@ func (c *client) GetOrCreateIsolatedNetwork(
 		isoNet.Spec.ID = net.ID
 		isoNet.Spec.Gateway = net.Gateway
 		isoNet.Spec.Netmask = net.Netmask
-		isoNet.Status.NetworkMode = net.NetworkMode
+		isoNet.Status.RoutingMode = net.RoutingMode
 		if net.VPC != nil && net.VPC.ID != "" {
 			isoNet.Spec.VPC = net.VPC
 		}
@@ -330,7 +330,7 @@ func (c *client) GetOrCreateIsolatedNetwork(
 	}
 
 	// Handle control plane endpoint based on network type
-	if isoNet.Status.NetworkMode == "" {
+	if isoNet.Status.RoutingMode == "" {
 		// For non-routed networks, use public IP and load balancer
 		if err := c.AssociatePublicIPAddress(fd, isoNet, csCluster); err != nil {
 			return errors.Wrapf(err, "associating public IP address to csCluster")

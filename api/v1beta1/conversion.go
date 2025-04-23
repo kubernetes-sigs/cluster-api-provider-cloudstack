@@ -185,3 +185,14 @@ func Convert_v1beta3_Network_To_v1beta1_Network(in *v1beta3.Network, out *Networ
 	// Skip Gateway, Netmask, and VPC fields as they do not exist in v1beta1.Network
 	return nil
 }
+
+// Convert_v1beta3_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIsolatedNetworkStatus handles manual conversion of CloudStackIsolatedNetworkStatus from v1beta3 to v1beta1
+//
+//nolint:golint,revive,stylecheck
+func Convert_v1beta3_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIsolatedNetworkStatus(in *v1beta3.CloudStackIsolatedNetworkStatus, out *CloudStackIsolatedNetworkStatus, _ conv.Scope) error {
+	out.PublicIPID = in.PublicIPID
+	out.LBRuleID = in.LBRuleID
+	out.Ready = in.Ready
+	// RoutingMode field doesn't exist in v1beta1, so we ignore it during conversion
+	return nil
+}

@@ -299,7 +299,7 @@ func (r *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.R
 			return r.RequeueWithMessage("Could not get required Isolated Network for VM, requeueing.")
 		}
 
-		if r.IsoNet.Status.NetworkMode == "" {
+		if r.IsoNet.Status.RoutingMode == "" {
 			// For non-routed networks, use load balancer
 			r.Log.Info("Assigning VM to load balancer rule.")
 			err := r.CSUser.AssignVMToLoadBalancerRule(r.IsoNet, *r.ReconciliationSubject.Spec.InstanceID)

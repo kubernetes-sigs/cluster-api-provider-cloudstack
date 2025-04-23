@@ -254,15 +254,18 @@ spec:
               loadBalancerRuleID:
                 description: The ID of the lb rule used to assign VMs to the lb.
                 type: string
-              networkMode:
-                description: Network mode of the network.
-                type: string
               publicIPID:
                 description: The CS public IP ID to use for the k8s endpoint.
                 type: string
               ready:
                 description: Ready indicates the readiness of this provider resource.
                 type: boolean
+              routingMode:
+                description: |-
+                  Routing mode of the network.
+                  Routing mode can be Dynamic, or Static.
+                  Empty value means the network mode is NATTED, not ROUTED.
+                type: string
             required:
             - ready
             type: object
