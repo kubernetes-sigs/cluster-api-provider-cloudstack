@@ -20,10 +20,10 @@ import (
 	"strconv"
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/golang/mock/gomock"
 	"github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	gomock "go.uber.org/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
 )

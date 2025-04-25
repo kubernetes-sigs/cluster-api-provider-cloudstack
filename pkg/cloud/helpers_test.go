@@ -23,9 +23,9 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/golang/mock/gomock"
 	gomega "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"go.uber.org/mock/gomock"
 )
 
 // This matcher is used to make gomega matching compatible with gomock parameter matching.

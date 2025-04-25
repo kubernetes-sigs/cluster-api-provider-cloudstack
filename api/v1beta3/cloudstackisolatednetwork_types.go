@@ -68,19 +68,25 @@ type CloudStackIsolatedNetworkStatus struct {
 	// The ID of the lb rule used to assign VMs to the lb.
 	LBRuleID string `json:"loadBalancerRuleID,omitempty"`
 
+	// Routing mode of the network.
+	// Routing mode can be Dynamic, or Static.
+	// Empty value means the network mode is NATTED, not ROUTED.
+	RoutingMode string `json:"routingMode,omitempty"`
+
 	// Ready indicates the readiness of this provider resource.
 	Ready bool `json:"ready"`
 }
 
 func (n *CloudStackIsolatedNetwork) Network() *Network {
 	return &Network{
-		Name:     n.Spec.Name,
-		Type:     "IsolatedNetwork",
-		ID:       n.Spec.ID,
-		Gateway:  n.Spec.Gateway,
-		Netmask:  n.Spec.Netmask,
-		VPC:      n.Spec.VPC,
-		Offering: n.Spec.Offering,
+		Name:        n.Spec.Name,
+		Type:        "IsolatedNetwork",
+		ID:          n.Spec.ID,
+		Gateway:     n.Spec.Gateway,
+		Netmask:     n.Spec.Netmask,
+		VPC:         n.Spec.VPC,
+		Offering:    n.Spec.Offering,
+		RoutingMode: n.Status.RoutingMode,
 	}
 }
 

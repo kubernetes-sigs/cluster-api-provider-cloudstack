@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
@@ -446,7 +446,7 @@ var _ = ginkgo.Describe("Instance", func() {
 						},
 						CPUAvailable:    "20",
 						MemoryAvailable: "2048",
-						VMAvailable:     "20",
+						VMAvailable:     "512",
 					},
 					Project: cloud.Project{
 						ID:              "123",

@@ -21,9 +21,9 @@ import (
 	"fmt"
 
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/golang/mock/gomock"
 	"github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
+	gomock "go.uber.org/mock/gomock"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
@@ -166,7 +166,7 @@ var _ = ginkgo.Describe("VPC", func() {
 			}
 
 			vs.EXPECT().GetVPCOfferingID(cloud.VPCOffering).Return(offeringID, 1, nil)
-			vs.EXPECT().NewCreateVPCParams(dummyVPC.CIDR, dummyVPC.Name, dummyVPC.Name, offeringID, dummyFD.Spec.Zone.ID).Return(createVPCParams)
+			vs.EXPECT().NewCreateVPCParams(dummyVPC.Name, dummyVPC.Name, offeringID, dummyFD.Spec.Zone.ID).Return(createVPCParams)
 			vs.EXPECT().CreateVPC(createVPCParams).Return(createVPCResponse, nil)
 			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).Return(&csapi.CreateTagsParams{})
 			rs.EXPECT().CreateTags(gomock.Any()).Return(&csapi.CreateTagsResponse{}, nil)
@@ -198,7 +198,7 @@ var _ = ginkgo.Describe("VPC", func() {
 			expectedErr := errors.New("API error")
 
 			vs.EXPECT().GetVPCOfferingID(cloud.VPCOffering).Return(offeringID, 1, nil)
-			vs.EXPECT().NewCreateVPCParams(dummyVPC.CIDR, dummyVPC.Name, dummyVPC.Name, offeringID, dummyFD.Spec.Zone.ID).Return(createVPCParams)
+			vs.EXPECT().NewCreateVPCParams(dummyVPC.Name, dummyVPC.Name, offeringID, dummyFD.Spec.Zone.ID).Return(createVPCParams)
 			vs.EXPECT().CreateVPC(createVPCParams).Return(nil, expectedErr)
 
 			err := client.CreateVPC(&dummyFD, &dummyVPC)

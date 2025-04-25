@@ -1,14 +1,14 @@
 module sigs.k8s.io/cluster-api-provider-cloudstack/hack/tools
 
-go 1.22.0
+go 1.23
 
-toolchain go1.22.12
+toolchain go1.23.2
 
 require (
 	github.com/a8m/envsubst v1.4.2
-	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo/v2 v2.22.2
-	honnef.co/go/tools v0.4.7
+	go.uber.org/mock v0.5.1
+	honnef.co/go/tools v0.5.1
 	k8s.io/code-generator v0.31.7
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20220329062511-822f046dac13
 	sigs.k8s.io/controller-tools v0.16.5
@@ -17,7 +17,7 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.2.1 // indirect
+	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -56,7 +56,7 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
-	golang.org/x/exp/typeparams v0.0.0-20221208152030-732eee02a75a // indirect
+	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect

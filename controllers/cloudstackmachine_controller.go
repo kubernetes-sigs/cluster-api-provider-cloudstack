@@ -295,13 +295,17 @@ func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (r
 // AddToLBIfNeeded adds instance to load balancer if it is a control plane in an isolated network.
 func (r *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.Result, reterr error) {
 	if util.IsControlPlaneMachine(r.CAPIMachine) && r.FailureDomain.Spec.Zone.Network.Type == cloud.NetworkTypeIsolated {
-		r.Log.Info("Assigning VM to load balancer rule.")
 		if r.IsoNet.Spec.Name == "" {
 			return r.RequeueWithMessage("Could not get required Isolated Network for VM, requeueing.")
 		}
-		err := r.CSUser.AssignVMToLoadBalancerRule(r.IsoNet, *r.ReconciliationSubject.Spec.InstanceID)
-		if err != nil {
-			return ctrl.Result{}, err
+
+		if r.IsoNet.Status.RoutingMode == "" {
+			// For non-routed networks, use load balancer
+			r.Log.Info("Assigning VM to load balancer rule.")
+			err := r.CSUser.AssignVMToLoadBalancerRule(r.IsoNet, *r.ReconciliationSubject.Spec.InstanceID)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 	return ctrl.Result{}, nil

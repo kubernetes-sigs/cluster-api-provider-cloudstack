@@ -105,7 +105,8 @@ func (c *client) CreateVPC(fd *infrav1.CloudStackFailureDomain, vpc *infrav1.VPC
 		return err
 	}
 
-	p := c.cs.VPC.NewCreateVPCParams(vpc.CIDR, vpc.Name, vpc.Name, offeringID, fd.Spec.Zone.ID)
+	p := c.cs.VPC.NewCreateVPCParams(vpc.Name, vpc.Name, offeringID, fd.Spec.Zone.ID)
+	p.SetCidr(vpc.CIDR)
 	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
 	p.SetStart(true)
 	resp, err := c.cs.VPC.CreateVPC(p)

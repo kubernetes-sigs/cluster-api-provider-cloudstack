@@ -200,6 +200,12 @@ spec:
                           isolated networks and "DefaultIsolatedNetworkOfferingForVpcNetworks"
                           for VPC networks.
                         type: string
+                      routingMode:
+                        description: |-
+                          Cloudstack Network's routing mode.
+                          Routing mode can be Dynamic, or Static.
+                          Empty value means the network mode is NATTED, not ROUTED.
+                        type: string
                       type:
                         description: Cloudstack Network Type the cluster is built
                           in.

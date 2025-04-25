@@ -260,6 +260,12 @@ spec:
               ready:
                 description: Ready indicates the readiness of this provider resource.
                 type: boolean
+              routingMode:
+                description: |-
+                  Routing mode of the network.
+                  Routing mode can be Dynamic, or Static.
+                  Empty value means the network mode is NATTED, not ROUTED.
+                type: string
             required:
             - ready
             type: object

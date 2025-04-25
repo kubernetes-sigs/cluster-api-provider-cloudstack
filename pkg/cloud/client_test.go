@@ -23,9 +23,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
-	"github.com/golang/mock/gomock"
 	"github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
+	gomock "go.uber.org/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/helpers"
