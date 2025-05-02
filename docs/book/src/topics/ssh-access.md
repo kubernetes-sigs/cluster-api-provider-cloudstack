@@ -15,9 +15,11 @@ To see how to pass a key pair to the node, checkout the [keypair configuration](
 In order to access the nodes, the following changes need to be made in Apache CloudStack
 
 1. Select the Public IP belonging to the network via which users can access the VM.
-Either use the exiting IP or acquire a new IP.
+Either use the exiting IP or acquire a new IP. If the network is part of a VPC, the public IP will be the one assigned to the VPC.
 
     ![Alt text](../images/ssh-step-1-public-ip.png)
+
+    ![Alt text](../images/ssh-step-1-public-ip-vpc.png)
 
 2. Add a firewall rule to allow access on the desired port
 
