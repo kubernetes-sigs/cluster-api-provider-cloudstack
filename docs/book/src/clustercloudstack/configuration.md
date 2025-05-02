@@ -18,7 +18,7 @@ You can also use [template files][template-file] by manually replacing values in
 > **Note**
 >
 > Additional template files are provided, offering capabilities beyond the default template file.  These can be
-> utilized via the *clusterctl --flavor* parameter.  Additional environment variables are often required by these templates.
+> utilized via the *clusterctl --flavor* parameter. Additional environment variables are often required by these templates.
 > The following flavors are supported as of now:
 > - *managed-ssh*
 > - *ssh-material*
@@ -30,7 +30,7 @@ You can also use [template files][template-file] by manually replacing values in
 > ```bash
 > clusterctl generate cluster capi-quickstart --flavor <flavor> --list-variables
 > ```
-> See clusterctl documentation for further details about *flavors*.
+> Only one flavor can be specified at a time. See clusterctl documentation for further details about *flavors*.
 
 In order to fetch the configuration parameters via the terminal, please install [cmk][cmk-download] and [jq][jq-download]
 
@@ -183,6 +183,14 @@ The list of Public IPs for the specific zone can be fetched using the cmk cli as
 ```
 cmk list publicipaddresses listall=true zoneid=<zone-id> forvirtualnetwork=true allocatedonly=false | jq '.publicipaddress[] | select(.state == "Free" or .state == "Reserved") | .ipaddress'
 ```
+
+> **Note**
+>
+> When using shared or routed networks, you must configure a Virtual IP (VIP) on the nodes using [kube-vip][kube-vip].
+> You can specify the flavor as `with-kube-vip` while generating the cluster configuration file. The
+> `CLUSTER_ENDPOINT_IP` value must be either:
+> - An IP address within the shared/routed network range
+> - A DNS name pointing to a VIP or a load balancer in front of the control plane nodes
 
 ## Machine Level Configurations
 
