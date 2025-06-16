@@ -838,6 +838,7 @@ func autoConvert_v1beta3_CloudStackIsolatedNetworkStatus_To_v1beta2_CloudStackIs
 	out.PublicIPID = in.PublicIPID
 	out.LBRuleID = in.LBRuleID
 	// WARNING: in.RoutingMode requires manual conversion: does not exist in peer-type
+	// WARNING: in.FirewallRulesOpened requires manual conversion: does not exist in peer-type
 	out.Ready = in.Ready
 	return nil
 }
