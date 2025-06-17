@@ -45,15 +45,6 @@ const (
 	ResourceTypeIPAddress ResourceType = "PublicIpAddress"
 )
 
-// ignoreAlreadyPresentErrors returns nil if the error is an already present tag error.
-func ignoreAlreadyPresentErrors(err error, rType ResourceType, rID string) error {
-	matchSubString := strings.ToLower("already on " + string(rType) + " with id " + rID)
-	if err != nil && !strings.Contains(strings.ToLower(err.Error()), matchSubString) {
-		return err
-	}
-	return nil
-}
-
 func (c *client) IsCapcManaged(resourceType ResourceType, resourceID string) (bool, error) {
 	tags, err := c.GetTags(resourceType, resourceID)
 	if err != nil {
