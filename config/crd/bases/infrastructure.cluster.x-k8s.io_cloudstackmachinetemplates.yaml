@@ -594,6 +594,27 @@ spec:
                       name:
                         description: Name.
                         type: string
+                      networks:
+                        description: |-
+                          The list of networks (overrides zone.network)
+                          In CloudStackMachineSpec
+                        items:
+                          properties:
+                            id:
+                              description: Optional Network ID (overrides Name if
+                                set)
+                              type: string
+                            ip:
+                              description: Optional IP in the network
+                              type: string
+                            name:
+                              description: CloudStack Network Name (required to resolve
+                                ID)
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
                       offering:
                         description: CloudStack compute offering.
                         properties:
