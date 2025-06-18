@@ -169,6 +169,8 @@ var _ = ginkgo.Describe("VPC", func() {
 			vs.EXPECT().NewCreateVPCParams(dummyVPC.Name, dummyVPC.Name, offeringID, dummyFD.Spec.Zone.ID).Return(createVPCParams)
 			vs.EXPECT().CreateVPC(createVPCParams).Return(createVPCResponse, nil)
 			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).Return(&csapi.CreateTagsParams{})
+			rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{})
+			rs.EXPECT().ListTags(gomock.Any()).Return(&csapi.ListTagsResponse{}, nil)
 			rs.EXPECT().CreateTags(gomock.Any()).Return(&csapi.CreateTagsResponse{}, nil)
 
 			gomega.Ω(client.CreateVPC(&dummyFD, &dummyVPC)).Should(gomega.Succeed())

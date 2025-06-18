@@ -156,8 +156,8 @@ var _ = ginkgo.Describe("Tag Unit Tests", func() {
 			createdByCAPCResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: cloud.CreatedByCAPCTagName, Value: "1"}}}
 			rtlp := &csapi.ListTagsParams{}
 			ctp := &csapi.CreateTagsParams{}
-			rs.EXPECT().NewListTagsParams().Return(rtlp)
-			rs.EXPECT().ListTags(rtlp).Return(createdByCAPCResponse, nil)
+			rs.EXPECT().NewListTagsParams().Return(rtlp).Times(2)
+			rs.EXPECT().ListTags(rtlp).Return(createdByCAPCResponse, nil).Times(2)
 			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).Return(ctp)
 			rs.EXPECT().CreateTags(ctp).Return(&csapi.CreateTagsResponse{}, nil)
 			gomega.Ω(client.AddClusterTag(cloud.ResourceTypeNetwork, dummies.CSISONet1.Spec.ID, dummies.CSCluster)).Should(gomega.Succeed())

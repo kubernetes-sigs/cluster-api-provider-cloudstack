@@ -70,6 +70,8 @@ var _ = ginkgo.Describe("Network", func() {
 		ginkgo.It("calls to create an isolated network when not found", func() {
 			dummies.Zone1.Network = dummies.ISONet1
 			dummies.Zone1.Network.ID = ""
+			dummies.CSISONet1.Spec.VPC = nil // Explicitly disable VPC for CSISONet1.
+			dummies.ISONet1.VPC = nil        // Explicitly disable VPC for ISONet1.
 
 			nos.EXPECT().GetNetworkOfferingID(gomock.Any()).Return("someOfferingID", 1, nil)
 			ns.EXPECT().NewCreateNetworkParams(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -85,6 +87,15 @@ var _ = ginkgo.Describe("Network", func() {
 			as.EXPECT().NewAssociateIpAddressParams().Return(&csapi.AssociateIpAddressParams{})
 			as.EXPECT().AssociateIpAddress(gomock.Any())
 			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(&csapi.Network{Egressdefaultpolicy: false}, 1, nil)
+
+			// Mock firewall rule check: no existing rules, so create TCP, UDP, ICMP rules
+			fs.EXPECT().NewListEgressFirewallRulesParams().Return(&csapi.ListEgressFirewallRulesParams{})
+			fs.EXPECT().ListEgressFirewallRules(gomock.Any()).Return(&csapi.ListEgressFirewallRulesResponse{
+				Count:               0,
+				EgressFirewallRules: []*csapi.EgressFirewallRule{},
+			}, nil)
+
+			// Mock firewall rule creation
 			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, gomock.Any()).
 				DoAndReturn(func(_ string, protocol string) *csapi.CreateEgressFirewallRuleParams {
 					p := &csapi.CreateEgressFirewallRuleParams{}
@@ -102,17 +113,29 @@ var _ = ginkgo.Describe("Network", func() {
 				fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
 					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil).Times(2),
 				fs.EXPECT().CreateEgressFirewallRule(ruleParamsICMP).
-					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil))
+					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil),
+			)
 
-			// Will add cluster tag once to Network and once to PublicIP.
-			createdByResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: cloud.CreatedByCAPCTagName, Value: "1"}}}
+			// Expect 6 ListTags calls: 3 for network (AddCreatedByCAPCTag, AddClusterTag x2),
+			// 3 for public IP (GetPublicIP, AddClusterTag, AddCreatedByCAPCTag)
+			emptyResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{}}
+			clusterTagResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: cloud.CreatedByCAPCTagName, Value: "1"}}}
 			gomock.InOrder(
-				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}),
-				rs.EXPECT().ListTags(gomock.Any()).Return(createdByResponse, nil),
-				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}),
-				rs.EXPECT().ListTags(gomock.Any()).Return(createdByResponse, nil))
+				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}), // For AddCreatedByCAPCTag (Network)
+				rs.EXPECT().ListTags(gomock.Any()).Return(emptyResponse, nil),
+				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}), // For AddClusterTag (Network, IsCapcManaged)
+				rs.EXPECT().ListTags(gomock.Any()).Return(clusterTagResponse, nil),
+				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}), // For AddClusterTag (Network, AddTags)
+				rs.EXPECT().ListTags(gomock.Any()).Return(clusterTagResponse, nil),
+				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}), // For GetPublicIP (PublicIpAddress)
+				rs.EXPECT().ListTags(gomock.Any()).Return(clusterTagResponse, nil),
+				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}), // For AddClusterTag (PublicIpAddress)
+				rs.EXPECT().ListTags(gomock.Any()).Return(clusterTagResponse, nil),
+				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}), // For AddCreatedByCAPCTag (PublicIpAddress)
+				rs.EXPECT().ListTags(gomock.Any()).Return(emptyResponse, nil),
+			)
 
-			// Will add creation and cluster tags to network and PublicIP.
+			// Expect 4 CreateTags calls: 2 for network (cluster + created-by), 2 for public IP (cluster + created-by)
 			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&csapi.CreateTagsParams{}).Times(4)
 			rs.EXPECT().CreateTags(gomock.Any()).Return(&csapi.CreateTagsResponse{}, nil).Times(4)
@@ -136,11 +159,24 @@ var _ = ginkgo.Describe("Network", func() {
 		})
 	})
 
-	ginkgo.Context("for a closed firewall", func() {
-		ginkgo.It("OpenFirewallRule asks CloudStack to open the firewall", func() {
-			dummies.Zone1.Network = dummies.ISONet1
-			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(&csapi.Network{Egressdefaultpolicy: false}, 1, nil)
-			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, gomock.Any()).
+	ginkgo.Context("OpenFirewallRules", func() {
+		ginkgo.It("creates firewall rules when none exist", func() {
+			isoNet := dummies.CSISONet1
+			isoNet.Status.RoutingMode = "" // Egress rules
+			isoNet.Spec.ID = "net-123"
+
+			// Mock GetNetworkByID to return a network with Egressdefaultpolicy set to false
+			ns.EXPECT().GetNetworkByID(isoNet.Spec.ID, gomock.Any()).Return(&csapi.Network{Egressdefaultpolicy: false}, 1, nil)
+
+			// Mock firewall rule check: no existing rules
+			fs.EXPECT().NewListEgressFirewallRulesParams().Return(&csapi.ListEgressFirewallRulesParams{})
+			fs.EXPECT().ListEgressFirewallRules(gomock.Any()).Return(&csapi.ListEgressFirewallRulesResponse{
+				Count:               0,
+				EgressFirewallRules: []*csapi.EgressFirewallRule{},
+			}, nil)
+
+			// Mock firewall rule creation for TCP, UDP, ICMP
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, gomock.Any()).
 				DoAndReturn(func(_ string, protocol string) *csapi.CreateEgressFirewallRuleParams {
 					p := &csapi.CreateEgressFirewallRuleParams{}
 					if protocol == "icmp" {
@@ -149,45 +185,62 @@ var _ = ginkgo.Describe("Network", func() {
 					}
 					return p
 				}).Times(3)
+			fs.EXPECT().CreateEgressFirewallRule(gomock.Any()).Return(&csapi.CreateEgressFirewallRuleResponse{}, nil).Times(3)
 
-			ruleParamsICMP := &csapi.CreateEgressFirewallRuleParams{}
-			ruleParamsICMP.SetIcmptype(-1)
-			ruleParamsICMP.SetIcmpcode(-1)
-			gomock.InOrder(
-				fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
-					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil).Times(2),
-				fs.EXPECT().CreateEgressFirewallRule(ruleParamsICMP).
-					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil))
-
-			gomega.Ω(client.OpenFirewallRules(dummies.CSISONet1)).Should(gomega.Succeed())
+			err := client.OpenFirewallRules(isoNet)
+			gomega.Expect(err).To(gomega.BeNil())
+			gomega.Expect(isoNet.Status.FirewallRulesOpened).To(gomega.BeTrue())
 		})
-	})
 
-	ginkgo.Context("for an open firewall", func() {
-		ginkgo.It("OpenFirewallRule asks CloudStack to open the firewall anyway, but doesn't fail", func() {
-			dummies.Zone1.Network = dummies.ISONet1
+		ginkgo.It("skips creating firewall rules if they already exist", func() {
+			isoNet := dummies.CSISONet1
+			isoNet.Status.RoutingMode = "" // Egress rules
+			isoNet.Spec.ID = "net-123"
 
-			ns.EXPECT().GetNetworkByID(dummies.ISONet1.ID, gomock.Any()).Return(&csapi.Network{Egressdefaultpolicy: false}, 1, nil)
-			fs.EXPECT().NewCreateEgressFirewallRuleParams(dummies.ISONet1.ID, gomock.Any()).
-				DoAndReturn(func(_ string, protocol string) *csapi.CreateEgressFirewallRuleParams {
-					p := &csapi.CreateEgressFirewallRuleParams{}
-					if protocol == "icmp" {
-						p.SetIcmptype(-1)
-						p.SetIcmpcode(-1)
-					}
-					return p
-				}).Times(3)
+			// Mock GetNetworkByID to return a network with Egressdefaultpolicy set to false
+			ns.EXPECT().GetNetworkByID(isoNet.Spec.ID, gomock.Any()).Return(&csapi.Network{Egressdefaultpolicy: false}, 1, nil)
 
-			ruleParamsICMP := &csapi.CreateEgressFirewallRuleParams{}
-			ruleParamsICMP.SetIcmptype(-1)
-			ruleParamsICMP.SetIcmpcode(-1)
-			gomock.InOrder(
-				fs.EXPECT().CreateEgressFirewallRule(&csapi.CreateEgressFirewallRuleParams{}).
-					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil).Times(2),
-				fs.EXPECT().CreateEgressFirewallRule(ruleParamsICMP).
-					Return(&csapi.CreateEgressFirewallRuleResponse{}, nil))
+			// Mock firewall rule check: all required rules exist
+			fs.EXPECT().NewListEgressFirewallRulesParams().Return(&csapi.ListEgressFirewallRulesParams{})
+			fs.EXPECT().ListEgressFirewallRules(gomock.Any()).Return(&csapi.ListEgressFirewallRulesResponse{
+				Count: 3,
+				EgressFirewallRules: []*csapi.EgressFirewallRule{
+					{Protocol: "tcp"},
+					{Protocol: "udp"},
+					{Protocol: "icmp", Icmptype: -1, Icmpcode: -1},
+				},
+			}, nil)
 
-			gomega.Ω(client.OpenFirewallRules(dummies.CSISONet1)).Should(gomega.Succeed())
+			err := client.OpenFirewallRules(isoNet)
+			gomega.Expect(err).To(gomega.BeNil())
+			gomega.Expect(isoNet.Status.FirewallRulesOpened).To(gomega.BeTrue())
+		})
+
+		ginkgo.It("handles error during firewall rule creation", func() {
+			isoNet := dummies.CSISONet1
+			isoNet.Status.RoutingMode = "" // Egress rules
+			isoNet.Spec.ID = "net-123"
+
+			// Mock GetNetworkByID to return a network with Egressdefaultpolicy set to false
+			ns.EXPECT().GetNetworkByID(isoNet.Spec.ID, gomock.Any()).Return(&csapi.Network{Egressdefaultpolicy: false}, 1, nil)
+
+			// Mock firewall rule check: no existing rules
+			fs.EXPECT().NewListEgressFirewallRulesParams().Return(&csapi.ListEgressFirewallRulesParams{})
+			fs.EXPECT().ListEgressFirewallRules(gomock.Any()).Return(&csapi.ListEgressFirewallRulesResponse{
+				Count:               0,
+				EgressFirewallRules: []*csapi.EgressFirewallRule{},
+			}, nil)
+
+			// Mock firewall rule creation: fail on UDP
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, "tcp").Return(&csapi.CreateEgressFirewallRuleParams{})
+			fs.EXPECT().CreateEgressFirewallRule(gomock.Any()).Return(&csapi.CreateEgressFirewallRuleResponse{}, nil)
+			fs.EXPECT().NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, "udp").Return(&csapi.CreateEgressFirewallRuleParams{})
+			fs.EXPECT().CreateEgressFirewallRule(gomock.Any()).Return(nil, errors.New("failed to create UDP rule"))
+
+			err := client.OpenFirewallRules(isoNet)
+			gomega.Expect(err).To(gomega.HaveOccurred())
+			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed creating egress firewall rule for network ID net-123 protocol udp"))
+			gomega.Expect(isoNet.Status.FirewallRulesOpened).To(gomega.BeFalse())
 		})
 	})
 
@@ -252,17 +305,19 @@ var _ = ginkgo.Describe("Network", func() {
 			aip := &csapi.AssociateIpAddressParams{}
 			as.EXPECT().NewAssociateIpAddressParams().Return(aip)
 			as.EXPECT().AssociateIpAddress(aip).Return(&csapi.AssociateIpAddressResponse{}, nil)
-			// Will add cluster tag once to Network and once to PublicIP.
 			createdByResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{{Key: cloud.CreatedByCAPCTagName, Value: "1"}}}
+			emptyResponse := &csapi.ListTagsResponse{Tags: []*csapi.Tag{}}
 			gomock.InOrder(
-				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}),
-				rs.EXPECT().ListTags(gomock.Any()).Return(createdByResponse, nil))
-
-			// Will add creation and cluster tags to network and PublicIP.
+				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}), // AddClusterTag: IsCapcManaged
+				rs.EXPECT().ListTags(gomock.Any()).Return(createdByResponse, nil),
+				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}), // AddClusterTag: AddTags
+				rs.EXPECT().ListTags(gomock.Any()).Return(emptyResponse, nil),
+				rs.EXPECT().NewListTagsParams().Return(&csapi.ListTagsParams{}), // AddCreatedByCAPCTag: AddTags
+				rs.EXPECT().ListTags(gomock.Any()).Return(emptyResponse, nil),
+			)
 			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(&csapi.CreateTagsParams{}).Times(2)
 			rs.EXPECT().CreateTags(gomock.Any()).Return(&csapi.CreateTagsResponse{}, nil).Times(2)
-
 			gomega.Ω(client.AssociatePublicIPAddress(dummies.CSFailureDomain1, dummies.CSISONet1, dummies.CSCluster)).Should(gomega.Succeed())
 		})
 
