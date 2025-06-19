@@ -155,6 +155,7 @@ func (c *client) CreateIsolatedNetwork(fd *infrav1.CloudStackFailureDomain, isoN
 // OpenFirewallRules opens a CloudStack egress firewall for an isolated network.
 func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
 	// Early return if VPC is present
+	// Firewall rules are not opened for isolated networks within a VPC because VPCs have their own mechanisms for managing firewall rules.
 	if isoNet.Spec.VPC != nil && isoNet.Spec.VPC.ID != "" {
 		return nil
 	}
@@ -283,12 +284,19 @@ func (c *client) createFirewallRule(isoNet *infrav1.CloudStackIsolatedNetwork, p
 	return nil
 }
 
+// Named constants for ignorable error substrings
+const (
+	ErrAlreadyExists   = "there is already"
+	ErrRuleConflict    = "conflicts with rule"
+	ErrNewRuleConflict = "new rule conflicts with existing rule"
+)
+
 // Helper function to check if an error is ignorable
 func (c *client) isIgnorableError(err error) bool {
 	errorMsg := strings.ToLower(err.Error())
-	return strings.Contains(errorMsg, "there is already") ||
-		strings.Contains(errorMsg, "conflicts with rule") ||
-		strings.Contains(errorMsg, "new rule conflicts with existing rule")
+	return strings.Contains(errorMsg, ErrAlreadyExists) ||
+		strings.Contains(errorMsg, ErrRuleConflict) ||
+		strings.Contains(errorMsg, ErrNewRuleConflict)
 }
 
 // GetPublicIP gets a public IP with ID for cluster endpoint.
