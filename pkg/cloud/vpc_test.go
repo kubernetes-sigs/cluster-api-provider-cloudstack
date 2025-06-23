@@ -166,7 +166,7 @@ var _ = ginkgo.Describe("VPC", func() {
 			}
 
 			vs.EXPECT().GetVPCOfferingID(cloud.VPCOffering).Return(offeringID, 1, nil)
-			vs.EXPECT().NewCreateVPCParams(dummyVPC.Name, dummyVPC.Name, offeringID, dummyFD.Spec.Zone.ID).Return(createVPCParams)
+			vs.EXPECT().NewCreateVPCParams(dummyVPC.CIDR, dummyVPC.Name, dummyVPC.Name, offeringID, dummyFD.Spec.Zone.ID).Return(createVPCParams)
 			vs.EXPECT().CreateVPC(createVPCParams).Return(createVPCResponse, nil)
 			rs.EXPECT().NewCreateTagsParams(gomock.Any(), gomock.Any(), gomock.Any()).Return(&csapi.CreateTagsParams{})
 			rs.EXPECT().CreateTags(gomock.Any()).Return(&csapi.CreateTagsResponse{}, nil)
@@ -198,7 +198,7 @@ var _ = ginkgo.Describe("VPC", func() {
 			expectedErr := errors.New("API error")
 
 			vs.EXPECT().GetVPCOfferingID(cloud.VPCOffering).Return(offeringID, 1, nil)
-			vs.EXPECT().NewCreateVPCParams(dummyVPC.Name, dummyVPC.Name, offeringID, dummyFD.Spec.Zone.ID).Return(createVPCParams)
+			vs.EXPECT().NewCreateVPCParams(dummyVPC.CIDR, dummyVPC.Name, dummyVPC.Name, offeringID, dummyFD.Spec.Zone.ID).Return(createVPCParams)
 			vs.EXPECT().CreateVPC(createVPCParams).Return(nil, expectedErr)
 
 			err := client.CreateVPC(&dummyFD, &dummyVPC)
