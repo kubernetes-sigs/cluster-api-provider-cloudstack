@@ -650,6 +650,7 @@ func autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(
 	if err := Convert_v1beta3_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(&in.DiskOffering, &out.DiskOffering, s); err != nil {
 		return err
 	}
+	// WARNING: in.Networks requires manual conversion: does not exist in peer-type
 	out.SSHKey = in.SSHKey
 	out.Details = *(*map[string]string)(unsafe.Pointer(&in.Details))
 	out.AffinityGroupIDs = *(*[]string)(unsafe.Pointer(&in.AffinityGroupIDs))

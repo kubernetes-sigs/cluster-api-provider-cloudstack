@@ -32,6 +32,17 @@ const (
 	NoAffinity   = "no"
 )
 
+type NetworkSpec struct {
+	// CloudStack Network Name (required to resolve ID)
+	Name string `json:"name"`
+
+	// Optional IP in the network
+	IP string `json:"ip,omitempty"`
+
+	// Optional Network ID (overrides Name if set)
+	ID string `json:"id,omitempty"`
+}
+
 // CloudStackMachineSpec defines the desired state of CloudStackMachine
 type CloudStackMachineSpec struct {
 	// Name.
@@ -54,6 +65,11 @@ type CloudStackMachineSpec struct {
 	// CloudStack disk offering to use.
 	// +optional
 	DiskOffering CloudStackResourceDiskOffering `json:"diskOffering,omitempty"`
+
+	// The list of networks (overrides zone.network)
+	// +optional
+	// In CloudStackMachineSpec
+	Networks []NetworkSpec `json:"networks,omitempty"`
 
 	// CloudStack ssh key to use.
 	// +optional

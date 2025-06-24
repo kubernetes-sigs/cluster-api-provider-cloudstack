@@ -302,6 +302,38 @@ func (c *client) CheckLimits(
 	return nil
 }
 
+func (c *client) resolveNetworkIDByName(name string) (string, error) {
+	net, count, err := c.cs.Network.GetNetworkByName(name, cloudstack.WithProject(c.user.Project.ID))
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to look up network %q", name)
+	}
+	if count != 1 {
+		return "", errors.Errorf("expected 1 network named %q, but got %d", name, count)
+	}
+	return net.Id, nil
+}
+
+func (c *client) buildIPToNetworkList(csMachine *infrav1.CloudStackMachine) ([]map[string]string, error) {
+	ipToNetworkList := []map[string]string{}
+
+	for _, net := range csMachine.Spec.Networks {
+		networkID := net.ID
+		if networkID == "" {
+			var err error
+			networkID, err = c.resolveNetworkIDByName(net.Name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		entry := map[string]string{"networkid": networkID}
+		if net.IP != "" {
+			entry["ip"] = net.IP
+		}
+		ipToNetworkList = append(ipToNetworkList, entry)
+	}
+	return ipToNetworkList, nil
+}
+
 // DeployVM will create a VM instance,
 // and sets the infrastructure machine spec and status accordingly.
 func (c *client) DeployVM(
@@ -322,7 +354,17 @@ func (c *client) DeployVM(
 	}
 
 	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offering.Id, templateID, fd.Spec.Zone.ID)
-	p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
+
+	if len(csMachine.Spec.Networks) == 0 && fd.Spec.Zone.Network.ID != "" {
+		p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
+	} else {
+		ipToNetworkList, err := c.buildIPToNetworkList(csMachine)
+		if err != nil {
+			return err
+		}
+		p.SetIptonetworklist(ipToNetworkList)
+	}
+
 	setIfNotEmpty(csMachine.Name, p.SetName)
 	setIfNotEmpty(capiMachine.Name, p.SetDisplayname)
 	setIfNotEmpty(diskOfferingID, p.SetDiskofferingid)
