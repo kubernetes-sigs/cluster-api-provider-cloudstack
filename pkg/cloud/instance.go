@@ -44,7 +44,15 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 	csMachine.Spec.ProviderID = ptr.To(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
 	// InstanceID is later used as required parameter to destroy VM.
 	csMachine.Spec.InstanceID = ptr.To(vmResponse.Id)
-	csMachine.Status.Addresses = []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vmResponse.Ipaddress}}
+	csMachine.Status.Addresses = []corev1.NodeAddress{}
+	for _, nic := range vmResponse.Nic {
+		if nic.Ipaddress != "" {
+			csMachine.Status.Addresses = append(csMachine.Status.Addresses, corev1.NodeAddress{
+				Type:    corev1.NodeInternalIP,
+				Address: nic.Ipaddress,
+			})
+		}
+	}
 	newInstanceState := vmResponse.State
 	if newInstanceState != csMachine.Status.InstanceState || (newInstanceState != "" && csMachine.Status.InstanceStateLastUpdated.IsZero()) {
 		csMachine.Status.InstanceState = newInstanceState
