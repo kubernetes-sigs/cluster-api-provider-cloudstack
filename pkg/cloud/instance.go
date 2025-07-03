@@ -31,6 +31,8 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+
+	netpkg "net"
 )
 
 type VMIface interface {
@@ -310,36 +312,161 @@ func (c *client) CheckLimits(
 	return nil
 }
 
-func (c *client) resolveNetworkIDByName(name string) (string, error) {
+func (c *client) isIpAvailableInNetwork(ip, networkID string) (bool, error) {
+	params := c.cs.Address.NewListPublicIpAddressesParams()
+	params.SetNetworkid(networkID)
+	params.SetIpaddress(ip)
+	params.SetAllocatedonly(false)
+	params.SetForvirtualnetwork(false)
+	params.SetListall(true)
+
+	resp, err := c.cs.Address.ListPublicIpAddresses(params)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to list public IP addresses for network %q", networkID)
+	}
+
+	for _, addr := range resp.PublicIpAddresses {
+		if addr.State == "Free" {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (c *client) hasFreeIPInNetwork(resolvedNet *cloudstack.Network) (bool, error) {
+	params := c.cs.Address.NewListPublicIpAddressesParams()
+	params.SetNetworkid(resolvedNet.Id)
+	params.SetAllocatedonly(false)
+	params.SetForvirtualnetwork(false)
+	params.SetListall(true)
+
+	resp, err := c.cs.Address.ListPublicIpAddresses(params)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to check free IPs for network %q", resolvedNet.Id)
+	}
+
+	for _, addr := range resp.PublicIpAddresses {
+		if addr.State == "Free" {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (c *client) buildStaticIPEntry(ip, networkID string, resolvedNet *cloudstack.Network) (map[string]string, error) {
+	if resolvedNet.Type == "Shared" {
+		if err := c.validateIPInCIDR(ip, resolvedNet, networkID); err != nil {
+			return nil, err
+		}
+
+		isAvailable, err := c.isIpAvailableInNetwork(ip, networkID)
+		if err != nil {
+			return nil, err
+		}
+		if !isAvailable {
+			return nil, errors.Errorf("IP %q is already allocated in network %q or out of range", ip, networkID)
+		}
+	}
+
+	return map[string]string{
+		"networkid": networkID,
+		"ip":        ip,
+	}, nil
+}
+
+func (c *client) buildDynamicIPEntry(resolvedNet *cloudstack.Network) (map[string]string, error) {
+	if resolvedNet.Type == "Shared" {
+		freeIPExists, err := c.hasFreeIPInNetwork(resolvedNet)
+		if err != nil {
+			return nil, err
+		}
+		if !freeIPExists {
+			return nil, errors.Errorf("no free IPs available in network %q", resolvedNet.Id)
+		}
+	}
+
+	return map[string]string{
+		"networkid": resolvedNet.Id,
+	}, nil
+}
+
+func (c *client) resolveNetworkByName(name string) (*cloudstack.Network, error) {
 	net, count, err := c.cs.Network.GetNetworkByName(name, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to look up network %q", name)
+		return nil, errors.Wrapf(err, "failed to look up network %q", name)
 	}
 	if count != 1 {
-		return "", errors.Errorf("expected 1 network named %q, but got %d", name, count)
+		return nil, errors.Errorf("expected 1 network named %q, but got %d", name, count)
 	}
-	return net.Id, nil
+	return net, nil
 }
 
 func (c *client) buildIPToNetworkList(csMachine *infrav1.CloudStackMachine) ([]map[string]string, error) {
-	ipToNetworkList := []map[string]string{}
+	var ipToNetworkList []map[string]string
 
 	for _, net := range csMachine.Spec.Networks {
-		networkID := net.ID
-		if networkID == "" {
-			var err error
-			networkID, err = c.resolveNetworkIDByName(net.Name)
+		networkID, resolvedNet, err := c.resolveNetworkReference(net)
+		if err != nil {
+			return nil, err
+		}
+
+		var entry map[string]string
+		if net.IP != "" {
+			entry, err = c.buildStaticIPEntry(net.IP, networkID, resolvedNet)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			entry, err = c.buildDynamicIPEntry(resolvedNet)
 			if err != nil {
 				return nil, err
 			}
 		}
-		entry := map[string]string{"networkid": networkID}
-		if net.IP != "" {
-			entry["ip"] = net.IP
-		}
+
 		ipToNetworkList = append(ipToNetworkList, entry)
 	}
+
 	return ipToNetworkList, nil
+}
+
+func (c *client) resolveNetworkReference(net infrav1.NetworkSpec) (string, *cloudstack.Network, error) {
+	if net.ID == "" {
+		resolvedNet, err := c.resolveNetworkByName(net.Name)
+		if err != nil {
+			return "", nil, err
+		}
+		return resolvedNet.Id, resolvedNet, nil
+	}
+
+	resolvedNet, _, err := c.cs.Network.GetNetworkByID(net.ID, cloudstack.WithProject(c.user.Project.ID))
+	if err != nil {
+		return "", nil, errors.Wrapf(err, "failed to get network %q by ID", net.ID)
+	}
+	return net.ID, resolvedNet, nil
+}
+
+func (c *client) validateIPInCIDR(ipStr string, net *cloudstack.Network, netID string) error {
+	if net == nil {
+		return errors.Errorf("network details not found for validation")
+	}
+
+	ip := netpkg.ParseIP(ipStr)
+	if ip == nil {
+		return errors.Errorf("invalid IP address %q", ipStr)
+	}
+
+	_, cidr, err := netpkg.ParseCIDR(net.Cidr)
+	if err != nil {
+		return errors.Wrapf(err, "invalid CIDR %q for network %q", net.Cidr, netID)
+	}
+
+	if !cidr.Contains(ip) {
+		return errors.Errorf("IP %q is not within network CIDR %q", ipStr, net.Cidr)
+	}
+
+	return nil
 }
 
 // DeployVM will create a VM instance,
@@ -366,6 +493,16 @@ func (c *client) DeployVM(
 	if len(csMachine.Spec.Networks) == 0 && fd.Spec.Zone.Network.ID != "" {
 		p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
 	} else {
+		firstNetwork := csMachine.Spec.Networks[0]
+		zoneNet := fd.Spec.Zone.Network
+
+		if zoneNet.ID != "" && firstNetwork.ID != "" && firstNetwork.ID != zoneNet.ID {
+			return errors.Errorf("first network ID %q does not match zone network ID %q", firstNetwork.ID, zoneNet.ID)
+		}
+		if zoneNet.Name != "" && firstNetwork.Name != "" && firstNetwork.Name != zoneNet.Name {
+			return errors.Errorf("first network name %q does not match zone network name %q", firstNetwork.Name, zoneNet.Name)
+		}
+
 		ipToNetworkList, err := c.buildIPToNetworkList(csMachine)
 		if err != nil {
 			return err
