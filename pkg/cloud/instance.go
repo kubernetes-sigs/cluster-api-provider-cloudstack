@@ -19,6 +19,7 @@ package cloud
 import (
 	"encoding/base64"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -31,8 +32,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
-
-	netpkg "net"
 )
 
 type VMIface interface {
@@ -339,7 +338,7 @@ func (c *client) isFreeIPAvailable(networkID, ip string) (bool, error) {
 
 func (c *client) buildIPEntry(resolvedNet *cloudstack.Network, ip string) (map[string]string, error) {
 	if ip != "" {
-		if err := c.validateIPInCIDR(ip, resolvedNet, resolvedNet.Id); err != nil {
+		if err := validateIPInCIDR(ip, resolvedNet.Cidr); err != nil {
 			return nil, err
 		}
 	}
@@ -417,21 +416,51 @@ func (c *client) resolveNetwork(net infrav1.NetworkSpec) (*cloudstack.Network, e
 	return resolvedNet, nil
 }
 
-func (c *client) validateIPInCIDR(ipStr string, net *cloudstack.Network, netID string) error {
-	ip := netpkg.ParseIP(ipStr)
+func validateIPInCIDR(ipStr, cidrStr string) error {
+	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		return errors.Errorf("invalid IP address %q", ipStr)
 	}
 
-	_, cidr, err := netpkg.ParseCIDR(net.Cidr)
+	_, cidr, err := net.ParseCIDR(cidrStr)
 	if err != nil {
-		return errors.Wrapf(err, "invalid CIDR %q for network %q", net.Cidr, netID)
+		return errors.Wrapf(err, "invalid CIDR %q", cidrStr)
 	}
 
 	if !cidr.Contains(ip) {
-		return errors.Errorf("IP %q is not within network CIDR %q", ipStr, net.Cidr)
+		return errors.Errorf("IP %q is not within network CIDR %q", ipStr, cidrStr)
 	}
 
+	return nil
+}
+
+func (c *client) configureNetworkParams(
+	p *cloudstack.DeployVirtualMachineParams,
+	csMachine *infrav1.CloudStackMachine,
+	fd *infrav1.CloudStackFailureDomain,
+) error {
+	if len(csMachine.Spec.Networks) == 0 && fd.Spec.Zone.Network.ID != "" {
+		p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
+		return nil
+	}
+
+	firstNetwork := csMachine.Spec.Networks[0]
+	zoneNet := fd.Spec.Zone.Network
+
+	// Validate match between zone network and first template network.
+	if zoneNet.ID != "" && firstNetwork.ID != "" && firstNetwork.ID != zoneNet.ID {
+		return errors.Errorf("first network ID %q does not match zone network ID %q", firstNetwork.ID, zoneNet.ID)
+	}
+	if zoneNet.Name != "" && firstNetwork.Name != "" && firstNetwork.Name != zoneNet.Name {
+		return errors.Errorf("first network name %q does not match zone network name %q", firstNetwork.Name, zoneNet.Name)
+	}
+
+	ipToNetworkList, err := c.buildIPToNetworkList(csMachine)
+	if err != nil {
+		return err
+	}
+
+	p.SetIptonetworklist(ipToNetworkList)
 	return nil
 }
 
@@ -456,24 +485,8 @@ func (c *client) DeployVM(
 
 	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offering.Id, templateID, fd.Spec.Zone.ID)
 
-	if len(csMachine.Spec.Networks) == 0 && fd.Spec.Zone.Network.ID != "" {
-		p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
-	} else {
-		firstNetwork := csMachine.Spec.Networks[0]
-		zoneNet := fd.Spec.Zone.Network
-
-		if zoneNet.ID != "" && firstNetwork.ID != "" && firstNetwork.ID != zoneNet.ID {
-			return errors.Errorf("first network ID %q does not match zone network ID %q", firstNetwork.ID, zoneNet.ID)
-		}
-		if zoneNet.Name != "" && firstNetwork.Name != "" && firstNetwork.Name != zoneNet.Name {
-			return errors.Errorf("first network name %q does not match zone network name %q", firstNetwork.Name, zoneNet.Name)
-		}
-
-		ipToNetworkList, err := c.buildIPToNetworkList(csMachine)
-		if err != nil {
-			return err
-		}
-		p.SetIptonetworklist(ipToNetworkList)
+	if err := c.configureNetworkParams(p, csMachine, fd); err != nil {
+		return err
 	}
 
 	setIfNotEmpty(csMachine.Name, p.SetName)
