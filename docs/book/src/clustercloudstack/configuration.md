@@ -143,6 +143,45 @@ After setting the environment variables, execute the following command to genera
 clusterctl generate cluster capc-cluster --flavor with-kube-vip > capc-cluster-spec.yaml
 ```
 
+##### Option for Multiple Networks
+
+Multiple networks can be specified at each node configuration in CloudStackMachineTemplate.
+This is configured under spec.template.spec.networks, where you can list one or more networks by name or id, 
+and optionally assign static IP addresses.
+
+When defining multiple networks for a VM in CAPC, the first network listed under spec.template.spec.networks is treated as
+the primary network. This primary network must match the network defined in the failure domain’s zone (failureDomains[].zone.network),
+either by name or by ID. It is used as the default NIC and is critical for VM boot and cluster communication. 
+
+Any networks listed after the primary are considered extra networks. These extra networks are attached as secondary NICs 
+on the VM and can be used for purposes such as service segmentation or additional routing. Each network entry, primary or 
+extra can optionally include a static IP address. If an IP is not specified, CloudStack will dynamically allocate one.
+
+For example:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
+kind: CloudStackMachineTemplate
+metadata:
+  name: capc-cluster-control-plane
+  namespace: default
+spec:
+  template:
+    spec:
+      offering:
+        name: Large Instance
+      networks:
+        - name: cloudstack-network          # (optional) default primary network; must match with network at failureDomains.zone.network.name
+          ip: 10.1.1.21                     # (optional) static IP in the primary network
+
+        # Additional (extra) networks can be specified below. Use either 'name' or 'id', and optionally an 'ip'.
+        - name: cloudstack-network-2        # (optional) extra network by name
+          ip: 10.1.1.31                     # (optional) static IP in this network
+
+        - id: a1b2c3d4-5678-90ef-gh12-3456789ijklm  # (optional) extra network by ID
+          ip: 10.1.1.41                             # (optional) static IP in this network
+```
+
 #### CloudStack Endpoint Credentials Secret (*optional for provided templates when used with provided getting-started process*)
 
 A reference to a Kubernetes Secret containing a YAML object containing credentials for accessing a particular CloudStack 
