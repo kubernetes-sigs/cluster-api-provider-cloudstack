@@ -356,11 +356,11 @@ func (c *client) hasFreeIPInNetwork(resolvedNet *cloudstack.Network) (bool, erro
 }
 
 func (c *client) buildStaticIPEntry(ip, networkID string, resolvedNet *cloudstack.Network) (map[string]string, error) {
-	if resolvedNet.Type == "Shared" {
-		if err := c.validateIPInCIDR(ip, resolvedNet, networkID); err != nil {
-			return nil, err
-		}
+	if err := c.validateIPInCIDR(ip, resolvedNet, networkID); err != nil {
+		return nil, err
+	}
 
+	if resolvedNet.Type == "Shared" {
 		isAvailable, err := c.isIpAvailableInNetwork(ip, networkID)
 		if err != nil {
 			return nil, err
