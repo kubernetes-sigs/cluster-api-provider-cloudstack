@@ -385,17 +385,9 @@ func (c *client) buildIPToNetworkList(csMachine *infrav1.CloudStackMachine) ([]m
 			return nil, err
 		}
 
-		var entry map[string]string
-		if net.IP != "" {
-			entry, err = c.buildIPEntry(resolvedNet, net.IP)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			entry, err = c.buildIPEntry(resolvedNet, "")
-			if err != nil {
-				return nil, err
-			}
+		entry, err := c.buildIPEntry(resolvedNet, net.IP)
+		if err != nil {
+			return nil, err
 		}
 
 		ipToNetworkList = append(ipToNetworkList, entry)

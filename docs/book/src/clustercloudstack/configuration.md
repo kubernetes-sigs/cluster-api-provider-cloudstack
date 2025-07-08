@@ -146,11 +146,11 @@ clusterctl generate cluster capc-cluster --flavor with-kube-vip > capc-cluster-s
 ##### Option for Multiple Networks
 
 Multiple networks can be specified at each node configuration in CloudStackMachineTemplate.
-This is configured under spec.template.spec.networks, where you can list one or more networks by name or id, 
+This is configured under `spec.template.spec.networks`, where you can list one or more networks by name or id, 
 and optionally assign static IP addresses.
 
-When defining multiple networks for a VM in CAPC, the first network listed under spec.template.spec.networks is treated as
-the primary network. This primary network must match the network defined in the failure domain’s zone (failureDomains[].zone.network),
+When defining multiple networks for a VM in CAPC, the first network listed under `spec.template.spec.networks` is treated as
+the primary network. This primary network must match the network defined in the failure domain’s zone (`failureDomains[].zone.network`),
 either by name or by ID. It is used as the default NIC and is critical for VM boot and cluster communication. 
 
 Any networks listed after the primary are considered extra networks. These extra networks are attached as secondary NICs 
