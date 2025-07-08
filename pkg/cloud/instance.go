@@ -312,20 +312,31 @@ func (c *client) CheckLimits(
 	return nil
 }
 
-func (c *client) isIpAvailableInNetwork(ip, networkID string) (bool, error) {
+func (c *client) listPublicIPsInNetwork(networkID, ip string) ([]*cloudstack.PublicIpAddress, error) {
 	params := c.cs.Address.NewListPublicIpAddressesParams()
 	params.SetNetworkid(networkID)
-	params.SetIpaddress(ip)
 	params.SetAllocatedonly(false)
 	params.SetForvirtualnetwork(false)
 	params.SetListall(true)
+	if ip != "" {
+		params.SetIpaddress(ip)
+	}
 
 	resp, err := c.cs.Address.ListPublicIpAddresses(params)
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to list public IP addresses for network %q", networkID)
+		return nil, errors.Wrapf(err, "failed to list public IP addresses for network %q", networkID)
 	}
 
-	for _, addr := range resp.PublicIpAddresses {
+	return resp.PublicIpAddresses, nil
+}
+
+func (c *client) isIPAvailableInNetwork(ip, networkID string) (bool, error) {
+	publicIPs, err := c.listPublicIPsInNetwork(networkID, ip)
+	if err != nil {
+		return false, err
+	}
+
+	for _, addr := range publicIPs {
 		if addr.State == "Free" {
 			return true, nil
 		}
@@ -335,18 +346,12 @@ func (c *client) isIpAvailableInNetwork(ip, networkID string) (bool, error) {
 }
 
 func (c *client) hasFreeIPInNetwork(resolvedNet *cloudstack.Network) (bool, error) {
-	params := c.cs.Address.NewListPublicIpAddressesParams()
-	params.SetNetworkid(resolvedNet.Id)
-	params.SetAllocatedonly(false)
-	params.SetForvirtualnetwork(false)
-	params.SetListall(true)
-
-	resp, err := c.cs.Address.ListPublicIpAddresses(params)
+	publicIPs, err := c.listPublicIPsInNetwork(resolvedNet.Id, "")
 	if err != nil {
-		return false, errors.Wrapf(err, "failed to check free IPs for network %q", resolvedNet.Id)
+		return false, err
 	}
 
-	for _, addr := range resp.PublicIpAddresses {
+	for _, addr := range publicIPs {
 		if addr.State == "Free" {
 			return true, nil
 		}
@@ -355,13 +360,14 @@ func (c *client) hasFreeIPInNetwork(resolvedNet *cloudstack.Network) (bool, erro
 	return false, nil
 }
 
-func (c *client) buildStaticIPEntry(ip, networkID string, resolvedNet *cloudstack.Network) (map[string]string, error) {
+func (c *client) buildStaticIPEntry(ip string, resolvedNet *cloudstack.Network) (map[string]string, error) {
+	networkID := resolvedNet.Id
 	if err := c.validateIPInCIDR(ip, resolvedNet, networkID); err != nil {
 		return nil, err
 	}
 
 	if resolvedNet.Type == "Shared" {
-		isAvailable, err := c.isIpAvailableInNetwork(ip, networkID)
+		isAvailable, err := c.isIPAvailableInNetwork(ip, networkID)
 		if err != nil {
 			return nil, err
 		}
@@ -407,14 +413,14 @@ func (c *client) buildIPToNetworkList(csMachine *infrav1.CloudStackMachine) ([]m
 	var ipToNetworkList []map[string]string
 
 	for _, net := range csMachine.Spec.Networks {
-		networkID, resolvedNet, err := c.resolveNetworkReference(net)
+		resolvedNet, err := c.resolveNetwork(net)
 		if err != nil {
 			return nil, err
 		}
 
 		var entry map[string]string
 		if net.IP != "" {
-			entry, err = c.buildStaticIPEntry(net.IP, networkID, resolvedNet)
+			entry, err = c.buildStaticIPEntry(net.IP, resolvedNet)
 			if err != nil {
 				return nil, err
 			}
@@ -431,27 +437,19 @@ func (c *client) buildIPToNetworkList(csMachine *infrav1.CloudStackMachine) ([]m
 	return ipToNetworkList, nil
 }
 
-func (c *client) resolveNetworkReference(net infrav1.NetworkSpec) (string, *cloudstack.Network, error) {
+func (c *client) resolveNetwork(net infrav1.NetworkSpec) (*cloudstack.Network, error) {
 	if net.ID == "" {
-		resolvedNet, err := c.resolveNetworkByName(net.Name)
-		if err != nil {
-			return "", nil, err
-		}
-		return resolvedNet.Id, resolvedNet, nil
+		return c.resolveNetworkByName(net.Name)
 	}
 
 	resolvedNet, _, err := c.cs.Network.GetNetworkByID(net.ID, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
-		return "", nil, errors.Wrapf(err, "failed to get network %q by ID", net.ID)
+		return nil, errors.Wrapf(err, "failed to get network %q by ID", net.ID)
 	}
-	return net.ID, resolvedNet, nil
+	return resolvedNet, nil
 }
 
 func (c *client) validateIPInCIDR(ipStr string, net *cloudstack.Network, netID string) error {
-	if net == nil {
-		return errors.Errorf("network details not found for validation")
-	}
-
 	ip := netpkg.ParseIP(ipStr)
 	if ip == nil {
 		return errors.Errorf("invalid IP address %q", ipStr)
