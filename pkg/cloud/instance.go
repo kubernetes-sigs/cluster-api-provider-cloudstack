@@ -343,7 +343,7 @@ func (c *client) buildIPEntry(resolvedNet *cloudstack.Network, ip string) (map[s
 		}
 	}
 
-	if resolvedNet.Type == "Shared" {
+	if resolvedNet.Type == NetworkTypeShared {
 		isAvailable, err := c.isFreeIPAvailable(resolvedNet.Id, ip)
 		if err != nil {
 			return nil, err
