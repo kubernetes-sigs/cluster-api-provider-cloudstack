@@ -312,31 +312,23 @@ func (c *client) CheckLimits(
 	return nil
 }
 
-func (c *client) listPublicIPsInNetwork(networkID, ip string) ([]*cloudstack.PublicIpAddress, error) {
+func (c *client) isFreeIPAvailable(networkID, ip string) (bool, error) {
 	params := c.cs.Address.NewListPublicIpAddressesParams()
 	params.SetNetworkid(networkID)
 	params.SetAllocatedonly(false)
 	params.SetForvirtualnetwork(false)
 	params.SetListall(true)
+
 	if ip != "" {
 		params.SetIpaddress(ip)
 	}
 
 	resp, err := c.cs.Address.ListPublicIpAddresses(params)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list public IP addresses for network %q", networkID)
+		return false, errors.Wrapf(err, "failed to list public IP addresses for network %q", networkID)
 	}
 
-	return resp.PublicIpAddresses, nil
-}
-
-func (c *client) isIPAvailableInNetwork(ip, networkID string) (bool, error) {
-	publicIPs, err := c.listPublicIPsInNetwork(networkID, ip)
-	if err != nil {
-		return false, err
-	}
-
-	for _, addr := range publicIPs {
+	for _, addr := range resp.PublicIpAddresses {
 		if addr.State == "Free" {
 			return true, nil
 		}
@@ -345,57 +337,33 @@ func (c *client) isIPAvailableInNetwork(ip, networkID string) (bool, error) {
 	return false, nil
 }
 
-func (c *client) hasFreeIPInNetwork(resolvedNet *cloudstack.Network) (bool, error) {
-	publicIPs, err := c.listPublicIPsInNetwork(resolvedNet.Id, "")
-	if err != nil {
-		return false, err
-	}
-
-	for _, addr := range publicIPs {
-		if addr.State == "Free" {
-			return true, nil
+func (c *client) buildIPEntry(resolvedNet *cloudstack.Network, ip string) (map[string]string, error) {
+	if ip != "" {
+		if err := c.validateIPInCIDR(ip, resolvedNet, resolvedNet.Id); err != nil {
+			return nil, err
 		}
-	}
-
-	return false, nil
-}
-
-func (c *client) buildStaticIPEntry(ip string, resolvedNet *cloudstack.Network) (map[string]string, error) {
-	networkID := resolvedNet.Id
-	if err := c.validateIPInCIDR(ip, resolvedNet, networkID); err != nil {
-		return nil, err
 	}
 
 	if resolvedNet.Type == "Shared" {
-		isAvailable, err := c.isIPAvailableInNetwork(ip, networkID)
+		isAvailable, err := c.isFreeIPAvailable(resolvedNet.Id, ip)
 		if err != nil {
 			return nil, err
 		}
 		if !isAvailable {
-			return nil, errors.Errorf("IP %q is already allocated in network %q or out of range", ip, networkID)
-		}
-	}
-
-	return map[string]string{
-		"networkid": networkID,
-		"ip":        ip,
-	}, nil
-}
-
-func (c *client) buildDynamicIPEntry(resolvedNet *cloudstack.Network) (map[string]string, error) {
-	if resolvedNet.Type == "Shared" {
-		freeIPExists, err := c.hasFreeIPInNetwork(resolvedNet)
-		if err != nil {
-			return nil, err
-		}
-		if !freeIPExists {
+			if ip != "" {
+				return nil, errors.Errorf("IP %q is already allocated in network %q or out of range", ip, resolvedNet.Id)
+			}
 			return nil, errors.Errorf("no free IPs available in network %q", resolvedNet.Id)
 		}
 	}
 
-	return map[string]string{
+	entry := map[string]string{
 		"networkid": resolvedNet.Id,
-	}, nil
+	}
+	if ip != "" {
+		entry["ip"] = ip
+	}
+	return entry, nil
 }
 
 func (c *client) resolveNetworkByName(name string) (*cloudstack.Network, error) {
@@ -420,12 +388,12 @@ func (c *client) buildIPToNetworkList(csMachine *infrav1.CloudStackMachine) ([]m
 
 		var entry map[string]string
 		if net.IP != "" {
-			entry, err = c.buildStaticIPEntry(net.IP, resolvedNet)
+			entry, err = c.buildIPEntry(resolvedNet, net.IP)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			entry, err = c.buildDynamicIPEntry(resolvedNet)
+			entry, err = c.buildIPEntry(resolvedNet, "")
 			if err != nil {
 				return nil, err
 			}
