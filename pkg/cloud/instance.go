@@ -439,28 +439,28 @@ func (c *client) configureNetworkParams(
 	csMachine *infrav1.CloudStackMachine,
 	fd *infrav1.CloudStackFailureDomain,
 ) error {
-	if len(csMachine.Spec.Networks) == 0 && fd.Spec.Zone.Network.ID != "" {
-		p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
-		return nil
+	if len(csMachine.Spec.Networks) == 0 {
+		if fd.Spec.Zone.Network.ID != "" {
+			p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
+		}
+	} else {
+		firstNetwork := csMachine.Spec.Networks[0]
+		zoneNet := fd.Spec.Zone.Network
+
+		if zoneNet.ID != "" && firstNetwork.ID != "" && firstNetwork.ID != zoneNet.ID {
+			return errors.Errorf("first network ID %q does not match zone network ID %q", firstNetwork.ID, zoneNet.ID)
+		}
+		if zoneNet.Name != "" && firstNetwork.Name != "" && firstNetwork.Name != zoneNet.Name {
+			return errors.Errorf("first network name %q does not match zone network name %q", firstNetwork.Name, zoneNet.Name)
+		}
+
+		ipToNetworkList, err := c.buildIPToNetworkList(csMachine)
+		if err != nil {
+			return err
+		}
+		p.SetIptonetworklist(ipToNetworkList)
 	}
 
-	firstNetwork := csMachine.Spec.Networks[0]
-	zoneNet := fd.Spec.Zone.Network
-
-	// Validate match between zone network and first template network.
-	if zoneNet.ID != "" && firstNetwork.ID != "" && firstNetwork.ID != zoneNet.ID {
-		return errors.Errorf("first network ID %q does not match zone network ID %q", firstNetwork.ID, zoneNet.ID)
-	}
-	if zoneNet.Name != "" && firstNetwork.Name != "" && firstNetwork.Name != zoneNet.Name {
-		return errors.Errorf("first network name %q does not match zone network name %q", firstNetwork.Name, zoneNet.Name)
-	}
-
-	ipToNetworkList, err := c.buildIPToNetworkList(csMachine)
-	if err != nil {
-		return err
-	}
-
-	p.SetIptonetworklist(ipToNetworkList)
 	return nil
 }
 
