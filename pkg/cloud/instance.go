@@ -19,6 +19,7 @@ package cloud
 import (
 	"encoding/base64"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
@@ -44,7 +45,15 @@ func setMachineDataFromVMMetrics(vmResponse *cloudstack.VirtualMachinesMetric, c
 	csMachine.Spec.ProviderID = ptr.To(fmt.Sprintf("cloudstack:///%s", vmResponse.Id))
 	// InstanceID is later used as required parameter to destroy VM.
 	csMachine.Spec.InstanceID = ptr.To(vmResponse.Id)
-	csMachine.Status.Addresses = []corev1.NodeAddress{{Type: corev1.NodeInternalIP, Address: vmResponse.Ipaddress}}
+	csMachine.Status.Addresses = []corev1.NodeAddress{}
+	for _, nic := range vmResponse.Nic {
+		if nic.Ipaddress != "" {
+			csMachine.Status.Addresses = append(csMachine.Status.Addresses, corev1.NodeAddress{
+				Type:    corev1.NodeInternalIP,
+				Address: nic.Ipaddress,
+			})
+		}
+	}
 	newInstanceState := vmResponse.State
 	if newInstanceState != csMachine.Status.InstanceState || (newInstanceState != "" && csMachine.Status.InstanceStateLastUpdated.IsZero()) {
 		csMachine.Status.InstanceState = newInstanceState
@@ -302,36 +311,149 @@ func (c *client) CheckLimits(
 	return nil
 }
 
-func (c *client) resolveNetworkIDByName(name string) (string, error) {
+func (c *client) isFreeIPAvailable(networkID, ip string) (bool, error) {
+	params := c.cs.Address.NewListPublicIpAddressesParams()
+	params.SetNetworkid(networkID)
+	params.SetAllocatedonly(false)
+	params.SetForvirtualnetwork(false)
+	params.SetListall(true)
+
+	if ip != "" {
+		params.SetIpaddress(ip)
+	}
+
+	resp, err := c.cs.Address.ListPublicIpAddresses(params)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to list public IP addresses for network %q", networkID)
+	}
+
+	for _, addr := range resp.PublicIpAddresses {
+		if addr.State == "Free" {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (c *client) buildIPEntry(resolvedNet *cloudstack.Network, ip string) (map[string]string, error) {
+	if ip != "" {
+		if err := validateIPInCIDR(ip, resolvedNet.Cidr); err != nil {
+			return nil, err
+		}
+	}
+
+	if resolvedNet.Type == NetworkTypeShared {
+		isAvailable, err := c.isFreeIPAvailable(resolvedNet.Id, ip)
+		if err != nil {
+			return nil, err
+		}
+		if !isAvailable {
+			if ip != "" {
+				return nil, errors.Errorf("IP %q is already allocated in network %q or out of range", ip, resolvedNet.Id)
+			}
+			return nil, errors.Errorf("no free IPs available in network %q", resolvedNet.Id)
+		}
+	}
+
+	entry := map[string]string{
+		"networkid": resolvedNet.Id,
+	}
+	if ip != "" {
+		entry["ip"] = ip
+	}
+	return entry, nil
+}
+
+func (c *client) resolveNetworkByName(name string) (*cloudstack.Network, error) {
 	net, count, err := c.cs.Network.GetNetworkByName(name, cloudstack.WithProject(c.user.Project.ID))
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to look up network %q", name)
+		return nil, errors.Wrapf(err, "failed to look up network %q", name)
 	}
 	if count != 1 {
-		return "", errors.Errorf("expected 1 network named %q, but got %d", name, count)
+		return nil, errors.Errorf("expected 1 network named %q, but got %d", name, count)
 	}
-	return net.Id, nil
+	return net, nil
 }
 
 func (c *client) buildIPToNetworkList(csMachine *infrav1.CloudStackMachine) ([]map[string]string, error) {
-	ipToNetworkList := []map[string]string{}
+	var ipToNetworkList []map[string]string
 
 	for _, net := range csMachine.Spec.Networks {
-		networkID := net.ID
-		if networkID == "" {
-			var err error
-			networkID, err = c.resolveNetworkIDByName(net.Name)
-			if err != nil {
-				return nil, err
-			}
+		resolvedNet, err := c.resolveNetwork(net)
+		if err != nil {
+			return nil, err
 		}
-		entry := map[string]string{"networkid": networkID}
-		if net.IP != "" {
-			entry["ip"] = net.IP
+
+		entry, err := c.buildIPEntry(resolvedNet, net.IP)
+		if err != nil {
+			return nil, err
 		}
+
 		ipToNetworkList = append(ipToNetworkList, entry)
 	}
+
 	return ipToNetworkList, nil
+}
+
+func (c *client) resolveNetwork(net infrav1.NetworkSpec) (*cloudstack.Network, error) {
+	if net.ID == "" {
+		return c.resolveNetworkByName(net.Name)
+	}
+
+	resolvedNet, _, err := c.cs.Network.GetNetworkByID(net.ID, cloudstack.WithProject(c.user.Project.ID))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get network %q by ID", net.ID)
+	}
+	return resolvedNet, nil
+}
+
+func validateIPInCIDR(ipStr, cidrStr string) error {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return errors.Errorf("invalid IP address %q", ipStr)
+	}
+
+	_, cidr, err := net.ParseCIDR(cidrStr)
+	if err != nil {
+		return errors.Wrapf(err, "invalid CIDR %q", cidrStr)
+	}
+
+	if !cidr.Contains(ip) {
+		return errors.Errorf("IP %q is not within network CIDR %q", ipStr, cidrStr)
+	}
+
+	return nil
+}
+
+func (c *client) configureNetworkParams(
+	p *cloudstack.DeployVirtualMachineParams,
+	csMachine *infrav1.CloudStackMachine,
+	fd *infrav1.CloudStackFailureDomain,
+) error {
+	if len(csMachine.Spec.Networks) == 0 {
+		if fd.Spec.Zone.Network.ID != "" {
+			p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
+		}
+	} else {
+		firstNetwork := csMachine.Spec.Networks[0]
+		zoneNet := fd.Spec.Zone.Network
+
+		if zoneNet.ID != "" && firstNetwork.ID != "" && firstNetwork.ID != zoneNet.ID {
+			return errors.Errorf("first network ID %q does not match zone network ID %q", firstNetwork.ID, zoneNet.ID)
+		}
+		if zoneNet.Name != "" && firstNetwork.Name != "" && firstNetwork.Name != zoneNet.Name {
+			return errors.Errorf("first network name %q does not match zone network name %q", firstNetwork.Name, zoneNet.Name)
+		}
+
+		ipToNetworkList, err := c.buildIPToNetworkList(csMachine)
+		if err != nil {
+			return err
+		}
+		p.SetIptonetworklist(ipToNetworkList)
+	}
+
+	return nil
 }
 
 // DeployVM will create a VM instance,
@@ -355,14 +477,8 @@ func (c *client) DeployVM(
 
 	p := c.cs.VirtualMachine.NewDeployVirtualMachineParams(offering.Id, templateID, fd.Spec.Zone.ID)
 
-	if len(csMachine.Spec.Networks) == 0 && fd.Spec.Zone.Network.ID != "" {
-		p.SetNetworkids([]string{fd.Spec.Zone.Network.ID})
-	} else {
-		ipToNetworkList, err := c.buildIPToNetworkList(csMachine)
-		if err != nil {
-			return err
-		}
-		p.SetIptonetworklist(ipToNetworkList)
+	if err := c.configureNetworkParams(p, csMachine, fd); err != nil {
+		return err
 	}
 
 	setIfNotEmpty(csMachine.Name, p.SetName)
