@@ -251,6 +251,9 @@ spec:
             description: CloudStackIsolatedNetworkStatus defines the observed state
               of CloudStackIsolatedNetwork
             properties:
+              firewallRulesOpened:
+                description: Firewall rules open status.
+                type: boolean
               loadBalancerRuleID:
                 description: The ID of the lb rule used to assign VMs to the lb.
                 type: string

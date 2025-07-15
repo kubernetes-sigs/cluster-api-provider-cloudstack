@@ -45,15 +45,6 @@ const (
 	ResourceTypeIPAddress ResourceType = "PublicIpAddress"
 )
 
-// ignoreAlreadyPresentErrors returns nil if the error is an already present tag error.
-func ignoreAlreadyPresentErrors(err error, rType ResourceType, rID string) error {
-	matchSubString := strings.ToLower("already on " + string(rType) + " with id " + rID)
-	if err != nil && !strings.Contains(strings.ToLower(err.Error()), matchSubString) {
-		return err
-	}
-	return nil
-}
-
 func (c *client) IsCapcManaged(resourceType ResourceType, resourceID string) (bool, error) {
 	tags, err := c.GetTags(resourceType, resourceID)
 	if err != nil {
@@ -117,10 +108,30 @@ func (c *client) DoClusterTagsAllowDisposal(resourceType ResourceType, resourceI
 
 // AddTags adds arbitrary tags to a resource.
 func (c *client) AddTags(resourceType ResourceType, resourceID string, tags map[string]string) error {
-	p := c.cs.Resourcetags.NewCreateTagsParams([]string{resourceID}, string(resourceType), tags)
-	_, err := c.cs.Resourcetags.CreateTags(p)
-	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
-	return ignoreAlreadyPresentErrors(err, resourceType, resourceID)
+	// Retrieve existing tags
+	existingTags, err := c.GetTags(resourceType, resourceID)
+	if err != nil {
+		return errors.Wrapf(err, "fetching tags for resource %s with ID %s", resourceType, resourceID)
+	}
+
+	// Identify tags that need to be added or updated
+	tagsToAdd := make(map[string]string)
+	for key, value := range tags {
+		if existingValue, exists := existingTags[key]; !exists || existingValue != value {
+			tagsToAdd[key] = value
+		}
+	}
+
+	// If there are tags to add, call the API
+	if len(tagsToAdd) > 0 {
+		p := c.cs.Resourcetags.NewCreateTagsParams([]string{resourceID}, string(resourceType), tagsToAdd)
+		if _, err := c.cs.Resourcetags.CreateTags(p); err != nil {
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
+			return errors.Wrapf(err, "creating tags for resource %s with ID %s", resourceType, resourceID)
+		}
+	}
+
+	return nil
 }
 
 // GetTags gets all of a resource's tags.
