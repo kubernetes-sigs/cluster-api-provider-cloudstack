@@ -18,6 +18,6 @@ jobs:
       - name: Run go test with coverage
         run: COVER_PROFILE=coverage.txt make test
       - name: Codecov upload
-        uses: codecov/codecov-action@v5.4.0
+        uses: codecov/codecov-action@v5.4.3
         with:
           files: ./cover.out
