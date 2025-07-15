@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -573,6 +574,95 @@ func IsClusterReady(ctx context.Context, mgmtClient client.Client, cluster *clus
 	}
 	Expect(err).To(BeNil(), "Failed to get cluster status")
 	return c.Status.ControlPlaneReady && c.Status.InfrastructureReady
+}
+
+func EnsureSecondaryNetworkExists(client *cloudstack.CloudStackClient, input CommonSpecInput) (*cloudstack.Network, error) {
+	secondaryNetName := input.E2EConfig.GetVariable("CLOUDSTACK_NEW_NETWORK_NAME")
+
+	By("Fetching secondary network details")
+	// Try fetching secondary network
+	secondaryNet, _, err := client.Network.GetNetworkByName(secondaryNetName)
+	if err == nil && secondaryNet != nil {
+		By(fmt.Sprintf("Network %q already exists", secondaryNetName))
+		return secondaryNet, nil
+	}
+
+	By("Listing Zone")
+	zoneName := input.E2EConfig.GetVariable("CLOUDSTACK_ZONE_NAME")
+	pz := client.Zone.NewListZonesParams()
+	pz.SetName(zoneName)
+	listZonesResponse, err := client.Zone.ListZones(pz)
+	Expect(err).To(BeNil(), "error listing zones")
+	Expect(listZonesResponse.Count).To(Equal(1), "no zones, or more than one zone resolve to zone name %s", zoneName)
+	zoneId := listZonesResponse.Zones[0].Id
+
+	By("Listing network offerings")
+	networkOffering, _, err := client.NetworkOffering.GetNetworkOfferingByName(DefaultNetworkOffering)
+	Expect(err).To(BeNil(), "error fetching network offering %q", DefaultNetworkOffering)
+	Expect(networkOffering).ToNot(BeNil(), "network offering %q not found", DefaultNetworkOffering)
+
+	// Create new network using zone and offering from primary
+	By("Create secondary network")
+	createParams := client.Network.NewCreateNetworkParams(
+		secondaryNetName,
+		networkOffering.Id,
+		zoneId,
+	)
+
+	newNetResp, err := client.Network.CreateNetwork(createParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create network %q: %w", secondaryNetName, err)
+	}
+
+	newNet, _, err := client.Network.GetNetworkByID(newNetResp.Id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch created network %q by ID: %w", newNetResp.Id, err)
+	}
+
+	By("Created secondary network")
+	By(fmt.Sprintf("Created secondary network %q", secondaryNetName))
+	return newNet, nil
+}
+
+func CheckIfNodesHaveTwoNICs(client *cloudstack.CloudStackClient, clusterName string, input CommonSpecInput) {
+	requiredNetworks := map[string]bool{
+		input.E2EConfig.GetVariable("CLOUDSTACK_NETWORK_NAME"):     false,
+		input.E2EConfig.GetVariable("CLOUDSTACK_NEW_NETWORK_NAME"): false,
+	}
+
+	Byf("Listing machines with name containing %q", clusterName)
+	listResp, err := client.VirtualMachine.ListVirtualMachines(client.VirtualMachine.NewListVirtualMachinesParams())
+	Expect(err).NotTo(HaveOccurred(), "Failed to list virtual machines from CloudStack")
+	for _, vm := range listResp.VirtualMachines {
+		if !strings.Contains(vm.Name, clusterName) {
+			continue
+		}
+
+		if len(vm.Nic) < 2 {
+			Fail(fmt.Sprintf("VM %q has fewer than 2 NICs. Found: %d", vm.Name, len(vm.Nic)))
+		}
+
+		foundNetworks := make(map[string]bool)
+		for _, nic := range vm.Nic {
+			foundNetworks[nic.Networkname] = true
+		}
+
+		for required := range requiredNetworks {
+			if !foundNetworks[required] {
+				Fail(fmt.Sprintf("VM %q is missing required network %q", vm.Name, required))
+			}
+		}
+
+		By(fmt.Sprintf("VM %q has required NICs: %v", vm.Name, maps.Keys(foundNetworks)))
+	}
+}
+
+func keys(m map[string]bool) []string {
+	var list []string
+	for k := range m {
+		list = append(list, k)
+	}
+	return list
 }
 
 func CheckDiskOfferingOfVmInstances(client *cloudstack.CloudStackClient, clusterName string, diskOfferingName string) {
