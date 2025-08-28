@@ -265,7 +265,7 @@ func (c *client) createFirewallRule(isoNet *infrav1.CloudStackIsolatedNetwork, p
 			p.SetIcmpcode(-1)
 		}
 		_, err := c.cs.Firewall.CreateRoutingFirewallRule(p)
-		if err != nil && !c.isIgnorableError(err) {
+		if err != nil && !c.isIgnorableFirewallRuleError(err) {
 			return errors.Wrapf(err, "failed creating routing firewall rule for network ID %s protocol %s", isoNet.Spec.ID, proto)
 		}
 		return nil
@@ -278,7 +278,7 @@ func (c *client) createFirewallRule(isoNet *infrav1.CloudStackIsolatedNetwork, p
 		p.SetIcmpcode(-1)
 	}
 	_, err := c.cs.Firewall.CreateEgressFirewallRule(p)
-	if err != nil && !c.isIgnorableError(err) {
+	if err != nil && !c.isIgnorableFirewallRuleError(err) {
 		return errors.Wrapf(err, "failed creating egress firewall rule for network ID %s protocol %s", isoNet.Spec.ID, proto)
 	}
 	return nil
@@ -292,7 +292,7 @@ const (
 )
 
 // Helper function to check if an error is ignorable
-func (c *client) isIgnorableError(err error) bool {
+func (c *client) isIgnorableFirewallRuleError(err error) bool {
 	errorMsg := strings.ToLower(err.Error())
 	return strings.Contains(errorMsg, ErrAlreadyExists) ||
 		strings.Contains(errorMsg, ErrRuleConflict) ||
