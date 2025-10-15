@@ -73,6 +73,9 @@ type CloudStackIsolatedNetworkStatus struct {
 	// Empty value means the network mode is NATTED, not ROUTED.
 	RoutingMode string `json:"routingMode,omitempty"`
 
+	// Indicates whether the necessary firewall egress and routing rules for the isolated network have been applied successfully.
+	FirewallRulesOpened bool `json:"firewallRulesOpened,omitempty"`
+
 	// Ready indicates the readiness of this provider resource.
 	Ready bool `json:"ready"`
 }

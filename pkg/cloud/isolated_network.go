@@ -154,54 +154,149 @@ func (c *client) CreateIsolatedNetwork(fd *infrav1.CloudStackFailureDomain, isoN
 
 // OpenFirewallRules opens a CloudStack egress firewall for an isolated network.
 func (c *client) OpenFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (retErr error) {
+	// Early return if VPC is present
+	// Firewall rules are not opened for isolated networks within a VPC because VPCs have their own mechanisms for managing firewall rules.
 	if isoNet.Spec.VPC != nil && isoNet.Spec.VPC.ID != "" {
 		return nil
 	}
 
-	// If network's egress policy is true, then we don't need to open the firewall rules for all protocols
-	network, count, err := c.cs.Network.GetNetworkByID(isoNet.Spec.ID, cloudstack.WithProject(c.user.Project.ID))
+	// Get network details
+	network, err := c.getNetwork(isoNet.Spec.ID)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get network by ID %s", isoNet.Spec.ID)
+		return err
 	}
-	if count == 0 {
-		return errors.Errorf("no network found with ID %s", isoNet.Spec.ID)
-	}
+
+	// Early return if egress default policy is true
 	if network.Egressdefaultpolicy {
+		isoNet.Status.FirewallRulesOpened = true
 		return nil
 	}
 
+	// Check if all required firewall rules exist
+	allRulesPresent, err := c.checkFirewallRules(isoNet)
+	if err != nil {
+		return err
+	}
+	if allRulesPresent {
+		isoNet.Status.FirewallRulesOpened = true
+		return nil
+	}
+
+	// Reset status if rules are missing
+	isoNet.Status.FirewallRulesOpened = false
+
+	// Create firewall rules for each protocol
 	protocols := []string{NetworkProtocolTCP, NetworkProtocolUDP, NetworkProtocolICMP}
 	for _, proto := range protocols {
-		var err error
-		if isoNet.Status.RoutingMode != "" {
-			p := c.cs.Firewall.NewCreateRoutingFirewallRuleParams(isoNet.Spec.ID, proto)
-			if proto == "icmp" {
-				p.SetIcmptype(-1)
-				p.SetIcmpcode(-1)
-			}
-			_, err = c.cs.Firewall.CreateRoutingFirewallRule(p)
-		} else {
-			p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, proto)
-
-			if proto == "icmp" {
-				p.SetIcmptype(-1)
-				p.SetIcmpcode(-1)
-			}
-
-			_, err = c.cs.Firewall.CreateEgressFirewallRule(p)
-		}
-		if err != nil &&
-			// Ignore errors regarding already existing fw rules for TCP/UDP for non-dynamic routing mode
-			!strings.Contains(strings.ToLower(err.Error()), "there is already") &&
-			!strings.Contains(strings.ToLower(err.Error()), "conflicts with rule") &&
-			// Ignore errors regarding already existing fw rule for ICMP
-			!strings.Contains(strings.ToLower(err.Error()), "new rule conflicts with existing rule") {
-			retErr = errors.Wrapf(
-				err, "failed creating egress firewall rule for network ID %s protocol %s", isoNet.Spec.ID, proto)
+		if err := c.createFirewallRule(isoNet, proto); err != nil {
+			c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
+			return errors.Wrapf(err, "failed creating firewall rule for network ID %s", isoNet.Spec.ID)
 		}
 	}
-	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
-	return retErr
+
+	// Mark firewall rules as opened if all rules were created successfully
+	isoNet.Status.FirewallRulesOpened = true
+	return nil
+}
+
+// Helper function to check if all required firewall rules exist
+func (c *client) checkFirewallRules(isoNet *infrav1.CloudStackIsolatedNetwork) (bool, error) {
+	protocols := []string{NetworkProtocolTCP, NetworkProtocolUDP, NetworkProtocolICMP}
+	p := c.cs.Firewall.NewListEgressFirewallRulesParams()
+	p.SetNetworkid(isoNet.Spec.ID)
+	setIfNotEmpty(c.user.Project.ID, p.SetProjectid)
+
+	rules, err := c.cs.Firewall.ListEgressFirewallRules(p)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to list egress firewall rules for network ID %s", isoNet.Spec.ID)
+	}
+
+	// Create a map to track found protocols
+	foundProtocols := make(map[string]bool)
+	for _, proto := range protocols {
+		foundProtocols[proto] = false
+	}
+
+	// Check each rule for matching protocol and parameters
+	for _, rule := range rules.EgressFirewallRules {
+		if _, exists := foundProtocols[rule.Protocol]; exists {
+			if rule.Protocol == "icmp" {
+				// For ICMP, ensure icmptype and icmpcode are -1
+				if rule.Icmptype == -1 && rule.Icmpcode == -1 {
+					foundProtocols[rule.Protocol] = true
+				}
+			} else {
+				// For TCP/UDP, ensure no specific ports are set (all ports)
+				if rule.Startport == 0 && rule.Endport == 0 {
+					foundProtocols[rule.Protocol] = true
+				}
+			}
+		}
+	}
+
+	// Return true only if all required protocols are found
+	for _, proto := range protocols {
+		if !foundProtocols[proto] {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// Helper function to get network details
+func (c *client) getNetwork(networkID string) (*cloudstack.Network, error) {
+	network, count, err := c.cs.Network.GetNetworkByID(networkID, cloudstack.WithProject(c.user.Project.ID))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get network by ID %s", networkID)
+	}
+	if count == 0 {
+		return nil, errors.Errorf("no network found with ID %s", networkID)
+	}
+	return network, nil
+}
+
+// Helper function to create a firewall rule for a given protocol
+func (c *client) createFirewallRule(isoNet *infrav1.CloudStackIsolatedNetwork, proto string) error {
+	if isoNet.Status.RoutingMode != "" {
+		// Handle routing firewall rules
+		p := c.cs.Firewall.NewCreateRoutingFirewallRuleParams(isoNet.Spec.ID, proto)
+		if proto == "icmp" {
+			p.SetIcmptype(-1)
+			p.SetIcmpcode(-1)
+		}
+		_, err := c.cs.Firewall.CreateRoutingFirewallRule(p)
+		if err != nil && !c.isIgnorableFirewallRuleError(err) {
+			return errors.Wrapf(err, "failed creating routing firewall rule for network ID %s protocol %s", isoNet.Spec.ID, proto)
+		}
+		return nil
+	}
+
+	// Handle egress firewall rules
+	p := c.cs.Firewall.NewCreateEgressFirewallRuleParams(isoNet.Spec.ID, proto)
+	if proto == "icmp" {
+		p.SetIcmptype(-1)
+		p.SetIcmpcode(-1)
+	}
+	_, err := c.cs.Firewall.CreateEgressFirewallRule(p)
+	if err != nil && !c.isIgnorableFirewallRuleError(err) {
+		return errors.Wrapf(err, "failed creating egress firewall rule for network ID %s protocol %s", isoNet.Spec.ID, proto)
+	}
+	return nil
+}
+
+// Named constants for ignorable error substrings
+const (
+	ErrAlreadyExists   = "there is already"
+	ErrRuleConflict    = "conflicts with rule"
+	ErrNewRuleConflict = "new rule conflicts with existing rule"
+)
+
+// Helper function to check if an error is ignorable
+func (c *client) isIgnorableFirewallRuleError(err error) bool {
+	errorMsg := strings.ToLower(err.Error())
+	return strings.Contains(errorMsg, ErrAlreadyExists) ||
+		strings.Contains(errorMsg, ErrRuleConflict) ||
+		strings.Contains(errorMsg, ErrNewRuleConflict)
 }
 
 // GetPublicIP gets a public IP with ID for cluster endpoint.
@@ -300,9 +395,9 @@ func (c *client) GetOrCreateIsolatedNetwork(
 	isoNet *infrav1.CloudStackIsolatedNetwork,
 	csCluster *infrav1.CloudStackCluster,
 ) error {
-	// Get or create the isolated network itself and resolve details into passed custom resources.
 	net := isoNet.Network()
-	if err := c.ResolveNetwork(net); err != nil { // Doesn't exist, create isolated network.
+	err := c.ResolveNetwork(net)
+	if err != nil {
 		if err = c.CreateIsolatedNetwork(fd, isoNet); err != nil {
 			return errors.Wrap(err, "creating a new isolated network")
 		}
