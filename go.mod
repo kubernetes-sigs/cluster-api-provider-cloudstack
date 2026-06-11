@@ -1,8 +1,6 @@
 module sigs.k8s.io/cluster-api-provider-cloudstack
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.26
 
 require (
 	github.com/apache/cloudstack-go/v2 v2.17.1
