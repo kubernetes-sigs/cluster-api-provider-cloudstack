@@ -34,6 +34,7 @@ The account that CAPC runs under must minimally be a User type account with a ro
 * listVolumes
 * listZones
 * queryAsyncJobResult
+* removeFromLoadBalancerRule
 * startVirtualMachine
 * stopVirtualMachine
 * updateVMAffinityGroup

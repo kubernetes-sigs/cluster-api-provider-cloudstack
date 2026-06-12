@@ -126,6 +126,7 @@ func (r *CloudStackMachineReconciliationRunner) Reconcile() (retRes ctrl.Result,
 		r.ConsiderAffinity,
 		r.GetOrCreateVMInstance,
 		r.RequeueIfInstanceNotRunning,
+		r.RemoveFromLBIfMachineDeleting,
 		r.AddToLBIfNeeded,
 		r.GetOrCreateMachineStateChecker,
 	)
@@ -292,8 +293,45 @@ func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (r
 	return ctrl.Result{}, nil
 }
 
+// usesAPIServerLB reports whether the CloudStackMachine participates in the API server
+// load balancer rule: it is on a non-routed isolated network and has an InstanceID.
+// Caller is responsible for ensuring r.IsoNet is populated.
+func (r *CloudStackMachineReconciliationRunner) usesAPIServerLB() bool {
+	return r.FailureDomain.Spec.Zone.Network.Type == cloud.NetworkTypeIsolated &&
+		r.IsoNet.Spec.Name != "" &&
+		r.IsoNet.Status.RoutingMode == "" &&
+		r.ReconciliationSubject.Spec.InstanceID != nil
+}
+
+// RemoveFromLBIfMachineDeleting detaches the VM from the API server load balancer rule as soon
+// as the parent CAPI Machine is marked for deletion, before CAPI deletes the CloudStackMachine.
+// VM removal can take a while, and the CloudStack LB health check only marks the member offline
+// after some delay, so without this step API traffic keeps hitting the about-to-be-replaced
+// kube-apiserver throughout that window. RemoveFromLBIfNeeded (in ReconcileDelete) remains as a
+// safety net.
+func (r *CloudStackMachineReconciliationRunner) RemoveFromLBIfMachineDeleting() (retRes ctrl.Result, reterr error) {
+	if r.CAPIMachine == nil || r.CAPIMachine.DeletionTimestamp.IsZero() ||
+		!util.IsControlPlaneMachine(r.CAPIMachine) || !r.usesAPIServerLB() {
+		return ctrl.Result{}, nil
+	}
+
+	instanceID := *r.ReconciliationSubject.Spec.InstanceID
+	r.Log.Info("CAPI Machine is being deleted; detaching VM from API server load balancer rule",
+		"instance-id", instanceID, "lbRuleID", r.IsoNet.Status.LBRuleID, "capiMachine", r.CAPIMachine.Name)
+	if err := r.CSUser.RemoveVMFromLoadBalancerRule(r.IsoNet, instanceID); err != nil {
+		r.Log.Error(err, "Early LB removal failed", "instance-id", instanceID, "lbRuleID", r.IsoNet.Status.LBRuleID)
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
+}
+
 // AddToLBIfNeeded adds instance to load balancer if it is a control plane in an isolated network.
 func (r *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.Result, reterr error) {
+	// Skip add when the parent Machine is being deleted; RemoveFromLBIfMachineDeleting just
+	// detached this VM and we don't want to re-add it in the same reconcile loop.
+	if r.CAPIMachine != nil && !r.CAPIMachine.DeletionTimestamp.IsZero() {
+		return ctrl.Result{}, nil
+	}
 	if util.IsControlPlaneMachine(r.CAPIMachine) && r.FailureDomain.Spec.Zone.Network.Type == cloud.NetworkTypeIsolated {
 		if r.IsoNet.Spec.Name == "" {
 			return r.RequeueWithMessage("Could not get required Isolated Network for VM, requeueing.")
@@ -307,6 +345,36 @@ func (r *CloudStackMachineReconciliationRunner) AddToLBIfNeeded() (retRes ctrl.R
 				return ctrl.Result{}, err
 			}
 		}
+	}
+	return ctrl.Result{}, nil
+}
+
+// RemoveFromLBIfNeeded detaches the VM from the API server load balancer rule on the
+// CloudStackMachine delete path, before the VM itself is destroyed. The CAPI Machine is not
+// loaded on this path, so the control-plane check uses the MachineControlPlaneLabel on the
+// CloudStackMachine, and IsoNet is fetched here rather than relying on prior reconcile stages.
+func (r *CloudStackMachineReconciliationRunner) RemoveFromLBIfNeeded() (retRes ctrl.Result, reterr error) {
+	if _, ok := r.ReconciliationSubject.Labels[clusterv1.MachineControlPlaneLabel]; !ok {
+		return ctrl.Result{}, nil
+	}
+	if r.FailureDomain.Spec.Zone.Network.Type != cloud.NetworkTypeIsolated ||
+		r.ReconciliationSubject.Spec.InstanceID == nil {
+		return ctrl.Result{}, nil
+	}
+
+	if res, err := r.GetObjectByName(
+		r.IsoNetMetaName(r.FailureDomain.Spec.Zone.Network.Name), r.IsoNet,
+	)(); r.ShouldReturn(res, err) {
+		return res, err
+	}
+	if !r.usesAPIServerLB() {
+		return ctrl.Result{}, nil
+	}
+
+	instanceID := *r.ReconciliationSubject.Spec.InstanceID
+	r.Log.Info("Removing VM from API server load balancer rule", "instance-id", instanceID)
+	if err := r.CSUser.RemoveVMFromLoadBalancerRule(r.IsoNet, instanceID); err != nil {
+		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
 }
@@ -344,6 +412,12 @@ func (r *CloudStackMachineReconciliationRunner) ReconcileDelete() (retRes ctrl.R
 			return ctrl.Result{}, err
 		}
 	}
+
+	// Detach the VM from the API server LB rule before destroying it.
+	if res, err := r.RemoveFromLBIfNeeded(); r.ShouldReturn(res, err) {
+		return res, err
+	}
+
 	r.Recorder.Eventf(r.ReconciliationSubject, "Normal", "Deleting", CSMachineDeletionMessage, r.ReconciliationSubject.Name)
 	r.Log.Info("Deleting instance", "instance-id", r.ReconciliationSubject.Spec.InstanceID)
 	// Use CSClient instead of CSUser here to expunge as admin.
@@ -402,9 +476,10 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 			),
 		)
 
-	// Watch CAPI machines for changes.
-	// Queues a reconcile request for owned CloudStackMachine on change.
-	// Used to update when bootstrap data becomes available.
+	// Watch CAPI machines and enqueue the owned CloudStackMachine on:
+	//   - Bootstrap.DataSecretName becoming set: VM creation can proceed.
+	//   - DeletionTimestamp becoming set: detach the VM from the API server LB rule early
+	//     (see RemoveFromLBIfMachineDeleting), before drain begins.
 	b = b.Watches(
 		&clusterv1.Machine{},
 		handler.EnqueueRequestsFromMapFunc(
@@ -415,7 +490,12 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 					oldMachine := e.ObjectOld.(*clusterv1.Machine)
 					newMachine := e.ObjectNew.(*clusterv1.Machine)
 
-					return oldMachine.Spec.Bootstrap.DataSecretName == nil && newMachine.Spec.Bootstrap.DataSecretName != nil
+					bootstrapBecameAvailable := oldMachine.Spec.Bootstrap.DataSecretName == nil &&
+						newMachine.Spec.Bootstrap.DataSecretName != nil
+					machineBeingDeleted := oldMachine.DeletionTimestamp.IsZero() &&
+						!newMachine.DeletionTimestamp.IsZero()
+
+					return bootstrapBecameAvailable || machineBeingDeleted
 				},
 			}),
 	)
