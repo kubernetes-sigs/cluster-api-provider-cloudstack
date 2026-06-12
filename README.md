@@ -168,7 +168,8 @@ Thank you to all contributors and a special thanks to our current maintainers & 
 
 |                      Maintainers                       |                       Reviewers                        |
 | ------------------------------------------------------ | ------------------------------------------------------ |
-| [@rohityadavcloud](https://github.com/rohityadavcloud) | [@rohityadavcloud](https://github.com/rohityadavcloud) |
+| [@yadvr](https://github.com/yadvr)                     | [@yadvr](https://github.com/yadvr)                     |
+| [@g-gaston](https://github.com/g-gaston)               | [@g-gaston](https://github.com/g-gaston)               |
 | [@weizhouapache](https://github.com/weizhouapache)     | [@weizhouapache](https://github.com/weizhouapache)     |
 | [@vishesh92](https://github.com/vishesh92)             | [@vishesh92](https://github.com/vishesh92)             |
 | [@davidjumani](https://github.com/davidjumani)         | [@davidjumani](https://github.com/davidjumani)         |
