@@ -44,7 +44,7 @@ ifeq ($(OS), windows)
 	MDBOOK_EXTRACT_COMMAND := unzip -d /tmp
 endif
 
-GOLANGCI_LINT_VERSION := v1.60.2
+GOLANGCI_LINT_VERSION := v1.64.8
 GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT := $(abspath $(BIN_DIR)/$(GOLANGCI_LINT_BIN))
 GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
@@ -84,8 +84,12 @@ $(STATIC_CHECK): $(BIN_DIR) go.mod go.sum # Build staticcheck from tools folder.
 	go build -tags=tools -o $@ honnef.co/go/tools/cmd/staticcheck
 
 GINKGO := $(BIN_DIR)/ginkgo
-$(GINKGO): $(BIN_DIR) go.mod go.sum # Build staticcheck from tools folder.
+$(GINKGO): $(BIN_DIR) go.mod go.sum # Build ginkgo from tools folder.
 	go build -tags=tools -o $@ github.com/onsi/ginkgo/v2/ginkgo
+
+SETUP_ENVTEST := $(BIN_DIR)/setup-envtest
+$(SETUP_ENVTEST): $(BIN_DIR) # Download setup-envtest locally if necessary.
+	test -s $(abspath $(BIN_DIR))/setup-envtest || GOBIN=$(abspath $(BIN_DIR)) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.20
 
 ENVSUBST := $(BIN_DIR)/envsubst
 $(ENVSUBST): $(BIN_DIR) go.mod go.sum # Build envsubst from tools folder.

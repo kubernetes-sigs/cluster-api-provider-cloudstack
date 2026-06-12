@@ -91,10 +91,12 @@ managers:
 manager-cloudstack-infrastructure: ## Build manager binary.
 	CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
 
+SETUP_ENVTEST := $(TOOLS_BIN_DIR)/setup-envtest
+
 export K8S_VERSION=1.28.3
-$(KUBECTL) $(API_SERVER) $(ETCD) &:
-	cd $(TOOLS_DIR) && curl --silent -L "https://go.kubebuilder.io/test-tools/${K8S_VERSION}/$(shell go env GOOS)/$(shell go env GOARCH)" --output - | \
-		tar -C ./ --strip-components=1 -zvxf -
+$(KUBECTL) $(API_SERVER) $(ETCD) &: $(SETUP_ENVTEST)
+	$(SETUP_ENVTEST) use $(K8S_VERSION) --bin-dir $(TOOLS_BIN_DIR)
+	ln -sf "$$($(SETUP_ENVTEST) use $(K8S_VERSION) --bin-dir $(TOOLS_BIN_DIR) -p path)"/* "$(TOOLS_BIN_DIR)"/
 
 ##@ Linting
 ## --------------------------------------
@@ -254,7 +256,7 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 ## Tests
 ## --------------------------------------
 
-export KUBEBUILDER_ASSETS=$(TOOLS_BIN_DIR)
+export KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use $(K8S_VERSION) --bin-dir $(TOOLS_BIN_DIR) -p path)
 DEEPCOPY_GEN_TARGETS_TEST=$(shell find test/fakes -type d -name "fakes" -exec echo {}\/zz_generated.deepcopy.go \;)
 DEEPCOPY_GEN_INPUTS_TEST=$(shell find test/fakes/* -name "*zz_generated*" -prune -o -type f -print)
 .PHONY: generate-deepcopy-test
@@ -315,6 +317,7 @@ run-e2e-smoke:
 clean: ## Cleans up everything.
 	rm -rf $(RELEASE_DIR)
 	rm -rf bin
+	chmod -R u+w $(TOOLS_BIN_DIR)/k8s 2>/dev/null || true
 	rm -rf $(TOOLS_BIN_DIR)
 	rm -rf cluster-api
 	rm -rf test/e2e/data/infrastructure-cloudstack/*/*yaml
