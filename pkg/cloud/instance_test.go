@@ -24,9 +24,9 @@ import (
 	gomock "go.uber.org/mock/gomock"
 	"k8s.io/utils/ptr"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta4"
 
 	"github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"

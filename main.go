@@ -25,7 +25,7 @@ import (
 	"k8s.io/klog/v2"
 
 	flag "github.com/spf13/pflag"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
 	goflag "flag"
 
@@ -47,11 +47,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 
 	infrav1b1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	infrav1b2 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	infrav1b3 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1b4 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	//+kubebuilder:scaffold:imports
@@ -73,6 +74,7 @@ func init() {
 	utilruntime.Must(infrav1b1.AddToScheme(scheme))
 	utilruntime.Must(infrav1b2.AddToScheme(scheme))
 	utilruntime.Must(infrav1b3.AddToScheme(scheme))
+	utilruntime.Must(infrav1b4.AddToScheme(scheme))
 	utilruntime.Must(controlplanev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -256,13 +258,14 @@ func main() {
 	base := utils.ReconcilerBase{
 		K8sClient:  mgr.GetClient(),
 		BaseLogger: ctrl.Log.WithName("controllers"),
-		Recorder:   mgr.GetEventRecorderFor("capc-controller-manager"),
+		Recorder:   mgr.GetEventRecorderFor("capc-controller-manager"), //lint:ignore SA1019 // migrate to GetEventRecorder with events API
 		Scheme:     mgr.GetScheme(),
 	}
 
 	ctx := ctrl.SetupSignalHandler()
 	setupReconcilers(ctx, base, *opts, mgr)
 	infrav1b3.K8sClient = base.K8sClient
+	infrav1b4.K8sClient = base.K8sClient
 
 	// +kubebuilder:scaffold:builder
 
@@ -277,15 +280,15 @@ func main() {
 	}
 
 	// Start the controller manager.
-	if err = (&infrav1b3.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1b4.CloudStackCluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackCluster")
 		os.Exit(1)
 	}
-	if err = (&infrav1b3.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1b4.CloudStackMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachine")
 		os.Exit(1)
 	}
-	if err = (&infrav1b3.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&infrav1b4.CloudStackMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "CloudStackMachineTemplate")
 		os.Exit(1)
 	}

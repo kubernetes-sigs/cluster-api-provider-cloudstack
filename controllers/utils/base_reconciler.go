@@ -18,22 +18,23 @@ package utils
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"k8s.io/client-go/tools/record"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -312,11 +313,22 @@ func (r *ReconciliationRunner) CheckOwnedObjectsDeleted(gvks ...schema.GroupVers
 
 // RequeueIfCloudStackClusterNotReady requeues the reconciliation request if the CloudStackCluster is not ready.
 func (r *ReconciliationRunner) RequeueIfCloudStackClusterNotReady() (ctrl.Result, error) {
-	if r.CSCluster.DeletionTimestamp.IsZero() && !r.CSCluster.Status.Ready {
+	if r.CSCluster.DeletionTimestamp.IsZero() && !cloudStackClusterProvisioned(r.CSCluster) {
 		r.Log.Info("CloudStackCluster not ready. Requeuing.")
 		return ctrl.Result{RequeueAfter: RequeueTimeout}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+// cloudStackClusterProvisioned reports whether the CloudStackCluster's infrastructure is provisioned.
+// It prefers the CAPI v1beta2 contract field Status.Initialization.Provisioned, falling back to the
+// legacy Status.Ready field when Initialization has not yet been populated (e.g. a cluster created
+// before the upgrade that has not yet been reconciled at the v1beta4 hub version).
+func cloudStackClusterProvisioned(csCluster *infrav1.CloudStackCluster) bool {
+	if csCluster.Status.Initialization != nil && csCluster.Status.Initialization.Provisioned != nil {
+		return *csCluster.Status.Initialization.Provisioned
+	}
+	return csCluster.Status.Ready
 }
 
 // SetupPatcher initializes the patcher with the ReconciliationSubject.
@@ -363,7 +375,7 @@ type CloudStackReconcilerMethod func() (ctrl.Result, error)
 func (r *ReconciliationRunner) ShouldReturn(rslt ctrl.Result, err error) bool {
 	if err != nil {
 		return true
-	} else if rslt.Requeue || rslt.RequeueAfter != time.Duration(0) {
+	} else if !rslt.IsZero() {
 		return true
 	}
 	return false
@@ -375,11 +387,32 @@ func (r *ReconciliationRunner) RunReconciliationStages(fns ...CloudStackReconcil
 	for _, fn := range fns {
 		if rslt, err := fn(); err != nil {
 			return rslt, err
-		} else if rslt.Requeue || rslt.RequeueAfter != time.Duration(0) || r.returnEarly {
+		} else if !rslt.IsZero() || r.returnEarly {
 			return rslt, nil
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+// isStatusReadyInvalidError reports whether err is an apimachinery "Invalid" error whose cause
+// references the status.ready field. Patching the (required) status.ready field can transiently
+// fail this way; we swallow only that specific error rather than masking all patch failures or
+// matching against a brittle, human-readable error string.
+func isStatusReadyInvalidError(err error) bool {
+	if !apierrors.IsInvalid(err) {
+		return false
+	}
+	var apiStatus apierrors.APIStatus
+	if stderrors.As(err, &apiStatus) {
+		if details := apiStatus.Status().Details; details != nil {
+			for _, cause := range details.Causes {
+				if strings.Contains(cause.Field, "status.ready") {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // RunBaseReconciliationStages runs the base reconciliation stages which are to setup the logger, get the reconciliation
@@ -388,7 +421,7 @@ func (r *ReconciliationRunner) RunBaseReconciliationStages() (res ctrl.Result, r
 	defer func() {
 		if r.Patcher != nil {
 			if err := r.Patcher.Patch(r.RequestCtx, r.ReconciliationSubject); err != nil {
-				if !strings.Contains(err.Error(), "is invalid: status.ready") {
+				if !isStatusReadyInvalidError(err) {
 					err = errors.Wrapf(err, "error patching reconciliation subject")
 					retErr = multierror.Append(retErr, err)
 				}
@@ -456,7 +489,7 @@ func (r *ReconcilerBase) InitFromMgr(mgr ctrl.Manager, client cloud.Client) {
 	r.K8sClient = mgr.GetClient()
 	r.BaseLogger = ctrl.Log.WithName("controllers")
 	r.Scheme = mgr.GetScheme()
-	r.Recorder = mgr.GetEventRecorderFor("capc-controller-manager")
+	r.Recorder = mgr.GetEventRecorderFor("capc-controller-manager") //lint:ignore SA1019 // migrate to GetEventRecorder with events API
 	r.CSClient = client
 }
 
