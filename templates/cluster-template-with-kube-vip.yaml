@@ -1,5 +1,5 @@
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -10,15 +10,15 @@ spec:
         - 192.168.0.0/16
     serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: CloudStackCluster
     name: ${CLUSTER_NAME}
   controlPlaneRef:
     kind: KubeadmControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiGroup: controlplane.cluster.x-k8s.io
     name: ${CLUSTER_NAME}-control-plane
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta4
 kind: CloudStackCluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -38,7 +38,7 @@ spec:
           name: ${CLOUDSTACK_NETWORK_NAME}
 ---
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
@@ -47,12 +47,14 @@ spec:
       nodeRegistration:
         name: '{{ local_hostname }}'
         kubeletExtraArgs:
-          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          - name: provider-id
+            value: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
     joinConfiguration:
       nodeRegistration:
         name: '{{ local_hostname }}'
         kubeletExtraArgs:
-          provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+          - name: provider-id
+            value: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
         ignorePreflightErrors:
           - DirAvailable--etc-kubernetes-manifests
     preKubeadmCommands:
@@ -116,14 +118,15 @@ spec:
         owner: root:root
         path: /etc/kubernetes/manifests/kube-vip.yaml
   machineTemplate:
-    infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
-      kind: CloudStackMachineTemplate
-      name: "${CLUSTER_NAME}-control-plane"
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: CloudStackMachineTemplate
+        name: "${CLUSTER_NAME}-control-plane"
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta4
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-control-plane
@@ -135,7 +138,7 @@ spec:
       template:
         name: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
   name: "${CLUSTER_NAME}-md-0"
@@ -151,14 +154,14 @@ spec:
       bootstrap:
         configRef:
           name: "${CLUSTER_NAME}-md-0"
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiGroup: bootstrap.cluster.x-k8s.io
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: CloudStackMachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta4
 kind: CloudStackMachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
@@ -170,7 +173,7 @@ spec:
       template:
         name: ${CLOUDSTACK_TEMPLATE_NAME}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
@@ -181,6 +184,7 @@ spec:
         nodeRegistration:
           name: '{{ local_hostname }}'
           kubeletExtraArgs:
-            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+            - name: provider-id
+              value: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
       preKubeadmCommands:
         - swapoff -a

@@ -17,8 +17,7 @@ limitations under the License.
 package v1beta2_test
 
 import (
-	"testing"
-
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,14 +25,15 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	infrav2 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	infrav4 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	fuzz "sigs.k8s.io/cluster-api-provider-cloudstack/test/fuzz"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/randfill"
 )
 
-// machineTemplateFuzzFuncs restricts fuzzing of the v1beta2 machine-template's inner ObjectMeta
-// to Labels and Annotations. v1beta2 models template metadata as a full metav1.ObjectMeta, but
-// the v1beta3/v1beta4 contract (clusterv1.ObjectMeta) only preserves labels and annotations on
-// template metadata, so the other ObjectMeta fields are intentionally not round-trippable.
+// machineTemplateFuzzFuncs restricts fuzzing of the v1beta2 machine-template's inner ObjectMeta to
+// Labels and Annotations. v1beta2 models template metadata as a full metav1.ObjectMeta, but the
+// v1beta3/v1beta4 contract (clusterv1.ObjectMeta) only preserves labels and annotations on template
+// metadata, so the other ObjectMeta fields are intentionally not round-trippable.
 func machineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		func(in *infrav2.CloudStackMachineTemplateResource, c randfill.Continue) {
@@ -46,54 +46,18 @@ func machineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-// TestFuzzyConversion verifies that converting a v1beta2 spoke object up to the v1beta4 hub
-// and back (and the reverse) is lossless, with fields absent from v1beta2 preserved via the
-// conversion-data annotation.
-func TestFuzzyConversion(t *testing.T) {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(infrav2.AddToScheme(scheme))
-	utilruntime.Must(infrav4.AddToScheme(scheme))
-
-	t.Run("for CloudStackCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackCluster{},
-		Spoke:  &infrav2.CloudStackCluster{},
-	}))
-
-	t.Run("for CloudStackMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackMachine{},
-		Spoke:  &infrav2.CloudStackMachine{},
-	}))
-
-	t.Run("for CloudStackMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav4.CloudStackMachineTemplate{},
-		Spoke:       &infrav2.CloudStackMachineTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{machineTemplateFuzzFuncs},
-	}))
-
-	t.Run("for CloudStackFailureDomain", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackFailureDomain{},
-		Spoke:  &infrav2.CloudStackFailureDomain{},
-	}))
-
-	t.Run("for CloudStackIsolatedNetwork", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackIsolatedNetwork{},
-		Spoke:  &infrav2.CloudStackIsolatedNetwork{},
-	}))
-
-	t.Run("for CloudStackAffinityGroup", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackAffinityGroup{},
-		Spoke:  &infrav2.CloudStackAffinityGroup{},
-	}))
-
-	t.Run("for CloudStackMachineStateChecker", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackMachineStateChecker{},
-		Spoke:  &infrav2.CloudStackMachineStateChecker{},
-	}))
-}
+var _ = ginkgo.DescribeTable("v1beta2 <-> v1beta4 conversion is lossless",
+	func(hub conversion.Hub, spoke conversion.Convertible, funcs ...fuzzer.FuzzerFuncs) {
+		scheme := runtime.NewScheme()
+		utilruntime.Must(infrav2.AddToScheme(scheme))
+		utilruntime.Must(infrav4.AddToScheme(scheme))
+		fuzz.RoundTrip(scheme, hub, spoke, funcs...)
+	},
+	ginkgo.Entry("CloudStackCluster", &infrav4.CloudStackCluster{}, &infrav2.CloudStackCluster{}),
+	ginkgo.Entry("CloudStackMachine", &infrav4.CloudStackMachine{}, &infrav2.CloudStackMachine{}),
+	ginkgo.Entry("CloudStackMachineTemplate", &infrav4.CloudStackMachineTemplate{}, &infrav2.CloudStackMachineTemplate{}, machineTemplateFuzzFuncs),
+	ginkgo.Entry("CloudStackFailureDomain", &infrav4.CloudStackFailureDomain{}, &infrav2.CloudStackFailureDomain{}),
+	ginkgo.Entry("CloudStackIsolatedNetwork", &infrav4.CloudStackIsolatedNetwork{}, &infrav2.CloudStackIsolatedNetwork{}),
+	ginkgo.Entry("CloudStackAffinityGroup", &infrav4.CloudStackAffinityGroup{}, &infrav2.CloudStackAffinityGroup{}),
+	ginkgo.Entry("CloudStackMachineStateChecker", &infrav4.CloudStackMachineStateChecker{}, &infrav2.CloudStackMachineStateChecker{}),
+)

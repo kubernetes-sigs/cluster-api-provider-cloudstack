@@ -60,8 +60,8 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
 		input = inputGetter()
 
-		projectName = input.E2EConfig.GetVariable("CLOUDSTACK_PROJECT_NAME")
-		vpcName = fmt.Sprintf("%s-%s", projectName, input.E2EConfig.GetVariable("CLOUDSTACK_VPC_NAME"))
+		projectName = input.E2EConfig.MustGetVariable("CLOUDSTACK_PROJECT_NAME")
+		vpcName = fmt.Sprintf("%s-%s", projectName, input.E2EConfig.MustGetVariable("CLOUDSTACK_VPC_NAME"))
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
 		project, _, err := csClient.Project.GetProjectByName(projectName)
 		if (err != nil) || (project == nil) {
@@ -73,7 +73,7 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	It("Should create a cluster in a project", func() {
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:    input.BootstrapClusterProxy,
-			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
+			CNIManifestPath: input.E2EConfig.MustGetVariable(CNIPath),
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
@@ -82,7 +82,7 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 				Flavor:                   specName,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64(1),
 				WorkerMachineCount:       pointer.Int64(2),
 			},
@@ -106,7 +106,7 @@ func ProjectSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
 		By("PASSED!")
 	})

@@ -17,8 +17,7 @@ limitations under the License.
 package v1beta1_test
 
 import (
-	"testing"
-
+	ginkgo "github.com/onsi/ginkgo/v2"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,7 +25,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	infrav4 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	fuzz "sigs.k8s.io/cluster-api-provider-cloudstack/test/fuzz"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/randfill"
 )
 
@@ -64,45 +64,20 @@ func machineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-// TestFuzzyConversion verifies lossless round-trip conversion between v1beta1 spokes and the
-// v1beta4 hub. CloudStackCluster is intentionally excluded: v1beta1 models its topology as Zones
-// and its down-conversion performs external CloudStack/Kubernetes lookups and rejects clusters
-// with fewer than one failure domain, none of which is fuzzable. Its conversion is covered by the
-// hand-written cases in conversion_test.go.
-func TestFuzzyConversion(t *testing.T) {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(infrav1.AddToScheme(scheme))
-	utilruntime.Must(infrav4.AddToScheme(scheme))
-
-	t.Run("for CloudStackMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav4.CloudStackMachine{},
-		Spoke:       &infrav1.CloudStackMachine{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{machineFuzzFuncs},
-	}))
-
-	t.Run("for CloudStackMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme:      scheme,
-		Hub:         &infrav4.CloudStackMachineTemplate{},
-		Spoke:       &infrav1.CloudStackMachineTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{machineFuzzFuncs, machineTemplateFuzzFuncs},
-	}))
-
-	t.Run("for CloudStackIsolatedNetwork", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackIsolatedNetwork{},
-		Spoke:  &infrav1.CloudStackIsolatedNetwork{},
-	}))
-
-	t.Run("for CloudStackAffinityGroup", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackAffinityGroup{},
-		Spoke:  &infrav1.CloudStackAffinityGroup{},
-	}))
-
-	t.Run("for CloudStackMachineStateChecker", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackMachineStateChecker{},
-		Spoke:  &infrav1.CloudStackMachineStateChecker{},
-	}))
-}
+// CloudStackCluster is intentionally excluded: v1beta1 models its topology as Zones and its
+// down-conversion performs external CloudStack/Kubernetes lookups and rejects clusters with fewer
+// than one failure domain, none of which is fuzzable. Its conversion is covered by the hand-written
+// cases in conversion_test.go.
+var _ = ginkgo.DescribeTable("v1beta1 <-> v1beta4 conversion is lossless",
+	func(hub conversion.Hub, spoke conversion.Convertible, funcs ...fuzzer.FuzzerFuncs) {
+		scheme := runtime.NewScheme()
+		utilruntime.Must(infrav1.AddToScheme(scheme))
+		utilruntime.Must(infrav4.AddToScheme(scheme))
+		fuzz.RoundTrip(scheme, hub, spoke, funcs...)
+	},
+	ginkgo.Entry("CloudStackMachine", &infrav4.CloudStackMachine{}, &infrav1.CloudStackMachine{}, machineFuzzFuncs),
+	ginkgo.Entry("CloudStackMachineTemplate", &infrav4.CloudStackMachineTemplate{}, &infrav1.CloudStackMachineTemplate{}, machineFuzzFuncs, machineTemplateFuzzFuncs),
+	ginkgo.Entry("CloudStackIsolatedNetwork", &infrav4.CloudStackIsolatedNetwork{}, &infrav1.CloudStackIsolatedNetwork{}),
+	ginkgo.Entry("CloudStackAffinityGroup", &infrav4.CloudStackAffinityGroup{}, &infrav1.CloudStackAffinityGroup{}),
+	ginkgo.Entry("CloudStackMachineStateChecker", &infrav4.CloudStackMachineStateChecker{}, &infrav1.CloudStackMachineStateChecker{}),
+)

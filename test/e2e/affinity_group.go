@@ -47,7 +47,7 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 		input = inputGetter()
 
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
-		zoneName := input.E2EConfig.GetVariable("CLOUDSTACK_ZONE_NAME")
+		zoneName := input.E2EConfig.MustGetVariable("CLOUDSTACK_ZONE_NAME")
 		numHosts := GetHostCount(csClient, zoneName)
 		if numHosts < 3 {
 			Skip("Too few ACS hosts to run conclusive affinity tests.  Please provision at least three for the zone.")
@@ -75,7 +75,7 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
 		csClient := CreateCloudStackClient(ctx, input.BootstrapClusterProxy.GetKubeconfigPath())
 		err := CheckAffinityGroupsDeleted(csClient, affinityIds)
@@ -89,7 +89,7 @@ func AffinityGroupSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.Namespace, specName string, clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult, affinityType string) []string {
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:    input.BootstrapClusterProxy,
-		CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
+		CNIManifestPath: input.E2EConfig.MustGetVariable(CNIPath),
 		ConfigCluster: clusterctl.ConfigClusterInput{
 			LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 			ClusterctlConfigPath:     input.ClusterctlConfigPath,
@@ -98,7 +98,7 @@ func executeTest(ctx context.Context, input CommonSpecInput, namespace *corev1.N
 			Flavor:                   "affinity-group-" + affinityType,
 			Namespace:                namespace.Name,
 			ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+			KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 			ControlPlaneMachineCount: pointer.Int64Ptr(3),
 			WorkerMachineCount:       pointer.Int64Ptr(2),
 		},

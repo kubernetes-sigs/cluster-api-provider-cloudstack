@@ -17,62 +17,28 @@ limitations under the License.
 package v1beta3_test
 
 import (
-	"testing"
-
+	ginkgo "github.com/onsi/ginkgo/v2"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	infrav3 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	infrav4 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	fuzz "sigs.k8s.io/cluster-api-provider-cloudstack/test/fuzz"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
-// TestFuzzyConversion verifies that converting a v1beta3 spoke object up to the v1beta4 hub
-// and back (and the reverse) is lossless, with v1beta4-only fields preserved via the
-// conversion-data annotation.
-func TestFuzzyConversion(t *testing.T) {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(infrav3.AddToScheme(scheme))
-	utilruntime.Must(infrav4.AddToScheme(scheme))
-
-	t.Run("for CloudStackCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackCluster{},
-		Spoke:  &infrav3.CloudStackCluster{},
-	}))
-
-	t.Run("for CloudStackMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackMachine{},
-		Spoke:  &infrav3.CloudStackMachine{},
-	}))
-
-	t.Run("for CloudStackMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackMachineTemplate{},
-		Spoke:  &infrav3.CloudStackMachineTemplate{},
-	}))
-
-	t.Run("for CloudStackFailureDomain", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackFailureDomain{},
-		Spoke:  &infrav3.CloudStackFailureDomain{},
-	}))
-
-	t.Run("for CloudStackIsolatedNetwork", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackIsolatedNetwork{},
-		Spoke:  &infrav3.CloudStackIsolatedNetwork{},
-	}))
-
-	t.Run("for CloudStackAffinityGroup", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackAffinityGroup{},
-		Spoke:  &infrav3.CloudStackAffinityGroup{},
-	}))
-
-	t.Run("for CloudStackMachineStateChecker", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &infrav4.CloudStackMachineStateChecker{},
-		Spoke:  &infrav3.CloudStackMachineStateChecker{},
-	}))
-}
+var _ = ginkgo.DescribeTable("v1beta3 <-> v1beta4 conversion is lossless",
+	func(hub conversion.Hub, spoke conversion.Convertible, funcs ...fuzzer.FuzzerFuncs) {
+		scheme := runtime.NewScheme()
+		utilruntime.Must(infrav3.AddToScheme(scheme))
+		utilruntime.Must(infrav4.AddToScheme(scheme))
+		fuzz.RoundTrip(scheme, hub, spoke, funcs...)
+	},
+	ginkgo.Entry("CloudStackCluster", &infrav4.CloudStackCluster{}, &infrav3.CloudStackCluster{}),
+	ginkgo.Entry("CloudStackMachine", &infrav4.CloudStackMachine{}, &infrav3.CloudStackMachine{}),
+	ginkgo.Entry("CloudStackMachineTemplate", &infrav4.CloudStackMachineTemplate{}, &infrav3.CloudStackMachineTemplate{}),
+	ginkgo.Entry("CloudStackFailureDomain", &infrav4.CloudStackFailureDomain{}, &infrav3.CloudStackFailureDomain{}),
+	ginkgo.Entry("CloudStackIsolatedNetwork", &infrav4.CloudStackIsolatedNetwork{}, &infrav3.CloudStackIsolatedNetwork{}),
+	ginkgo.Entry("CloudStackAffinityGroup", &infrav4.CloudStackAffinityGroup{}, &infrav3.CloudStackAffinityGroup{}),
+	ginkgo.Entry("CloudStackMachineStateChecker", &infrav4.CloudStackMachineStateChecker{}, &infrav3.CloudStackMachineStateChecker{}),
+)
