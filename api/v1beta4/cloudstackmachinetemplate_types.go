@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,17 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta3
+package v1beta4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
-// CloudStackMachineTemplateResource defines the data needed to create a CloudstackMachine from a template
+// CloudStackMachineTemplateResource defines the data needed to create a CloudStackMachine from a template
 type CloudStackMachineTemplateResource struct {
 	// Standard object's metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -32,13 +31,15 @@ type CloudStackMachineTemplateResource struct {
 	Spec CloudStackMachineSpec `json:"spec"`
 }
 
-// CloudStackMachineTemplateSpec defines the desired state of CloudstackMachineTemplate
+// CloudStackMachineTemplateSpec defines the desired state of CloudStackMachineTemplate
 type CloudStackMachineTemplateSpec struct {
 	Template CloudStackMachineTemplateResource `json:"template"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
+//+kubebuilder:metadata:labels="cluster.x-k8s.io/v1beta2=v1beta4"
 
 // CloudStackMachineTemplate is the Schema for the cloudstackmachinetemplates API
 type CloudStackMachineTemplate struct {

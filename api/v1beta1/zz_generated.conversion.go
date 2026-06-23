@@ -27,8 +27,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	v1beta3 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
-	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	v1beta4 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
+	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func init() {
@@ -38,308 +38,308 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
-	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroup)(nil), (*v1beta3.CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackAffinityGroup_To_v1beta3_CloudStackAffinityGroup(a.(*CloudStackAffinityGroup), b.(*v1beta3.CloudStackAffinityGroup), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroup)(nil), (*v1beta4.CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackAffinityGroup_To_v1beta4_CloudStackAffinityGroup(a.(*CloudStackAffinityGroup), b.(*v1beta4.CloudStackAffinityGroup), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackAffinityGroup)(nil), (*CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(a.(*v1beta3.CloudStackAffinityGroup), b.(*CloudStackAffinityGroup), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackAffinityGroup)(nil), (*CloudStackAffinityGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(a.(*v1beta4.CloudStackAffinityGroup), b.(*CloudStackAffinityGroup), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroupList)(nil), (*v1beta3.CloudStackAffinityGroupList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackAffinityGroupList_To_v1beta3_CloudStackAffinityGroupList(a.(*CloudStackAffinityGroupList), b.(*v1beta3.CloudStackAffinityGroupList), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroupList)(nil), (*v1beta4.CloudStackAffinityGroupList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackAffinityGroupList_To_v1beta4_CloudStackAffinityGroupList(a.(*CloudStackAffinityGroupList), b.(*v1beta4.CloudStackAffinityGroupList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackAffinityGroupList)(nil), (*CloudStackAffinityGroupList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(a.(*v1beta3.CloudStackAffinityGroupList), b.(*CloudStackAffinityGroupList), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackAffinityGroupList)(nil), (*CloudStackAffinityGroupList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(a.(*v1beta4.CloudStackAffinityGroupList), b.(*CloudStackAffinityGroupList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroupSpec)(nil), (*v1beta3.CloudStackAffinityGroupSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta3_CloudStackAffinityGroupSpec(a.(*CloudStackAffinityGroupSpec), b.(*v1beta3.CloudStackAffinityGroupSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroupSpec)(nil), (*v1beta4.CloudStackAffinityGroupSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta4_CloudStackAffinityGroupSpec(a.(*CloudStackAffinityGroupSpec), b.(*v1beta4.CloudStackAffinityGroupSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroupStatus)(nil), (*v1beta3.CloudStackAffinityGroupStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta3_CloudStackAffinityGroupStatus(a.(*CloudStackAffinityGroupStatus), b.(*v1beta3.CloudStackAffinityGroupStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackAffinityGroupStatus)(nil), (*v1beta4.CloudStackAffinityGroupStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta4_CloudStackAffinityGroupStatus(a.(*CloudStackAffinityGroupStatus), b.(*v1beta4.CloudStackAffinityGroupStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackAffinityGroupStatus)(nil), (*CloudStackAffinityGroupStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(a.(*v1beta3.CloudStackAffinityGroupStatus), b.(*CloudStackAffinityGroupStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackAffinityGroupStatus)(nil), (*CloudStackAffinityGroupStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(a.(*v1beta4.CloudStackAffinityGroupStatus), b.(*CloudStackAffinityGroupStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackIsolatedNetwork)(nil), (*v1beta3.CloudStackIsolatedNetwork)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackIsolatedNetwork_To_v1beta3_CloudStackIsolatedNetwork(a.(*CloudStackIsolatedNetwork), b.(*v1beta3.CloudStackIsolatedNetwork), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackIsolatedNetwork)(nil), (*v1beta4.CloudStackIsolatedNetwork)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackIsolatedNetwork_To_v1beta4_CloudStackIsolatedNetwork(a.(*CloudStackIsolatedNetwork), b.(*v1beta4.CloudStackIsolatedNetwork), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackIsolatedNetwork)(nil), (*CloudStackIsolatedNetwork)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork(a.(*v1beta3.CloudStackIsolatedNetwork), b.(*CloudStackIsolatedNetwork), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackIsolatedNetwork)(nil), (*CloudStackIsolatedNetwork)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork(a.(*v1beta4.CloudStackIsolatedNetwork), b.(*CloudStackIsolatedNetwork), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackIsolatedNetworkList)(nil), (*v1beta3.CloudStackIsolatedNetworkList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta3_CloudStackIsolatedNetworkList(a.(*CloudStackIsolatedNetworkList), b.(*v1beta3.CloudStackIsolatedNetworkList), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackIsolatedNetworkList)(nil), (*v1beta4.CloudStackIsolatedNetworkList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta4_CloudStackIsolatedNetworkList(a.(*CloudStackIsolatedNetworkList), b.(*v1beta4.CloudStackIsolatedNetworkList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackIsolatedNetworkList)(nil), (*CloudStackIsolatedNetworkList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolatedNetworkList(a.(*v1beta3.CloudStackIsolatedNetworkList), b.(*CloudStackIsolatedNetworkList), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackIsolatedNetworkList)(nil), (*CloudStackIsolatedNetworkList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolatedNetworkList(a.(*v1beta4.CloudStackIsolatedNetworkList), b.(*CloudStackIsolatedNetworkList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackIsolatedNetworkSpec)(nil), (*v1beta3.CloudStackIsolatedNetworkSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta3_CloudStackIsolatedNetworkSpec(a.(*CloudStackIsolatedNetworkSpec), b.(*v1beta3.CloudStackIsolatedNetworkSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackIsolatedNetworkSpec)(nil), (*v1beta4.CloudStackIsolatedNetworkSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta4_CloudStackIsolatedNetworkSpec(a.(*CloudStackIsolatedNetworkSpec), b.(*v1beta4.CloudStackIsolatedNetworkSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackIsolatedNetworkStatus)(nil), (*v1beta3.CloudStackIsolatedNetworkStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta3_CloudStackIsolatedNetworkStatus(a.(*CloudStackIsolatedNetworkStatus), b.(*v1beta3.CloudStackIsolatedNetworkStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackIsolatedNetworkStatus)(nil), (*v1beta4.CloudStackIsolatedNetworkStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta4_CloudStackIsolatedNetworkStatus(a.(*CloudStackIsolatedNetworkStatus), b.(*v1beta4.CloudStackIsolatedNetworkStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachine)(nil), (*v1beta3.CloudStackMachine)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachine_To_v1beta3_CloudStackMachine(a.(*CloudStackMachine), b.(*v1beta3.CloudStackMachine), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachine)(nil), (*v1beta4.CloudStackMachine)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachine_To_v1beta4_CloudStackMachine(a.(*CloudStackMachine), b.(*v1beta4.CloudStackMachine), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackMachine)(nil), (*CloudStackMachine)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachine_To_v1beta1_CloudStackMachine(a.(*v1beta3.CloudStackMachine), b.(*CloudStackMachine), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackMachine)(nil), (*CloudStackMachine)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachine_To_v1beta1_CloudStackMachine(a.(*v1beta4.CloudStackMachine), b.(*CloudStackMachine), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineList)(nil), (*v1beta3.CloudStackMachineList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineList_To_v1beta3_CloudStackMachineList(a.(*CloudStackMachineList), b.(*v1beta3.CloudStackMachineList), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachineList)(nil), (*v1beta4.CloudStackMachineList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineList_To_v1beta4_CloudStackMachineList(a.(*CloudStackMachineList), b.(*v1beta4.CloudStackMachineList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackMachineList)(nil), (*CloudStackMachineList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineList_To_v1beta1_CloudStackMachineList(a.(*v1beta3.CloudStackMachineList), b.(*CloudStackMachineList), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackMachineList)(nil), (*CloudStackMachineList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineList_To_v1beta1_CloudStackMachineList(a.(*v1beta4.CloudStackMachineList), b.(*CloudStackMachineList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineSpec)(nil), (*v1beta3.CloudStackMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(a.(*CloudStackMachineSpec), b.(*v1beta3.CloudStackMachineSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachineSpec)(nil), (*v1beta4.CloudStackMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineSpec_To_v1beta4_CloudStackMachineSpec(a.(*CloudStackMachineSpec), b.(*v1beta4.CloudStackMachineSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStateChecker)(nil), (*v1beta3.CloudStackMachineStateChecker)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineStateChecker_To_v1beta3_CloudStackMachineStateChecker(a.(*CloudStackMachineStateChecker), b.(*v1beta3.CloudStackMachineStateChecker), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStateChecker)(nil), (*v1beta4.CloudStackMachineStateChecker)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineStateChecker_To_v1beta4_CloudStackMachineStateChecker(a.(*CloudStackMachineStateChecker), b.(*v1beta4.CloudStackMachineStateChecker), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackMachineStateChecker)(nil), (*CloudStackMachineStateChecker)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker(a.(*v1beta3.CloudStackMachineStateChecker), b.(*CloudStackMachineStateChecker), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackMachineStateChecker)(nil), (*CloudStackMachineStateChecker)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker(a.(*v1beta4.CloudStackMachineStateChecker), b.(*CloudStackMachineStateChecker), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStateCheckerList)(nil), (*v1beta3.CloudStackMachineStateCheckerList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta3_CloudStackMachineStateCheckerList(a.(*CloudStackMachineStateCheckerList), b.(*v1beta3.CloudStackMachineStateCheckerList), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStateCheckerList)(nil), (*v1beta4.CloudStackMachineStateCheckerList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta4_CloudStackMachineStateCheckerList(a.(*CloudStackMachineStateCheckerList), b.(*v1beta4.CloudStackMachineStateCheckerList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackMachineStateCheckerList)(nil), (*CloudStackMachineStateCheckerList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList(a.(*v1beta3.CloudStackMachineStateCheckerList), b.(*CloudStackMachineStateCheckerList), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackMachineStateCheckerList)(nil), (*CloudStackMachineStateCheckerList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList(a.(*v1beta4.CloudStackMachineStateCheckerList), b.(*CloudStackMachineStateCheckerList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStateCheckerSpec)(nil), (*v1beta3.CloudStackMachineStateCheckerSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta3_CloudStackMachineStateCheckerSpec(a.(*CloudStackMachineStateCheckerSpec), b.(*v1beta3.CloudStackMachineStateCheckerSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStateCheckerSpec)(nil), (*v1beta4.CloudStackMachineStateCheckerSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta4_CloudStackMachineStateCheckerSpec(a.(*CloudStackMachineStateCheckerSpec), b.(*v1beta4.CloudStackMachineStateCheckerSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackMachineStateCheckerSpec)(nil), (*CloudStackMachineStateCheckerSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec(a.(*v1beta3.CloudStackMachineStateCheckerSpec), b.(*CloudStackMachineStateCheckerSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackMachineStateCheckerSpec)(nil), (*CloudStackMachineStateCheckerSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec(a.(*v1beta4.CloudStackMachineStateCheckerSpec), b.(*CloudStackMachineStateCheckerSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStateCheckerStatus)(nil), (*v1beta3.CloudStackMachineStateCheckerStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta3_CloudStackMachineStateCheckerStatus(a.(*CloudStackMachineStateCheckerStatus), b.(*v1beta3.CloudStackMachineStateCheckerStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStateCheckerStatus)(nil), (*v1beta4.CloudStackMachineStateCheckerStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta4_CloudStackMachineStateCheckerStatus(a.(*CloudStackMachineStateCheckerStatus), b.(*v1beta4.CloudStackMachineStateCheckerStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackMachineStateCheckerStatus)(nil), (*CloudStackMachineStateCheckerStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus(a.(*v1beta3.CloudStackMachineStateCheckerStatus), b.(*CloudStackMachineStateCheckerStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackMachineStateCheckerStatus)(nil), (*CloudStackMachineStateCheckerStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus(a.(*v1beta4.CloudStackMachineStateCheckerStatus), b.(*CloudStackMachineStateCheckerStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStatus)(nil), (*v1beta3.CloudStackMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineStatus_To_v1beta3_CloudStackMachineStatus(a.(*CloudStackMachineStatus), b.(*v1beta3.CloudStackMachineStatus), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachineStatus)(nil), (*v1beta4.CloudStackMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineStatus_To_v1beta4_CloudStackMachineStatus(a.(*CloudStackMachineStatus), b.(*v1beta4.CloudStackMachineStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineTemplate)(nil), (*v1beta3.CloudStackMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineTemplate_To_v1beta3_CloudStackMachineTemplate(a.(*CloudStackMachineTemplate), b.(*v1beta3.CloudStackMachineTemplate), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachineTemplate)(nil), (*v1beta4.CloudStackMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineTemplate_To_v1beta4_CloudStackMachineTemplate(a.(*CloudStackMachineTemplate), b.(*v1beta4.CloudStackMachineTemplate), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackMachineTemplate)(nil), (*CloudStackMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(a.(*v1beta3.CloudStackMachineTemplate), b.(*CloudStackMachineTemplate), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackMachineTemplate)(nil), (*CloudStackMachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(a.(*v1beta4.CloudStackMachineTemplate), b.(*CloudStackMachineTemplate), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineTemplateList)(nil), (*v1beta3.CloudStackMachineTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineTemplateList_To_v1beta3_CloudStackMachineTemplateList(a.(*CloudStackMachineTemplateList), b.(*v1beta3.CloudStackMachineTemplateList), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachineTemplateList)(nil), (*v1beta4.CloudStackMachineTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineTemplateList_To_v1beta4_CloudStackMachineTemplateList(a.(*CloudStackMachineTemplateList), b.(*v1beta4.CloudStackMachineTemplateList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackMachineTemplateList)(nil), (*CloudStackMachineTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineTemplateList_To_v1beta1_CloudStackMachineTemplateList(a.(*v1beta3.CloudStackMachineTemplateList), b.(*CloudStackMachineTemplateList), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackMachineTemplateList)(nil), (*CloudStackMachineTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineTemplateList_To_v1beta1_CloudStackMachineTemplateList(a.(*v1beta4.CloudStackMachineTemplateList), b.(*CloudStackMachineTemplateList), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackMachineTemplateResource)(nil), (*v1beta3.CloudStackMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineTemplateResource_To_v1beta3_CloudStackMachineTemplateResource(a.(*CloudStackMachineTemplateResource), b.(*v1beta3.CloudStackMachineTemplateResource), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackMachineTemplateResource)(nil), (*v1beta4.CloudStackMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineTemplateResource_To_v1beta4_CloudStackMachineTemplateResource(a.(*CloudStackMachineTemplateResource), b.(*v1beta4.CloudStackMachineTemplateResource), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackMachineTemplateResource)(nil), (*CloudStackMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineTemplateResource_To_v1beta1_CloudStackMachineTemplateResource(a.(*v1beta3.CloudStackMachineTemplateResource), b.(*CloudStackMachineTemplateResource), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackMachineTemplateResource)(nil), (*CloudStackMachineTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineTemplateResource_To_v1beta1_CloudStackMachineTemplateResource(a.(*v1beta4.CloudStackMachineTemplateResource), b.(*CloudStackMachineTemplateResource), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackResourceDiskOffering)(nil), (*v1beta3.CloudStackResourceDiskOffering)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackResourceDiskOffering_To_v1beta3_CloudStackResourceDiskOffering(a.(*CloudStackResourceDiskOffering), b.(*v1beta3.CloudStackResourceDiskOffering), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackResourceDiskOffering)(nil), (*v1beta4.CloudStackResourceDiskOffering)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackResourceDiskOffering_To_v1beta4_CloudStackResourceDiskOffering(a.(*CloudStackResourceDiskOffering), b.(*v1beta4.CloudStackResourceDiskOffering), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackResourceDiskOffering)(nil), (*CloudStackResourceDiskOffering)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(a.(*v1beta3.CloudStackResourceDiskOffering), b.(*CloudStackResourceDiskOffering), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackResourceDiskOffering)(nil), (*CloudStackResourceDiskOffering)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(a.(*v1beta4.CloudStackResourceDiskOffering), b.(*CloudStackResourceDiskOffering), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackResourceIdentifier)(nil), (*v1beta3.CloudStackResourceIdentifier)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta3_CloudStackResourceIdentifier(a.(*CloudStackResourceIdentifier), b.(*v1beta3.CloudStackResourceIdentifier), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackResourceIdentifier)(nil), (*v1beta4.CloudStackResourceIdentifier)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta4_CloudStackResourceIdentifier(a.(*CloudStackResourceIdentifier), b.(*v1beta4.CloudStackResourceIdentifier), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackResourceIdentifier)(nil), (*CloudStackResourceIdentifier)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(a.(*v1beta3.CloudStackResourceIdentifier), b.(*CloudStackResourceIdentifier), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackResourceIdentifier)(nil), (*CloudStackResourceIdentifier)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(a.(*v1beta4.CloudStackResourceIdentifier), b.(*CloudStackResourceIdentifier), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*CloudStackZoneSpec)(nil), (*v1beta3.CloudStackZoneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackZoneSpec_To_v1beta3_CloudStackZoneSpec(a.(*CloudStackZoneSpec), b.(*v1beta3.CloudStackZoneSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*CloudStackZoneSpec)(nil), (*v1beta4.CloudStackZoneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackZoneSpec_To_v1beta4_CloudStackZoneSpec(a.(*CloudStackZoneSpec), b.(*v1beta4.CloudStackZoneSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta3.CloudStackZoneSpec)(nil), (*CloudStackZoneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(a.(*v1beta3.CloudStackZoneSpec), b.(*CloudStackZoneSpec), scope)
+	if err := s.AddGeneratedConversionFunc((*v1beta4.CloudStackZoneSpec)(nil), (*CloudStackZoneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(a.(*v1beta4.CloudStackZoneSpec), b.(*CloudStackZoneSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*Network)(nil), (*v1beta3.Network)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Network_To_v1beta3_Network(a.(*Network), b.(*v1beta3.Network), scope)
+	if err := s.AddGeneratedConversionFunc((*Network)(nil), (*v1beta4.Network)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Network_To_v1beta4_Network(a.(*Network), b.(*v1beta4.Network), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1.ObjectMeta)(nil), (*apiv1beta1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1_ObjectMeta_To_v1beta1_ObjectMeta(a.(*v1.ObjectMeta), b.(*apiv1beta1.ObjectMeta), scope)
+	if err := s.AddConversionFunc((*v1.ObjectMeta)(nil), (*v1beta2.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_ObjectMeta_To_v1beta2_ObjectMeta(a.(*v1.ObjectMeta), b.(*v1beta2.ObjectMeta), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*CloudStackCluster)(nil), (*v1beta3.CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackCluster_To_v1beta3_CloudStackCluster(a.(*CloudStackCluster), b.(*v1beta3.CloudStackCluster), scope)
+	if err := s.AddConversionFunc((*CloudStackCluster)(nil), (*v1beta4.CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackCluster_To_v1beta4_CloudStackCluster(a.(*CloudStackCluster), b.(*v1beta4.CloudStackCluster), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*CloudStackMachineTemplateSpec)(nil), (*v1beta3.CloudStackMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_CloudStackMachineTemplateSpec_To_v1beta3_CloudStackMachineTemplateSpec(a.(*CloudStackMachineTemplateSpec), b.(*v1beta3.CloudStackMachineTemplateSpec), scope)
+	if err := s.AddConversionFunc((*CloudStackMachineTemplateSpec)(nil), (*v1beta4.CloudStackMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_CloudStackMachineTemplateSpec_To_v1beta4_CloudStackMachineTemplateSpec(a.(*CloudStackMachineTemplateSpec), b.(*v1beta4.CloudStackMachineTemplateSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*apiv1beta1.ObjectMeta)(nil), (*v1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ObjectMeta_To_v1_ObjectMeta(a.(*apiv1beta1.ObjectMeta), b.(*v1.ObjectMeta), scope)
+	if err := s.AddConversionFunc((*v1beta2.ObjectMeta)(nil), (*v1.ObjectMeta)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_ObjectMeta_To_v1_ObjectMeta(a.(*v1beta2.ObjectMeta), b.(*v1.ObjectMeta), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta3.CloudStackAffinityGroupSpec)(nil), (*CloudStackAffinityGroupSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(a.(*v1beta3.CloudStackAffinityGroupSpec), b.(*CloudStackAffinityGroupSpec), scope)
+	if err := s.AddConversionFunc((*v1beta4.CloudStackAffinityGroupSpec)(nil), (*CloudStackAffinityGroupSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(a.(*v1beta4.CloudStackAffinityGroupSpec), b.(*CloudStackAffinityGroupSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta3.CloudStackCluster)(nil), (*CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackCluster_To_v1beta1_CloudStackCluster(a.(*v1beta3.CloudStackCluster), b.(*CloudStackCluster), scope)
+	if err := s.AddConversionFunc((*v1beta4.CloudStackCluster)(nil), (*CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackCluster_To_v1beta1_CloudStackCluster(a.(*v1beta4.CloudStackCluster), b.(*CloudStackCluster), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta3.CloudStackIsolatedNetworkSpec)(nil), (*CloudStackIsolatedNetworkSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(a.(*v1beta3.CloudStackIsolatedNetworkSpec), b.(*CloudStackIsolatedNetworkSpec), scope)
+	if err := s.AddConversionFunc((*v1beta4.CloudStackIsolatedNetworkSpec)(nil), (*CloudStackIsolatedNetworkSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(a.(*v1beta4.CloudStackIsolatedNetworkSpec), b.(*CloudStackIsolatedNetworkSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta3.CloudStackIsolatedNetworkStatus)(nil), (*CloudStackIsolatedNetworkStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIsolatedNetworkStatus(a.(*v1beta3.CloudStackIsolatedNetworkStatus), b.(*CloudStackIsolatedNetworkStatus), scope)
+	if err := s.AddConversionFunc((*v1beta4.CloudStackIsolatedNetworkStatus)(nil), (*CloudStackIsolatedNetworkStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIsolatedNetworkStatus(a.(*v1beta4.CloudStackIsolatedNetworkStatus), b.(*CloudStackIsolatedNetworkStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta3.CloudStackMachineSpec)(nil), (*CloudStackMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(a.(*v1beta3.CloudStackMachineSpec), b.(*CloudStackMachineSpec), scope)
+	if err := s.AddConversionFunc((*v1beta4.CloudStackMachineSpec)(nil), (*CloudStackMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(a.(*v1beta4.CloudStackMachineSpec), b.(*CloudStackMachineSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta3.CloudStackMachineStatus)(nil), (*CloudStackMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(a.(*v1beta3.CloudStackMachineStatus), b.(*CloudStackMachineStatus), scope)
+	if err := s.AddConversionFunc((*v1beta4.CloudStackMachineStatus)(nil), (*CloudStackMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(a.(*v1beta4.CloudStackMachineStatus), b.(*CloudStackMachineStatus), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta3.CloudStackMachineTemplateSpec)(nil), (*CloudStackMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_CloudStackMachineTemplateSpec_To_v1beta1_CloudStackMachineTemplateSpec(a.(*v1beta3.CloudStackMachineTemplateSpec), b.(*CloudStackMachineTemplateSpec), scope)
+	if err := s.AddConversionFunc((*v1beta4.CloudStackMachineTemplateSpec)(nil), (*CloudStackMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_CloudStackMachineTemplateSpec_To_v1beta1_CloudStackMachineTemplateSpec(a.(*v1beta4.CloudStackMachineTemplateSpec), b.(*CloudStackMachineTemplateSpec), scope)
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta3.Network)(nil), (*Network)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta3_Network_To_v1beta1_Network(a.(*v1beta3.Network), b.(*Network), scope)
+	if err := s.AddConversionFunc((*v1beta4.Network)(nil), (*Network)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta4_Network_To_v1beta1_Network(a.(*v1beta4.Network), b.(*Network), scope)
 	}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func autoConvert_v1beta1_CloudStackAffinityGroup_To_v1beta3_CloudStackAffinityGroup(in *CloudStackAffinityGroup, out *v1beta3.CloudStackAffinityGroup, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackAffinityGroup_To_v1beta4_CloudStackAffinityGroup(in *CloudStackAffinityGroup, out *v1beta4.CloudStackAffinityGroup, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta3_CloudStackAffinityGroupSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta4_CloudStackAffinityGroupSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta3_CloudStackAffinityGroupStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta4_CloudStackAffinityGroupStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_CloudStackAffinityGroup_To_v1beta3_CloudStackAffinityGroup is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackAffinityGroup_To_v1beta3_CloudStackAffinityGroup(in *CloudStackAffinityGroup, out *v1beta3.CloudStackAffinityGroup, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackAffinityGroup_To_v1beta3_CloudStackAffinityGroup(in, out, s)
+// Convert_v1beta1_CloudStackAffinityGroup_To_v1beta4_CloudStackAffinityGroup is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackAffinityGroup_To_v1beta4_CloudStackAffinityGroup(in *CloudStackAffinityGroup, out *v1beta4.CloudStackAffinityGroup, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackAffinityGroup_To_v1beta4_CloudStackAffinityGroup(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in *v1beta3.CloudStackAffinityGroup, out *CloudStackAffinityGroup, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in *v1beta4.CloudStackAffinityGroup, out *CloudStackAffinityGroup, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta4_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta3_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta4_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta3_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in *v1beta3.CloudStackAffinityGroup, out *CloudStackAffinityGroup, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in, out, s)
+// Convert_v1beta4_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in *v1beta4.CloudStackAffinityGroup, out *CloudStackAffinityGroup, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackAffinityGroupList_To_v1beta3_CloudStackAffinityGroupList(in *CloudStackAffinityGroupList, out *v1beta3.CloudStackAffinityGroupList, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackAffinityGroupList_To_v1beta4_CloudStackAffinityGroupList(in *CloudStackAffinityGroupList, out *v1beta4.CloudStackAffinityGroupList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]v1beta3.CloudStackAffinityGroup, len(*in))
+		*out = make([]v1beta4.CloudStackAffinityGroup, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta1_CloudStackAffinityGroup_To_v1beta3_CloudStackAffinityGroup(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta1_CloudStackAffinityGroup_To_v1beta4_CloudStackAffinityGroup(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -349,18 +349,18 @@ func autoConvert_v1beta1_CloudStackAffinityGroupList_To_v1beta3_CloudStackAffini
 	return nil
 }
 
-// Convert_v1beta1_CloudStackAffinityGroupList_To_v1beta3_CloudStackAffinityGroupList is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackAffinityGroupList_To_v1beta3_CloudStackAffinityGroupList(in *CloudStackAffinityGroupList, out *v1beta3.CloudStackAffinityGroupList, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackAffinityGroupList_To_v1beta3_CloudStackAffinityGroupList(in, out, s)
+// Convert_v1beta1_CloudStackAffinityGroupList_To_v1beta4_CloudStackAffinityGroupList is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackAffinityGroupList_To_v1beta4_CloudStackAffinityGroupList(in *CloudStackAffinityGroupList, out *v1beta4.CloudStackAffinityGroupList, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackAffinityGroupList_To_v1beta4_CloudStackAffinityGroupList(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(in *v1beta3.CloudStackAffinityGroupList, out *CloudStackAffinityGroupList, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(in *v1beta4.CloudStackAffinityGroupList, out *CloudStackAffinityGroupList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CloudStackAffinityGroup, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta3_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta4_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -370,24 +370,24 @@ func autoConvert_v1beta3_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffini
 	return nil
 }
 
-// Convert_v1beta3_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(in *v1beta3.CloudStackAffinityGroupList, out *CloudStackAffinityGroupList, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(in, out, s)
+// Convert_v1beta4_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(in *v1beta4.CloudStackAffinityGroupList, out *CloudStackAffinityGroupList, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackAffinityGroupList_To_v1beta1_CloudStackAffinityGroupList(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta3_CloudStackAffinityGroupSpec(in *CloudStackAffinityGroupSpec, out *v1beta3.CloudStackAffinityGroupSpec, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta4_CloudStackAffinityGroupSpec(in *CloudStackAffinityGroupSpec, out *v1beta4.CloudStackAffinityGroupSpec, s conversion.Scope) error {
 	out.Type = in.Type
 	out.Name = in.Name
 	out.ID = in.ID
 	return nil
 }
 
-// Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta3_CloudStackAffinityGroupSpec is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta3_CloudStackAffinityGroupSpec(in *CloudStackAffinityGroupSpec, out *v1beta3.CloudStackAffinityGroupSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta3_CloudStackAffinityGroupSpec(in, out, s)
+// Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta4_CloudStackAffinityGroupSpec is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta4_CloudStackAffinityGroupSpec(in *CloudStackAffinityGroupSpec, out *v1beta4.CloudStackAffinityGroupSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackAffinityGroupSpec_To_v1beta4_CloudStackAffinityGroupSpec(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in *v1beta3.CloudStackAffinityGroupSpec, out *CloudStackAffinityGroupSpec, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in *v1beta4.CloudStackAffinityGroupSpec, out *CloudStackAffinityGroupSpec, s conversion.Scope) error {
 	out.Type = in.Type
 	out.Name = in.Name
 	out.ID = in.ID
@@ -395,65 +395,65 @@ func autoConvert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffini
 	return nil
 }
 
-func autoConvert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta3_CloudStackAffinityGroupStatus(in *CloudStackAffinityGroupStatus, out *v1beta3.CloudStackAffinityGroupStatus, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta4_CloudStackAffinityGroupStatus(in *CloudStackAffinityGroupStatus, out *v1beta4.CloudStackAffinityGroupStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	return nil
 }
 
-// Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta3_CloudStackAffinityGroupStatus is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta3_CloudStackAffinityGroupStatus(in *CloudStackAffinityGroupStatus, out *v1beta3.CloudStackAffinityGroupStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta3_CloudStackAffinityGroupStatus(in, out, s)
+// Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta4_CloudStackAffinityGroupStatus is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta4_CloudStackAffinityGroupStatus(in *CloudStackAffinityGroupStatus, out *v1beta4.CloudStackAffinityGroupStatus, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackAffinityGroupStatus_To_v1beta4_CloudStackAffinityGroupStatus(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(in *v1beta3.CloudStackAffinityGroupStatus, out *CloudStackAffinityGroupStatus, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(in *v1beta4.CloudStackAffinityGroupStatus, out *CloudStackAffinityGroupStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	return nil
 }
 
-// Convert_v1beta3_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(in *v1beta3.CloudStackAffinityGroupStatus, out *CloudStackAffinityGroupStatus, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(in, out, s)
+// Convert_v1beta4_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(in *v1beta4.CloudStackAffinityGroupStatus, out *CloudStackAffinityGroupStatus, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackAffinityGroupStatus_To_v1beta1_CloudStackAffinityGroupStatus(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackIsolatedNetwork_To_v1beta3_CloudStackIsolatedNetwork(in *CloudStackIsolatedNetwork, out *v1beta3.CloudStackIsolatedNetwork, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackIsolatedNetwork_To_v1beta4_CloudStackIsolatedNetwork(in *CloudStackIsolatedNetwork, out *v1beta4.CloudStackIsolatedNetwork, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta3_CloudStackIsolatedNetworkSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta4_CloudStackIsolatedNetworkSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta3_CloudStackIsolatedNetworkStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta4_CloudStackIsolatedNetworkStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_CloudStackIsolatedNetwork_To_v1beta3_CloudStackIsolatedNetwork is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackIsolatedNetwork_To_v1beta3_CloudStackIsolatedNetwork(in *CloudStackIsolatedNetwork, out *v1beta3.CloudStackIsolatedNetwork, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackIsolatedNetwork_To_v1beta3_CloudStackIsolatedNetwork(in, out, s)
+// Convert_v1beta1_CloudStackIsolatedNetwork_To_v1beta4_CloudStackIsolatedNetwork is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackIsolatedNetwork_To_v1beta4_CloudStackIsolatedNetwork(in *CloudStackIsolatedNetwork, out *v1beta4.CloudStackIsolatedNetwork, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackIsolatedNetwork_To_v1beta4_CloudStackIsolatedNetwork(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork(in *v1beta3.CloudStackIsolatedNetwork, out *CloudStackIsolatedNetwork, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork(in *v1beta4.CloudStackIsolatedNetwork, out *CloudStackIsolatedNetwork, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta3_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta4_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta3_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIsolatedNetworkStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta4_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIsolatedNetworkStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta3_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork(in *v1beta3.CloudStackIsolatedNetwork, out *CloudStackIsolatedNetwork, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork(in, out, s)
+// Convert_v1beta4_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork(in *v1beta4.CloudStackIsolatedNetwork, out *CloudStackIsolatedNetwork, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta3_CloudStackIsolatedNetworkList(in *CloudStackIsolatedNetworkList, out *v1beta3.CloudStackIsolatedNetworkList, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta4_CloudStackIsolatedNetworkList(in *CloudStackIsolatedNetworkList, out *v1beta4.CloudStackIsolatedNetworkList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]v1beta3.CloudStackIsolatedNetwork, len(*in))
+		*out = make([]v1beta4.CloudStackIsolatedNetwork, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta1_CloudStackIsolatedNetwork_To_v1beta3_CloudStackIsolatedNetwork(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta1_CloudStackIsolatedNetwork_To_v1beta4_CloudStackIsolatedNetwork(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -463,18 +463,18 @@ func autoConvert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta3_CloudStackIsol
 	return nil
 }
 
-// Convert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta3_CloudStackIsolatedNetworkList is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta3_CloudStackIsolatedNetworkList(in *CloudStackIsolatedNetworkList, out *v1beta3.CloudStackIsolatedNetworkList, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta3_CloudStackIsolatedNetworkList(in, out, s)
+// Convert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta4_CloudStackIsolatedNetworkList is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta4_CloudStackIsolatedNetworkList(in *CloudStackIsolatedNetworkList, out *v1beta4.CloudStackIsolatedNetworkList, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackIsolatedNetworkList_To_v1beta4_CloudStackIsolatedNetworkList(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolatedNetworkList(in *v1beta3.CloudStackIsolatedNetworkList, out *CloudStackIsolatedNetworkList, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolatedNetworkList(in *v1beta4.CloudStackIsolatedNetworkList, out *CloudStackIsolatedNetworkList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CloudStackIsolatedNetwork, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta3_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta4_CloudStackIsolatedNetwork_To_v1beta1_CloudStackIsolatedNetwork(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -484,24 +484,24 @@ func autoConvert_v1beta3_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsol
 	return nil
 }
 
-// Convert_v1beta3_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolatedNetworkList is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolatedNetworkList(in *v1beta3.CloudStackIsolatedNetworkList, out *CloudStackIsolatedNetworkList, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolatedNetworkList(in, out, s)
+// Convert_v1beta4_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolatedNetworkList is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolatedNetworkList(in *v1beta4.CloudStackIsolatedNetworkList, out *CloudStackIsolatedNetworkList, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolatedNetworkList(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta3_CloudStackIsolatedNetworkSpec(in *CloudStackIsolatedNetworkSpec, out *v1beta3.CloudStackIsolatedNetworkSpec, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta4_CloudStackIsolatedNetworkSpec(in *CloudStackIsolatedNetworkSpec, out *v1beta4.CloudStackIsolatedNetworkSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
 	return nil
 }
 
-// Convert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta3_CloudStackIsolatedNetworkSpec is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta3_CloudStackIsolatedNetworkSpec(in *CloudStackIsolatedNetworkSpec, out *v1beta3.CloudStackIsolatedNetworkSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta3_CloudStackIsolatedNetworkSpec(in, out, s)
+// Convert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta4_CloudStackIsolatedNetworkSpec is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta4_CloudStackIsolatedNetworkSpec(in *CloudStackIsolatedNetworkSpec, out *v1beta4.CloudStackIsolatedNetworkSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta4_CloudStackIsolatedNetworkSpec(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(in *v1beta3.CloudStackIsolatedNetworkSpec, out *CloudStackIsolatedNetworkSpec, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(in *v1beta4.CloudStackIsolatedNetworkSpec, out *CloudStackIsolatedNetworkSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
@@ -513,19 +513,19 @@ func autoConvert_v1beta3_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsol
 	return nil
 }
 
-func autoConvert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta3_CloudStackIsolatedNetworkStatus(in *CloudStackIsolatedNetworkStatus, out *v1beta3.CloudStackIsolatedNetworkStatus, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta4_CloudStackIsolatedNetworkStatus(in *CloudStackIsolatedNetworkStatus, out *v1beta4.CloudStackIsolatedNetworkStatus, s conversion.Scope) error {
 	out.PublicIPID = in.PublicIPID
 	out.LBRuleID = in.LBRuleID
 	out.Ready = in.Ready
 	return nil
 }
 
-// Convert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta3_CloudStackIsolatedNetworkStatus is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta3_CloudStackIsolatedNetworkStatus(in *CloudStackIsolatedNetworkStatus, out *v1beta3.CloudStackIsolatedNetworkStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta3_CloudStackIsolatedNetworkStatus(in, out, s)
+// Convert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta4_CloudStackIsolatedNetworkStatus is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta4_CloudStackIsolatedNetworkStatus(in *CloudStackIsolatedNetworkStatus, out *v1beta4.CloudStackIsolatedNetworkStatus, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackIsolatedNetworkStatus_To_v1beta4_CloudStackIsolatedNetworkStatus(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIsolatedNetworkStatus(in *v1beta3.CloudStackIsolatedNetworkStatus, out *CloudStackIsolatedNetworkStatus, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIsolatedNetworkStatus(in *v1beta4.CloudStackIsolatedNetworkStatus, out *CloudStackIsolatedNetworkStatus, s conversion.Scope) error {
 	out.PublicIPID = in.PublicIPID
 	out.LBRuleID = in.LBRuleID
 	// WARNING: in.RoutingMode requires manual conversion: does not exist in peer-type
@@ -534,45 +534,45 @@ func autoConvert_v1beta3_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIs
 	return nil
 }
 
-func autoConvert_v1beta1_CloudStackMachine_To_v1beta3_CloudStackMachine(in *CloudStackMachine, out *v1beta3.CloudStackMachine, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackMachine_To_v1beta4_CloudStackMachine(in *CloudStackMachine, out *v1beta4.CloudStackMachine, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta1_CloudStackMachineSpec_To_v1beta4_CloudStackMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_CloudStackMachineStatus_To_v1beta3_CloudStackMachineStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta1_CloudStackMachineStatus_To_v1beta4_CloudStackMachineStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_CloudStackMachine_To_v1beta3_CloudStackMachine is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachine_To_v1beta3_CloudStackMachine(in *CloudStackMachine, out *v1beta3.CloudStackMachine, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachine_To_v1beta3_CloudStackMachine(in, out, s)
+// Convert_v1beta1_CloudStackMachine_To_v1beta4_CloudStackMachine is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachine_To_v1beta4_CloudStackMachine(in *CloudStackMachine, out *v1beta4.CloudStackMachine, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachine_To_v1beta4_CloudStackMachine(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackMachine_To_v1beta1_CloudStackMachine(in *v1beta3.CloudStackMachine, out *CloudStackMachine, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachine_To_v1beta1_CloudStackMachine(in *v1beta4.CloudStackMachine, out *CloudStackMachine, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta4_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta4_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta3_CloudStackMachine_To_v1beta1_CloudStackMachine is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackMachine_To_v1beta1_CloudStackMachine(in *v1beta3.CloudStackMachine, out *CloudStackMachine, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachine_To_v1beta1_CloudStackMachine(in, out, s)
+// Convert_v1beta4_CloudStackMachine_To_v1beta1_CloudStackMachine is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackMachine_To_v1beta1_CloudStackMachine(in *v1beta4.CloudStackMachine, out *CloudStackMachine, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackMachine_To_v1beta1_CloudStackMachine(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackMachineList_To_v1beta3_CloudStackMachineList(in *CloudStackMachineList, out *v1beta3.CloudStackMachineList, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackMachineList_To_v1beta4_CloudStackMachineList(in *CloudStackMachineList, out *v1beta4.CloudStackMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]v1beta3.CloudStackMachine, len(*in))
+		*out = make([]v1beta4.CloudStackMachine, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta1_CloudStackMachine_To_v1beta3_CloudStackMachine(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta1_CloudStackMachine_To_v1beta4_CloudStackMachine(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -582,18 +582,18 @@ func autoConvert_v1beta1_CloudStackMachineList_To_v1beta3_CloudStackMachineList(
 	return nil
 }
 
-// Convert_v1beta1_CloudStackMachineList_To_v1beta3_CloudStackMachineList is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachineList_To_v1beta3_CloudStackMachineList(in *CloudStackMachineList, out *v1beta3.CloudStackMachineList, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineList_To_v1beta3_CloudStackMachineList(in, out, s)
+// Convert_v1beta1_CloudStackMachineList_To_v1beta4_CloudStackMachineList is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachineList_To_v1beta4_CloudStackMachineList(in *CloudStackMachineList, out *v1beta4.CloudStackMachineList, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachineList_To_v1beta4_CloudStackMachineList(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackMachineList_To_v1beta1_CloudStackMachineList(in *v1beta3.CloudStackMachineList, out *CloudStackMachineList, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineList_To_v1beta1_CloudStackMachineList(in *v1beta4.CloudStackMachineList, out *CloudStackMachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CloudStackMachine, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta3_CloudStackMachine_To_v1beta1_CloudStackMachine(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta4_CloudStackMachine_To_v1beta1_CloudStackMachine(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -603,22 +603,22 @@ func autoConvert_v1beta3_CloudStackMachineList_To_v1beta1_CloudStackMachineList(
 	return nil
 }
 
-// Convert_v1beta3_CloudStackMachineList_To_v1beta1_CloudStackMachineList is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackMachineList_To_v1beta1_CloudStackMachineList(in *v1beta3.CloudStackMachineList, out *CloudStackMachineList, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachineList_To_v1beta1_CloudStackMachineList(in, out, s)
+// Convert_v1beta4_CloudStackMachineList_To_v1beta1_CloudStackMachineList is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackMachineList_To_v1beta1_CloudStackMachineList(in *v1beta4.CloudStackMachineList, out *CloudStackMachineList, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackMachineList_To_v1beta1_CloudStackMachineList(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(in *CloudStackMachineSpec, out *v1beta3.CloudStackMachineSpec, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackMachineSpec_To_v1beta4_CloudStackMachineSpec(in *CloudStackMachineSpec, out *v1beta4.CloudStackMachineSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
 	out.InstanceID = (*string)(unsafe.Pointer(in.InstanceID))
-	if err := Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta3_CloudStackResourceIdentifier(&in.Offering, &out.Offering, s); err != nil {
+	if err := Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta4_CloudStackResourceIdentifier(&in.Offering, &out.Offering, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta3_CloudStackResourceIdentifier(&in.Template, &out.Template, s); err != nil {
+	if err := Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta4_CloudStackResourceIdentifier(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_CloudStackResourceDiskOffering_To_v1beta3_CloudStackResourceDiskOffering(&in.DiskOffering, &out.DiskOffering, s); err != nil {
+	if err := Convert_v1beta1_CloudStackResourceDiskOffering_To_v1beta4_CloudStackResourceDiskOffering(&in.DiskOffering, &out.DiskOffering, s); err != nil {
 		return err
 	}
 	out.SSHKey = in.SSHKey
@@ -633,22 +633,22 @@ func autoConvert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(
 	return nil
 }
 
-// Convert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(in *CloudStackMachineSpec, out *v1beta3.CloudStackMachineSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(in, out, s)
+// Convert_v1beta1_CloudStackMachineSpec_To_v1beta4_CloudStackMachineSpec is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachineSpec_To_v1beta4_CloudStackMachineSpec(in *CloudStackMachineSpec, out *v1beta4.CloudStackMachineSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachineSpec_To_v1beta4_CloudStackMachineSpec(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in *v1beta4.CloudStackMachineSpec, out *CloudStackMachineSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
 	out.InstanceID = (*string)(unsafe.Pointer(in.InstanceID))
-	if err := Convert_v1beta3_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(&in.Offering, &out.Offering, s); err != nil {
+	if err := Convert_v1beta4_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(&in.Offering, &out.Offering, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta3_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(&in.Template, &out.Template, s); err != nil {
+	if err := Convert_v1beta4_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta3_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(&in.DiskOffering, &out.DiskOffering, s); err != nil {
+	if err := Convert_v1beta4_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(&in.DiskOffering, &out.DiskOffering, s); err != nil {
 		return err
 	}
 	// WARNING: in.Networks requires manual conversion: does not exist in peer-type
@@ -663,101 +663,101 @@ func autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(
 	return nil
 }
 
-func autoConvert_v1beta1_CloudStackMachineStateChecker_To_v1beta3_CloudStackMachineStateChecker(in *CloudStackMachineStateChecker, out *v1beta3.CloudStackMachineStateChecker, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackMachineStateChecker_To_v1beta4_CloudStackMachineStateChecker(in *CloudStackMachineStateChecker, out *v1beta4.CloudStackMachineStateChecker, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta3_CloudStackMachineStateCheckerSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta4_CloudStackMachineStateCheckerSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta3_CloudStackMachineStateCheckerStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta4_CloudStackMachineStateCheckerStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_CloudStackMachineStateChecker_To_v1beta3_CloudStackMachineStateChecker is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachineStateChecker_To_v1beta3_CloudStackMachineStateChecker(in *CloudStackMachineStateChecker, out *v1beta3.CloudStackMachineStateChecker, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineStateChecker_To_v1beta3_CloudStackMachineStateChecker(in, out, s)
+// Convert_v1beta1_CloudStackMachineStateChecker_To_v1beta4_CloudStackMachineStateChecker is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachineStateChecker_To_v1beta4_CloudStackMachineStateChecker(in *CloudStackMachineStateChecker, out *v1beta4.CloudStackMachineStateChecker, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachineStateChecker_To_v1beta4_CloudStackMachineStateChecker(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker(in *v1beta3.CloudStackMachineStateChecker, out *CloudStackMachineStateChecker, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker(in *v1beta4.CloudStackMachineStateChecker, out *CloudStackMachineStateChecker, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta3_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta4_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta3_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus(&in.Status, &out.Status, s); err != nil {
+	if err := Convert_v1beta4_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus(&in.Status, &out.Status, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta3_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker(in *v1beta3.CloudStackMachineStateChecker, out *CloudStackMachineStateChecker, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker(in, out, s)
+// Convert_v1beta4_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker(in *v1beta4.CloudStackMachineStateChecker, out *CloudStackMachineStateChecker, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackMachineStateChecker_To_v1beta1_CloudStackMachineStateChecker(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta3_CloudStackMachineStateCheckerList(in *CloudStackMachineStateCheckerList, out *v1beta3.CloudStackMachineStateCheckerList, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta4_CloudStackMachineStateCheckerList(in *CloudStackMachineStateCheckerList, out *v1beta4.CloudStackMachineStateCheckerList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta3.CloudStackMachineStateChecker)(unsafe.Pointer(&in.Items))
+	out.Items = *(*[]v1beta4.CloudStackMachineStateChecker)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
-// Convert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta3_CloudStackMachineStateCheckerList is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta3_CloudStackMachineStateCheckerList(in *CloudStackMachineStateCheckerList, out *v1beta3.CloudStackMachineStateCheckerList, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta3_CloudStackMachineStateCheckerList(in, out, s)
+// Convert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta4_CloudStackMachineStateCheckerList is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta4_CloudStackMachineStateCheckerList(in *CloudStackMachineStateCheckerList, out *v1beta4.CloudStackMachineStateCheckerList, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachineStateCheckerList_To_v1beta4_CloudStackMachineStateCheckerList(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList(in *v1beta3.CloudStackMachineStateCheckerList, out *CloudStackMachineStateCheckerList, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList(in *v1beta4.CloudStackMachineStateCheckerList, out *CloudStackMachineStateCheckerList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	out.Items = *(*[]CloudStackMachineStateChecker)(unsafe.Pointer(&in.Items))
 	return nil
 }
 
-// Convert_v1beta3_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList(in *v1beta3.CloudStackMachineStateCheckerList, out *CloudStackMachineStateCheckerList, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList(in, out, s)
+// Convert_v1beta4_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList(in *v1beta4.CloudStackMachineStateCheckerList, out *CloudStackMachineStateCheckerList, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackMachineStateCheckerList_To_v1beta1_CloudStackMachineStateCheckerList(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta3_CloudStackMachineStateCheckerSpec(in *CloudStackMachineStateCheckerSpec, out *v1beta3.CloudStackMachineStateCheckerSpec, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta4_CloudStackMachineStateCheckerSpec(in *CloudStackMachineStateCheckerSpec, out *v1beta4.CloudStackMachineStateCheckerSpec, s conversion.Scope) error {
 	out.InstanceID = in.InstanceID
 	return nil
 }
 
-// Convert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta3_CloudStackMachineStateCheckerSpec is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta3_CloudStackMachineStateCheckerSpec(in *CloudStackMachineStateCheckerSpec, out *v1beta3.CloudStackMachineStateCheckerSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta3_CloudStackMachineStateCheckerSpec(in, out, s)
+// Convert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta4_CloudStackMachineStateCheckerSpec is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta4_CloudStackMachineStateCheckerSpec(in *CloudStackMachineStateCheckerSpec, out *v1beta4.CloudStackMachineStateCheckerSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachineStateCheckerSpec_To_v1beta4_CloudStackMachineStateCheckerSpec(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec(in *v1beta3.CloudStackMachineStateCheckerSpec, out *CloudStackMachineStateCheckerSpec, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec(in *v1beta4.CloudStackMachineStateCheckerSpec, out *CloudStackMachineStateCheckerSpec, s conversion.Scope) error {
 	out.InstanceID = in.InstanceID
 	return nil
 }
 
-// Convert_v1beta3_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec(in *v1beta3.CloudStackMachineStateCheckerSpec, out *CloudStackMachineStateCheckerSpec, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec(in, out, s)
+// Convert_v1beta4_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec(in *v1beta4.CloudStackMachineStateCheckerSpec, out *CloudStackMachineStateCheckerSpec, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackMachineStateCheckerSpec_To_v1beta1_CloudStackMachineStateCheckerSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta3_CloudStackMachineStateCheckerStatus(in *CloudStackMachineStateCheckerStatus, out *v1beta3.CloudStackMachineStateCheckerStatus, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta4_CloudStackMachineStateCheckerStatus(in *CloudStackMachineStateCheckerStatus, out *v1beta4.CloudStackMachineStateCheckerStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	return nil
 }
 
-// Convert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta3_CloudStackMachineStateCheckerStatus is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta3_CloudStackMachineStateCheckerStatus(in *CloudStackMachineStateCheckerStatus, out *v1beta3.CloudStackMachineStateCheckerStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta3_CloudStackMachineStateCheckerStatus(in, out, s)
+// Convert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta4_CloudStackMachineStateCheckerStatus is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta4_CloudStackMachineStateCheckerStatus(in *CloudStackMachineStateCheckerStatus, out *v1beta4.CloudStackMachineStateCheckerStatus, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachineStateCheckerStatus_To_v1beta4_CloudStackMachineStateCheckerStatus(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus(in *v1beta3.CloudStackMachineStateCheckerStatus, out *CloudStackMachineStateCheckerStatus, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus(in *v1beta4.CloudStackMachineStateCheckerStatus, out *CloudStackMachineStateCheckerStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	return nil
 }
 
-// Convert_v1beta3_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus(in *v1beta3.CloudStackMachineStateCheckerStatus, out *CloudStackMachineStateCheckerStatus, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus(in, out, s)
+// Convert_v1beta4_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus(in *v1beta4.CloudStackMachineStateCheckerStatus, out *CloudStackMachineStateCheckerStatus, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackMachineStateCheckerStatus_To_v1beta1_CloudStackMachineStateCheckerStatus(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackMachineStatus_To_v1beta3_CloudStackMachineStatus(in *CloudStackMachineStatus, out *v1beta3.CloudStackMachineStatus, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackMachineStatus_To_v1beta4_CloudStackMachineStatus(in *CloudStackMachineStatus, out *v1beta4.CloudStackMachineStatus, s conversion.Scope) error {
 	// INFO: in.ZoneID opted out of conversion generation
 	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = string(in.InstanceState)
@@ -766,54 +766,55 @@ func autoConvert_v1beta1_CloudStackMachineStatus_To_v1beta3_CloudStackMachineSta
 	return nil
 }
 
-// Convert_v1beta1_CloudStackMachineStatus_To_v1beta3_CloudStackMachineStatus is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachineStatus_To_v1beta3_CloudStackMachineStatus(in *CloudStackMachineStatus, out *v1beta3.CloudStackMachineStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineStatus_To_v1beta3_CloudStackMachineStatus(in, out, s)
+// Convert_v1beta1_CloudStackMachineStatus_To_v1beta4_CloudStackMachineStatus is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachineStatus_To_v1beta4_CloudStackMachineStatus(in *CloudStackMachineStatus, out *v1beta4.CloudStackMachineStatus, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachineStatus_To_v1beta4_CloudStackMachineStatus(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in *v1beta3.CloudStackMachineStatus, out *CloudStackMachineStatus, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in *v1beta4.CloudStackMachineStatus, out *CloudStackMachineStatus, s conversion.Scope) error {
 	out.Addresses = *(*[]corev1.NodeAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = InstanceState(in.InstanceState)
 	out.InstanceStateLastUpdated = in.InstanceStateLastUpdated
 	out.Ready = in.Ready
 	// WARNING: in.Status requires manual conversion: does not exist in peer-type
 	// WARNING: in.Reason requires manual conversion: does not exist in peer-type
+	// WARNING: in.Initialization requires manual conversion: does not exist in peer-type
 	return nil
 }
 
-func autoConvert_v1beta1_CloudStackMachineTemplate_To_v1beta3_CloudStackMachineTemplate(in *CloudStackMachineTemplate, out *v1beta3.CloudStackMachineTemplate, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackMachineTemplate_To_v1beta4_CloudStackMachineTemplate(in *CloudStackMachineTemplate, out *v1beta4.CloudStackMachineTemplate, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta1_CloudStackMachineTemplateSpec_To_v1beta3_CloudStackMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta1_CloudStackMachineTemplateSpec_To_v1beta4_CloudStackMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_CloudStackMachineTemplate_To_v1beta3_CloudStackMachineTemplate is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachineTemplate_To_v1beta3_CloudStackMachineTemplate(in *CloudStackMachineTemplate, out *v1beta3.CloudStackMachineTemplate, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineTemplate_To_v1beta3_CloudStackMachineTemplate(in, out, s)
+// Convert_v1beta1_CloudStackMachineTemplate_To_v1beta4_CloudStackMachineTemplate is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachineTemplate_To_v1beta4_CloudStackMachineTemplate(in *CloudStackMachineTemplate, out *v1beta4.CloudStackMachineTemplate, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachineTemplate_To_v1beta4_CloudStackMachineTemplate(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(in *v1beta3.CloudStackMachineTemplate, out *CloudStackMachineTemplate, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(in *v1beta4.CloudStackMachineTemplate, out *CloudStackMachineTemplate, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	if err := Convert_v1beta3_CloudStackMachineTemplateSpec_To_v1beta1_CloudStackMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta4_CloudStackMachineTemplateSpec_To_v1beta1_CloudStackMachineTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta3_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(in *v1beta3.CloudStackMachineTemplate, out *CloudStackMachineTemplate, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(in, out, s)
+// Convert_v1beta4_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(in *v1beta4.CloudStackMachineTemplate, out *CloudStackMachineTemplate, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackMachineTemplateList_To_v1beta3_CloudStackMachineTemplateList(in *CloudStackMachineTemplateList, out *v1beta3.CloudStackMachineTemplateList, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackMachineTemplateList_To_v1beta4_CloudStackMachineTemplateList(in *CloudStackMachineTemplateList, out *v1beta4.CloudStackMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]v1beta3.CloudStackMachineTemplate, len(*in))
+		*out = make([]v1beta4.CloudStackMachineTemplate, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta1_CloudStackMachineTemplate_To_v1beta3_CloudStackMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta1_CloudStackMachineTemplate_To_v1beta4_CloudStackMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -823,18 +824,18 @@ func autoConvert_v1beta1_CloudStackMachineTemplateList_To_v1beta3_CloudStackMach
 	return nil
 }
 
-// Convert_v1beta1_CloudStackMachineTemplateList_To_v1beta3_CloudStackMachineTemplateList is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachineTemplateList_To_v1beta3_CloudStackMachineTemplateList(in *CloudStackMachineTemplateList, out *v1beta3.CloudStackMachineTemplateList, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineTemplateList_To_v1beta3_CloudStackMachineTemplateList(in, out, s)
+// Convert_v1beta1_CloudStackMachineTemplateList_To_v1beta4_CloudStackMachineTemplateList is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachineTemplateList_To_v1beta4_CloudStackMachineTemplateList(in *CloudStackMachineTemplateList, out *v1beta4.CloudStackMachineTemplateList, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachineTemplateList_To_v1beta4_CloudStackMachineTemplateList(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackMachineTemplateList_To_v1beta1_CloudStackMachineTemplateList(in *v1beta3.CloudStackMachineTemplateList, out *CloudStackMachineTemplateList, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineTemplateList_To_v1beta1_CloudStackMachineTemplateList(in *v1beta4.CloudStackMachineTemplateList, out *CloudStackMachineTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]CloudStackMachineTemplate, len(*in))
 		for i := range *in {
-			if err := Convert_v1beta3_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := Convert_v1beta4_CloudStackMachineTemplate_To_v1beta1_CloudStackMachineTemplate(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -844,53 +845,53 @@ func autoConvert_v1beta3_CloudStackMachineTemplateList_To_v1beta1_CloudStackMach
 	return nil
 }
 
-// Convert_v1beta3_CloudStackMachineTemplateList_To_v1beta1_CloudStackMachineTemplateList is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackMachineTemplateList_To_v1beta1_CloudStackMachineTemplateList(in *v1beta3.CloudStackMachineTemplateList, out *CloudStackMachineTemplateList, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachineTemplateList_To_v1beta1_CloudStackMachineTemplateList(in, out, s)
+// Convert_v1beta4_CloudStackMachineTemplateList_To_v1beta1_CloudStackMachineTemplateList is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackMachineTemplateList_To_v1beta1_CloudStackMachineTemplateList(in *v1beta4.CloudStackMachineTemplateList, out *CloudStackMachineTemplateList, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackMachineTemplateList_To_v1beta1_CloudStackMachineTemplateList(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackMachineTemplateResource_To_v1beta3_CloudStackMachineTemplateResource(in *CloudStackMachineTemplateResource, out *v1beta3.CloudStackMachineTemplateResource, s conversion.Scope) error {
-	if err := Convert_v1_ObjectMeta_To_v1beta1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+func autoConvert_v1beta1_CloudStackMachineTemplateResource_To_v1beta4_CloudStackMachineTemplateResource(in *CloudStackMachineTemplateResource, out *v1beta4.CloudStackMachineTemplateResource, s conversion.Scope) error {
+	if err := Convert_v1_ObjectMeta_To_v1beta2_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
-	if err := Convert_v1beta1_CloudStackMachineSpec_To_v1beta3_CloudStackMachineSpec(&in.Spec, &out.Spec, s); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Convert_v1beta1_CloudStackMachineTemplateResource_To_v1beta3_CloudStackMachineTemplateResource is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackMachineTemplateResource_To_v1beta3_CloudStackMachineTemplateResource(in *CloudStackMachineTemplateResource, out *v1beta3.CloudStackMachineTemplateResource, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackMachineTemplateResource_To_v1beta3_CloudStackMachineTemplateResource(in, out, s)
-}
-
-func autoConvert_v1beta3_CloudStackMachineTemplateResource_To_v1beta1_CloudStackMachineTemplateResource(in *v1beta3.CloudStackMachineTemplateResource, out *CloudStackMachineTemplateResource, s conversion.Scope) error {
-	if err := Convert_v1beta1_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
-		return err
-	}
-	if err := Convert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta1_CloudStackMachineSpec_To_v1beta4_CloudStackMachineSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta3_CloudStackMachineTemplateResource_To_v1beta1_CloudStackMachineTemplateResource is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackMachineTemplateResource_To_v1beta1_CloudStackMachineTemplateResource(in *v1beta3.CloudStackMachineTemplateResource, out *CloudStackMachineTemplateResource, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackMachineTemplateResource_To_v1beta1_CloudStackMachineTemplateResource(in, out, s)
+// Convert_v1beta1_CloudStackMachineTemplateResource_To_v1beta4_CloudStackMachineTemplateResource is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackMachineTemplateResource_To_v1beta4_CloudStackMachineTemplateResource(in *CloudStackMachineTemplateResource, out *v1beta4.CloudStackMachineTemplateResource, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackMachineTemplateResource_To_v1beta4_CloudStackMachineTemplateResource(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackMachineTemplateSpec_To_v1beta3_CloudStackMachineTemplateSpec(in *CloudStackMachineTemplateSpec, out *v1beta3.CloudStackMachineTemplateSpec, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineTemplateResource_To_v1beta1_CloudStackMachineTemplateResource(in *v1beta4.CloudStackMachineTemplateResource, out *CloudStackMachineTemplateResource, s conversion.Scope) error {
+	if err := Convert_v1beta2_ObjectMeta_To_v1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta4_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta4_CloudStackMachineTemplateResource_To_v1beta1_CloudStackMachineTemplateResource is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackMachineTemplateResource_To_v1beta1_CloudStackMachineTemplateResource(in *v1beta4.CloudStackMachineTemplateResource, out *CloudStackMachineTemplateResource, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackMachineTemplateResource_To_v1beta1_CloudStackMachineTemplateResource(in, out, s)
+}
+
+func autoConvert_v1beta1_CloudStackMachineTemplateSpec_To_v1beta4_CloudStackMachineTemplateSpec(in *CloudStackMachineTemplateSpec, out *v1beta4.CloudStackMachineTemplateSpec, s conversion.Scope) error {
 	// WARNING: in.Spec requires manual conversion: does not exist in peer-type
 	return nil
 }
 
-func autoConvert_v1beta3_CloudStackMachineTemplateSpec_To_v1beta1_CloudStackMachineTemplateSpec(in *v1beta3.CloudStackMachineTemplateSpec, out *CloudStackMachineTemplateSpec, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackMachineTemplateSpec_To_v1beta1_CloudStackMachineTemplateSpec(in *v1beta4.CloudStackMachineTemplateSpec, out *CloudStackMachineTemplateSpec, s conversion.Scope) error {
 	// WARNING: in.Template requires manual conversion: does not exist in peer-type
 	return nil
 }
 
-func autoConvert_v1beta1_CloudStackResourceDiskOffering_To_v1beta3_CloudStackResourceDiskOffering(in *CloudStackResourceDiskOffering, out *v1beta3.CloudStackResourceDiskOffering, s conversion.Scope) error {
-	if err := Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta3_CloudStackResourceIdentifier(&in.CloudStackResourceIdentifier, &out.CloudStackResourceIdentifier, s); err != nil {
+func autoConvert_v1beta1_CloudStackResourceDiskOffering_To_v1beta4_CloudStackResourceDiskOffering(in *CloudStackResourceDiskOffering, out *v1beta4.CloudStackResourceDiskOffering, s conversion.Scope) error {
+	if err := Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta4_CloudStackResourceIdentifier(&in.CloudStackResourceIdentifier, &out.CloudStackResourceIdentifier, s); err != nil {
 		return err
 	}
 	out.CustomSize = in.CustomSize
@@ -901,13 +902,13 @@ func autoConvert_v1beta1_CloudStackResourceDiskOffering_To_v1beta3_CloudStackRes
 	return nil
 }
 
-// Convert_v1beta1_CloudStackResourceDiskOffering_To_v1beta3_CloudStackResourceDiskOffering is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackResourceDiskOffering_To_v1beta3_CloudStackResourceDiskOffering(in *CloudStackResourceDiskOffering, out *v1beta3.CloudStackResourceDiskOffering, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackResourceDiskOffering_To_v1beta3_CloudStackResourceDiskOffering(in, out, s)
+// Convert_v1beta1_CloudStackResourceDiskOffering_To_v1beta4_CloudStackResourceDiskOffering is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackResourceDiskOffering_To_v1beta4_CloudStackResourceDiskOffering(in *CloudStackResourceDiskOffering, out *v1beta4.CloudStackResourceDiskOffering, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackResourceDiskOffering_To_v1beta4_CloudStackResourceDiskOffering(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(in *v1beta3.CloudStackResourceDiskOffering, out *CloudStackResourceDiskOffering, s conversion.Scope) error {
-	if err := Convert_v1beta3_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(&in.CloudStackResourceIdentifier, &out.CloudStackResourceIdentifier, s); err != nil {
+func autoConvert_v1beta4_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(in *v1beta4.CloudStackResourceDiskOffering, out *CloudStackResourceDiskOffering, s conversion.Scope) error {
+	if err := Convert_v1beta4_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(&in.CloudStackResourceIdentifier, &out.CloudStackResourceIdentifier, s); err != nil {
 		return err
 	}
 	out.CustomSize = in.CustomSize
@@ -918,74 +919,74 @@ func autoConvert_v1beta3_CloudStackResourceDiskOffering_To_v1beta1_CloudStackRes
 	return nil
 }
 
-// Convert_v1beta3_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(in *v1beta3.CloudStackResourceDiskOffering, out *CloudStackResourceDiskOffering, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(in, out, s)
+// Convert_v1beta4_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(in *v1beta4.CloudStackResourceDiskOffering, out *CloudStackResourceDiskOffering, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackResourceDiskOffering_To_v1beta1_CloudStackResourceDiskOffering(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackResourceIdentifier_To_v1beta3_CloudStackResourceIdentifier(in *CloudStackResourceIdentifier, out *v1beta3.CloudStackResourceIdentifier, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackResourceIdentifier_To_v1beta4_CloudStackResourceIdentifier(in *CloudStackResourceIdentifier, out *v1beta4.CloudStackResourceIdentifier, s conversion.Scope) error {
 	out.ID = in.ID
 	out.Name = in.Name
 	return nil
 }
 
-// Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta3_CloudStackResourceIdentifier is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta3_CloudStackResourceIdentifier(in *CloudStackResourceIdentifier, out *v1beta3.CloudStackResourceIdentifier, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackResourceIdentifier_To_v1beta3_CloudStackResourceIdentifier(in, out, s)
+// Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta4_CloudStackResourceIdentifier is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackResourceIdentifier_To_v1beta4_CloudStackResourceIdentifier(in *CloudStackResourceIdentifier, out *v1beta4.CloudStackResourceIdentifier, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackResourceIdentifier_To_v1beta4_CloudStackResourceIdentifier(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(in *v1beta3.CloudStackResourceIdentifier, out *CloudStackResourceIdentifier, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(in *v1beta4.CloudStackResourceIdentifier, out *CloudStackResourceIdentifier, s conversion.Scope) error {
 	out.ID = in.ID
 	out.Name = in.Name
 	return nil
 }
 
-// Convert_v1beta3_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(in *v1beta3.CloudStackResourceIdentifier, out *CloudStackResourceIdentifier, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(in, out, s)
+// Convert_v1beta4_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(in *v1beta4.CloudStackResourceIdentifier, out *CloudStackResourceIdentifier, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackResourceIdentifier_To_v1beta1_CloudStackResourceIdentifier(in, out, s)
 }
 
-func autoConvert_v1beta1_CloudStackZoneSpec_To_v1beta3_CloudStackZoneSpec(in *CloudStackZoneSpec, out *v1beta3.CloudStackZoneSpec, s conversion.Scope) error {
+func autoConvert_v1beta1_CloudStackZoneSpec_To_v1beta4_CloudStackZoneSpec(in *CloudStackZoneSpec, out *v1beta4.CloudStackZoneSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
-	if err := Convert_v1beta1_Network_To_v1beta3_Network(&in.Network, &out.Network, s); err != nil {
+	if err := Convert_v1beta1_Network_To_v1beta4_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta1_CloudStackZoneSpec_To_v1beta3_CloudStackZoneSpec is an autogenerated conversion function.
-func Convert_v1beta1_CloudStackZoneSpec_To_v1beta3_CloudStackZoneSpec(in *CloudStackZoneSpec, out *v1beta3.CloudStackZoneSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_CloudStackZoneSpec_To_v1beta3_CloudStackZoneSpec(in, out, s)
+// Convert_v1beta1_CloudStackZoneSpec_To_v1beta4_CloudStackZoneSpec is an autogenerated conversion function.
+func Convert_v1beta1_CloudStackZoneSpec_To_v1beta4_CloudStackZoneSpec(in *CloudStackZoneSpec, out *v1beta4.CloudStackZoneSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_CloudStackZoneSpec_To_v1beta4_CloudStackZoneSpec(in, out, s)
 }
 
-func autoConvert_v1beta3_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(in *v1beta3.CloudStackZoneSpec, out *CloudStackZoneSpec, s conversion.Scope) error {
+func autoConvert_v1beta4_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(in *v1beta4.CloudStackZoneSpec, out *CloudStackZoneSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
-	if err := Convert_v1beta3_Network_To_v1beta1_Network(&in.Network, &out.Network, s); err != nil {
+	if err := Convert_v1beta4_Network_To_v1beta1_Network(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
 	return nil
 }
 
-// Convert_v1beta3_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec is an autogenerated conversion function.
-func Convert_v1beta3_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(in *v1beta3.CloudStackZoneSpec, out *CloudStackZoneSpec, s conversion.Scope) error {
-	return autoConvert_v1beta3_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(in, out, s)
+// Convert_v1beta4_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec is an autogenerated conversion function.
+func Convert_v1beta4_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(in *v1beta4.CloudStackZoneSpec, out *CloudStackZoneSpec, s conversion.Scope) error {
+	return autoConvert_v1beta4_CloudStackZoneSpec_To_v1beta1_CloudStackZoneSpec(in, out, s)
 }
 
-func autoConvert_v1beta1_Network_To_v1beta3_Network(in *Network, out *v1beta3.Network, s conversion.Scope) error {
+func autoConvert_v1beta1_Network_To_v1beta4_Network(in *Network, out *v1beta4.Network, s conversion.Scope) error {
 	out.ID = in.ID
 	out.Type = in.Type
 	out.Name = in.Name
 	return nil
 }
 
-// Convert_v1beta1_Network_To_v1beta3_Network is an autogenerated conversion function.
-func Convert_v1beta1_Network_To_v1beta3_Network(in *Network, out *v1beta3.Network, s conversion.Scope) error {
-	return autoConvert_v1beta1_Network_To_v1beta3_Network(in, out, s)
+// Convert_v1beta1_Network_To_v1beta4_Network is an autogenerated conversion function.
+func Convert_v1beta1_Network_To_v1beta4_Network(in *Network, out *v1beta4.Network, s conversion.Scope) error {
+	return autoConvert_v1beta1_Network_To_v1beta4_Network(in, out, s)
 }
 
-func autoConvert_v1beta3_Network_To_v1beta1_Network(in *v1beta3.Network, out *Network, s conversion.Scope) error {
+func autoConvert_v1beta4_Network_To_v1beta1_Network(in *v1beta4.Network, out *Network, s conversion.Scope) error {
 	out.ID = in.ID
 	out.Type = in.Type
 	out.Name = in.Name

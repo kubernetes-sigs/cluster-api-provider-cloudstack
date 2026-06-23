@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta3
+package v1beta4
 
 import (
 	"crypto/md5" // #nosec G501 -- weak cryptographic primitive doesn't matter here. Not security related.
@@ -25,9 +25,6 @@ import (
 )
 
 // FailureDomainHashedMetaName returns an MD5 name generated from the FailureDomain and Cluster name.
-// FailureDomains must have a unique name even when potentially sharing a namespace with other clusters.
-// In the future we may remove the ability to run multiple clusters in a single namespace, but today
-// this is a consequence of being upstream of EKS-A which does run multiple clusters in a single namepace.
 func FailureDomainHashedMetaName(fdName, clusterName string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(fdName+clusterName))) // #nosec G401 -- weak cryptographic primitive doesn't matter here. Not security related.
 }
@@ -63,9 +60,6 @@ type Network struct {
 	Netmask string `json:"netmask,omitempty"`
 
 	// Cloudstack Network Offering the cluster is built in.
-	// Default is "DefaultIsolatedNetworkOfferingWithSourceNatService" for
-	// isolated networks and "DefaultIsolatedNetworkOfferingForVpcNetworks"
-	// for VPC networks.
 	// +optional
 	Offering string `json:"offering,omitempty"`
 
@@ -74,8 +68,6 @@ type Network struct {
 	VPC *VPC `json:"vpc,omitempty"`
 
 	// Cloudstack Network's routing mode.
-	// Routing mode can be Dynamic, or Static.
-	// Empty value means the network mode is NATTED, not ROUTED.
 	// +optional
 	RoutingMode string `json:"routingMode,omitempty"`
 }
@@ -94,7 +86,6 @@ type VPC struct {
 	CIDR string `json:"cidr,omitempty"`
 
 	// Cloudstack VPC Offering for the network.
-	// Default is "Default VPC offering"
 	// +optional
 	Offering string `json:"offering,omitempty"`
 }
@@ -145,6 +136,7 @@ type CloudStackFailureDomainStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 
 // CloudStackFailureDomain is the Schema for the cloudstackfailuredomains API
 type CloudStackFailureDomain struct {

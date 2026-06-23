@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,56 +14,53 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta3
+package v1beta4
 
 import (
+	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/webhookutil"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// log is for logging in this package.
 var cloudstackclusterlog = logf.Log.WithName("cloudstackcluster-resource")
 
 func (r *CloudStackCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+	return ctrl.NewWebhookManagedBy(mgr, r).
+		WithDefaulter(r).
+		WithValidator(r).
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackcluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1beta3,name=mcloudstackcluster.kb.io,admissionReviewVersions=v1;v1beta1
+//+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta4-cloudstackcluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1beta4,name=mcloudstackcluster.kb.io,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &CloudStackCluster{}
+var _ admission.Defaulter[*CloudStackCluster] = &CloudStackCluster{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *CloudStackCluster) Default() {
-	cloudstackclusterlog.V(1).Info("entered api default setting webhook", "api resource name", r.Name)
-	// No defaulted values supported yet.
+// Default implements admission.Defaulter so a webhook will be registered for the type
+func (r *CloudStackCluster) Default(_ context.Context, obj *CloudStackCluster) error {
+	cloudstackclusterlog.V(1).Info("entered api default setting webhook", "api resource name", obj.Name)
+	return nil
 }
 
-// +kubebuilder:webhook:name=vcloudstackcluster.kb.io,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,versions=v1beta3,verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta3-cloudstackcluster,mutating=false,failurePolicy=fail,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:name=vcloudstackcluster.kb.io,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,versions=v1beta4,verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta4-cloudstackcluster,mutating=false,failurePolicy=fail,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Validator = &CloudStackCluster{}
+var _ admission.Validator[*CloudStackCluster] = &CloudStackCluster{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackCluster) ValidateCreate() (admission.Warnings, error) {
-	cloudstackclusterlog.V(1).Info("entered validate create webhook", "api resource name", r.Name)
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type
+func (r *CloudStackCluster) ValidateCreate(_ context.Context, obj *CloudStackCluster) (admission.Warnings, error) {
+	cloudstackclusterlog.V(1).Info("entered validate create webhook", "api resource name", obj.Name)
 
 	var errorList field.ErrorList
 
-	// Require FailureDomains and their respective sub-fields.
-	if len(r.Spec.FailureDomains) == 0 {
+	if len(obj.Spec.FailureDomains) == 0 {
 		errorList = append(errorList, field.Required(field.NewPath("spec", "FailureDomains"), "FailureDomains"))
 	} else {
-		for _, fdSpec := range r.Spec.FailureDomains { // Require failureDomain names meet k8s qualified name spec.
+		for _, fdSpec := range obj.Spec.FailureDomains {
 			for _, errMsg := range validation.IsDNS1123Subdomain(fdSpec.Name) {
 				errorList = append(errorList, field.Invalid(
 					field.NewPath("spec", "failureDomains", "name"), fdSpec.Name, errMsg))
@@ -81,20 +78,15 @@ func (r *CloudStackCluster) ValidateCreate() (admission.Warnings, error) {
 		}
 	}
 
-	return nil, webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return nil, webhookutil.AggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, errorList)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	cloudstackclusterlog.V(1).Info("entered validate update webhook", "api resource name", r.Name)
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type
+func (r *CloudStackCluster) ValidateUpdate(_ context.Context, oldObj, newObj *CloudStackCluster) (admission.Warnings, error) {
+	cloudstackclusterlog.V(1).Info("entered validate update webhook", "api resource name", newObj.Name)
 
-	spec := r.Spec
-
-	oldCluster, ok := old.(*CloudStackCluster)
-	if !ok {
-		return nil, errors.NewBadRequest(fmt.Sprintf("expected a CloudStackCluster but got a %T", old))
-	}
-	oldSpec := oldCluster.Spec
+	spec := newObj.Spec
+	oldSpec := oldObj.Spec
 
 	errorList := field.ErrorList(nil)
 
@@ -102,7 +94,7 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) (admission.Warnin
 		errorList = append(errorList, err)
 	}
 
-	if oldSpec.ControlPlaneEndpoint.Host != "" { // Need to allow one time endpoint setting via CAPC cluster controller.
+	if oldSpec.ControlPlaneEndpoint.Host != "" {
 		errorList = webhookutil.EnsureEqualStrings(
 			spec.ControlPlaneEndpoint.Host, oldSpec.ControlPlaneEndpoint.Host, "controlplaneendpoint.host", errorList)
 		errorList = webhookutil.EnsureEqualStrings(
@@ -110,7 +102,7 @@ func (r *CloudStackCluster) ValidateUpdate(old runtime.Object) (admission.Warnin
 			"controlplaneendpoint.port", errorList)
 	}
 
-	return nil, webhookutil.AggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, errorList)
+	return nil, webhookutil.AggregateObjErrors(newObj.GroupVersionKind().GroupKind(), newObj.Name, errorList)
 }
 
 // ValidateFailureDomainUpdates verifies that at least one failure domain has not been deleted, and
@@ -150,9 +142,8 @@ func FailureDomainsEqual(fd1, fd2 CloudStackFailureDomainSpec) bool {
 		fd1.Zone.Network.Type == fd2.Zone.Network.Type
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *CloudStackCluster) ValidateDelete() (admission.Warnings, error) {
-	cloudstackclusterlog.V(1).Info("entered validate delete webhook", "api resource name", r.Name)
-	// No deletion validations.  Deletion webhook not enabled.
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type
+func (r *CloudStackCluster) ValidateDelete(_ context.Context, obj *CloudStackCluster) (admission.Warnings, error) {
+	cloudstackclusterlog.V(1).Info("entered validate delete webhook", "api resource name", obj.Name)
 	return nil, nil
 }

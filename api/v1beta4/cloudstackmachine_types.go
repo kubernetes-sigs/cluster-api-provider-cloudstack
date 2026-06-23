@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta3
+package v1beta4
 
 import (
 	"time"
@@ -23,7 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
 const MachineFinalizer = "cloudstackmachine.infrastructure.cluster.x-k8s.io"
 
 const (
@@ -31,6 +30,16 @@ const (
 	AntiAffinity = "anti"
 	NoAffinity   = "no"
 )
+
+// MachineInitializationStatus tracks the initialization state of the CloudStackMachine,
+// implementing the CAPI v1beta2 infrastructure contract.
+type MachineInitializationStatus struct {
+	// Provisioned is true when the infrastructure provider reports that the machine's
+	// infrastructure is fully provisioned.
+	// NOTE: this field is part of the CAPI v1beta2 contract.
+	// +optional
+	Provisioned *bool `json:"provisioned,omitempty"`
+}
 
 type NetworkSpec struct {
 	// CloudStack Network Name (required to resolve ID)
@@ -43,13 +52,11 @@ type NetworkSpec struct {
 	ID string `json:"id,omitempty"`
 }
 
-// CloudStackMachineSpec defines the desired state of CloudStackMachine
+// CloudStackMachineSpec defines the desired state of CloudStackMachine.
 type CloudStackMachineSpec struct {
-	// Name.
 	//+optional
 	Name string `json:"name,omitempty"`
 
-	// ID.
 	//+optional
 	ID string `json:"id,omitempty"`
 
@@ -68,7 +75,6 @@ type CloudStackMachineSpec struct {
 
 	// The list of networks (overrides zone.network)
 	// +optional
-	// In CloudStackMachineSpec
 	Networks []NetworkSpec `json:"networks,omitempty"`
 
 	// CloudStack ssh key to use.
@@ -102,7 +108,6 @@ type CloudStackMachineSpec struct {
 
 	// UncompressedUserData specifies whether the user data is gzip-compressed.
 	// cloud-init has built-in support for gzip-compressed user data, ignition does not
-	//
 	// +optional
 	UncompressedUserData *bool `json:"uncompressedUserData,omitempty"`
 }
@@ -136,7 +141,7 @@ type CloudStackResourceDiskOffering struct {
 	Label string `json:"label"`
 }
 
-// Type pulled mostly from the CloudStack API.
+// CloudStackMachineStatus defines the observed state of CloudStackMachine.
 type CloudStackMachineStatus struct {
 	// Addresses contains a CloudStack VM instance's IP addresses.
 	Addresses []corev1.NodeAddress `json:"addresses,omitempty"`
@@ -150,19 +155,24 @@ type CloudStackMachineStatus struct {
 	InstanceStateLastUpdated metav1.Time `json:"instanceStateLastUpdated,omitempty"`
 
 	// Ready indicates the readiness of the provider resource.
+	// Kept for backward compatibility; prefer Initialization.Provisioned.
 	Ready bool `json:"ready"`
 
 	// Status indicates the status of the provider resource.
 	// +optional
 	Status *string `json:"status,omitempty"`
 
-	// Reason indicates the reason of status failure
+	// Reason indicates the reason of status failure.
 	// +optional
 	Reason *string `json:"reason,omitempty"`
+
+	// initialization contains the initialization state of the machine infrastructure.
+	// NOTE: this field implements the CAPI v1beta2 infrastructure contract.
+	// +optional
+	Initialization *MachineInitializationStatus `json:"initialization,omitempty"`
 }
 
-// TimeSinceLastStateChange returns the amount of time that's elapsed since the state was last updated.  If the state
-// hasn't ever been updated, it returns a negative value.
+// TimeSinceLastStateChange returns the amount of time that's elapsed since the state was last updated.
 func (s *CloudStackMachineStatus) TimeSinceLastStateChange() time.Duration {
 	if s.InstanceStateLastUpdated.IsZero() {
 		return time.Duration(-1)
@@ -172,14 +182,16 @@ func (s *CloudStackMachineStatus) TimeSinceLastStateChange() time.Duration {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=cloudstackmachines,scope=Namespaced,categories=cluster-api,shortName=csm
+// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
+// +kubebuilder:metadata:labels="cluster.x-k8s.io/v1beta2=v1beta4"
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this CloudStackMachine belongs"
 // +kubebuilder:printcolumn:name="InstanceState",type="string",JSONPath=".status.instanceState",description="CloudStack instance state"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Machine ready status"
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="CloudStack instance ID"
 // +kubebuilder:printcolumn:name="Machine",type="string",JSONPath=".metadata.ownerReferences[?(@.kind==\"Machine\")].name",description="Machine object which owns with this CloudStackMachine"
 
-// CloudStackMachine is the Schema for the cloudstackmachines API
+// CloudStackMachine is the Schema for the cloudstackmachines API.
 type CloudStackMachine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -190,7 +202,7 @@ type CloudStackMachine struct {
 
 //+kubebuilder:object:root=true
 
-// CloudStackMachineList contains a list of CloudStackMachine
+// CloudStackMachineList contains a list of CloudStackMachine.
 type CloudStackMachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

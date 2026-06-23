@@ -12,7 +12,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // GetYamlVal fetches the values in test/e2e/config/cloudstack.yaml by yaml node. A common config file.
@@ -382,10 +382,9 @@ func SetDummyCAPIClusterVars() {
 			Namespace: ClusterNameSpace,
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: infrav1.GroupVersion.String(),
-				Kind:       "CloudStackCluster",
-				Name:       "somename",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind: "CloudStackCluster",
+				Name: "somename",
 			},
 		},
 	}
@@ -423,7 +422,7 @@ func SetDummyCAPIMachineVars() {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:   ClusterName,
-			FailureDomain: ptr.To("fd1")},
+			FailureDomain: "fd1"},
 	}
 }
 

@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,17 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1beta4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
-const (
-	// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
-	IsolatedNetworkFinalizer = "cloudstackisolatednetwork.infrastructure.cluster.x-k8s.io"
-)
+// The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
+const IsolatedNetworkFinalizer = "cloudstackisolatednetwork.infrastructure.cluster.x-k8s.io"
 
 // CloudStackIsolatedNetworkSpec defines the desired state of CloudStackIsolatedNetwork
 type CloudStackIsolatedNetworkSpec struct {
@@ -38,6 +36,25 @@ type CloudStackIsolatedNetworkSpec struct {
 
 	// The kubernetes control plane endpoint.
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+
+	// FailureDomainName -- the FailureDomain the network is placed in.
+	FailureDomainName string `json:"failureDomainName"`
+
+	// Gateway for the network.
+	// +optional
+	Gateway string `json:"gateway,omitempty"`
+
+	// Netmask for the network.
+	// +optional
+	Netmask string `json:"netmask,omitempty"`
+
+	// Offering for the network.
+	// +optional
+	Offering string `json:"offering,omitempty"`
+
+	// VPC the network belongs to.
+	// +optional
+	VPC *VPC `json:"vpc,omitempty"`
 }
 
 // CloudStackIsolatedNetworkStatus defines the observed state of CloudStackIsolatedNetwork
@@ -48,19 +65,32 @@ type CloudStackIsolatedNetworkStatus struct {
 	// The ID of the lb rule used to assign VMs to the lb.
 	LBRuleID string `json:"loadBalancerRuleID,omitempty"`
 
+	// Routing mode of the network.
+	RoutingMode string `json:"routingMode,omitempty"`
+
+	// Indicates whether the necessary firewall egress and routing rules for the isolated network have been applied successfully.
+	FirewallRulesOpened bool `json:"firewallRulesOpened,omitempty"`
+
 	// Ready indicates the readiness of this provider resource.
 	Ready bool `json:"ready"`
 }
 
 func (n *CloudStackIsolatedNetwork) Network() *Network {
 	return &Network{
-		Name: n.Spec.Name,
-		Type: "IsolatedNetwork",
-		ID:   n.Spec.ID}
+		Name:        n.Spec.Name,
+		Type:        "IsolatedNetwork",
+		ID:          n.Spec.ID,
+		Gateway:     n.Spec.Gateway,
+		Netmask:     n.Spec.Netmask,
+		VPC:         n.Spec.VPC,
+		Offering:    n.Spec.Offering,
+		RoutingMode: n.Status.RoutingMode,
+	}
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 
 // CloudStackIsolatedNetwork is the Schema for the cloudstackisolatednetworks API
 type CloudStackIsolatedNetwork struct {

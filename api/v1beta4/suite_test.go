@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,8 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1beta1 contains API Schema definitions for the infrastructure v1beta1 API group
-// +kubebuilder:object:generate=true
-// +groupName=infrastructure.cluster.x-k8s.io
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4
-package v1beta1
+package v1beta4_test
+
+import (
+	"testing"
+
+	ginkgo "github.com/onsi/ginkgo/v2"
+	gomega "github.com/onsi/gomega"
+)
+
+func TestAPIs(t *testing.T) {
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "v1beta4 Suite")
+}

@@ -1,3 +1,19 @@
+/*
+Copyright 2024 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package dummies
 
 import (
@@ -9,7 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -185,7 +201,7 @@ func SetDummyOwnerReferences() {
 func SetDummyCSMachineTemplateVars() {
 	CSMachineTemplate1 = &infrav1.CloudStackMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta3",
+			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta4",
 			Kind:       "CloudStackMachineTemplate",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -194,6 +210,9 @@ func SetDummyCSMachineTemplateVars() {
 		},
 		Spec: infrav1.CloudStackMachineTemplateSpec{
 			Template: infrav1.CloudStackMachineTemplateResource{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels: map[string]string{"test": "machinetemplate"},
+				},
 				Spec: infrav1.CloudStackMachineSpec{
 					Template: infrav1.CloudStackResourceIdentifier{
 						Name: GetYamlVal("CLOUDSTACK_TEMPLATE_NAME"),
@@ -270,7 +289,7 @@ func SetDummyCAPCClusterVars() {
 	Account = cloud.Account{Name: AccountName, Domain: Domain}
 	AccountName = "FakeLevel2AccountName"
 	Level2Account = cloud.Account{Name: Level2AccountName, Domain: Level2Domain}
-	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta3"
+	CSApiVersion = "infrastructure.cluster.x-k8s.io/v1beta4"
 	CSClusterKind = "CloudStackCluster"
 	ClusterName = "test-cluster"
 	EndPointHost = "EndpointHost"
@@ -382,8 +401,9 @@ func SetDummyCAPIClusterVars() {
 		},
 		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-				Kind: "CloudStackCluster",
-				Name: "somename",
+				APIGroup: infrav1.GroupVersion.Group,
+				Kind:     "CloudStackCluster",
+				Name:     ClusterName,
 			},
 		},
 	}
@@ -396,7 +416,7 @@ func SetDummyIsoNetToNameOnly() {
 }
 
 func SetDummyBootstrapSecretVar() {
-	BootstrapSecretName := "such-secret-much-wow"
+	BootstrapSecretName = "such-secret-much-wow"
 	BootstrapSecretValue := "{{ ds.meta_data.hostname }}{{ds.meta_data.failuredomain}}"
 	BootstrapSecret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -421,7 +441,16 @@ func SetDummyCAPIMachineVars() {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:   ClusterName,
-			FailureDomain: "fd1"},
+			FailureDomain: "fd1",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: infrav1.GroupVersion.Group,
+				Kind:     "CloudStackMachine",
+				Name:     "test-machine-1",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				DataSecretName: &BootstrapSecretName,
+			},
+		},
 	}
 }
 

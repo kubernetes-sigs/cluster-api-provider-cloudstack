@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta3_test
+package v1beta4_test
 
 import (
 	"context"
@@ -22,18 +22,17 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
-	"testing"
 	"time"
 
+	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
 
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	//+kubebuilder:scaffold:imports
-	"k8s.io/apimachinery/pkg/runtime"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -41,24 +40,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
-// These tests use Ginkgo (BDD-style Go testing framework). Refer to
-// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
-
 var k8sClient client.Client
 var testEnv *envtest.Environment
-var ctx context.Context
-var cancel context.CancelFunc
-
-func TestAPIs(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-
-	ginkgo.RunSpecs(t, "Webhook Suite")
-}
+var webhookCtx context.Context
+var webhookCancel context.CancelFunc
 
 var _ = ginkgo.BeforeSuite(func() {
-	ctx, cancel = context.WithCancel(context.TODO())
+	webhookCtx, webhookCancel = context.WithCancel(context.TODO())
 
-	ginkgo.By("bootstrapping test environment")
+	ginkgo.By("bootstrapping webhook test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("../../", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: false,
@@ -69,7 +59,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	var cfg *rest.Config
 	var err error
-	done := make(chan interface{})
+	done := make(chan any)
 	go func() {
 		defer ginkgo.GinkgoRecover()
 		cfg, err = testEnv.Start()
@@ -92,12 +82,10 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(k8sClient).NotTo(gomega.BeNil())
 
-	// start webhook server using Manager
 	webhookInstallOptions := &testEnv.WebhookInstallOptions
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme,
 		WebhookServer: webhook.NewServer(webhook.Options{
-
 			Host:    webhookInstallOptions.LocalServingHost,
 			Port:    webhookInstallOptions.LocalServingPort,
 			CertDir: webhookInstallOptions.LocalServingCertDir,
@@ -117,27 +105,25 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	go func() {
 		defer ginkgo.GinkgoRecover()
-		err = mgr.Start(ctrl.SetupSignalHandler())
+		err = mgr.Start(webhookCtx)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	}()
 
-	// wait for the webhook server to get ready
 	dialer := &net.Dialer{Timeout: time.Second}
 	addrPort := fmt.Sprintf("%s:%d", webhookInstallOptions.LocalServingHost, webhookInstallOptions.LocalServingPort)
 	gomega.Eventually(func() error {
-		conn, err := tls.DialWithDialer(dialer, "tcp", addrPort, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec //Used for testing only
+		conn, err := tls.DialWithDialer(dialer, "tcp", addrPort, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec
 		if err != nil {
 			return err
 		}
 		conn.Close()
 		return nil
 	}).Should(gomega.Succeed())
-
 })
 
 var _ = ginkgo.AfterSuite(func() {
-	cancel()
-	ginkgo.By("tearing down the test environment")
+	webhookCancel()
+	ginkgo.By("tearing down the webhook test environment")
 	err := testEnv.Stop()
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 })
