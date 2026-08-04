@@ -78,6 +78,7 @@ $(BIN_DIR)/$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT)
 
 $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT)
 $(GOLANGCI_LINT): $(GOLANGCI_LINT_STAMP)
+	@:
 
 $(GOLANGCI_LINT_STAMP): $(BIN_DIR) Makefile go.mod go.sum # Install golangci-lint in tools folder.
 	GOBIN=$(abspath $(BIN_DIR)) go install $(GOLANGCI_LINT_PKG)@$(GOLANGCI_LINT_VERSION)
