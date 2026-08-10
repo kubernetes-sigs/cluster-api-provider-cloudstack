@@ -21,7 +21,7 @@ import (
 
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //lint:ignore SA1019 spoke pinned to CAPI core/v1beta1 APIEndpoint (see c82a9f9) to preserve pre-v1.13 spoke CRD schema
 	clusterv1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 

@@ -12,7 +12,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
-	capiv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //lint:ignore SA1019 v1beta2 dummies exercise the spoke pinned to CAPI core/v1beta1 APIEndpoint (see c82a9f9)
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 

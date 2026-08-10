@@ -18,7 +18,7 @@ package v1beta3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //lint:ignore SA1019 spoke pinned to CAPI core/v1beta1 APIEndpoint (see c82a9f9) to preserve pre-v1.13 spoke CRD schema
 )
 
 // CloudStackMachineTemplateResource defines the data needed to create a CloudstackMachine from a template

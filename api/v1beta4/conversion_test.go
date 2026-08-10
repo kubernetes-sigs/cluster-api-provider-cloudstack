@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 	infrav3 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	infrav4 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
-	capiv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //lint:ignore SA1019 test verifies conversion between the v1beta1-pinned spoke APIEndpoint (see c82a9f9) and the v1beta2 hub
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
