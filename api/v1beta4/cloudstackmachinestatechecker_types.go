@@ -27,6 +27,7 @@ type CloudStackMachineStateCheckerSpec struct {
 // CloudStackMachineStateCheckerStatus defines the observed state of CloudStackMachineStateChecker
 type CloudStackMachineStateCheckerStatus struct {
 	// Reflects the readiness of the Machine State Checker.
+	// +optional
 	Ready bool `json:"ready"`
 }
 

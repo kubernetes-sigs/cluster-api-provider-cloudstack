@@ -83,6 +83,7 @@ type CloudStackClusterStatus struct {
 
 	// Ready reflects the readiness of the CS cluster.
 	// Kept for backward compatibility; prefer Initialization.Provisioned.
+	// +optional
 	Ready bool `json:"ready"`
 
 	// initialization contains the initialization state of the cluster infrastructure.

@@ -375,8 +375,6 @@ spec:
               routingMode:
                 description: Routing mode of the network.
                 type: string
-            required:
-            - ready
             type: object
         type: object
     served: true

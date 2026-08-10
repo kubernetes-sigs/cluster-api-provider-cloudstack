@@ -1020,8 +1020,6 @@ spec:
               status:
                 description: Status indicates the status of the provider resource.
                 type: string
-            required:
-            - ready
             type: object
         type: object
     served: true

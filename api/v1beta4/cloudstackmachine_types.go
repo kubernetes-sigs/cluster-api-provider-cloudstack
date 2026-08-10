@@ -156,6 +156,7 @@ type CloudStackMachineStatus struct {
 
 	// Ready indicates the readiness of the provider resource.
 	// Kept for backward compatibility; prefer Initialization.Provisioned.
+	// +optional
 	Ready bool `json:"ready"`
 
 	// Status indicates the status of the provider resource.

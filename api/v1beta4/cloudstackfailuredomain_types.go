@@ -131,6 +131,7 @@ type CloudStackFailureDomainSpec struct {
 // CloudStackFailureDomainStatus defines the observed state of CloudStackFailureDomain
 type CloudStackFailureDomainStatus struct {
 	// Reflects the readiness of the CloudStack Failure Domain.
+	// +optional
 	Ready bool `json:"ready"`
 }
 

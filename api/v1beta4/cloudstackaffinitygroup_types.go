@@ -43,6 +43,7 @@ type CloudStackAffinityGroupSpec struct {
 // CloudStackAffinityGroupStatus defines the observed state of CloudStackAffinityGroup
 type CloudStackAffinityGroupStatus struct {
 	// Reflects the readiness of the CS Affinity Group.
+	// +optional
 	Ready bool `json:"ready"`
 }
 

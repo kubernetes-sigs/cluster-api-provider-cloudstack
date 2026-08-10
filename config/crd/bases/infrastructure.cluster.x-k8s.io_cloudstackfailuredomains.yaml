@@ -380,8 +380,6 @@ spec:
               ready:
                 description: Reflects the readiness of the CloudStack Failure Domain.
                 type: boolean
-            required:
-            - ready
             type: object
         required:
         - spec

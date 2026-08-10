@@ -186,8 +186,6 @@ spec:
               ready:
                 description: Reflects the readiness of the Machine State Checker.
                 type: boolean
-            required:
-            - ready
             type: object
         type: object
     served: true

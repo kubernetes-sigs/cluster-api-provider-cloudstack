@@ -701,8 +701,6 @@ spec:
                   Ready reflects the readiness of the CS cluster.
                   Kept for backward compatibility; prefer Initialization.Provisioned.
                 type: boolean
-            required:
-            - ready
             type: object
         type: object
     served: true

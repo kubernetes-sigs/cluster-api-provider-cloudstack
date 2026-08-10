@@ -74,6 +74,7 @@ type CloudStackIsolatedNetworkStatus struct {
 	FirewallRulesOpened bool `json:"firewallRulesOpened,omitempty"`
 
 	// Ready indicates the readiness of this provider resource.
+	// +optional
 	Ready bool `json:"ready"`
 }
 
