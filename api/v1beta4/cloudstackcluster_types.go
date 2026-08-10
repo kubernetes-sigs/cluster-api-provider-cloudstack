@@ -58,8 +58,10 @@ type ClusterInitializationStatus struct {
 type CloudStackClusterSpec struct {
 	FailureDomains []CloudStackFailureDomainSpec `json:"failureDomains"`
 
-	// The kubernetes control plane endpoint.
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// Populated by the controller after LB provisioning; empty at create time.
+	// +optional
+	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
 
 	// SyncWithACS determines if an externalManaged CKS cluster should be created on ACS.
 	// +optional

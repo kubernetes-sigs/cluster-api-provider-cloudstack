@@ -20,7 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	machineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
@@ -66,8 +67,10 @@ func Convert_v1beta4_CloudStackMachineTemplateSpec_To_v1beta2_CloudStackMachineT
 
 // Convert_v1beta2_ObjectMeta_To_v1_ObjectMeta converts the trimmed CAPI ObjectMeta (labels and
 // annotations only) to a full metav1.ObjectMeta. Other metav1.ObjectMeta fields are not
-// representable in the CAPI contract metadata and are intentionally not round-tripped.
-func Convert_v1beta2_ObjectMeta_To_v1_ObjectMeta(in *clusterv1.ObjectMeta, out *metav1.ObjectMeta, s machineryconversion.Scope) error { // nolint
+// representable in the CAPI contract metadata and are intentionally not round-tripped. The v1beta4
+// hub embeds CAPI core/v1beta2 ObjectMeta; this spoke's MachineTemplateResource embeds
+// metav1.ObjectMeta.
+func Convert_v1beta2_ObjectMeta_To_v1_ObjectMeta(in *corev1beta2.ObjectMeta, out *metav1.ObjectMeta, s machineryconversion.Scope) error { // nolint
 	if in.Annotations != nil {
 		out.Annotations = in.Annotations
 	}
@@ -78,13 +81,29 @@ func Convert_v1beta2_ObjectMeta_To_v1_ObjectMeta(in *clusterv1.ObjectMeta, out *
 }
 
 // Convert_v1_ObjectMeta_To_v1beta2_ObjectMeta converts a full metav1.ObjectMeta to the trimmed CAPI
-// ObjectMeta, keeping only labels and annotations.
-func Convert_v1_ObjectMeta_To_v1beta2_ObjectMeta(in *metav1.ObjectMeta, out *clusterv1.ObjectMeta, s machineryconversion.Scope) error { // nolint
+// v1beta2 ObjectMeta, keeping only labels and annotations.
+func Convert_v1_ObjectMeta_To_v1beta2_ObjectMeta(in *metav1.ObjectMeta, out *corev1beta2.ObjectMeta, s machineryconversion.Scope) error { // nolint
 	if in.Annotations != nil {
 		out.Annotations = in.Annotations
 	}
 	if in.Labels != nil {
 		out.Labels = in.Labels
 	}
+	return nil
+}
+
+// Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint copies the layout-identical APIEndpoint from
+// CAPI core/v1beta1 (embedded in this spoke) to core/v1beta2 (embedded in the v1beta4 hub). Only the
+// kubebuilder markers differ between the two upstream versions; the Go struct is Host+Port.
+func Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *clusterv1.APIEndpoint, out *corev1beta2.APIEndpoint, s machineryconversion.Scope) error { // nolint
+	out.Host = in.Host
+	out.Port = in.Port
+	return nil
+}
+
+// Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint mirrors the above for hub→spoke conversion.
+func Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(in *corev1beta2.APIEndpoint, out *clusterv1.APIEndpoint, s machineryconversion.Scope) error { // nolint
+	out.Host = in.Host
+	out.Port = in.Port
 	return nil
 }

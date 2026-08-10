@@ -25,7 +25,7 @@ import (
 type CloudStackMachineTemplateResource struct {
 	// Standard object's metadata.
 	// +optional
-	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
 	// Spec is the specification of a desired behavior of the machine
 	Spec CloudStackMachineSpec `json:"spec"`

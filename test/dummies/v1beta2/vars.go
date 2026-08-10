@@ -12,6 +12,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/test/fakes"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -335,7 +336,7 @@ func SetDummyCAPCClusterVars() {
 			Labels:    ClusterLabel,
 		},
 		Spec: infrav1.CloudStackClusterSpec{
-			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
+			ControlPlaneEndpoint: capiv1beta1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
 			FailureDomains:       []infrav1.CloudStackFailureDomainSpec{CSFailureDomain1.Spec, CSFailureDomain2.Spec},
 		},
 		Status: infrav1.CloudStackClusterStatus{},

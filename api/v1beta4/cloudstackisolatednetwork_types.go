@@ -34,8 +34,10 @@ type CloudStackIsolatedNetworkSpec struct {
 	//+optional
 	ID string `json:"id,omitempty"`
 
-	// The kubernetes control plane endpoint.
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// Populated by the controller after LB provisioning; empty at create time.
+	// +optional
+	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
 
 	// FailureDomainName -- the FailureDomain the network is placed in.
 	FailureDomainName string `json:"failureDomainName"`

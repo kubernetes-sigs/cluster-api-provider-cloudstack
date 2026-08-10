@@ -24,6 +24,7 @@ import (
 	"k8s.io/utils/ptr"
 	infrav3 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
 	infrav4 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -36,7 +37,7 @@ var _ = ginkgo.Describe("v1beta3 to v1beta4 conversion", func() {
 			src := &infrav3.CloudStackCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "cluster-1", Namespace: "default"},
 				Spec: infrav3.CloudStackClusterSpec{
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "1.2.3.4", Port: 6443},
+					ControlPlaneEndpoint: capiv1beta1.APIEndpoint{Host: "1.2.3.4", Port: 6443},
 					SyncWithACS:          ptr.To(true),
 					FailureDomains: []infrav3.CloudStackFailureDomainSpec{{
 						Name:        "fd-1",
@@ -189,7 +190,7 @@ var _ = ginkgo.Describe("v1beta3 to v1beta4 conversion", func() {
 			expected := &infrav3.CloudStackCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "cluster-2", Namespace: "ns1"},
 				Spec: infrav3.CloudStackClusterSpec{
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "5.6.7.8", Port: 443},
+					ControlPlaneEndpoint: capiv1beta1.APIEndpoint{Host: "5.6.7.8", Port: 443},
 					SyncWithACS:          ptr.To(false),
 					FailureDomains: []infrav3.CloudStackFailureDomainSpec{{
 						Name:        "fd-a",
@@ -607,7 +608,7 @@ var _ = ginkgo.Describe("v1beta3 to v1beta4 conversion", func() {
 				Spec: infrav3.CloudStackIsolatedNetworkSpec{
 					Name:                 "isolated-net-1",
 					ID:                   "isonet-id-1",
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "10.0.0.10", Port: 6443},
+					ControlPlaneEndpoint: capiv1beta1.APIEndpoint{Host: "10.0.0.10", Port: 6443},
 					FailureDomainName:    "fd-iso",
 					Gateway:              "10.0.0.1",
 					Netmask:              "255.255.255.0",

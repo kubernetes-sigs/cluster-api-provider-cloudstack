@@ -26,6 +26,8 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -43,7 +45,7 @@ func Convert_v1beta1_CloudStackCluster_To_v1beta4_CloudStackCluster(in *CloudSta
 		return err
 	}
 	out.Spec = v1beta4.CloudStackClusterSpec{
-		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
+		ControlPlaneEndpoint: corev1beta2.APIEndpoint{Host: in.Spec.ControlPlaneEndpoint.Host, Port: in.Spec.ControlPlaneEndpoint.Port},
 		FailureDomains:       failureDomains,
 	}
 
@@ -82,7 +84,7 @@ func Convert_v1beta4_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta4.
 		Account:              in.Spec.FailureDomains[0].Account,
 		Domain:               in.Spec.FailureDomains[0].Domain,
 		Zones:                getZones(in),
-		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
+		ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: in.Spec.ControlPlaneEndpoint.Host, Port: in.Spec.ControlPlaneEndpoint.Port},
 	}
 
 	out.Status = CloudStackClusterStatus{

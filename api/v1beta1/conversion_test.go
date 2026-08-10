@@ -23,7 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1beta1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	capiv1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 var _ = ginkgo.Describe("Conversion", func() {
@@ -99,7 +100,7 @@ var _ = ginkgo.Describe("Conversion", func() {
 							},
 						},
 					},
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{
+					ControlPlaneEndpoint: capiv1beta2.APIEndpoint{
 						Host: "endpoint1",
 						Port: 443,
 					},
@@ -143,7 +144,7 @@ var _ = ginkgo.Describe("Conversion", func() {
 					Namespace: "namespace1",
 				},
 				Spec: v1beta4.CloudStackClusterSpec{
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{
+					ControlPlaneEndpoint: capiv1beta2.APIEndpoint{
 						Host: "endpoint1",
 						Port: 443,
 					},

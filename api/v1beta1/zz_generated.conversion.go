@@ -28,6 +28,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1beta4 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
+	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -243,6 +244,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*corev1beta1.APIEndpoint)(nil), (*v1beta2.APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(a.(*corev1beta1.APIEndpoint), b.(*v1beta2.APIEndpoint), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*CloudStackCluster)(nil), (*v1beta4.CloudStackCluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_CloudStackCluster_To_v1beta4_CloudStackCluster(a.(*CloudStackCluster), b.(*v1beta4.CloudStackCluster), scope)
 	}); err != nil {
@@ -250,6 +256,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*CloudStackMachineTemplateSpec)(nil), (*v1beta4.CloudStackMachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_CloudStackMachineTemplateSpec_To_v1beta4_CloudStackMachineTemplateSpec(a.(*CloudStackMachineTemplateSpec), b.(*v1beta4.CloudStackMachineTemplateSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.APIEndpoint)(nil), (*corev1beta1.APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(a.(*v1beta2.APIEndpoint), b.(*corev1beta1.APIEndpoint), scope)
 	}); err != nil {
 		return err
 	}
@@ -492,7 +503,9 @@ func Convert_v1beta4_CloudStackIsolatedNetworkList_To_v1beta1_CloudStackIsolated
 func autoConvert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta4_CloudStackIsolatedNetworkSpec(in *CloudStackIsolatedNetworkSpec, out *v1beta4.CloudStackIsolatedNetworkSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
-	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
+	if err := Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -504,7 +517,9 @@ func Convert_v1beta1_CloudStackIsolatedNetworkSpec_To_v1beta4_CloudStackIsolated
 func autoConvert_v1beta4_CloudStackIsolatedNetworkSpec_To_v1beta1_CloudStackIsolatedNetworkSpec(in *v1beta4.CloudStackIsolatedNetworkSpec, out *CloudStackIsolatedNetworkSpec, s conversion.Scope) error {
 	out.Name = in.Name
 	out.ID = in.ID
-	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
+	if err := Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
+		return err
+	}
 	// WARNING: in.FailureDomainName requires manual conversion: does not exist in peer-type
 	// WARNING: in.Gateway requires manual conversion: does not exist in peer-type
 	// WARNING: in.Netmask requires manual conversion: does not exist in peer-type

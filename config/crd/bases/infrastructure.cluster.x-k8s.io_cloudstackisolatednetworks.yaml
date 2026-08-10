@@ -43,18 +43,14 @@ spec:
             properties:
               controlPlaneEndpoint:
                 description: The kubernetes control plane endpoint.
-                minProperties: 1
                 properties:
                   host:
                     description: host is the hostname on which the API server is serving.
                     maxLength: 512
-                    minLength: 1
                     type: string
                   port:
                     description: port is the port on which the API server is serving.
                     format: int32
-                    maximum: 65535
-                    minimum: 1
                     type: integer
                 type: object
               id:
@@ -116,18 +112,14 @@ spec:
             properties:
               controlPlaneEndpoint:
                 description: The kubernetes control plane endpoint.
-                minProperties: 1
                 properties:
                   host:
                     description: host is the hostname on which the API server is serving.
                     maxLength: 512
-                    minLength: 1
                     type: string
                   port:
                     description: port is the port on which the API server is serving.
                     format: int32
-                    maximum: 65535
-                    minimum: 1
                     type: integer
                 type: object
               failureDomainName:
@@ -194,18 +186,14 @@ spec:
             properties:
               controlPlaneEndpoint:
                 description: The kubernetes control plane endpoint.
-                minProperties: 1
                 properties:
                   host:
                     description: host is the hostname on which the API server is serving.
                     maxLength: 512
-                    minLength: 1
                     type: string
                   port:
                     description: port is the port on which the API server is serving.
                     format: int32
-                    maximum: 65535
-                    minimum: 1
                     type: integer
                 type: object
               failureDomainName:
@@ -312,7 +300,9 @@ spec:
               CloudStackIsolatedNetwork
             properties:
               controlPlaneEndpoint:
-                description: The kubernetes control plane endpoint.
+                description: |-
+                  controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+                  Populated by the controller after LB provisioning; empty at create time.
                 minProperties: 1
                 properties:
                   host:
@@ -363,7 +353,6 @@ spec:
                     type: string
                 type: object
             required:
-            - controlPlaneEndpoint
             - failureDomainName
             type: object
           status:

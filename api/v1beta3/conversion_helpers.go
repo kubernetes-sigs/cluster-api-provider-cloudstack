@@ -21,14 +21,19 @@ import (
 
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // CloudStackCluster helpers
 
 func convertCloudStackClusterToV4(src *CloudStackCluster, dst *v1beta4.CloudStackCluster) error {
 	dst.ObjectMeta = src.ObjectMeta
-	// Spec
-	dst.Spec.ControlPlaneEndpoint = src.Spec.ControlPlaneEndpoint
+	// Spec — APIEndpoint moved from CAPI v1beta1 (spoke) to v1beta2 (hub); field-copy across the two Go types.
+	dst.Spec.ControlPlaneEndpoint = clusterv1beta2.APIEndpoint{
+		Host: src.Spec.ControlPlaneEndpoint.Host,
+		Port: src.Spec.ControlPlaneEndpoint.Port,
+	}
 	dst.Spec.SyncWithACS = src.Spec.SyncWithACS
 	if src.Spec.FailureDomains != nil {
 		dst.Spec.FailureDomains = make([]v1beta4.CloudStackFailureDomainSpec, len(src.Spec.FailureDomains))
@@ -63,8 +68,11 @@ func convertCloudStackClusterToV4(src *CloudStackCluster, dst *v1beta4.CloudStac
 
 func convertCloudStackClusterFromV4(src *v1beta4.CloudStackCluster, dst *CloudStackCluster) error {
 	dst.ObjectMeta = src.ObjectMeta
-	// Spec
-	dst.Spec.ControlPlaneEndpoint = src.Spec.ControlPlaneEndpoint
+	// Spec — APIEndpoint moved from CAPI v1beta2 (hub) to v1beta1 (spoke); field-copy across the two Go types.
+	dst.Spec.ControlPlaneEndpoint = clusterv1beta1.APIEndpoint{
+		Host: src.Spec.ControlPlaneEndpoint.Host,
+		Port: src.Spec.ControlPlaneEndpoint.Port,
+	}
 	dst.Spec.SyncWithACS = src.Spec.SyncWithACS
 	if src.Spec.FailureDomains != nil {
 		dst.Spec.FailureDomains = make([]CloudStackFailureDomainSpec, len(src.Spec.FailureDomains))
@@ -241,7 +249,10 @@ func convertCloudStackMachineFromV4(src *v1beta4.CloudStackMachine, dst *CloudSt
 
 func convertCloudStackMachineTemplateToV4(src *CloudStackMachineTemplate, dst *v1beta4.CloudStackMachineTemplate) error {
 	dst.ObjectMeta = src.ObjectMeta
-	dst.Spec.Template.ObjectMeta = src.Spec.Template.ObjectMeta
+	dst.Spec.Template.ObjectMeta = clusterv1beta2.ObjectMeta{
+		Labels:      src.Spec.Template.ObjectMeta.Labels,
+		Annotations: src.Spec.Template.ObjectMeta.Annotations,
+	}
 	tmp := &CloudStackMachine{Spec: src.Spec.Template.Spec}
 	dstMachine := &v1beta4.CloudStackMachine{}
 	if err := convertCloudStackMachineToV4(tmp, dstMachine); err != nil {
@@ -253,7 +264,10 @@ func convertCloudStackMachineTemplateToV4(src *CloudStackMachineTemplate, dst *v
 
 func convertCloudStackMachineTemplateFromV4(src *v1beta4.CloudStackMachineTemplate, dst *CloudStackMachineTemplate) error {
 	dst.ObjectMeta = src.ObjectMeta
-	dst.Spec.Template.ObjectMeta = src.Spec.Template.ObjectMeta
+	dst.Spec.Template.ObjectMeta = clusterv1beta1.ObjectMeta{
+		Labels:      src.Spec.Template.ObjectMeta.Labels,
+		Annotations: src.Spec.Template.ObjectMeta.Annotations,
+	}
 	srcMachine := &v1beta4.CloudStackMachine{Spec: src.Spec.Template.Spec}
 	dstMachine := &CloudStackMachine{}
 	if err := convertCloudStackMachineFromV4(srcMachine, dstMachine); err != nil {
@@ -286,7 +300,7 @@ func convertCloudStackIsolatedNetworkToV4(src *CloudStackIsolatedNetwork, dst *v
 	dst.Spec = v1beta4.CloudStackIsolatedNetworkSpec{
 		Name:                 src.Spec.Name,
 		ID:                   src.Spec.ID,
-		ControlPlaneEndpoint: src.Spec.ControlPlaneEndpoint,
+		ControlPlaneEndpoint: clusterv1beta2.APIEndpoint{Host: src.Spec.ControlPlaneEndpoint.Host, Port: src.Spec.ControlPlaneEndpoint.Port},
 		FailureDomainName:    src.Spec.FailureDomainName,
 		Gateway:              src.Spec.Gateway,
 		Netmask:              src.Spec.Netmask,
@@ -308,7 +322,7 @@ func convertCloudStackIsolatedNetworkFromV4(src *v1beta4.CloudStackIsolatedNetwo
 	dst.Spec = CloudStackIsolatedNetworkSpec{
 		Name:                 src.Spec.Name,
 		ID:                   src.Spec.ID,
-		ControlPlaneEndpoint: src.Spec.ControlPlaneEndpoint,
+		ControlPlaneEndpoint: clusterv1beta1.APIEndpoint{Host: src.Spec.ControlPlaneEndpoint.Host, Port: src.Spec.ControlPlaneEndpoint.Port},
 		FailureDomainName:    src.Spec.FailureDomainName,
 		Gateway:              src.Spec.Gateway,
 		Netmask:              src.Spec.Netmask,
