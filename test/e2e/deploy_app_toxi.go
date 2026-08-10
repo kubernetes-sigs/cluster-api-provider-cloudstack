@@ -103,7 +103,7 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:    bootstrapClusterToxiProxyContext.ClusterProxy,
-			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
+			CNIManifestPath: input.E2EConfig.MustGetVariable(CNIPath),
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", bootstrapClusterToxiProxyContext.ClusterProxy.GetName()),
 				ClusterctlConfigPath:     cloudStackToxiProxyContext.ConfigPath,
@@ -112,7 +112,7 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 				Flavor:                   flavor,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(2),
 			},
@@ -151,7 +151,7 @@ func DeployAppToxiSpec(ctx context.Context, inputGetter func() CommonSpecInput) 
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterToxiProxyContext.ClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterToxiProxyContext.ClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 
 		// Tear down the ToxiProxies
 		cloudStackToxiProxyContext.RemoveToxic(cloudStackToxicName)

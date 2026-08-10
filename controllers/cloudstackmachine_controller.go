@@ -40,10 +40,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 var (
@@ -175,17 +175,19 @@ func (r *CloudStackMachineReconciliationRunner) ConsiderAffinity() (ctrl.Result,
 func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (retRes ctrl.Result, reterr error) {
 	if r.ReconciliationSubject.Spec.FailureDomainName == "" {
 		var name string
-		// CAPIMachine is null if it's been deleted but we're still reconciling the CS machine.
-		if r.CAPIMachine != nil && r.CAPIMachine.Spec.FailureDomain != nil &&
-			(util.IsControlPlaneMachine(r.CAPIMachine) || // Is control plane machine -- CAPI will specify.
-				*r.CAPIMachine.Spec.FailureDomain != "") { // Or potentially another machine controller specified.
-			name = *r.CAPIMachine.Spec.FailureDomain
-			r.ReconciliationSubject.Spec.FailureDomainName = *r.CAPIMachine.Spec.FailureDomain
-		} else { // Not a control plane machine. Place randomly.
+		// CAPIMachine is nil if it's been deleted but we're still reconciling the CS machine.
+		// When CAPI assigns a failure domain (always for control-plane machines, optionally for
+		// others) use it; otherwise place the machine randomly across the cluster's domains.
+		switch {
+		case r.CAPIMachine != nil && r.CAPIMachine.Spec.FailureDomain != "":
+			name = r.CAPIMachine.Spec.FailureDomain
+		case len(r.CSCluster.Spec.FailureDomains) > 0:
 			// Set a random seed for randomly placing CloudStackMachines in Zones.
 			randSeed := rand.New(rand.NewSource(time.Now().UnixNano())) // #nosec G404 -- weak crypt rand doesn't matter here.
-			randNum := (randSeed.Int() % len(r.CSCluster.Spec.FailureDomains))
+			randNum := randSeed.Int() % len(r.CSCluster.Spec.FailureDomains)
 			name = r.CSCluster.Spec.FailureDomains[randNum].Name
+		default:
+			return ctrl.Result{}, errors.New("no failure domains available to place CloudStackMachine")
 		}
 		r.ReconciliationSubject.Spec.FailureDomainName = name
 		r.ReconciliationSubject.Labels[infrav1.FailureDomainLabelName] = infrav1.FailureDomainHashedMetaName(name, r.CAPICluster.Name)
@@ -195,10 +197,10 @@ func (r *CloudStackMachineReconciliationRunner) SetFailureDomainOnCSMachine() (r
 
 // DeleteMachineIfFailuredomainNotExist delete CAPI machine if machine is deployed in a failuredomain that does not exist anymore.
 func (r *CloudStackMachineReconciliationRunner) DeleteMachineIfFailuredomainNotExist() (retRes ctrl.Result, reterr error) {
-	if r.CAPIMachine.Spec.FailureDomain == nil {
+	if r.CAPIMachine.Spec.FailureDomain == "" {
 		return ctrl.Result{}, nil
 	}
-	capiAssignedFailuredomainName := *r.CAPIMachine.Spec.FailureDomain
+	capiAssignedFailuredomainName := r.CAPIMachine.Spec.FailureDomain
 	exist := false
 	for _, fd := range r.CSCluster.Spec.FailureDomains {
 		if capiAssignedFailuredomainName == fd.Name {
@@ -277,6 +279,10 @@ func (r *CloudStackMachineReconciliationRunner) RequeueIfInstanceNotRunning() (r
 		r.Recorder.Event(r.ReconciliationSubject, "Normal", "Running", MachineInstanceRunning)
 		r.Log.Info(MachineInstanceRunning)
 		r.ReconciliationSubject.Status.Ready = true
+		if r.ReconciliationSubject.Status.Initialization == nil {
+			r.ReconciliationSubject.Status.Initialization = &infrav1.MachineInitializationStatus{}
+		}
+		r.ReconciliationSubject.Status.Initialization.Provisioned = ptr.To(true)
 	} else if r.ReconciliationSubject.Status.InstanceState == "Error" {
 		r.Recorder.Event(r.ReconciliationSubject, "Warning", "Error", MachineInErrorMessage)
 		r.Log.Info(MachineInErrorMessage, "csMachine", r.ReconciliationSubject.GetName())
@@ -426,13 +432,13 @@ func (reconciler *CloudStackMachineReconciler) SetupWithManager(ctx context.Cont
 		return err
 	}
 
-	reconciler.Recorder = mgr.GetEventRecorderFor("capc-machine-controller")
+	reconciler.Recorder = mgr.GetEventRecorderFor("capc-machine-controller") //lint:ignore SA1019 // migrate to GetEventRecorder with events API
 	// Add a watch on CAPI Cluster objects for unpause and ready events.
 	b = b.Watches(
 		&clusterv1.Cluster{},
 		handler.EnqueueRequestsFromMapFunc(csMachineMapper),
 		builder.WithPredicates(
-			predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), log),
+			predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), log),
 		),
 	)
 

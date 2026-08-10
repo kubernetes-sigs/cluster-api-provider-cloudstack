@@ -93,7 +93,7 @@ cmk list vpcs listall=true zoneid=<zoneid> | jq '.vpc[] | {name, id}'
 The user can configure the network offering and VPC offering for the isolated network as follows:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta4
 kind: CloudStackCluster
 metadata:
   name: capc-cluster
@@ -160,7 +160,7 @@ extra can optionally include a static IP address. If an IP is not specified, Clo
 For example:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta4
 kind: CloudStackMachineTemplate
 metadata:
   name: capc-cluster-control-plane
@@ -337,7 +337,7 @@ If the user wishes to pass a public key not registered in CloudStack directly to
 spec in the cluster definition yaml. Eg:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0
@@ -347,7 +347,8 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            provider-id: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+            - name: provider-id
+              value: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
           name: '{{ local_hostname }}'
       users:
         - name: ${OS_USERID}
@@ -414,5 +415,5 @@ TODO / Add feature
 [jq-download]: https://stedolan.github.io/jq/
 [prebuilt-images]: http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/
 [template-file]: https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/blob/main/templates/cluster-template.yaml
-[failure-domain-api]: https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/blob/main/api/v1beta2/cloudstackfailuredomain_types.go
+[failure-domain-api]: https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/blob/main/api/v1beta4/cloudstackfailuredomain_types.go
 [kube-vip]: https://kube-vip.io/

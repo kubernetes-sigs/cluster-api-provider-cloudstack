@@ -1,0 +1,81 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: 
+        - 192.168.0.0/16
+    serviceDomain: "cluster.local"
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: CloudStackCluster
+    name: ${CLUSTER_NAME}
+  controlPlaneRef:
+    kind: KubeadmControlPlane
+    apiGroup: controlplane.cluster.x-k8s.io
+    name: ${CLUSTER_NAME}-control-plane
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta4
+kind: CloudStackCluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  controlPlaneEndpoint:
+    host: ${CLUSTER_ENDPOINT_IP}
+    port: 6443
+  failureDomains:
+  - name: ${CLOUDSTACK_FD1_NAME}
+    acsEndpoint:
+      name: ${CLOUDSTACK_FD1_SECRET_NAME}
+      namespace: default
+    zone:
+      name :  ${CLOUDSTACK_ZONE_NAME}
+      network: 
+        name: ${CLOUDSTACK_NETWORK_NAME}
+  syncWithACS: false
+---
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  kubeadmConfigSpec:
+    initConfiguration:
+      nodeRegistration:
+        name: '{{ local_hostname }}'
+        kubeletExtraArgs:
+          - name: provider-id
+            value: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+    joinConfiguration:
+      nodeRegistration:
+        name: '{{ local_hostname }}'
+        kubeletExtraArgs:
+          - name: provider-id
+            value: "cloudstack:///'{{ ds.meta_data.instance_id }}'"
+    preKubeadmCommands:
+      - swapoff -a
+  machineTemplate:
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: CloudStackMachineTemplate
+        name: ${CLUSTER_NAME}-control-plane
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  version: ${KUBERNETES_VERSION}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta4
+kind: CloudStackMachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-control-plane
+spec:
+  template:
+    spec:
+      offering:
+        name: ${CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING}
+      template:
+        name: ${CLOUDSTACK_TEMPLATE_NAME}
+      sshKey: ${CLOUDSTACK_SSH_KEY_NAME}
+---

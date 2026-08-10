@@ -2,7 +2,7 @@ domain: cluster.x-k8s.io
 projectName: cluster-api-provider-capc
 repo: sigs.k8s.io/cluster-api-provider-cloudstack
 resources:
-# v1beta3 types
+# v1beta4 types (hub / storage version)
 - api:
     crdVersion: v1
     namespaced: true
@@ -10,8 +10,8 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackCluster
-  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3
-  version: v1beta3
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4
+  version: v1beta4
   webhooks:
     defaulting: true
     validation: true
@@ -23,8 +23,8 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachine
-  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3
-  version: v1beta3
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4
+  version: v1beta4
   webhooks:
     defaulting: true
     validation: true
@@ -36,8 +36,8 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineTemplate
-  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3
-  version: v1beta3
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4
+  version: v1beta4
   webhooks:
     defaulting: true
     validation: true
@@ -49,12 +49,71 @@ resources:
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackIsolatedNetwork
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4
+  version: v1beta4
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: CloudStackAffinityGroup
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4
+  version: v1beta4
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: CloudStackMachineStateChecker
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4
+  version: v1beta4
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: CloudStackFailureDomain
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4
+  version: v1beta4
+# v1beta3 types (conversion spoke)
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: CloudStackCluster
   path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3
   version: v1beta3
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: CloudStackMachine
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3
+  version: v1beta3
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: CloudStackMachineTemplate
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3
+  version: v1beta3
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: cluster.x-k8s.io
+  group: infrastructure
+  kind: CloudStackIsolatedNetwork
+  path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3
+  version: v1beta3
+- api:
+    crdVersion: v1
+    namespaced: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackAffinityGroup
@@ -63,7 +122,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineStateChecker
@@ -77,11 +135,10 @@ resources:
   kind: CloudStackFailureDomain
   path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3
   version: v1beta3
-# v1beta2 types
+# v1beta2 types (conversion spoke)
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackCluster
@@ -90,7 +147,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachine
@@ -99,7 +155,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineTemplate
@@ -108,7 +163,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackIsolatedNetwork
@@ -117,7 +171,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackAffinityGroup
@@ -126,7 +179,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineStateChecker
@@ -140,11 +192,10 @@ resources:
   kind: CloudStackFailureDomain
   path: sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta2
   version: v1beta2
-# v1beta1 types
+# v1beta1 types (conversion spoke)
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackCluster
@@ -153,7 +204,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachine
@@ -162,7 +212,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineTemplate
@@ -171,7 +220,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackIsolatedNetwork
@@ -180,7 +228,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackZone
@@ -189,7 +236,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackAffinityGroup
@@ -198,7 +244,6 @@ resources:
 - api:
     crdVersion: v1
     namespaced: true
-  controller: true
   domain: cluster.x-k8s.io
   group: infrastructure
   kind: CloudStackMachineStateChecker

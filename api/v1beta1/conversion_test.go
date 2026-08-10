@@ -22,8 +22,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1beta1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	capiv1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 var _ = ginkgo.Describe("Conversion", func() {
@@ -31,7 +32,7 @@ var _ = ginkgo.Describe("Conversion", func() {
 	})
 
 	ginkgo.Context("GetFailureDomains function", func() {
-		ginkgo.It("Converts v1beta1 cluster spec to v1beta3 failure domains", func() {
+		ginkgo.It("Converts v1beta1 cluster spec to v1beta4 failure domains", func() {
 			csCluster := &v1beta1.CloudStackCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
@@ -56,12 +57,12 @@ var _ = ginkgo.Describe("Conversion", func() {
 				Status: v1beta1.CloudStackClusterStatus{},
 			}
 			failureDomains, err := v1beta1.GetFailureDomains(csCluster)
-			expectedResult := []v1beta3.CloudStackFailureDomainSpec{
+			expectedResult := []v1beta4.CloudStackFailureDomainSpec{
 				{
 					Name: "76472a84-d23f-4e97-b154-ee1b975ed936",
-					Zone: v1beta3.CloudStackZoneSpec{
+					Zone: v1beta4.CloudStackZoneSpec{
 						ID:      "76472a84-d23f-4e97-b154-ee1b975ed936",
-						Network: v1beta3.Network{Name: "network1"},
+						Network: v1beta4.Network{Name: "network1"},
 					},
 					Account: "account1",
 					Domain:  "domain1",
@@ -76,20 +77,20 @@ var _ = ginkgo.Describe("Conversion", func() {
 		})
 	})
 
-	ginkgo.Context("v1beta3 to v1beta1 function", func() {
-		ginkgo.It("Converts v1beta3 cluster spec to v1beta1 zone based cluster spec", func() {
-			csCluster := &v1beta3.CloudStackCluster{
+	ginkgo.Context("v1beta4 to v1beta1 function", func() {
+		ginkgo.It("Converts v1beta4 cluster spec to v1beta1 zone based cluster spec", func() {
+			csCluster := &v1beta4.CloudStackCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: "namespace1",
 				},
-				Spec: v1beta3.CloudStackClusterSpec{
-					FailureDomains: []v1beta3.CloudStackFailureDomainSpec{
+				Spec: v1beta4.CloudStackClusterSpec{
+					FailureDomains: []v1beta4.CloudStackFailureDomainSpec{
 						{
 							Name: "76472a84-d23f-4e97-b154-ee1b975ed936",
-							Zone: v1beta3.CloudStackZoneSpec{
+							Zone: v1beta4.CloudStackZoneSpec{
 								ID:      "76472a84-d23f-4e97-b154-ee1b975ed936",
-								Network: v1beta3.Network{Name: "network1"},
+								Network: v1beta4.Network{Name: "network1"},
 							},
 							Account: "account1",
 							Domain:  "domain1",
@@ -99,15 +100,15 @@ var _ = ginkgo.Describe("Conversion", func() {
 							},
 						},
 					},
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{
+					ControlPlaneEndpoint: capiv1beta2.APIEndpoint{
 						Host: "endpoint1",
 						Port: 443,
 					},
 				},
-				Status: v1beta3.CloudStackClusterStatus{},
+				Status: v1beta4.CloudStackClusterStatus{},
 			}
 			converted := &v1beta1.CloudStackCluster{}
-			err := v1beta1.Convert_v1beta3_CloudStackCluster_To_v1beta1_CloudStackCluster(csCluster, converted, nil)
+			err := v1beta1.Convert_v1beta4_CloudStackCluster_To_v1beta1_CloudStackCluster(csCluster, converted, nil)
 			expectedResult := &v1beta1.CloudStackCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
@@ -137,20 +138,20 @@ var _ = ginkgo.Describe("Conversion", func() {
 		})
 
 		ginkgo.It("Returns error when len(failureDomains) < 1", func() {
-			csCluster := &v1beta3.CloudStackCluster{
+			csCluster := &v1beta4.CloudStackCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: "namespace1",
 				},
-				Spec: v1beta3.CloudStackClusterSpec{
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{
+				Spec: v1beta4.CloudStackClusterSpec{
+					ControlPlaneEndpoint: capiv1beta2.APIEndpoint{
 						Host: "endpoint1",
 						Port: 443,
 					},
 				},
-				Status: v1beta3.CloudStackClusterStatus{},
+				Status: v1beta4.CloudStackClusterStatus{},
 			}
-			err := v1beta1.Convert_v1beta3_CloudStackCluster_To_v1beta1_CloudStackCluster(csCluster, nil, nil)
+			err := v1beta1.Convert_v1beta4_CloudStackCluster_To_v1beta1_CloudStackCluster(csCluster, nil, nil)
 			gomega.Expect(err).Should(gomega.HaveOccurred())
 		})
 	})

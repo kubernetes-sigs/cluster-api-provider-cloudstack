@@ -162,8 +162,8 @@ func (tp *Context) Enable() {
 func SetupForToxiProxyTestingACS(ctx context.Context, clusterName string, clusterProxy framework.ClusterProxy, e2eConfig *clusterctl.E2EConfig, configPath string) *Context {
 	// Get the cloud-config secret that CAPC will use to access CloudStack
 	fdEndpointSecretObjectKey := client.ObjectKey{
-		Namespace: e2eConfig.GetVariable("CLOUDSTACK_FD1_SECRET_NAMESPACE"),
-		Name:      e2eConfig.GetVariable("CLOUDSTACK_FD1_SECRET_NAME"),
+		Namespace: e2eConfig.MustGetVariable("CLOUDSTACK_FD1_SECRET_NAMESPACE"),
+		Name:      e2eConfig.MustGetVariable("CLOUDSTACK_FD1_SECRET_NAME"),
 	}
 	fdEndpointSecret := corev1.Secret{}
 	err := clusterProxy.GetClient().Get(ctx, fdEndpointSecretObjectKey, &fdEndpointSecret)
@@ -203,7 +203,7 @@ func SetupForToxiProxyTestingACS(ctx context.Context, clusterName string, cluste
 	Expect(err).To(BeNil())
 
 	// Override the test config to use this alternate cloud-config secret
-	originalSecretName := e2eConfig.GetVariable("CLOUDSTACK_FD1_SECRET_NAME")
+	originalSecretName := e2eConfig.MustGetVariable("CLOUDSTACK_FD1_SECRET_NAME")
 	e2eConfig.Variables["CLOUDSTACK_FD1_SECRET_NAME"] = toxiProxyFdEndpointSecret.Name
 
 	// Overriding e2e config file into a new temp copy, so as not to inadvertently override the other e2e tests.

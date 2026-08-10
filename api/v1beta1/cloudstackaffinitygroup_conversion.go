@@ -18,19 +18,19 @@ package v1beta1
 
 import (
 	machineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func (src *CloudStackAffinityGroup) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*v1beta3.CloudStackAffinityGroup)
-	if err := Convert_v1beta1_CloudStackAffinityGroup_To_v1beta3_CloudStackAffinityGroup(src, dst, nil); err != nil {
+	dst := dstRaw.(*v1beta4.CloudStackAffinityGroup)
+	if err := Convert_v1beta1_CloudStackAffinityGroup_To_v1beta4_CloudStackAffinityGroup(src, dst, nil); err != nil {
 		return err
 	}
 
-	// Manually restore data
-	restored := &v1beta3.CloudStackAffinityGroup{}
+	// FailureDomainName does not exist in v1beta1; restore it from the annotation.
+	restored := &v1beta4.CloudStackAffinityGroup{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
@@ -41,16 +41,17 @@ func (src *CloudStackAffinityGroup) ConvertTo(dstRaw conversion.Hub) error { // 
 }
 
 func (dst *CloudStackAffinityGroup) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*v1beta3.CloudStackAffinityGroup)
-	if err := Convert_v1beta3_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(src, dst, nil); err != nil {
+	src := srcRaw.(*v1beta4.CloudStackAffinityGroup)
+	if err := Convert_v1beta4_CloudStackAffinityGroup_To_v1beta1_CloudStackAffinityGroup(src, dst, nil); err != nil {
 		return err
 	}
 
-	// Preserve Hub data on down-conversion
-	err := utilconversion.MarshalData(src, dst)
-	return err
+	// Preserve v1beta4 hub data on down-conversion.
+	return utilconversion.MarshalData(src, dst)
 }
 
-func Convert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in *v1beta3.CloudStackAffinityGroupSpec, out *CloudStackAffinityGroupSpec, s machineryconversion.Scope) error { // nolint
-	return autoConvert_v1beta3_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in, out, s)
+// Convert_v1beta4_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec drops the
+// v1beta4-only FailureDomainName field; it is restored from the annotation on up-conversion.
+func Convert_v1beta4_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in *v1beta4.CloudStackAffinityGroupSpec, out *CloudStackAffinityGroupSpec, s machineryconversion.Scope) error { // nolint
+	return autoConvert_v1beta4_CloudStackAffinityGroupSpec_To_v1beta1_CloudStackAffinityGroupSpec(in, out, s)
 }

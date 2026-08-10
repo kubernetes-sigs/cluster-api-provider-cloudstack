@@ -1,0 +1,25 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta4
+kind: CloudStackCluster
+metadata:
+  name: ${CLUSTER_NAME}
+spec:
+  failureDomains:
+  - name: ${CLOUDSTACK_FD1_NAME}
+    acsEndpoint:
+      name: ${CLOUDSTACK_FD1_SECRET_NAME}
+      namespace: default
+    zone:
+      name: ${CLOUDSTACK_ZONE_NAME}
+      network:
+        name: ${CLOUDSTACK_VPC_NETWORK_NAME_WITH_CUSTOM_OFFERING}
+        gateway: ${CLOUDSTACK_GATEWAY}
+        netmask: ${CLOUDSTACK_NETMASK}
+        offering: ${CLOUDSTACK_CUSTOM_VPC_NETWORK_OFFERING_NAME}
+        vpc:
+          name: ${CLOUDSTACK_VPC_NAME_WITH_CUSTOM_OFFERING}
+          cidr: ${CLOUDSTACK_VPC_CIDR}
+          offering: ${CLOUDSTACK_CUSTOM_VPC_OFFERING_NAME}
+  controlPlaneEndpoint:
+    host: ${CLUSTER_ENDPOINT_IP}
+    port: 6443
