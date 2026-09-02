@@ -12,8 +12,8 @@ github.com/NYTimes/gziphandler v1.1.1 h1:ZUDjpQae29j0ryrS0u/B8HZfJBtBQHjqw2rQ2cq
 github.com/NYTimes/gziphandler v1.1.1/go.mod h1:n/CVRwUEOgIxrgPvAQhUUr9oeUtvrhMomdKFjzJNB0c=
 github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8TVTI=
 github.com/antlr4-go/antlr/v4 v4.13.0/go.mod h1:pfChB/xh/Unjila75QW7+VU4TSnWnnk9UTnmpPaOR2g=
-github.com/apache/cloudstack-go/v2 v2.17.1 h1:XD0bGDOv+MCavXJfc/qxILgJh+cHJbudpqQ1FzA2sDI=
-github.com/apache/cloudstack-go/v2 v2.17.1/go.mod h1:p/YBUwIEkQN6CQxFhw8Ff0wzf1MY0qRRRuGYNbcb1F8=
+github.com/apache/cloudstack-go/v2 v2.19.1 h1:1K5O4NZpdWzOZUN6XuaVNsdX+QnoFRc5VE/oc1nUckQ=
+github.com/apache/cloudstack-go/v2 v2.19.1/go.mod h1:p/YBUwIEkQN6CQxFhw8Ff0wzf1MY0qRRRuGYNbcb1F8=
 github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d h1:Byv0BzEl3/e6D5CLfI0j/7hiIEtvGVFPCZ7Ei2oq8iQ=
 github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=

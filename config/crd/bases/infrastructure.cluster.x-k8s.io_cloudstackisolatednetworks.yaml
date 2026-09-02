@@ -252,7 +252,8 @@ spec:
               of CloudStackIsolatedNetwork
             properties:
               firewallRulesOpened:
-                description: Firewall rules open status.
+                description: Indicates whether the necessary firewall egress and routing
+                  rules for the isolated network have been applied successfully.
                 type: boolean
               loadBalancerRuleID:
                 description: The ID of the lb rule used to assign VMs to the lb.
