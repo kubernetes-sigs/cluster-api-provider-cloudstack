@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.2
 
 require (
-	github.com/apache/cloudstack-go/v2 v2.17.1
+	github.com/apache/cloudstack-go/v2 v2.19.1
 	github.com/go-logr/logr v1.4.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jellydator/ttlcache/v3 v3.2.0
