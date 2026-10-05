@@ -423,6 +423,66 @@ var _ = ginkgo.Describe("Network", func() {
 		})
 	})
 
+	ginkgo.Context("Remove VM from Load Balancer rule", func() {
+		ginkgo.It("no-op when LBRuleID is empty", func() {
+			dummies.CSISONet1.Status.LBRuleID = ""
+
+			gomega.Ω(client.RemoveVMFromLoadBalancerRule(dummies.CSISONet1, *dummies.CSMachine1.Spec.InstanceID)).Should(gomega.Succeed())
+		})
+
+		ginkgo.It("no-op when VM is not a member of the rule", func() {
+			dummies.CSISONet1.Status.LBRuleID = "lbruleid"
+			lbip := &csapi.ListLoadBalancerRuleInstancesParams{}
+			lbs.EXPECT().NewListLoadBalancerRuleInstancesParams(dummies.CSISONet1.Status.LBRuleID).Return(lbip)
+			lbs.EXPECT().ListLoadBalancerRuleInstances(lbip).Return(&csapi.ListLoadBalancerRuleInstancesResponse{}, nil)
+
+			gomega.Ω(client.RemoveVMFromLoadBalancerRule(dummies.CSISONet1, *dummies.CSMachine1.Spec.InstanceID)).Should(gomega.Succeed())
+		})
+
+		ginkgo.It("removes the VM when it is a member of the rule", func() {
+			dummies.CSISONet1.Status.LBRuleID = "lbruleid"
+			lbip := &csapi.ListLoadBalancerRuleInstancesParams{}
+			rfp := &csapi.RemoveFromLoadBalancerRuleParams{}
+			lbs.EXPECT().NewListLoadBalancerRuleInstancesParams(dummies.CSISONet1.Status.LBRuleID).Return(lbip)
+			lbs.EXPECT().ListLoadBalancerRuleInstances(lbip).Return(&csapi.ListLoadBalancerRuleInstancesResponse{
+				Count: 1,
+				LoadBalancerRuleInstances: []*csapi.VirtualMachine{{
+					Id: *dummies.CSMachine1.Spec.InstanceID,
+				}},
+			}, nil)
+			lbs.EXPECT().NewRemoveFromLoadBalancerRuleParams(dummies.CSISONet1.Status.LBRuleID).Return(rfp)
+			lbs.EXPECT().RemoveFromLoadBalancerRule(rfp).Return(&csapi.RemoveFromLoadBalancerRuleResponse{}, nil)
+
+			gomega.Ω(client.RemoveVMFromLoadBalancerRule(dummies.CSISONet1, *dummies.CSMachine1.Spec.InstanceID)).Should(gomega.Succeed())
+		})
+
+		ginkgo.It("returns an error when listing rule instances fails", func() {
+			dummies.CSISONet1.Status.LBRuleID = "lbruleid"
+			lbip := &csapi.ListLoadBalancerRuleInstancesParams{}
+			lbs.EXPECT().NewListLoadBalancerRuleInstancesParams(dummies.CSISONet1.Status.LBRuleID).Return(lbip)
+			lbs.EXPECT().ListLoadBalancerRuleInstances(lbip).Return(nil, fakeError)
+
+			gomega.Ω(client.RemoveVMFromLoadBalancerRule(dummies.CSISONet1, *dummies.CSMachine1.Spec.InstanceID)).ShouldNot(gomega.Succeed())
+		})
+
+		ginkgo.It("returns an error when CloudStack rejects the removal", func() {
+			dummies.CSISONet1.Status.LBRuleID = "lbruleid"
+			lbip := &csapi.ListLoadBalancerRuleInstancesParams{}
+			rfp := &csapi.RemoveFromLoadBalancerRuleParams{}
+			lbs.EXPECT().NewListLoadBalancerRuleInstancesParams(dummies.CSISONet1.Status.LBRuleID).Return(lbip)
+			lbs.EXPECT().ListLoadBalancerRuleInstances(lbip).Return(&csapi.ListLoadBalancerRuleInstancesResponse{
+				Count: 1,
+				LoadBalancerRuleInstances: []*csapi.VirtualMachine{{
+					Id: *dummies.CSMachine1.Spec.InstanceID,
+				}},
+			}, nil)
+			lbs.EXPECT().NewRemoveFromLoadBalancerRuleParams(dummies.CSISONet1.Status.LBRuleID).Return(rfp)
+			lbs.EXPECT().RemoveFromLoadBalancerRule(rfp).Return(nil, fakeError)
+
+			gomega.Ω(client.RemoveVMFromLoadBalancerRule(dummies.CSISONet1, *dummies.CSMachine1.Spec.InstanceID)).ShouldNot(gomega.Succeed())
+		})
+	})
+
 	ginkgo.Context("load balancer rule does not exist", func() {
 		ginkgo.It("calls cloudstack to create a new load balancer rule.", func() {
 			lbs.EXPECT().NewListLoadBalancerRulesParams().Return(&csapi.ListLoadBalancerRulesParams{})

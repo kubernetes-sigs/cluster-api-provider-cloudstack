@@ -35,6 +35,7 @@ type IsoNetworkIface interface {
 	ResolveLoadBalancerRuleDetails(*infrav1.CloudStackIsolatedNetwork) error
 
 	AssignVMToLoadBalancerRule(isoNet *infrav1.CloudStackIsolatedNetwork, instanceID string) error
+	RemoveVMFromLoadBalancerRule(isoNet *infrav1.CloudStackIsolatedNetwork, instanceID string) error
 	DeleteNetwork(infrav1.Network) error
 	DisposeIsoNetResources(*infrav1.CloudStackIsolatedNetwork, *infrav1.CloudStackCluster) error
 }
@@ -463,6 +464,39 @@ func (c *client) AssignVMToLoadBalancerRule(isoNet *infrav1.CloudStackIsolatedNe
 	_, retErr = c.cs.LoadBalancer.AssignToLoadBalancerRule(p)
 	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(retErr)
 	return retErr
+}
+
+// RemoveVMFromLoadBalancerRule removes a VM instance from the load balancer rule referenced by
+// isoNet.Status.LBRuleID. The call is idempotent: if the rule is unknown or the VM is not currently
+// a member, it returns nil.
+func (c *client) RemoveVMFromLoadBalancerRule(isoNet *infrav1.CloudStackIsolatedNetwork, instanceID string) error {
+	if isoNet.Status.LBRuleID == "" {
+		return nil
+	}
+
+	lbRuleInstances, err := c.cs.LoadBalancer.ListLoadBalancerRuleInstances(
+		c.cs.LoadBalancer.NewListLoadBalancerRuleInstancesParams(isoNet.Status.LBRuleID))
+	if err != nil {
+		c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
+		return err
+	}
+
+	found := false
+	for _, instance := range lbRuleInstances.LoadBalancerRuleInstances {
+		if instance.Id == instanceID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil
+	}
+
+	p := c.cs.LoadBalancer.NewRemoveFromLoadBalancerRuleParams(isoNet.Status.LBRuleID)
+	p.SetVirtualmachineids([]string{instanceID})
+	_, err = c.cs.LoadBalancer.RemoveFromLoadBalancerRule(p)
+	c.customMetrics.EvaluateErrorAndIncrementAcsReconciliationErrorCounter(err)
+	return err
 }
 
 // DeleteNetwork deletes an isolated network.
