@@ -49,7 +49,7 @@ func TwoClustersSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 	createCluster := func(flavor string, namespace *corev1.Namespace, resources *clusterctl.ApplyClusterTemplateAndWaitResult) {
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy:    input.BootstrapClusterProxy,
-			CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
+			CNIManifestPath: input.E2EConfig.MustGetVariable(CNIPath),
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
@@ -58,7 +58,7 @@ func TwoClustersSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 				Flavor:                   flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
@@ -76,7 +76,7 @@ func TwoClustersSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
-		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.GetVariable(KubernetesVersion)))
+		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.MustGetVariable(KubernetesVersion)))
 
 		// Set up namespaces to host objects for this spec and create watchers for the namespace events.
 		namespace1, cancelWatches1 = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
@@ -97,7 +97,7 @@ func TwoClustersSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		Expect(IsClusterReady(ctx, mgmtClient, clusterResources2.Cluster)).To(BeTrue())
 
 		By("Delete the second cluster")
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace2,
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace2,
 			cancelWatches2, clusterResources2.Cluster, input.E2EConfig.GetIntervals, false)
 
 		By("Verify the second cluster is gone")
@@ -111,9 +111,9 @@ func TwoClustersSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace1, cancelWatches1, clusterResources1.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace1, cancelWatches1, clusterResources1.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		if clusterResources2.Cluster != nil && ClusterExists(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources2.Cluster) {
-			dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace2, cancelWatches2, clusterResources2.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+			dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace2, cancelWatches2, clusterResources2.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		}
 	})
 }

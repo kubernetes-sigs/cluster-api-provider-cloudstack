@@ -21,11 +21,12 @@ import (
 	gomega "github.com/onsi/gomega"
 	gomock "go.uber.org/mock/gomock"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -84,10 +85,12 @@ var _ = ginkgo.Describe("CloudStackFailureDomainReconciler", func() {
 					gomega.Eventually(func() error {
 						ph, err := patch.NewHelper(dummies.CAPICluster, k8sClient)
 						gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
-						dummies.CAPICluster.Status.Conditions = []clusterv1.Condition{
+						dummies.CAPICluster.Status.Conditions = []metav1.Condition{
 							{
-								Type:   "Ready",
-								Status: "False",
+								Type:               clusterv1.RollingOutCondition,
+								Status:             metav1.ConditionTrue,
+								Reason:             "RollingOut",
+								LastTransitionTime: metav1.Now(),
 							},
 						}
 						return ph.Patch(ctx, dummies.CAPICluster, patch.WithStatusObservedGeneration{})
@@ -123,7 +126,7 @@ var _ = ginkgo.Describe("CloudStackFailureDomainReconciler", func() {
 			// should delete - simulate owner is machineset
 			ginkgo.Entry("Should delete machine if status.ready does not exist", true, ptr.To(int32(2)), ptr.To(int32(2)), ptr.To(int32(2)), nil, true),
 			// should not delete if condition not met
-			ginkgo.Entry("Should not delete machine if cluster control plane not ready", false, ptr.To(int32(2)), ptr.To(int32(2)), ptr.To(int32(2)), ptr.To(true), false),
+			ginkgo.Entry("Should not delete machine if cluster is rolling out", false, ptr.To(int32(2)), ptr.To(int32(2)), ptr.To(int32(2)), ptr.To(true), false),
 			ginkgo.Entry("Should not delete machine if status.replicas < spec.replicas", false, ptr.To(int32(2)), ptr.To(int32(1)), ptr.To(int32(1)), ptr.To(true), true),
 			ginkgo.Entry("Should not delete machine if spec.replicas < 2", false, ptr.To(int32(1)), ptr.To(int32(1)), ptr.To(int32(1)), ptr.To(true), true),
 			ginkgo.Entry("Should not delete machine if status.ready is false", false, ptr.To(int32(2)), ptr.To(int32(2)), ptr.To(int32(2)), ptr.To(false), true),

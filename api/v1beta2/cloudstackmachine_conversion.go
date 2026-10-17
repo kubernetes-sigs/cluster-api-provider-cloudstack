@@ -18,44 +18,49 @@ package v1beta2
 
 import (
 	machineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func (src *CloudStackMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*v1beta3.CloudStackMachine)
-	if err := Convert_v1beta2_CloudStackMachine_To_v1beta3_CloudStackMachine(src, dst, nil); err != nil {
+	dst := dstRaw.(*v1beta4.CloudStackMachine)
+	if err := Convert_v1beta2_CloudStackMachine_To_v1beta4_CloudStackMachine(src, dst, nil); err != nil {
 		return err
 	}
 
-	// Manually restore data
-	restored := &v1beta3.CloudStackMachine{}
+	// Restore v1beta4-only fields that v1beta2 cannot represent, from the conversion annotation.
+	restored := &v1beta4.CloudStackMachine{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
-
 	if len(restored.Spec.Networks) > 0 {
 		dst.Spec.Networks = restored.Spec.Networks
 	}
-
+	if restored.Status.Initialization != nil {
+		dst.Status.Initialization = restored.Status.Initialization
+	}
 	return nil
 }
 
 func (dst *CloudStackMachine) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*v1beta3.CloudStackMachine)
-	if err := Convert_v1beta3_CloudStackMachine_To_v1beta2_CloudStackMachine(src, dst, nil); err != nil {
+	src := srcRaw.(*v1beta4.CloudStackMachine)
+	if err := Convert_v1beta4_CloudStackMachine_To_v1beta2_CloudStackMachine(src, dst, nil); err != nil {
 		return err
 	}
 
-	// Preserve Hub data on down-conversion, including Networks field
-	err := utilconversion.MarshalData(src, dst)
-	return err
+	// Preserve v1beta4 hub data on down-conversion.
+	return utilconversion.MarshalData(src, dst)
 }
 
-// Convert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec handles the conversion from v1beta3 to v1beta2,
-// ignoring the Networks field that doesn't exist in v1beta2
-func Convert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s machineryconversion.Scope) error { // nolint
-	// Use the auto-generated conversion function, which will handle all fields except Networks
-	return autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(in, out, s)
+// Convert_v1beta4_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec drops the Networks field,
+// which does not exist in v1beta2. It is restored from the annotation on up-conversion.
+func Convert_v1beta4_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(in *v1beta4.CloudStackMachineSpec, out *CloudStackMachineSpec, s machineryconversion.Scope) error { // nolint
+	return autoConvert_v1beta4_CloudStackMachineSpec_To_v1beta2_CloudStackMachineSpec(in, out, s)
+}
+
+// Convert_v1beta4_CloudStackMachineStatus_To_v1beta2_CloudStackMachineStatus drops the v1beta4-only
+// Initialization field. It is restored from the annotation on up-conversion.
+func Convert_v1beta4_CloudStackMachineStatus_To_v1beta2_CloudStackMachineStatus(in *v1beta4.CloudStackMachineStatus, out *CloudStackMachineStatus, s machineryconversion.Scope) error { // nolint
+	return autoConvert_v1beta4_CloudStackMachineStatus_To_v1beta2_CloudStackMachineStatus(in, out, s)
 }

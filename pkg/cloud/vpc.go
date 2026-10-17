@@ -19,7 +19,7 @@ package cloud
 import (
 	"strings"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 
 	"github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/pkg/errors"

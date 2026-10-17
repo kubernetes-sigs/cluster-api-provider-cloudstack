@@ -14,14 +14,12 @@ images:
 
   ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
 
-  # Cluster API v1beta1 Preloads
-  - name: gcr.io/k8s-staging-cluster-api/cluster-api-controller:v1.9.6
+  # Cluster API v1beta2 (v1.13.2) Preloads
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.13.2
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:v1.9.6
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.13.2
     loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:v1.9.6
-    loadBehavior: tryLoad
-  - name: gcr.io/k8s-staging-cluster-api/capd-manager-amd64:v1.9.6
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.13.2
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-cainjector:v1.13.1
     loadBehavior: tryLoad
@@ -34,83 +32,87 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v1.9.6
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.9.6/core-components.yaml"
+      - name: v1.13.2
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.13.2/core-components.yaml"
         type: "url"
-        contract: v1beta1
+        contract: v1beta2
         replacements:
-        - old: --metrics-addr=127.0.0.1:8080
-          new: --metrics-addr=:8080
+        - old: "imagePullPolicy: Always"
+          new: "imagePullPolicy: IfNotPresent"
+        - old: "- --leader-elect"
+          new: "- --leader-elect\n        - --remote-connection-grace-period=3m"
         files:
-        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+        - sourcePath: "../data/shared/v1beta2/metadata.yaml"
 
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: v1.9.6
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.9.6/bootstrap-components.yaml"
+      - name: v1.13.2
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.13.2/bootstrap-components.yaml"
         type: "url"
-        contract: v1beta1
+        contract: v1beta2
         replacements:
-        - old: --metrics-addr=127.0.0.1:8080
-          new: --metrics-addr=:8080
+        - old: "imagePullPolicy: Always"
+          new: "imagePullPolicy: IfNotPresent"
         files:
-        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+        - sourcePath: "../data/shared/v1beta2/metadata.yaml"
 
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: v1.9.6
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.9.6/control-plane-components.yaml"
+      - name: v1.13.2
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.13.2/control-plane-components.yaml"
         type: "url"
-        contract: v1beta1
+        contract: v1beta2
         replacements:
-        - old: --metrics-addr=127.0.0.1:8080
-          new: --metrics-addr=:8080
+        - old: "imagePullPolicy: Always"
+          new: "imagePullPolicy: IfNotPresent"
         files:
-        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+        - sourcePath: "../data/shared/v1beta2/metadata.yaml"
 
   - name: cloudstack
     type: InfrastructureProvider
     files:
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-zone.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-account.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-domain.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-template.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-cp-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-insufficient-compute-resources.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-insufficient-compute-resources-for-upgrade.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-node-drain.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-machine-remediation.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-affinity-group-pro.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-affinity-group-anti.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-resource-cleanup.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-second-cluster.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-shared-network-kubevip.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-vpc-network.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-custom-vpc-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-network-with-custom-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-disk-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-disk-offering-size-for-non-customized.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-disk-offering-size-for-customized.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-disk-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-custom-disk-offering.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-subdomain.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-project.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-invalid-ip.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-kubernetes-version-upgrade-before.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-kubernetes-version-upgrade-after.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-k8s-cks.yaml"
-      - sourcePath: "../data/infrastructure-cloudstack/v1beta3/cluster-template-multiple-networks.yaml"
-      - sourcePath: "../data/shared/v1beta1_provider/metadata.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-invalid-zone.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-invalid-account.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-invalid-domain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-invalid-template.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-invalid-cp-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-insufficient-compute-resources.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-insufficient-compute-resources-for-upgrade.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-node-drain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-machine-remediation.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-affinity-group-pro.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-affinity-group-anti.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-resource-cleanup.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-second-cluster.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-shared-network-kubevip.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-vpc-network.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-custom-vpc-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-network-with-custom-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-invalid-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-invalid-disk-offering-size-for-non-customized.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-invalid-disk-offering-size-for-customized.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-custom-disk-offering.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-subdomain.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-project.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-invalid-ip.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-kubernetes-version-upgrade-before.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-kubernetes-version-upgrade-after.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-k8s-cks.yaml"
+      - sourcePath: "../data/infrastructure-cloudstack/v1beta4/cluster-template-multiple-networks.yaml"
+      - sourcePath: "../data/shared/v1beta2_provider/metadata.yaml"
     versions:
       - name: v1.0.0
         value: ../../../config/default
-        contract: v1beta1
+        contract: v1beta2
         replacements:
-          - old: --metrics-bind-addr=localhost:8080
-            new: --metrics-bind-addr=:8080
+          - old: "--diagnostics-address=${CAPI_DIAGNOSTICS_ADDRESS:=:8443}"
+            new: "--diagnostics-address=:8080"
+          - old: "--insecure-diagnostics=${CAPI_INSECURE_DIAGNOSTICS:=false}"
+            new: "--insecure-diagnostics=true"
 
 variables:
   KUBERNETES_VERSION_MANAGEMENT: "v1.27.3"
@@ -119,7 +121,7 @@ variables:
   KUBERNETES_VERSION_UPGRADE_TO: "v1.29.15"
   CNI: "./data/cni/kindnet.yaml"
   IP_FAMILY: "IPv4"
-  NODE_DRAIN_TIMEOUT: "60s"
+  NODE_DRAIN_TIMEOUT: "60"
 
   CLOUDSTACK_FD1_NAME: "fd1"
   CLOUDSTACK_FD1_SECRET_NAME: "secret1"
@@ -197,5 +199,9 @@ intervals:
   node-drain/wait-deployment-available: ["3m", "10s"]
   node-drain/wait-control-plane: ["15m", "10s"]
   node-drain/wait-machine-deleted: ["5m", "10s"]
+
+  capi-v1beta2-contract/wait-cluster: ["10m", "10s"]
+  capi-v1beta2-contract/wait-control-plane: ["20m", "10s"]
+  capi-v1beta2-contract/wait-worker-nodes: ["20m", "10s"]
 
 

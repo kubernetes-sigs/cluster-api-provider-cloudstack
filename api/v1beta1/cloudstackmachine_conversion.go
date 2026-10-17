@@ -18,21 +18,24 @@ package v1beta1
 
 import (
 	machineryconversion "k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func (src *CloudStackMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
-	dst := dstRaw.(*v1beta3.CloudStackMachine)
-	if err := Convert_v1beta1_CloudStackMachine_To_v1beta3_CloudStackMachine(src, dst, nil); err != nil {
+	dst := dstRaw.(*v1beta4.CloudStackMachine)
+	if err := Convert_v1beta1_CloudStackMachine_To_v1beta4_CloudStackMachine(src, dst, nil); err != nil {
 		return err
 	}
 
-	// Manually restore data
-	restored := &v1beta3.CloudStackMachine{}
+	// Restore v1beta4-only fields that v1beta1 cannot represent, from the conversion annotation.
+	restored := &v1beta4.CloudStackMachine{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
+	}
+	if len(restored.Spec.Networks) > 0 {
+		dst.Spec.Networks = restored.Spec.Networks
 	}
 	if restored.Spec.FailureDomainName != "" {
 		dst.Spec.FailureDomainName = restored.Spec.FailureDomainName
@@ -46,24 +49,32 @@ func (src *CloudStackMachine) ConvertTo(dstRaw conversion.Hub) error { // nolint
 	if restored.Status.Reason != nil {
 		dst.Status.Reason = restored.Status.Reason
 	}
+	if restored.Status.Initialization != nil {
+		dst.Status.Initialization = restored.Status.Initialization
+	}
 	return nil
 }
 
 func (dst *CloudStackMachine) ConvertFrom(srcRaw conversion.Hub) error { // nolint
-	src := srcRaw.(*v1beta3.CloudStackMachine)
-	if err := Convert_v1beta3_CloudStackMachine_To_v1beta1_CloudStackMachine(src, dst, nil); err != nil {
+	src := srcRaw.(*v1beta4.CloudStackMachine)
+	if err := Convert_v1beta4_CloudStackMachine_To_v1beta1_CloudStackMachine(src, dst, nil); err != nil {
 		return err
 	}
 
-	// Preserve Hub data on down-conversion
-	err := utilconversion.MarshalData(src, dst)
-	return err
+	// Preserve v1beta4 hub data on down-conversion.
+	return utilconversion.MarshalData(src, dst)
 }
 
-func Convert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in *v1beta3.CloudStackMachineSpec, out *CloudStackMachineSpec, s machineryconversion.Scope) error { // nolint
-	return autoConvert_v1beta3_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in, out, s)
+// Convert_v1beta4_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec drops the spec fields
+// absent from v1beta1 (Networks, FailureDomainName, UncompressedUserData); they are restored from
+// the annotation on up-conversion.
+func Convert_v1beta4_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in *v1beta4.CloudStackMachineSpec, out *CloudStackMachineSpec, s machineryconversion.Scope) error { // nolint
+	return autoConvert_v1beta4_CloudStackMachineSpec_To_v1beta1_CloudStackMachineSpec(in, out, s)
 }
 
-func Convert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in *v1beta3.CloudStackMachineStatus, out *CloudStackMachineStatus, s machineryconversion.Scope) error { // nolint
-	return autoConvert_v1beta3_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in, out, s)
+// Convert_v1beta4_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus drops the status
+// fields absent from v1beta1 (Status, Reason, Initialization); they are restored from the
+// annotation on up-conversion.
+func Convert_v1beta4_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in *v1beta4.CloudStackMachineStatus, out *CloudStackMachineStatus, s machineryconversion.Scope) error { // nolint
+	return autoConvert_v1beta4_CloudStackMachineStatus_To_v1beta1_CloudStackMachineStatus(in, out, s)
 }

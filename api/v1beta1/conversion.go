@@ -19,57 +19,92 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	corev1 "k8s.io/api/core/v1"
 	conv "k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const DefaultEndpointCredential = "global"
 
+// Convert_v1beta1_CloudStackCluster_To_v1beta4_CloudStackCluster converts a v1beta1 (zone-based)
+// cluster to the v1beta4 hub, mapping zones to failure domains and the status failure-domain map
+// to the v1beta4 slice.
+//
 //nolint:golint,revive,stylecheck
-func Convert_v1beta1_CloudStackCluster_To_v1beta3_CloudStackCluster(in *CloudStackCluster, out *v1beta3.CloudStackCluster, s conv.Scope) error {
+func Convert_v1beta1_CloudStackCluster_To_v1beta4_CloudStackCluster(in *CloudStackCluster, out *v1beta4.CloudStackCluster, s conv.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	failureDomains, err := GetFailureDomains(in)
 	if err != nil {
 		return err
 	}
-	out.Spec = v1beta3.CloudStackClusterSpec{
-		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
+	out.Spec = v1beta4.CloudStackClusterSpec{
+		ControlPlaneEndpoint: corev1beta2.APIEndpoint{Host: in.Spec.ControlPlaneEndpoint.Host, Port: in.Spec.ControlPlaneEndpoint.Port},
 		FailureDomains:       failureDomains,
 	}
 
-	out.Status = v1beta3.CloudStackClusterStatus{
-		FailureDomains: in.Status.FailureDomains,
-		Ready:          in.Status.Ready,
+	out.Status = v1beta4.CloudStackClusterStatus{
+		Ready: in.Status.Ready,
+	}
+	if len(in.Status.FailureDomains) > 0 {
+		out.Status.FailureDomains = make([]v1beta4.FailureDomain, 0, len(in.Status.FailureDomains))
+		names := make([]string, 0, len(in.Status.FailureDomains))
+		for name := range in.Status.FailureDomains {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			fd := in.Status.FailureDomains[name]
+			out.Status.FailureDomains = append(out.Status.FailureDomains, v1beta4.FailureDomain{
+				Name:         name,
+				ControlPlane: ptr.To(fd.ControlPlane),
+				Attributes:   fd.Attributes,
+			})
+		}
 	}
 	return nil
 }
 
+// Convert_v1beta4_CloudStackCluster_To_v1beta1_CloudStackCluster converts a v1beta4 hub cluster
+// down to the v1beta1 (zone-based) representation.
+//
 //nolint:golint,revive,stylecheck
-func Convert_v1beta3_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta3.CloudStackCluster, out *CloudStackCluster, scope conv.Scope) error {
+func Convert_v1beta4_CloudStackCluster_To_v1beta1_CloudStackCluster(in *v1beta4.CloudStackCluster, out *CloudStackCluster, scope conv.Scope) error {
 	if len(in.Spec.FailureDomains) < 1 {
-		return fmt.Errorf("v1beta3 to v1beta1 conversion not supported when < 1 failure domain is provided. Input CloudStackCluster spec %v", in.Spec)
+		return fmt.Errorf("v1beta4 to v1beta1 conversion not supported when < 1 failure domain is provided. Input CloudStackCluster spec %v", in.Spec)
 	}
 	out.ObjectMeta = in.ObjectMeta
 	out.Spec = CloudStackClusterSpec{
 		Account:              in.Spec.FailureDomains[0].Account,
 		Domain:               in.Spec.FailureDomains[0].Domain,
 		Zones:                getZones(in),
-		ControlPlaneEndpoint: in.Spec.ControlPlaneEndpoint,
+		ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: in.Spec.ControlPlaneEndpoint.Host, Port: in.Spec.ControlPlaneEndpoint.Port},
 	}
 
 	out.Status = CloudStackClusterStatus{
-		FailureDomains: in.Status.FailureDomains,
-		Ready:          in.Status.Ready,
+		Ready: in.Status.Ready,
+	}
+	if len(in.Status.FailureDomains) > 0 {
+		out.Status.FailureDomains = make(FailureDomains, len(in.Status.FailureDomains))
+		for _, fd := range in.Status.FailureDomains {
+			cp := false
+			if fd.ControlPlane != nil {
+				cp = *fd.ControlPlane
+			}
+			out.Status.FailureDomains[fd.Name] = FailureDomainSpec{ControlPlane: cp, Attributes: fd.Attributes}
+		}
 	}
 	return nil
 }
 
-// getZones maps failure domains to zones
-func getZones(csCluster *v1beta3.CloudStackCluster) []Zone {
+// getZones maps v1beta4 failure domains to v1beta1 zones.
+func getZones(csCluster *v1beta4.CloudStackCluster) []Zone {
 	var zones []Zone
 	for _, failureDomain := range csCluster.Spec.FailureDomains {
 		zone := failureDomain.Zone
@@ -86,21 +121,21 @@ func getZones(csCluster *v1beta3.CloudStackCluster) []Zone {
 	return zones
 }
 
-// GetFailureDomains maps v1beta1 zones to v1beta3 failure domains.
-func GetFailureDomains(csCluster *CloudStackCluster) ([]v1beta3.CloudStackFailureDomainSpec, error) {
-	var failureDomains []v1beta3.CloudStackFailureDomainSpec
+// GetFailureDomains maps v1beta1 zones to v1beta4 failure domains.
+func GetFailureDomains(csCluster *CloudStackCluster) ([]v1beta4.CloudStackFailureDomainSpec, error) {
+	var failureDomains []v1beta4.CloudStackFailureDomainSpec
 	namespace := csCluster.Namespace
 	for _, zone := range csCluster.Spec.Zones {
 		name, err := GetDefaultFailureDomainName(namespace, csCluster.Name, zone.ID, zone.Name)
 		if err != nil {
 			return nil, err
 		}
-		failureDomains = append(failureDomains, v1beta3.CloudStackFailureDomainSpec{
+		failureDomains = append(failureDomains, v1beta4.CloudStackFailureDomainSpec{
 			Name: name,
-			Zone: v1beta3.CloudStackZoneSpec{
+			Zone: v1beta4.CloudStackZoneSpec{
 				ID:   zone.ID,
 				Name: zone.Name,
-				Network: v1beta3.Network{
+				Network: v1beta4.Network{
 					ID:   zone.Network.ID,
 					Name: zone.Network.Name,
 					Type: zone.Network.Type,
@@ -149,7 +184,7 @@ func GetDefaultFailureDomainName(namespace string, _ string, zoneID string, zone
 func fetchZoneIDUsingK8s(namespace string, zoneName string) (string, error) {
 	zone := &CloudStackZone{}
 	key := client.ObjectKey{Name: zoneName, Namespace: namespace}
-	if err := v1beta3.K8sClient.Get(context.TODO(), key, zone); err != nil {
+	if err := v1beta4.K8sClient.Get(context.TODO(), key, zone); err != nil {
 		return "", err
 	}
 
@@ -161,7 +196,7 @@ func fetchZoneIDUsingCloudStack(secret *corev1.Secret, zoneName string) (string,
 	if err != nil {
 		return "", err
 	}
-	zone := &v1beta3.CloudStackZoneSpec{Name: zoneName}
+	zone := &v1beta4.CloudStackZoneSpec{Name: zoneName}
 	err = client.ResolveZone(zone)
 	return zone.ID, err
 }
@@ -169,30 +204,19 @@ func fetchZoneIDUsingCloudStack(secret *corev1.Secret, zoneName string) (string,
 func GetK8sSecret(name, namespace string) (*corev1.Secret, error) {
 	endpointCredentials := &corev1.Secret{}
 	key := client.ObjectKey{Name: name, Namespace: namespace}
-	if err := v1beta3.K8sClient.Get(context.TODO(), key, endpointCredentials); err != nil {
+	if err := v1beta4.K8sClient.Get(context.TODO(), key, endpointCredentials); err != nil {
 		return nil, err
 	}
 	return endpointCredentials, nil
 }
 
-// Convert_v1beta3_Network_To_v1beta1_Network converts from v1beta3.Network to v1beta1.Network
+// Convert_v1beta4_Network_To_v1beta1_Network converts from v1beta4.Network to v1beta1.Network,
+// dropping the fields (Gateway, Netmask, Offering, RoutingMode, VPC) that do not exist in v1beta1.
 //
 //nolint:golint,revive,stylecheck
-func Convert_v1beta3_Network_To_v1beta1_Network(in *v1beta3.Network, out *Network, _ conv.Scope) error {
+func Convert_v1beta4_Network_To_v1beta1_Network(in *v1beta4.Network, out *Network, _ conv.Scope) error {
 	out.ID = in.ID
 	out.Type = in.Type
 	out.Name = in.Name
-	// Skip Gateway, Netmask, and VPC fields as they do not exist in v1beta1.Network
-	return nil
-}
-
-// Convert_v1beta3_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIsolatedNetworkStatus handles manual conversion of CloudStackIsolatedNetworkStatus from v1beta3 to v1beta1
-//
-//nolint:golint,revive,stylecheck
-func Convert_v1beta3_CloudStackIsolatedNetworkStatus_To_v1beta1_CloudStackIsolatedNetworkStatus(in *v1beta3.CloudStackIsolatedNetworkStatus, out *CloudStackIsolatedNetworkStatus, _ conv.Scope) error {
-	out.PublicIPID = in.PublicIPID
-	out.LBRuleID = in.LBRuleID
-	out.Ready = in.Ready
-	// RoutingMode field doesn't exist in v1beta1, so we ignore it during conversion
 	return nil
 }

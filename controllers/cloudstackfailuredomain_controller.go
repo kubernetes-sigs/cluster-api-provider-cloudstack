@@ -21,21 +21,17 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
-)
-
-const (
-	conditionTypeReady   = "Ready"
-	conditionStatusFalse = "False"
 )
 
 // CloudStackFailureDomainReconciler is the k8s controller manager's interface to reconcile a CloudStackFailureDomain.
@@ -158,15 +154,17 @@ func (r *CloudStackFailureDomainReconciliationRunner) GetAllMachinesInFailureDom
 	return ctrl.Result{}, nil
 }
 
-// RequeueIfClusterNotReady check cluster to see if there is any rolling update going on.
+// RequeueIfClusterNotReady requeues if the cluster is actively rolling out machines.
+// Removing a machine from a failure domain while a rolling update is in progress risks
+// violating quorum or disrupting the replacement sequence, so we wait until it settles.
 func (r *CloudStackFailureDomainReconciliationRunner) RequeueIfClusterNotReady() (ctrl.Result, error) {
 	if len(r.Machines) > 0 {
 		if !r.CAPICluster.DeletionTimestamp.IsZero() {
 			return ctrl.Result{}, nil
 		}
 		for _, condition := range r.CAPICluster.Status.Conditions {
-			if condition.Type == conditionTypeReady && condition.Status == conditionStatusFalse {
-				return r.RequeueWithMessage("cluster status not ready,")
+			if condition.Type == clusterv1.RollingOutCondition && condition.Status == metav1.ConditionTrue {
+				return r.RequeueWithMessage("cluster is rolling out,")
 			}
 		}
 	}

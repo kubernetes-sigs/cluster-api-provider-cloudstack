@@ -49,7 +49,7 @@ func VPCNetworkSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
-		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.GetVariable(KubernetesVersion)))
+		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.MustGetVariable(KubernetesVersion)))
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
@@ -58,25 +58,25 @@ func VPCNetworkSpec(ctx context.Context, inputGetter func() CommonSpecInput) {
 
 	It("Should successfully create a cluster in a VPC network with default offering", func() {
 		By("Creating a workload cluster in a VPC network with default offering")
-		vpcName := input.E2EConfig.GetVariable(VPCName)
-		networkName := input.E2EConfig.GetVariable(VPCNetworkName)
+		vpcName := input.E2EConfig.MustGetVariable(VPCName)
+		networkName := input.E2EConfig.MustGetVariable(VPCNetworkName)
 		setupClusterWithVpcAndVerifyOfferingName(ctx, input, namespace, clusterResources, specName, "vpc-network", vpcName, DefaultVPCOffering, networkName, DefaultVPCNetworkOffering)
 		By("PASSED!")
 	})
 
 	It("Should successfully create a cluster in a VPC network with a custom offering", func() {
 		By("Creating a workload cluster in a VPC network with a custom offering")
-		vpcWithCustomOfferingName := input.E2EConfig.GetVariable(VPCWithCustomOfferingName)
-		networkName := input.E2EConfig.GetVariable(VPCNetworkWithCustomOfferingName)
-		customVpcOfferingName := input.E2EConfig.GetVariable(CustomVPCOfferingName)
-		customVpcNetworkOfferingName := input.E2EConfig.GetVariable(CustomVPCNetworkOfferingName)
+		vpcWithCustomOfferingName := input.E2EConfig.MustGetVariable(VPCWithCustomOfferingName)
+		networkName := input.E2EConfig.MustGetVariable(VPCNetworkWithCustomOfferingName)
+		customVpcOfferingName := input.E2EConfig.MustGetVariable(CustomVPCOfferingName)
+		customVpcNetworkOfferingName := input.E2EConfig.MustGetVariable(CustomVPCNetworkOfferingName)
 		setupClusterWithVpcAndVerifyOfferingName(ctx, input, namespace, clusterResources, specName, "custom-vpc-offering", vpcWithCustomOfferingName, customVpcOfferingName, networkName, customVpcNetworkOfferingName)
 		By("PASSED!")
 	})
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }
 
@@ -86,7 +86,7 @@ func setupClusterWithVpcAndVerifyOfferingName(ctx context.Context, input CommonS
 ) {
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy:    input.BootstrapClusterProxy,
-		CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
+		CNIManifestPath: input.E2EConfig.MustGetVariable(CNIPath),
 		ConfigCluster: clusterctl.ConfigClusterInput{
 			LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 			ClusterctlConfigPath:     input.ClusterctlConfigPath,
@@ -95,7 +95,7 @@ func setupClusterWithVpcAndVerifyOfferingName(ctx context.Context, input CommonS
 			Flavor:                   flavor,
 			Namespace:                namespace.Name,
 			ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+			KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 			ControlPlaneMachineCount: pointer.Int64(1),
 			WorkerMachineCount:       pointer.Int64(1),
 		},

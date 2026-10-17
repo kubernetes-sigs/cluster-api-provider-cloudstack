@@ -48,14 +48,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	csReconcilers "sigs.k8s.io/cluster-api-provider-cloudstack/controllers"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/mocks"
 
-	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	//+kubebuilder:scaffold:imports
 )
@@ -209,7 +210,13 @@ func SetupTestEnvironment() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 	gomega.Ω(k8sClient).ShouldNot(gomega.BeNil())
-	k8sManager, _ = ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
+	k8sManager, err = ctrl.NewManager(cfg, ctrl.Options{
+		Scheme:         scheme.Scheme,
+		LeaderElection: false,
+		Metrics: server.Options{
+			BindAddress: "0",
+		},
+	})
 	gomega.Ω(err).ShouldNot(gomega.HaveOccurred())
 
 	// Base reconciler shared across reconcilers.

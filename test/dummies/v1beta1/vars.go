@@ -6,12 +6,12 @@ import (
 	csapi "github.com/apache/cloudstack-go/v2/cloudstack"
 	"github.com/onsi/gomega"
 	"github.com/smallfish/simpleyaml"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	capcv1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	capiv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //lint:ignore SA1019 v1beta1 dummies exercise the spoke pinned to CAPI core/v1beta1 APIEndpoint (see c82a9f9)
 )
 
 // GetYamlVal fetches the values in test/e2e/config/cloudstack.yaml by yaml node. A common config file.
@@ -278,7 +278,7 @@ func SetDummyCAPCClusterVars() {
 				Kind: "Secret",
 				Name: "IdentitySecret",
 			},
-			ControlPlaneEndpoint: capiv1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
+			ControlPlaneEndpoint: capiv1beta1.APIEndpoint{Host: EndPointHost, Port: EndPointPort},
 			Zones:                []capcv1.Zone{Zone1, Zone2},
 		},
 		Status: capcv1.CloudStackClusterStatus{Zones: map[string]capcv1.Zone{}},
@@ -315,10 +315,9 @@ func SetDummyCAPIClusterVars() {
 			Namespace:    "default",
 		},
 		Spec: capiv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: capcv1.GroupVersion.String(),
-				Kind:       "CloudStackCluster",
-				Name:       "somename",
+			InfrastructureRef: capiv1.ContractVersionedObjectReference{
+				Kind: "CloudStackCluster",
+				Name: "somename",
 			},
 		},
 	}
@@ -344,7 +343,7 @@ func SetClusterSpecToNet(net *capcv1.Network) {
 
 func SetDummyCAPIMachineVars() {
 	CAPIMachine = &capiv1.Machine{
-		Spec: capiv1.MachineSpec{FailureDomain: ptr.To(Zone1.ID)},
+		Spec: capiv1.MachineSpec{FailureDomain: Zone1.ID},
 	}
 }
 

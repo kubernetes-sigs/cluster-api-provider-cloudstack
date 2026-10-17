@@ -18,7 +18,7 @@ package v1beta3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //lint:ignore SA1019 spoke pinned to CAPI core/v1beta1 APIEndpoint (see c82a9f9) to preserve pre-v1.13 spoke CRD schema
 )
 
 // The presence of a finalizer prevents CAPI from deleting the corresponding CAPI data.
@@ -95,7 +95,6 @@ func (n *CloudStackIsolatedNetwork) Network() *Network {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:storageversion
 
 // CloudStackIsolatedNetwork is the Schema for the cloudstackisolatednetworks API
 type CloudStackIsolatedNetwork struct {

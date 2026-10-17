@@ -39,11 +39,12 @@ import (
 	"github.com/onsi/gomega/types"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8stypes "k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -113,19 +114,23 @@ func setupSpecNamespace(ctx context.Context, specName string, clusterProxy frame
 	return namespace, cancelWatches
 }
 
-func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace *corev1.Namespace, cancelWatches context.CancelFunc, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, skipCleanup bool) {
-	Byf("Dumping logs from the %q workload cluster", cluster.Name)
+func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, clusterctlConfigPath, artifactFolder string, namespace *corev1.Namespace, cancelWatches context.CancelFunc, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, skipCleanup bool) {
+	if cluster != nil {
+		Byf("Dumping logs from the %q workload cluster", cluster.Name)
 
-	// Dump all the logs from the workload cluster before deleting them.
-	clusterProxy.CollectWorkloadClusterLogs(ctx, cluster.Namespace, cluster.Name, filepath.Join(artifactFolder, "clusters", cluster.Name))
+		// Dump all the logs from the workload cluster before deleting them.
+		clusterProxy.CollectWorkloadClusterLogs(ctx, cluster.Namespace, cluster.Name, filepath.Join(artifactFolder, "clusters", cluster.Name))
+	}
 
 	Byf("Dumping all the Cluster API resources in the %q namespace", namespace.Name)
 
 	// Dump all Cluster API related resources to artifacts before deleting them.
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    clusterProxy.GetClient(),
-		Namespace: namespace.Name,
-		LogPath:   filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
+		Lister:               clusterProxy.GetClient(),
+		KubeConfigPath:       clusterProxy.GetKubeconfigPath(),
+		ClusterctlConfigPath: clusterctlConfigPath,
+		Namespace:            namespace.Name,
+		LogPath:              filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
 	})
 
 	if !skipCleanup {
@@ -134,8 +139,10 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
 		// instead of DeleteClusterAndWait
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			Client:    clusterProxy.GetClient(),
-			Namespace: namespace.Name,
+			ClusterProxy:         clusterProxy,
+			ClusterctlConfigPath: clusterctlConfigPath,
+			Namespace:            namespace.Name,
+			ArtifactFolder:       artifactFolder,
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 
 		Byf("Deleting namespace used for hosting the %q test spec", specName)
@@ -511,7 +518,7 @@ func WaitForHealthyMachineCount(ctx context.Context, mgmtClient client.Client, w
 	})
 
 	for _, mhc := range machineHealthChecks {
-		Expect(mhc.Spec.UnhealthyConditions).NotTo(BeEmpty())
+		Expect(mhc.Spec.Checks.UnhealthyNodeConditions).NotTo(BeEmpty())
 		if !strings.Contains(mhc.Name, mhcMatcher) {
 			continue
 		}
@@ -525,11 +532,11 @@ func WaitForHealthyMachineCount(ctx context.Context, mgmtClient client.Client, w
 
 			count := 0
 			for _, machine := range machines {
-				if machine.Status.NodeRef == nil {
+				if !machine.Status.NodeRef.IsDefined() {
 					continue
 				}
 				node := &corev1.Node{}
-				err := workloadClient.Get(ctx, k8stypes.NamespacedName{Name: machine.Status.NodeRef.Name, Namespace: machine.Status.NodeRef.Namespace}, node)
+				err := workloadClient.Get(ctx, k8stypes.NamespacedName{Name: machine.Status.NodeRef.Name}, node)
 				if err != nil {
 					continue
 				}
@@ -543,7 +550,7 @@ func WaitForHealthyMachineCount(ctx context.Context, mgmtClient client.Client, w
 }
 
 func HasMatchingUnhealthyConditions(machineHealthCheck *clusterv1.MachineHealthCheck, nodeConditions []corev1.NodeCondition) bool {
-	for _, unhealthyCondition := range machineHealthCheck.Spec.UnhealthyConditions {
+	for _, unhealthyCondition := range machineHealthCheck.Spec.Checks.UnhealthyNodeConditions {
 		for _, nodeCondition := range nodeConditions {
 			if nodeCondition.Type == unhealthyCondition.Type && nodeCondition.Status == unhealthyCondition.Status {
 				return true
@@ -573,11 +580,12 @@ func IsClusterReady(ctx context.Context, mgmtClient client.Client, cluster *clus
 		return false
 	}
 	Expect(err).To(BeNil(), "Failed to get cluster status")
-	return c.Status.ControlPlaneReady && c.Status.InfrastructureReady
+	return conditions.IsTrue(c, clusterv1.ClusterControlPlaneAvailableCondition) &&
+		conditions.IsTrue(c, clusterv1.ClusterInfrastructureReadyCondition)
 }
 
 func EnsureSecondaryNetworkExists(client *cloudstack.CloudStackClient, input CommonSpecInput) (*cloudstack.Network, error) {
-	secondaryNetName := input.E2EConfig.GetVariable("CLOUDSTACK_NEW_NETWORK_NAME")
+	secondaryNetName := input.E2EConfig.MustGetVariable("CLOUDSTACK_NEW_NETWORK_NAME")
 
 	By("Fetching secondary network details")
 	// Try fetching secondary network
@@ -588,7 +596,7 @@ func EnsureSecondaryNetworkExists(client *cloudstack.CloudStackClient, input Com
 	}
 
 	By("Listing Zone")
-	zoneName := input.E2EConfig.GetVariable("CLOUDSTACK_ZONE_NAME")
+	zoneName := input.E2EConfig.MustGetVariable("CLOUDSTACK_ZONE_NAME")
 	pz := client.Zone.NewListZonesParams()
 	pz.SetName(zoneName)
 	listZonesResponse, err := client.Zone.ListZones(pz)
@@ -626,8 +634,8 @@ func EnsureSecondaryNetworkExists(client *cloudstack.CloudStackClient, input Com
 
 func CheckIfNodesHaveTwoNICs(client *cloudstack.CloudStackClient, clusterName string, input CommonSpecInput) {
 	requiredNetworks := map[string]bool{
-		input.E2EConfig.GetVariable("CLOUDSTACK_NETWORK_NAME"):     false,
-		input.E2EConfig.GetVariable("CLOUDSTACK_NEW_NETWORK_NAME"): false,
+		input.E2EConfig.MustGetVariable("CLOUDSTACK_NETWORK_NAME"):     false,
+		input.E2EConfig.MustGetVariable("CLOUDSTACK_NEW_NETWORK_NAME"): false,
 	}
 
 	Byf("Listing machines with name containing %q", clusterName)

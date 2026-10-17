@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	gomock "go.uber.org/mock/gomock"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/cloud"
-	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta4"
 )
 
 var _ = ginkgo.Describe("Network", func() {

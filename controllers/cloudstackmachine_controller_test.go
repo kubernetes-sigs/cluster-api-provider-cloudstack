@@ -27,9 +27,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
-	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
+	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -250,7 +250,7 @@ var _ = ginkgo.Describe("CloudStackMachineReconciler", func() {
 			setClusterReady(fakeCtrlClient)
 
 			requestNamespacedName := types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
-			MachineReconciler.AsFailureDomainUser(&dummies.CSFailureDomain1.Spec)
+			MachineReconciler.AsFailureDomainUser((*infrav1.CloudStackFailureDomainSpec)(nil))
 			res, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			gomega.Expect(res.RequeueAfter).Should(gomega.BeZero())

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -30,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/pkg/errors"
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	csCtrlrUtils "sigs.k8s.io/cluster-api-provider-cloudstack/controllers/utils"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -101,6 +102,10 @@ func (r *CloudStackClusterReconciliationRunner) Reconcile() (res ctrl.Result, re
 func (r *CloudStackClusterReconciliationRunner) SetReady() (ctrl.Result, error) {
 	controllerutil.AddFinalizer(r.ReconciliationSubject, infrav1.ClusterFinalizer)
 	r.ReconciliationSubject.Status.Ready = true
+	if r.ReconciliationSubject.Status.Initialization == nil {
+		r.ReconciliationSubject.Status.Initialization = &infrav1.ClusterInitializationStatus{}
+	}
+	r.ReconciliationSubject.Status.Initialization.Provisioned = ptr.To(true)
 	return ctrl.Result{}, nil
 }
 
@@ -127,12 +132,14 @@ func (r *CloudStackClusterReconciliationRunner) VerifyFailureDomainCRDs() (ctrl.
 
 // SetFailureDomainsStatusMap sets failure domains in CloudStackCluster status to be used for CAPI machine placement.
 func (r *CloudStackClusterReconciliationRunner) SetFailureDomainsStatusMap() (ctrl.Result, error) {
-	r.ReconciliationSubject.Status.FailureDomains = clusterv1.FailureDomains{}
+	r.ReconciliationSubject.Status.FailureDomains = []infrav1.FailureDomain{}
 	for _, fdSpec := range r.ReconciliationSubject.Spec.FailureDomains {
 		metaHashName := infrav1.FailureDomainHashedMetaName(fdSpec.Name, r.CAPICluster.Name)
-		r.ReconciliationSubject.Status.FailureDomains[fdSpec.Name] = clusterv1.FailureDomainSpec{
-			ControlPlane: true, Attributes: map[string]string{"MetaHashName": metaHashName},
-		}
+		r.ReconciliationSubject.Status.FailureDomains = append(r.ReconciliationSubject.Status.FailureDomains, infrav1.FailureDomain{
+			Name:         fdSpec.Name,
+			ControlPlane: ptr.To(true),
+			Attributes:   map[string]string{"MetaHashName": metaHashName},
+		})
 	}
 	return ctrl.Result{}, nil
 }

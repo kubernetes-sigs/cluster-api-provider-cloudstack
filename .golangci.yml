@@ -1,46 +1,63 @@
-linters-settings:
-  goheader:
-    values:
-      const:
-        AUTHOR: The Kubernetes Authors
-      regexp:
-        YR: '\d\d\d\d'
-    template:  |-
-      Copyright {{ YR }} {{ AUTHOR }}.
-
-      Licensed under the Apache License, Version 2.0 (the "License");
-      you may not use this file except in compliance with the License.
-      You may obtain a copy of the License at
-      
-          http://www.apache.org/licenses/LICENSE-2.0
-
-      Unless required by applicable law or agreed to in writing, software
-      distributed under the License is distributed on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-      See the License for the specific language governing permissions and
-      limitations under the License.
-  gocyclo:
-    min-complexity: 15
-
-linters:
-  enable:
-    - gosec
-    - goheader
-    - revive
-    - gocyclo
-    - misspell
-
+version: "2"
 run:
   issues-exit-code: 1
   tests: false
+linters:
+  default: none
+  enable:
+    - gocyclo
+    - goheader
+    - gosec
+    - misspell
+    - revive
+  settings:
+    gocyclo:
+      min-complexity: 15
+    goheader:
+      values:
+        const:
+          AUTHOR: The Kubernetes Authors
+        regexp:
+          YR: \d\d\d\d
+      template: |-
+        Copyright {{ YR }} {{ AUTHOR }}.
 
-issues:
-  # Excluding configuration per-path, per-linter, per-text and per-source
-  exclude-rules:
-    # Exclude some linters from running on tests files.
-    - path: _test\.go
-      linters:
-        - gosec
-  exclude-dirs:
-    - pkg/mocks
-    - test
+        Licensed under the Apache License, Version 2.0 (the "License");
+        you may not use this file except in compliance with the License.
+        You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+        Unless required by applicable law or agreed to in writing, software
+        distributed under the License is distributed on an "AS IS" BASIS,
+        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        See the License for the specific language governing permissions and
+        limitations under the License.
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - gosec
+        path: _test\.go
+      - linters:
+          - revive
+        path: controllers/utils/
+        text: avoid meaningless package names
+    paths:
+      - pkg/mocks
+      - test
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

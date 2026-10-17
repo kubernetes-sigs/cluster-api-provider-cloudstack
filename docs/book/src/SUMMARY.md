@@ -4,6 +4,7 @@
 - [Getting Started](getting-started.md)
 - [Configuration](clustercloudstack/configuration.md)
 - [Topics](topics/index.md)
+    - [Upgrading to v0.7](topics/upgrading.md)
     - [Move From Bootstrap](topics/mover.md)
     - [TroubleShooting](topics/troubleshooting.md)
     - [Custom Images](topics/custom-images.md)

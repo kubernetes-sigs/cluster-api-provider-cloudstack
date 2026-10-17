@@ -28,12 +28,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
-	"sigs.k8s.io/cluster-api/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/core/v1beta2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -69,7 +68,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 	})
 
 	It("Should fail due to the specified account is not found [TC4a]", func() {
-		testInvalidResource(ctx, input, "invalid-account", "could not find account "+input.E2EConfig.GetVariable(InvalidAccountName))
+		testInvalidResource(ctx, input, "invalid-account", "could not find account "+input.E2EConfig.MustGetVariable(InvalidAccountName))
 	})
 
 	It("Should fail due to the specified domain is not found [TC4b]", func() {
@@ -77,19 +76,19 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 	})
 
 	It("Should fail due to the specified control plane offering is not found [TC7]", func() {
-		testInvalidResource(ctx, input, "invalid-cp-offering", "No match found for "+input.E2EConfig.GetVariable(InvalidCPOfferingName))
+		testInvalidResource(ctx, input, "invalid-cp-offering", "No match found for "+input.E2EConfig.MustGetVariable(InvalidCPOfferingName))
 	})
 
 	It("Should fail due to the specified template is not found [TC6]", func() {
-		testInvalidResource(ctx, input, "invalid-template", "No match found for "+input.E2EConfig.GetVariable(InvalidTemplateName))
+		testInvalidResource(ctx, input, "invalid-template", "No match found for "+input.E2EConfig.MustGetVariable(InvalidTemplateName))
 	})
 
 	It("Should fail due to the specified zone is not found [TC3]", func() {
-		testInvalidResource(ctx, input, "invalid-zone", "No match found for "+input.E2EConfig.GetVariable(InvalidZoneName))
+		testInvalidResource(ctx, input, "invalid-zone", "No match found for "+input.E2EConfig.MustGetVariable(InvalidZoneName))
 	})
 
 	It("Should fail due to the specified disk offering is not found", func() {
-		testInvalidResource(ctx, input, "invalid-disk-offering", "could not get DiskOffering ID from "+input.E2EConfig.GetVariable(InvalidDiskOfferingName))
+		testInvalidResource(ctx, input, "invalid-disk-offering", "could not get DiskOffering ID from "+input.E2EConfig.MustGetVariable(InvalidDiskOfferingName))
 	})
 
 	It("Should fail due to the compute resources are not sufficient for the specified offering [TC8]", func() {
@@ -117,7 +116,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 			By("Creating a workload cluster")
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 				ClusterProxy:    input.BootstrapClusterProxy,
-				CNIManifestPath: input.E2EConfig.GetVariable(CNIPath),
+				CNIManifestPath: input.E2EConfig.MustGetVariable(CNIPath),
 				ConfigCluster: clusterctl.ConfigClusterInput{
 					LogFolder:                logFolder,
 					ClusterctlConfigPath:     input.ClusterctlConfigPath,
@@ -126,7 +125,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 					Flavor:                   "insufficient-compute-resources-for-upgrade",
 					Namespace:                namespace.Name,
 					ClusterName:              generateClusterName(),
-					KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+					KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 					ControlPlaneMachineCount: pointer.Int64Ptr(1),
 					WorkerMachineCount:       pointer.Int64Ptr(1),
 				},
@@ -156,8 +155,8 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 
 			By("Increasing the machine deployment instance size")
 			cp := clusterResources.ControlPlane
-			cp.Spec.MachineTemplate.InfrastructureRef.Name =
-				strings.Replace(cp.Spec.MachineTemplate.InfrastructureRef.Name, "-control-plane", "-upgrade-control-plane", 1)
+			cp.Spec.MachineTemplate.Spec.InfrastructureRef.Name =
+				strings.Replace(cp.Spec.MachineTemplate.Spec.InfrastructureRef.Name, "-control-plane", "-upgrade-control-plane", 1)
 			upgradeControlPlaneInfrastructureRef(ctx, cp)
 
 			By("Checking for the expected error")
@@ -167,7 +166,7 @@ func InvalidResourceSpec(ctx context.Context, inputGetter func() CommonSpecInput
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 
 }
@@ -183,7 +182,7 @@ func testInvalidResource(ctx context.Context, input CommonSpecInput, flavor stri
 		Flavor:                   flavor,
 		Namespace:                namespace.Name,
 		ClusterName:              clusterName,
-		KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+		KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 		ControlPlaneMachineCount: pointer.Int64Ptr(1),
 		WorkerMachineCount:       pointer.Int64Ptr(1),
 		InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
@@ -262,13 +261,13 @@ func waitForErrorInLog(logFolder string, expectedError string) {
 
 // upgradeMachineDeploymentInfrastructureRef updates a machine deployment infrastructure ref and returns immediately.
 // The logic was borrowed from framework.UpgradeMachineDeploymentInfrastructureRefAndWait.
-func upgradeMachineDeploymentInfrastructureRef(ctx context.Context, deployment *v1beta1.MachineDeployment) {
+func upgradeMachineDeploymentInfrastructureRef(ctx context.Context, deployment *v1beta2.MachineDeployment) {
 	By("Patching the machine deployment infrastructure ref")
 	mgmtClient := input.BootstrapClusterProxy.GetClient()
 
 	// Create a new infrastructure ref based on the existing one
 	infraRef := deployment.Spec.Template.Spec.InfrastructureRef
-	newInfraObjName := createNewInfrastructureRef(ctx, infraRef)
+	newInfraObjName := createNewInfrastructureRef(ctx, infraRef, deployment.Namespace)
 
 	// Patch the new infra object's ref to the machine deployment
 	patchHelper, err := patch.NewHelper(deployment, mgmtClient)
@@ -284,33 +283,26 @@ func upgradeControlPlaneInfrastructureRef(ctx context.Context, controlPlane *con
 	mgmtClient := input.BootstrapClusterProxy.GetClient()
 
 	// Create a new infrastructure ref based on the existing one
-	infraRef := controlPlane.Spec.MachineTemplate.InfrastructureRef
-	newInfraObjName := createNewInfrastructureRef(ctx, infraRef)
+	infraRef := controlPlane.Spec.MachineTemplate.Spec.InfrastructureRef
+	newInfraObjName := createNewInfrastructureRef(ctx, infraRef, controlPlane.Namespace)
 
 	// Patch the control plane to use the new infrastructure ref
 	patchHelper, err := patch.NewHelper(controlPlane, mgmtClient)
 	Expect(err).ToNot(HaveOccurred())
 	infraRef.Name = newInfraObjName
-	controlPlane.Spec.MachineTemplate.InfrastructureRef = infraRef
+	controlPlane.Spec.MachineTemplate.Spec.InfrastructureRef = infraRef
 	Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
 }
 
 // createNewInfrastructureRef creates a new infrastructure ref that's based on an existing one, but has a new name.  The
 // new name is returned.
-func createNewInfrastructureRef(ctx context.Context, sourceInfrastructureRef corev1.ObjectReference) string {
+func createNewInfrastructureRef(ctx context.Context, sourceInfrastructureRef v1beta2.ContractVersionedObjectReference, namespace string) string {
 	mgmtClient := input.BootstrapClusterProxy.GetClient()
 
-	// Retrieve the existing infrastructure ref object
-	infraObj := &unstructured.Unstructured{}
-	infraObj.SetGroupVersionKind(sourceInfrastructureRef.GroupVersionKind())
-	key := client.ObjectKey{
-		Namespace: clusterResources.Cluster.Namespace,
-		Name:      sourceInfrastructureRef.Name,
-	}
-	Expect(mgmtClient.Get(ctx, key, infraObj)).NotTo(HaveOccurred())
+	infraObj, err := external.GetObjectFromContractVersionedRef(ctx, mgmtClient, sourceInfrastructureRef, namespace)
+	Expect(err).NotTo(HaveOccurred())
 
-	// Creates a new infrastructure ref object
-	newInfraObj := infraObj
+	newInfraObj := infraObj.DeepCopy()
 	newInfraObjName := fmt.Sprintf("%s-%s", sourceInfrastructureRef.Name, util.RandomString(6))
 	newInfraObj.SetName(newInfraObjName)
 	newInfraObj.SetResourceVersion("")

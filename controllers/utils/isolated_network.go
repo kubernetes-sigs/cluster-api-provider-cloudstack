@@ -21,7 +21,7 @@ import (
 	"regexp"
 	"strings"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta3"
+	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 

@@ -18,13 +18,23 @@ package v1beta3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //lint:ignore SA1019 spoke pinned to CAPI core/v1beta1 APIEndpoint (see c82a9f9) to preserve pre-v1.13 spoke CRD schema
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	ClusterFinalizer = "cloudstackcluster.infrastructure.cluster.x-k8s.io"
 )
+
+// FailureDomainSpec describes a failure domain for machine placement.
+// Preserved from CAPI v1beta1 to maintain backward-compatible CRD serialization.
+type FailureDomainSpec struct {
+	ControlPlane bool              `json:"controlPlane,omitempty"`
+	Attributes   map[string]string `json:"attributes,omitempty"`
+}
+
+// FailureDomains is a map of failure-domain name to FailureDomainSpec.
+type FailureDomains map[string]FailureDomainSpec
 
 var K8sClient client.Client
 
@@ -45,7 +55,7 @@ type CloudStackClusterStatus struct {
 	// CAPI recognizes failure domains as a method to spread machines.
 	// CAPC sets failure domains to indicate functioning CloudStackFailureDomains.
 	// +optional
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
 
 	// Id of CAPC managed kubernetes cluster created in CloudStack
 	// +optional
@@ -57,7 +67,6 @@ type CloudStackClusterStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:storageversion
 
 // CloudStackCluster is the Schema for the cloudstackclusters API
 type CloudStackCluster struct {

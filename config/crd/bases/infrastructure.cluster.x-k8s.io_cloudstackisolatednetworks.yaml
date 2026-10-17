@@ -45,15 +45,13 @@ spec:
                 description: The kubernetes control plane endpoint.
                 properties:
                   host:
-                    description: The hostname on which the API server is serving.
+                    description: host is the hostname on which the API server is serving.
+                    maxLength: 512
                     type: string
                   port:
-                    description: The port on which the API server is serving.
+                    description: port is the port on which the API server is serving.
                     format: int32
                     type: integer
-                required:
-                - host
-                - port
                 type: object
               id:
                 description: ID.
@@ -116,15 +114,13 @@ spec:
                 description: The kubernetes control plane endpoint.
                 properties:
                   host:
-                    description: The hostname on which the API server is serving.
+                    description: host is the hostname on which the API server is serving.
+                    maxLength: 512
                     type: string
                   port:
-                    description: The port on which the API server is serving.
+                    description: port is the port on which the API server is serving.
                     format: int32
                     type: integer
-                required:
-                - host
-                - port
                 type: object
               failureDomainName:
                 description: FailureDomainName -- the FailureDomain the network is
@@ -192,15 +188,13 @@ spec:
                 description: The kubernetes control plane endpoint.
                 properties:
                   host:
-                    description: The hostname on which the API server is serving.
+                    description: host is the hostname on which the API server is serving.
+                    maxLength: 512
                     type: string
                   port:
-                    description: The port on which the API server is serving.
+                    description: port is the port on which the API server is serving.
                     format: int32
                     type: integer
-                required:
-                - host
-                - port
                 type: object
               failureDomainName:
                 description: FailureDomainName -- the FailureDomain the network is
@@ -252,7 +246,8 @@ spec:
               of CloudStackIsolatedNetwork
             properties:
               firewallRulesOpened:
-                description: Firewall rules open status.
+                description: Indicates whether the necessary firewall egress and routing
+                  rules for the isolated network have been applied successfully.
                 type: boolean
               loadBalancerRuleID:
                 description: The ID of the lb rule used to assign VMs to the lb.
@@ -271,6 +266,115 @@ spec:
                 type: string
             required:
             - ready
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - name: v1beta4
+    schema:
+      openAPIV3Schema:
+        description: CloudStackIsolatedNetwork is the Schema for the cloudstackisolatednetworks
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CloudStackIsolatedNetworkSpec defines the desired state of
+              CloudStackIsolatedNetwork
+            properties:
+              controlPlaneEndpoint:
+                description: |-
+                  controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+                  Populated by the controller after LB provisioning; empty at create time.
+                minProperties: 1
+                properties:
+                  host:
+                    description: host is the hostname on which the API server is serving.
+                    maxLength: 512
+                    minLength: 1
+                    type: string
+                  port:
+                    description: port is the port on which the API server is serving.
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                type: object
+              failureDomainName:
+                description: FailureDomainName -- the FailureDomain the network is
+                  placed in.
+                type: string
+              gateway:
+                description: Gateway for the network.
+                type: string
+              id:
+                description: ID.
+                type: string
+              name:
+                description: Name.
+                type: string
+              netmask:
+                description: Netmask for the network.
+                type: string
+              offering:
+                description: Offering for the network.
+                type: string
+              vpc:
+                description: VPC the network belongs to.
+                properties:
+                  cidr:
+                    description: CIDR for the VPC.
+                    type: string
+                  id:
+                    description: Cloudstack VPC ID of the network.
+                    type: string
+                  name:
+                    description: Cloudstack VPC Name of the network.
+                    type: string
+                  offering:
+                    description: Cloudstack VPC Offering for the network.
+                    type: string
+                type: object
+            required:
+            - failureDomainName
+            type: object
+          status:
+            description: CloudStackIsolatedNetworkStatus defines the observed state
+              of CloudStackIsolatedNetwork
+            properties:
+              firewallRulesOpened:
+                description: Indicates whether the necessary firewall egress and routing
+                  rules for the isolated network have been applied successfully.
+                type: boolean
+              loadBalancerRuleID:
+                description: The ID of the lb rule used to assign VMs to the lb.
+                type: string
+              publicIPID:
+                description: The CS public IP ID to use for the k8s endpoint.
+                type: string
+              ready:
+                description: Ready indicates the readiness of this provider resource.
+                type: boolean
+              routingMode:
+                description: Routing mode of the network.
+                type: string
             type: object
         type: object
     served: true
