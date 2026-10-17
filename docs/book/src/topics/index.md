@@ -1,5 +1,6 @@
 # Topics
 
+- [Upgrading to v0.7](upgrading.md)
 - [Move From Bootstrap](mover.md)
 - [TroubleShooting](troubleshooting.md)
 - [Custom Images](custom-images.md)

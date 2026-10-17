@@ -218,6 +218,10 @@ If on a shared network, and the endpoint is an IP, it must belong to the shared 
 The Endpoint is exposed in two parts, as the `CLUSTER_ENDPOINT_IP` and `CLUSTER_ENDPOINT_PORT` environment variables.
 `CLUSTER_ENDPOINT_PORT` is optional, and defaults to *6443*.
 
+On an isolated network, you can let CAPC pick the endpoint IP by setting `CLUSTER_ENDPOINT_IP=""`. CAPC then picks
+a free public IP in the zone and fills in `spec.controlPlaneEndpoint.host` itself. The variable has no default in
+the templates, so set it to an empty string rather than leaving it unset, or `clusterctl generate cluster` fails.
+
 The list of Public IPs for the specific zone can be fetched using the cmk cli as follows :
 ```
 cmk list publicipaddresses listall=true zoneid=<zone-id> forvirtualnetwork=true allocatedonly=false | jq '.publicipaddress[] | select(.state == "Free" or .state == "Reserved") | .ipaddress'
