@@ -22,8 +22,12 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	infrav1 "sigs.k8s.io/cluster-api-provider-cloudstack/api/v1beta4"
 	dummies "sigs.k8s.io/cluster-api-provider-cloudstack/test/dummies/v1beta4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = ginkgo.Describe("CloudStackCluster webhooks", func() {
@@ -65,6 +69,37 @@ var _ = ginkgo.Describe("CloudStackCluster webhooks", func() {
 			},
 			fmt.Sprintf(requiredFmt, "each Zone requires a Network specification"),
 		),
+	)
+
+	// The typed client omits host: "" and port: 0, so these cases send unstructured objects to match what
+	// kubectl or clusterctl send for a template rendered with an empty CLUSTER_ENDPOINT_IP.
+	ginkgo.DescribeTable("empty controlPlaneEndpoint is accepted and left for the controller to fill",
+		func(endpoint map[string]any, wantEndpoint clusterv1.APIEndpoint) {
+			gvk := infrav1.GroupVersion.WithKind("CloudStackCluster")
+			dummies.CSCluster.SetGroupVersionKind(gvk)
+			content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(dummies.CSCluster)
+			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			obj := &unstructured.Unstructured{Object: content}
+			gomega.Expect(unstructured.SetNestedMap(obj.Object, endpoint, "spec", "controlPlaneEndpoint")).To(gomega.Succeed())
+
+			gomega.Expect(k8sClient.Create(ctx, obj)).To(gomega.Succeed())
+
+			got := &infrav1.CloudStackCluster{}
+			gomega.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(dummies.CSCluster), got)).To(gomega.Succeed())
+			gomega.Expect(got.Spec.ControlPlaneEndpoint).To(gomega.Equal(wantEndpoint))
+		},
+		ginkgo.Entry("empty host with a port keeps the port",
+			map[string]any{"host": "", "port": int64(6443)}, clusterv1.APIEndpoint{Port: 6443}),
+		ginkgo.Entry("empty host with a custom port keeps the custom port",
+			map[string]any{"host": "", "port": int64(6444)}, clusterv1.APIEndpoint{Port: 6444}),
+		ginkgo.Entry("empty host and zero port drop the endpoint",
+			map[string]any{"host": "", "port": int64(0)}, clusterv1.APIEndpoint{}),
+		ginkgo.Entry("empty host alone drops the endpoint",
+			map[string]any{"host": ""}, clusterv1.APIEndpoint{}),
+		ginkgo.Entry("empty endpoint object is dropped",
+			map[string]any{}, clusterv1.APIEndpoint{}),
+		ginkgo.Entry("host with zero port keeps the host",
+			map[string]any{"host": "10.0.0.1", "port": int64(0)}, clusterv1.APIEndpoint{Host: "10.0.0.1"}),
 	)
 
 	ginkgo.Describe("update validation", func() {

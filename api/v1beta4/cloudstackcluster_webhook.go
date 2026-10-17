@@ -17,9 +17,15 @@ limitations under the License.
 package v1beta4
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"slices"
 
+	admissionv1 "k8s.io/api/admission/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/cluster-api-provider-cloudstack/pkg/webhookutil"
@@ -30,11 +36,108 @@ import (
 
 var cloudstackclusterlog = logf.Log.WithName("cloudstackcluster-resource")
 
+// cloudStackClusterMutatePath must match the path in the mutating webhook marker below.
+const cloudStackClusterMutatePath = "/mutate-infrastructure-cluster-x-k8s-io-v1beta4-cloudstackcluster"
+
 func (r *CloudStackCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	// The defaulting webhook is registered by hand so its response can carry explicit removals for an
+	// empty controlPlaneEndpoint. The builder would register a plain defaulter at the same path, so it is
+	// only given the validator here.
+	mgr.GetWebhookServer().Register(cloudStackClusterMutatePath, &admission.Webhook{
+		Handler: &controlPlaneEndpointPruner{inner: admission.WithDefaulter(mgr.GetScheme(), r).Handler},
+	})
 	return ctrl.NewWebhookManagedBy(mgr, r).
-		WithDefaulter(r).
 		WithValidator(r).
 		Complete()
+}
+
+// controlPlaneEndpointPruner keeps manifests that leave spec.controlPlaneEndpoint.host empty working on
+// v1beta4. Before v1beta4, host: "" was accepted and CAPC filled in a free public IP during reconcile.
+// The v1beta4 hub reuses CAPI's core/v1beta2 APIEndpoint, whose schema needs host to be non-empty,
+// port to be at least 1, and the endpoint to have at least one property. The stock cluster templates
+// send host: "" when CLUSTER_ENDPOINT_IP is set to an empty string, so they would now be rejected.
+//
+// Mutating webhooks run before the apiserver checks the CRD schema, so removing the empty fields here
+// restores the old behaviour. This cannot live in Default(): host and port are omitempty, so an empty
+// value decodes the same as a missing one. Default() then either changes nothing, so no patch is sent,
+// or has to rewrite the whole endpoint, which drops a port set next to an empty host. controller-runtime
+// also discards "remove" operations that only mirror the Go round trip unless
+// DefaulterRemoveUnknownOrOmitableFields is set, and CAPI v1.11 stopped using that option.
+//
+// The pruner therefore works on the raw request. It removes the empty fields first and then runs the
+// defaulter on the pruned request. JSON patch operations apply in order, so the removals followed by the
+// defaulter's patch (computed against the pruned request) take the original request to the defaulted
+// one. A future Default() that touches the endpoint, such as defaulting the port, composes with this.
+type controlPlaneEndpointPruner struct {
+	inner admission.Handler
+}
+
+func (h *controlPlaneEndpointPruner) Handle(ctx context.Context, req admission.Request) admission.Response {
+	if req.Operation == admissionv1.Delete {
+		return h.inner.Handle(ctx, req)
+	}
+
+	pruned, changed, err := pruneEmptyControlPlaneEndpoint(req.Object.Raw)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+	if !changed {
+		return h.inner.Handle(ctx, req)
+	}
+
+	removals := admission.PatchResponseFromRaw(req.Object.Raw, pruned)
+	if !removals.Allowed {
+		return removals
+	}
+
+	prunedReq := req
+	prunedReq.Object = runtime.RawExtension{Raw: pruned}
+	resp := h.inner.Handle(ctx, prunedReq)
+	if !resp.Allowed {
+		return resp
+	}
+	resp.Patches = slices.Concat(removals.Patches, resp.Patches)
+	patchType := admissionv1.PatchTypeJSONPatch
+	resp.PatchType = &patchType
+	return resp
+}
+
+// pruneEmptyControlPlaneEndpoint removes host: "" and port: 0 from spec.controlPlaneEndpoint, and the
+// endpoint itself when nothing is left. A port set next to an empty host is kept, because the
+// controller uses it as the public port when it picks the IP.
+func pruneEmptyControlPlaneEndpoint(raw []byte) ([]byte, bool, error) {
+	var obj map[string]any
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber() // Avoid rounding large integers elsewhere in the object through float64.
+	if err := dec.Decode(&obj); err != nil {
+		return nil, false, err
+	}
+
+	spec, _ := obj["spec"].(map[string]any)
+	endpoint, ok := spec["controlPlaneEndpoint"].(map[string]any)
+	if !ok {
+		return raw, false, nil
+	}
+
+	changed := false
+	if host, ok := endpoint["host"].(string); ok && host == "" {
+		delete(endpoint, "host")
+		changed = true
+	}
+	if port, ok := endpoint["port"].(json.Number); ok && port.String() == "0" {
+		delete(endpoint, "port")
+		changed = true
+	}
+	if len(endpoint) == 0 {
+		delete(spec, "controlPlaneEndpoint")
+		changed = true
+	}
+	if !changed {
+		return raw, false, nil
+	}
+
+	pruned, err := json.Marshal(obj)
+	return pruned, true, err
 }
 
 //+kubebuilder:webhook:path=/mutate-infrastructure-cluster-x-k8s-io-v1beta4-cloudstackcluster,mutating=true,failurePolicy=fail,sideEffects=None,groups=infrastructure.cluster.x-k8s.io,resources=cloudstackclusters,verbs=create;update,versions=v1beta4,name=mcloudstackcluster.kb.io,admissionReviewVersions=v1;v1beta1
