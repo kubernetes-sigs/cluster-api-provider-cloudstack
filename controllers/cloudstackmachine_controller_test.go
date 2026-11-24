@@ -19,10 +19,12 @@ package controllers_test
 import (
 	"fmt"
 	"strings"
+	"sync/atomic"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	gomega "github.com/onsi/gomega"
 	gomock "go.uber.org/mock/gomock"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -196,6 +198,133 @@ var _ = ginkgo.Describe("CloudStackMachineReconciler", func() {
 				return false
 			}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
 		})
+
+		ginkgo.It("Should remove a control plane VM from the LB rule once its CAPI Machine is marked for deletion", func() {
+			fd := &infrav1.CloudStackFailureDomain{}
+			gomega.Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(dummies.CSFailureDomain1), fd)).To(gomega.Succeed())
+			fd.Spec.Zone.Network = dummies.ISONet1
+			gomega.Expect(k8sClient.Update(ctx, fd)).To(gomega.Succeed())
+
+			dummies.CSISONet1.Name = dummies.ClusterName + "-" + dummies.ISONet1.Name
+			dummies.CSISONet1.Spec.FailureDomainName = dummies.CSFailureDomain1.Spec.Name
+			gomega.Expect(k8sClient.Create(ctx, dummies.CSISONet1)).To(gomega.Succeed())
+
+			otherCPMachine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "other-cp-machine", Namespace: dummies.ClusterNameSpace, Labels: controlPlaneLabels()},
+				Spec:       clusterv1.MachineSpec{ClusterName: dummies.ClusterName},
+			}
+			gomega.Expect(k8sClient.Create(ctx, otherCPMachine)).To(gomega.Succeed())
+
+			dummies.CAPIMachine.Labels = controlPlaneLabels()
+			dummies.CAPIMachine.Finalizers = []string{clusterv1.MachineFinalizer}
+			dummies.CAPIMachine.Spec.InfrastructureRef = corev1.ObjectReference{
+				APIVersion: infrav1.GroupVersion.String(),
+				Kind:       "CloudStackMachine",
+				Name:       dummies.CSMachine1.Name,
+				Namespace:  dummies.ClusterNameSpace,
+			}
+
+			mockCloudClient.EXPECT().GetOrCreateVMInstance(
+				gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _, _ interface{}) {
+					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
+					controllerutil.AddFinalizer(arg1.(*infrav1.CloudStackMachine), infrav1.MachineFinalizer)
+				}).AnyTimes()
+			mockCloudClient.EXPECT().AssignVMToLoadBalancerRule(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
+			var removed atomic.Bool
+			mockCloudClient.EXPECT().RemoveVMFromLoadBalancerRule(gomock.Any(), *dummies.CSMachine1.Spec.InstanceID).Do(
+				func(_, _ interface{}) { removed.Store(true) }).AnyTimes().Return(nil)
+
+			setupMachineCRDs()
+
+			gomega.Eventually(func() bool {
+				tempMachine := &infrav1.CloudStackMachine{}
+				key := client.ObjectKey{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+				if err := k8sClient.Get(ctx, key, tempMachine); err == nil {
+					return tempMachine.Status.Ready
+				}
+				return false
+			}, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
+			gomega.Expect(removed.Load()).To(gomega.BeFalse())
+
+			gomega.Expect(k8sClient.Delete(ctx, dummies.CAPIMachine)).To(gomega.Succeed())
+
+			gomega.Eventually(removed.Load, timeout).WithPolling(pollInterval).Should(gomega.BeTrue())
+		})
+	})
+
+	ginkgo.Context("API server LB membership with a fake ctrlRuntimeClient.", func() {
+		var requestNamespacedName types.NamespacedName
+
+		ginkgo.BeforeEach(func() {
+			setupFakeTestClient()
+			requestNamespacedName = types.NamespacedName{Namespace: dummies.ClusterNameSpace, Name: dummies.CSMachine1.Name}
+			dummies.CSFailureDomain1.Spec.Zone.Network = dummies.ISONet1
+			dummies.CSISONet1.Name = dummies.ClusterName + "-" + dummies.ISONet1.Name
+
+			dummies.CAPIMachine.Name = "cp-machine"
+			dummies.CAPIMachine.Labels = controlPlaneLabels()
+			dummies.CAPIMachine.Finalizers = []string{clusterv1.MachineFinalizer}
+			dummies.CAPIMachine.Spec.Bootstrap.DataSecretName = &dummies.BootstrapSecret.Name
+			dummies.CSMachine1.Labels = controlPlaneLabels()
+			dummies.CSMachine1.Finalizers = []string{infrav1.MachineFinalizer}
+			dummies.CSMachine1.OwnerReferences = append(dummies.CSMachine1.OwnerReferences, metav1.OwnerReference{
+				Kind:       "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       dummies.CAPIMachine.Name,
+				UID:        "uniqueness",
+			})
+
+			for _, obj := range []client.Object{dummies.CAPIMachine, dummies.CSMachine1, dummies.CSFailureDomain1,
+				dummies.ACSEndpointSecret1, dummies.BootstrapSecret, dummies.CSISONet1} {
+				gomega.Expect(fakeCtrlClient.Create(ctx, obj)).To(gomega.Succeed())
+			}
+			setClusterReady(fakeCtrlClient)
+
+			mockCloudClient.EXPECT().GetOrCreateVMInstance(
+				gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any()).Do(
+				func(arg1, _, _, _, _, _ interface{}) {
+					arg1.(*infrav1.CloudStackMachine).Status.InstanceState = "Running"
+				}).AnyTimes()
+		})
+
+		ginkgo.It("Should remove the VM from the LB rule when its CAPI Machine is being deleted", func() {
+			gomega.Expect(fakeCtrlClient.Create(ctx, &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{Name: "other-cp-machine", Namespace: dummies.ClusterNameSpace, Labels: controlPlaneLabels()},
+				Spec:       clusterv1.MachineSpec{ClusterName: dummies.ClusterName},
+			})).To(gomega.Succeed())
+			gomega.Expect(fakeCtrlClient.Delete(ctx, dummies.CAPIMachine)).To(gomega.Succeed())
+
+			mockCloudClient.EXPECT().RemoveVMFromLoadBalancerRule(gomock.Any(), *dummies.CSMachine1.Spec.InstanceID).Times(1).Return(nil)
+			mockCloudClient.EXPECT().AssignVMToLoadBalancerRule(gomock.Any(), gomock.Any()).Times(0)
+
+			_, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		})
+
+		ginkgo.It("Should keep the VM in the LB rule when it is the last active control plane Machine", func() {
+			gomega.Expect(fakeCtrlClient.Delete(ctx, dummies.CAPIMachine)).To(gomega.Succeed())
+
+			mockCloudClient.EXPECT().RemoveVMFromLoadBalancerRule(gomock.Any(), gomock.Any()).Times(0)
+			mockCloudClient.EXPECT().AssignVMToLoadBalancerRule(gomock.Any(), gomock.Any()).Times(0)
+
+			_, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		})
+
+		ginkgo.It("Should remove the VM from the LB rule before destroying it when the CloudStackMachine is deleted", func() {
+			gomega.Expect(fakeCtrlClient.Delete(ctx, dummies.CSMachine1)).To(gomega.Succeed())
+
+			gomock.InOrder(
+				mockCloudClient.EXPECT().RemoveVMFromLoadBalancerRule(gomock.Any(), *dummies.CSMachine1.Spec.InstanceID).Times(1).Return(nil),
+				mockCloudClient.EXPECT().DestroyVMInstance(gomock.Any()).Times(1).Return(nil),
+			)
+
+			_, err := MachineReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: requestNamespacedName})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		})
 	})
 
 	ginkgo.Context("With a fake ctrlRuntimeClient and no test Env at all.", func() {
@@ -266,3 +395,10 @@ var _ = ginkgo.Describe("CloudStackMachineReconciler", func() {
 		})
 	})
 })
+
+func controlPlaneLabels() map[string]string {
+	return map[string]string{
+		clusterv1.ClusterNameLabel:         dummies.ClusterName,
+		clusterv1.MachineControlPlaneLabel: "",
+	}
+}
