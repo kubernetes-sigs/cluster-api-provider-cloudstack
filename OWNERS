@@ -1,9 +1,9 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
 approvers:
-  - yadvr
-  - davidjumani
-  - jweite-amazon
-  - dims
-  - g-gaston
+  - cluster-api-cloudstack-maintainers
+  - sig-cluster-lifecycle-leads
+
+emeritus_approvers:
   - chrisdoherty4
-  - weizhouapache
-  - vishesh92
+  - jweite-amazon
