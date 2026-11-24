@@ -1,0 +1,17 @@
+# See the OWNERS docs at https://go.k8s.io/owners#owners_aliases
+
+aliases:
+  cluster-api-cloudstack-maintainers:
+    - davidjumani
+    - dims
+    - g-gaston
+    - vishesh92
+    - weizhouapache
+    - yadvr
+  # Source: https://github.com/kubernetes/org/blob/main/config/kubernetes/sig-cluster-lifecycle/teams.yaml
+  sig-cluster-lifecycle-leads:
+    - fabriziopandini
+    - hakman
+    - justinsb
+    - neolit123
+    - sbueringer
